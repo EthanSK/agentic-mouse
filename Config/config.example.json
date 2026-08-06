@@ -1,0 +1,200 @@
+{
+  "_comment": [
+    "Copy this file to ~/.config/agentic-mouse/config.json and fill in the",
+    "REPLACE_ME values, then `chmod 600` it.",
+    "",
+    "Every REPLACE_ME_* value below is a placeholder. The loader recognises them",
+    "and treats the corresponding feature as unconfigured rather than trying to",
+    "use them, so an unedited copy of this file is harmless.",
+    "",
+    "Nothing in this example is a real bridge address, light id, device id or",
+    "application key, and none of those may ever be committed to this repository.",
+    "Run `agentic-mouse-doctor config` to see the resolved configuration, fully",
+    "redacted, along with any warnings."
+  ],
+
+  "hue": {
+    "enabled": true,
+
+    "_comment_bridgeHost": [
+      "The bridge's IP address or its <bridge-id>.local name, on your LAN.",
+      "Find it in the Hue app under Settings -> My Hue System -> your bridge."
+    ],
+    "bridgeHost": "REPLACE_ME_BRIDGE_HOST",
+
+    "_comment_applicationKeySource": [
+      "Where the hue-application-key comes from. 'keychain' is strongly",
+      "preferred; see docs/SETUP.md for the one-line `security` command that",
+      "stores it. Alternatives:",
+      "  {\"kind\": \"environment\", \"name\": \"SCIMITAR_HUE_APPLICATION_KEY\"}",
+      "  {\"kind\": \"inline\", \"value\": \"...\"}   (discouraged; warned about)"
+    ],
+    "applicationKeySource": {
+      "kind": "keychain",
+      "service": "com.ethan.agentic-mouse",
+      "account": "hue-application-key"
+    },
+
+    "_comment_lights": [
+      "The four chosen Hue lights, split into the two clusters that drive the",
+      "two mouse LEDs:",
+      "  candleAndSofa -> MouseSideLed (0x40002), the thumb pad",
+      "  deskLusters   -> MouseLogoLed (0x40001), the palm logo",
+      "",
+      "`resourceIdentifier` is a Hue v2 light resource UUID. List yours with:",
+      "  curl -sk -H \"hue-application-key: $KEY\" https://$BRIDGE/clip/v2/resource/light",
+      "`label` is free text, only used in the menu and the doctor output.",
+      "`weight` biases a lamp inside its cluster; leave it at 1.0 normally."
+    ],
+    "lights": [
+      {
+        "resourceIdentifier": "REPLACE_ME_CANDLE_LIGHT_ID",
+        "cluster": "candleAndSofa",
+        "label": "Candle",
+        "weight": 1.0
+      },
+      {
+        "resourceIdentifier": "REPLACE_ME_SOFA_LIGHT_ID",
+        "cluster": "candleAndSofa",
+        "label": "Sofa",
+        "weight": 1.0
+      },
+      {
+        "resourceIdentifier": "REPLACE_ME_LUSTER_1_LIGHT_ID",
+        "cluster": "deskLusters",
+        "label": "Desk luster 1",
+        "weight": 1.0
+      },
+      {
+        "resourceIdentifier": "REPLACE_ME_LUSTER_2_LIGHT_ID",
+        "cluster": "deskLusters",
+        "label": "Desk luster 2",
+        "weight": 1.0
+      }
+    ],
+
+    "_comment_brightness": [
+      "brightnessFloor keeps a lamp at 1% from making the mouse look broken.",
+      "brightnessGamma < 1 lifts the low end, because Hue reports brightness",
+      "roughly perceptually while LEDs respond roughly linearly."
+    ],
+    "brightnessFloor": 0.12,
+    "brightnessCeiling": 1.0,
+    "brightnessGamma": 0.7,
+    "saturationBoost": 0.15,
+
+    "_comment_offPolicy": [
+      "What a zone does when every lamp in its cluster is off:",
+      "  blackout     - the zone goes dark, mirroring the room (default)",
+      "  releaseLayer - the zone becomes translucent and iCUE takes it back",
+      "  dimLastColor - a faint hint of the last colour"
+    ],
+    "offPolicy": "blackout",
+
+    "coalescingInterval": 0.08
+  },
+
+  "lighting": {
+    "enabled": true,
+
+    "_comment_device": [
+      "Which mouse may be painted. Matching is case-insensitive and every",
+      "substring must appear in the model name. `deviceTag` optionally pins one",
+      "exact unit by its redacted hash (printed by `agentic-mouse-doctor icue`), so a",
+      "specific mouse can be chosen without ever writing its real id to disk.",
+      "requiresUniqueMatch refuses to guess when several mice match."
+    ],
+    "device": {
+      "modelContains": ["scimitar"],
+      "deviceTag": null,
+      "requiresUniqueMatch": true
+    },
+
+    "_comment_layerPriority": [
+      "iCUE itself renders at 127 and other shared SDK clients default to 128,",
+      "so 130 puts the companion on top. This is still a SHARED layer - the",
+      "project never requests exclusive lighting control."
+    ],
+    "layerPriority": 130,
+
+    "_comment_sdkSearchPaths": [
+      "Extra places to look for the proprietary iCUE SDK, tried before the",
+      "built-in list. The SDK is never bundled with this project."
+    ],
+    "sdkSearchPaths": [],
+
+    "modeIndicatorColor": "#FF00A8",
+    "modeIndicatorSecondaryColor": "#3000FF",
+    "modeIndicatorPulseEnabled": true,
+    "modeIndicatorPulsePeriod": 1.6,
+    "modeIndicatorPulseDepth": 0.35,
+
+    "maximumWritesPerSecond": 30
+  },
+
+  "multiTap": {
+    "enabled": true,
+
+    "_comment_multiTapTimeout": "Seconds after the last tap before the letter commits.",
+    "multiTapTimeout": 0.9,
+
+    "_comment_holdThreshold": "Press duration that counts as a long press (digits, Return, case cycle).",
+    "holdThreshold": 0.35,
+
+    "_comment_echoPolicy": [
+      "commitOnly  - buffered. Nothing reaches the app until the letter commits;",
+      "              the HUD shows what is pending. This is the safe default.",
+      "livePreview - expert opt-in. Types each letter immediately and rewrites it",
+      "              with real backspaces as you cycle. Still target-anchored,",
+      "              but it edits a live document."
+    ],
+    "echoPolicy": "commitOnly",
+
+    "_comment_focusChangePolicy": [
+      "cancelPending        - drop the half-typed letter, stay in the mode",
+      "cancelPendingAndExit - drop it and leave multi-tap mode entirely"
+    ],
+    "focusChangePolicy": "cancelPending",
+
+    "initialShiftState": "initialCaps",
+
+    "_comment_autoExitAfterIdle": "Seconds of no input before the mode exits itself. 0 disables.",
+    "autoExitAfterIdle": 180,
+
+    "toggleDebounce": 0.25
+  },
+
+  "input": {
+    "_comment_transport": [
+      "icueMacroKey - the production route. Raw CorsairKeyEvents from the exact",
+      "               Scimitar, suppressed while the mode is active via",
+      "               CorsairConfigureKeyEvent under CAL_ExclusiveKeyEventsListening.",
+      "cgEventTap   - documented fallback only. It cannot tell one physical mouse",
+      "               from another. See docs/ICUE-FALLBACK.md."
+    ],
+    "transport": "icueMacroKey",
+
+    "_comment_gridMacroKeys": "The audited Scimitar reports CMKI_1 ... CMKI_12.",
+    "gridMacroKeys": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+
+    "_comment_toggleKey": "Side button 12 enters and exits the mode. It displaces no applied normal action.",
+    "toggleKey": 12,
+
+    "_comment_fallbackBindings": [
+      "Only used when transport is cgEventTap. Maps each grid key name (k1..k12)",
+      "to whatever CGEvent the button produces under your iCUE profile, e.g.",
+      "  \"k1\": {\"kind\": \"mouseButton\", \"button\": 3},",
+      "  \"k2\": {\"kind\": \"keyCode\", \"keyCode\": 107, \"modifiers\": \"\"} (F14; F13/F17/F18 are reserved by VS Code)"
+    ],
+    "fallbackBindings": {}
+  },
+
+  "hud": {
+    "_comment": "corner: topLeft | topRight | bottomLeft | bottomRight | center",
+    "corner": "bottomRight",
+    "margin": 28,
+    "opacity": 0.96,
+    "followsPointerScreen": true,
+    "showsTapProgressRing": true
+  }
+}

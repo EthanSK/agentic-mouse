@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Agentic Mouse: two mice, one macOS muscle-memory map." />
+    <meta name="theme-color" content="#101321" />
+    <title>Agentic Mouse — two mice, one muscle-memory map</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#map">Skip to the map</a>
+    <header class="topbar">
+      <a class="brand" href="./" aria-label="Agentic Mouse home">
+        <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+        <span>AGENTIC<br />MOUSE</span>
+      </a>
+      <nav aria-label="Primary navigation">
+        <a href="#map">The map</a>
+        <a href="#routes">Your mouse</a>
+        <a href="https://github.com/EthanSK/agentic-mouse">GitHub <span aria-hidden="true">↗</span></a>
+      </nav>
+    </header>
+
+    <main>
+      <section class="hero" aria-labelledby="hero-title">
+        <div class="hero-copy">
+          <p class="eyebrow"><span></span> macOS / local-first / visible configuration</p>
+          <h1 id="hero-title">Two mice.<br /><em>One</em> vocabulary.</h1>
+          <p class="lede">A practical control layer for the Corsair Scimitar and left-handed Razer Naga: reachable actions, no buried mystery profiles, and one map your hands can remember.</p>
+          <div class="actions">
+            <a class="button primary" href="https://github.com/EthanSK/agentic-mouse">Explore the project <span aria-hidden="true">→</span></a>
+            <a class="button secondary" href="#map">See Ethan’s map</a>
+          </div>
+          <p class="microcopy">Open source under MIT · no cloud account · no credentials in Git</p>
+        </div>
+        <div class="hero-art" aria-hidden="true">
+          <div class="orbit orbit-one"></div>
+          <div class="orbit orbit-two"></div>
+          <div class="mouse-body">
+            <div class="wheel"></div>
+            <div class="dpi"></div>
+            <div class="mouse-grid">
+              <b>1</b><b>4</b><b>7</b><b>10</b>
+              <b>2</b><b class="key-forward">5</b><b class="key-horiz">8</b><b>11</b>
+              <b>3</b><b class="key-media">6</b><b class="key-back">9</b><b class="key-mode">12</b>
+            </div>
+          </div>
+          <p class="art-label">1× muscle memory<br /><span>2× physical mice</span></p>
+        </div>
+      </section>
+
+      <section class="principles" aria-label="Project principles">
+        <article><span class="index">01</span><h2>Reach first</h2><p>Common actions belong on the easy middle keys. Rare actions get the awkward edges — or stay empty.</p></article>
+        <article><span class="index">02</span><h2>Visible control</h2><p>iCUE and Karabiner own their profiles. Agentic Mouse never privately rewrites a vendor database.</p></article>
+        <article><span class="index">03</span><h2>Same meaning</h2><p>Keep shared actions consistent across mice when their physical shape makes that sensible.</p></article>
+      </section>
+
+      <section class="map-section" id="map" aria-labelledby="map-title">
+        <div class="section-heading"><p class="eyebrow"><span></span> ETHAN’S STARTING POINT</p><h2 id="map-title">A map you can learn<br />without a legend.</h2></div>
+        <div class="map-layout">
+          <div class="map-intro"><p>Designed around a single idea: side-button shortcuts should feel as ordinary as Back, Forward and Play/Pause — not like a game control scheme you need to study.</p><p>The 4×3 grid remains uncomplicated until button 12 deliberately enters multi-tap.</p></div>
+          <div class="mapping-table" role="region" aria-label="Corsair Scimitar mapping" tabindex="0">
+            <div class="mapping-row heading"><span>Control</span><span>Normal</span><span>VS Code</span></div>
+            <div class="mapping-row"><span>Wheel press</span><span>Play / Pause</span><span>Play / Pause</span></div>
+            <div class="mapping-row"><span>DPI button</span><span>Disabled</span><span>Disabled</span></div>
+            <div class="mapping-row accent"><span>4</span><span>VoiceInk++ speech-to-text</span><span>Same</span></div>
+            <div class="mapping-row"><span>5 / 8</span><span>Forward / Back</span><span>Same</span></div>
+            <div class="mapping-row"><span>6 / 9</span><span>Next / Previous Track</span><span>Same</span></div>
+            <div class="mapping-row"><span>7 / 10</span><span>Horizontal left / right</span><span>Next Change / Stage File</span></div>
+            <div class="mapping-row accent"><span>12</span><span>Enter / exit multi-tap</span><span>Same</span></div>
+            <div class="mapping-row"><span>All DPI stages</span><span>2,750 DPI</span><span>2,750 DPI</span></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="routes" id="routes" aria-labelledby="routes-title">
+        <div class="section-heading"><p class="eyebrow"><span></span> TWO PHYSICAL ROUTES</p><h2 id="routes-title">Choose the honest path<br />for your hardware.</h2></div>
+        <div class="route-grid">
+          <article class="route-card corsair"><div class="route-top"><span>CORSAIR</span><span class="pill">Now</span></div><h3>Scimitar Elite<br />Wireless SE</h3><p>Use iCUE for the visible device profile. The optional macOS helper adds focus-safe multi-tap and read-only Hue lighting.</p><a href="https://github.com/EthanSK/agentic-mouse/blob/main/docs/SETUP.md">Read the setup <span>→</span></a></article>
+          <article class="route-card razer"><div class="route-top"><span>RAZER</span><span class="pill outline">Capture first</span></div><h3>Naga Left-Handed<br />Edition</h3><p>Use Karabiner-Elements, scoped to the actual USB device. Capture the grid in EventViewer before you assign it.</p><a href="https://github.com/EthanSK/agentic-mouse/blob/main/docs/MICE.md">Read the Naga guide <span>→</span></a></article>
+        </div>
+      </section>
+
+      <section class="safety" aria-labelledby="safety-title">
+        <p class="eyebrow"><span></span> THE NON-NEGOTIABLES</p>
+        <h2 id="safety-title">Local, legible, reversible.</h2>
+        <ul>
+          <li><b>01</b><span><strong>No hidden profile edits.</strong> Vendor apps stay the source of truth for their own hardware.</span></li>
+          <li><b>02</b><span><strong>No home data in a repo.</strong> Bridge keys, device IDs and room names stay local.</span></li>
+          <li><b>03</b><span><strong>Typing fails closed.</strong> If focus is uncertain, Agentic Mouse sends nothing.</span></li>
+        </ul>
+      </section>
+    </main>
+
+    <footer><span>AGENTIC MOUSE / 2026</span><span>Built in public by <a href="https://github.com/EthanSK">Ethan Sarif-Kattan</a></span></footer>
+    <script src="./script.js"></script>
+  </body>
+</html>

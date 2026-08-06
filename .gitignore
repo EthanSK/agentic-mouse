@@ -1,0 +1,40 @@
+# ---- Build products ----
+.build/
+build/
+DerivedData/
+*.o
+*.a
+*.dSYM/
+*.app/
+*.zip
+*.dmg
+
+# ---- Xcode / SwiftPM ----
+.swiftpm/
+Package.resolved
+*.xcodeproj/
+*.xcworkspace/
+xcuserdata/
+
+# ---- Vendor material (never commit) ----
+# The Corsair iCUE SDK is proprietary and is loaded at runtime via dlopen.
+Vendor/
+**/iCUESDK.framework/
+**/libiCUESDK.dylib
+**/*.pdf
+
+# ---- Secrets and machine-specific configuration (never commit) ----
+# Real configuration lives in ~/.config/scimitar-companion/, not here.
+config.json
+secrets.json
+*.secrets.json
+.env
+.env.*
+!Config/config.example.json
+!Config/secrets.example.json
+
+# ---- Local scratch ----
+.DS_Store
+*.log
+/tmp/
+Local/

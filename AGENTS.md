@@ -1,0 +1,16 @@
+# Agentic Mouse project rules
+
+- This repository owns two additive features for Ethan's Corsair Scimitar Elite Wireless SE on macOS: living-room Philips Hue color mirroring and an explicit classic phone multi-tap typing mode.
+- Preserve the existing working iCUE assignments, 2,750 DPI, Logitech setup, Karabiner rules, VoiceInk++ route, and all unrelated hardware and application settings.
+- The authoritative normal mapping is Ethan's latest correction: button 4 = VoiceInk++ speech-to-text toggle; button 5 = ordinary Forward; button 6 = Next Track; button 8 = ordinary Back; button 9 = Previous Track; buttons 7 and 10 = the horizontal-scroll pair (7 left, 10 right); the top DPI button must not trigger speech-to-text. A VS Code-linked iCUE profile overrides only 7/8/10 as 7 = Better Git next change, 8 = Better Git previous change, and 10 = stage current file; buttons 5, 6, and 9 retain their normal behavior. The old Karabiner smart Back/Forward interception is removed. Multi-tap mode may intercept these keys only while explicitly active and must restore the applicable normal or VS Code mapping on exit.
+- Never edit iCUE's private database/profile files directly. Live iCUE changes must be performed visibly and verified through the app.
+- Never write to Philips Hue lights. Hue access for this project is read-only; it may observe the selected living-room light and mirror that state to the mouse.
+- Target only the exact Scimitar device discovered at runtime. Never apply SDK lighting to all Corsair devices.
+- Use shared iCUE SDK lighting control. Do not request exclusive lighting control. `CAL_ExclusiveKeyEventsListening` is a separate, permitted input-only access level and is required transactionally while multi-tap mode is active so the normal side-button actions cannot leak through; it must target only the exact Scimitar and be released on every exit/failure path.
+- Multi-tap mode must be visibly and behaviorally modal, must not activate or focus its reference HUD, and must restore the normal mouse behavior immediately on exit, disconnect, or process failure.
+- Default text entry to buffered pending-character commit, anchored to the frontmost PID and focused AX element. A focus/element change cancels pending text. Never use an unanchored global backspace-and-replace loop as the safe default.
+- Living-room mirroring uses the four configured Living room lights as two independent clusters: candle/sofa to `MouseSideLed` (`0x40002`) and the two desk lusters to `MouseLogoLed` (`0x40001`). Multi-tap indication temporarily overrides both and restores the latest cached Hue frame on exit.
+- Do not store credentials, application keys, tokens, bridge addresses, device IDs, serials, generated app bundles, or downloaded vendor binaries in Git.
+- Keep hardware, network, event-source, text-output, state-machine, and UI boundaries injectable so core behavior can be tested without a connected mouse, Hue bridge, Accessibility permission, or iCUE.
+- Do not commit, push, publish, install a LaunchAgent, alter Accessibility permissions, or mutate live hardware/settings unless Ethan has separately authorized that exact step.
+- Run focused tests and a clean build before declaring implementation complete. Record any untestable hardware boundary honestly.

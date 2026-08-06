@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleName</key>
+	<string>Agentic Mouse</string>
+	<key>CFBundleDisplayName</key>
+	<string>Agentic Mouse</string>
+	<key>CFBundleExecutable</key>
+	<string>AgenticMouse</string>
+
+	<!-- Stable product identity; an ad-hoc rebuild may still require a new TCC grant. -->
+	<key>CFBundleIdentifier</key>
+	<string>com.ethan.agentic-mouse</string>
+
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>1.0.0</string>
+	<key>CFBundleVersion</key>
+	<string>1</string>
+	<key>LSMinimumSystemVersion</key>
+	<string>13.0</string>
+
+	<!--
+	  Menu-bar accessory: no Dock icon, and the process cannot become active.
+	  This is what allows the reference HUD to appear without stealing focus
+	  or moving the text caret in whatever app is being typed into.
+	-->
+	<key>LSUIElement</key>
+	<true/>
+
+	<key>NSHumanReadableCopyright</key>
+	<string>Local helper. No network access except the local Philips Hue bridge.</string>
+
+	<!--
+	  Shown by macOS in the Accessibility permission prompt. Multi-tap mode
+	  cannot work without it: the permission is what allows the helper to type
+	  the characters and to read which text field has focus so a half-typed
+	  letter is never delivered to the wrong place.
+	-->
+	<key>NSAccessibilityUsageDescription</key>
+	<string>Agentic Mouse needs Accessibility permission to type the characters you tap out on the mouse, and to check which text field has focus so a half-typed letter is never sent to the wrong app. Hue colour mirroring does not use this permission.</string>
+
+	<key>NSAppleEventsUsageDescription</key>
+	<string>Not used. Agentic Mouse does not script other applications.</string>
+
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>Agentic Mouse reads the state of your Philips Hue bridge on your local network so it can mirror your chosen Philips Hue lights onto the mouse. It only ever reads; it never changes a light.</string>
+
+	<key>NSHighResolutionCapable</key>
+	<true/>
+</dict>
+</plist>
