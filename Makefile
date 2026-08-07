@@ -1,7 +1,7 @@
 .DEFAULT_GOAL := help
 SHELL := /bin/bash
 
-.PHONY: help build release test test-verbose clean app doctor keymap mapping simulate colors check
+.PHONY: help build release test test-verbose test-karabiner clean app doctor keymap mapping simulate colors karabiner check
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
@@ -19,7 +19,7 @@ test: ## Run the hardware-free test suite
 test-verbose: ## Run tests with full output
 	swift test --verbose
 
-check: clean build test ## Clean build followed by the full test suite
+check: clean build test test-karabiner ## Clean build followed by the full test suite
 	@echo "clean build + tests passed"
 
 clean: ## Remove build products
@@ -43,3 +43,15 @@ simulate: build ## Drive the whole coordinator against fakes, no hardware needed
 
 colors: build ## Show how Hue readings convert to mouse colours
 	swift run agentic-mouse-doctor colors
+
+karabiner: ## Generate Karabiner complex-modification artifacts from named sources
+	python3 Scripts/generate-karabiner.py
+
+test-karabiner: ## Validate the Karabiner generator, generated files, and Karabiner syntax
+	python3 Scripts/generate-karabiner.py --check
+	python3 -m unittest discover -s Tests/KarabinerGeneratorTests -p 'test_*.py'
+	@if command -v karabiner_cli >/dev/null 2>&1; then \
+		karabiner_cli --lint-complex-modifications Karabiner/generated/agentic-mouse.json; \
+	else \
+		echo "karabiner_cli not found; skipped installed-CLI syntax validation"; \
+	fi

@@ -1,0 +1,11 @@
+// Emits the conventional auxiliary pointing-button event used for Back navigation.
+{
+  "id": "go-back",
+  "title": "Go back",
+  "description": "Use ordinary Back navigation without app-specific source-control interception.",
+  "manipulator": {
+    "to": [
+      { "pointing_button": "button4" }
+    ]
+  }
+}

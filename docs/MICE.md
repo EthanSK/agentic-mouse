@@ -68,3 +68,16 @@ Before changing either mouse:
    sends its expected event.
 
 This keeps one ergonomic vocabulary without making either device worse.
+
+## Shared semantic source and physical adapters
+
+Agentic Mouse keeps each semantic Karabiner action in a separate named file
+under `Karabiner/actions/`. The physical Corsair and Razer adapters live
+separately in `Karabiner/bindings/bindings.json`; every binding must use the
+transport observed from the real device and an exact Karabiner `device_if`
+identity. That lets matching physical cells share action names without assuming
+that printed numbers or transports match.
+
+Until approved physical bindings are added, the generated installable artifact
+contains zero rules and changes no live mapping. See `Karabiner/README.md` for
+the build and connection workflow.

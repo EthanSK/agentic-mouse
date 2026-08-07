@@ -1,0 +1,11 @@
+// Emits repeating horizontal-wheel movement toward the right while the trigger is held.
+{
+  "id": "scroll-horizontally-right",
+  "title": "Scroll horizontally right",
+  "description": "Move horizontally to the right, repeating naturally while the physical trigger remains held.",
+  "manipulator": {
+    "to": [
+      { "mouse_key": { "horizontal_wheel": 64 } }
+    ]
+  }
+}

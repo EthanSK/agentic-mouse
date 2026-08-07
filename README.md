@@ -87,6 +87,17 @@ swift run agentic-mouse-doctor mapping
 It reports configuration and simulated behaviour. It does not rewrite iCUE,
 Hue, macOS permissions or vendor firmware.
 
+## Shared Karabiner action sources
+
+Named semantic actions live one per file under `Karabiner/actions/`. Physical
+button positions are deliberately separate in `Karabiner/bindings/`, so the
+Corsair and Razer can share meanings while keeping exact device-scoped
+transports. Run `make karabiner` to regenerate the catalog and installable
+complex-modification artifact; generated JSON must not be edited by hand.
+
+See [the Karabiner source and binding guide](Karabiner/README.md) for the
+ownership boundary, generator workflow, and the later physical-binding step.
+
 ## The two supported routes
 
 | Mouse | Practical macOS route | Why |

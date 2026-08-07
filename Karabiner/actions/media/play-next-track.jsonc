@@ -1,0 +1,11 @@
+// Sends the standard macOS Next Track consumer key.
+{
+  "id": "play-next-track",
+  "title": "Play next track",
+  "description": "Advance to the next track through the standard macOS media-key route.",
+  "manipulator": {
+    "to": [
+      { "consumer_key_code": "scan_next_track" }
+    ]
+  }
+}

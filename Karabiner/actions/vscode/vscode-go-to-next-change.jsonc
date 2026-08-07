@@ -1,0 +1,17 @@
+// In Visual Studio Code, emits F13 for the existing Better Git Next Change keybinding.
+{
+  "id": "vscode-go-to-next-change",
+  "title": "VS Code: go to next change",
+  "description": "Move down to the next source-control change through the existing Better Git F13 keybinding.",
+  "manipulator": {
+    "to": [
+      { "key_code": "f13" }
+    ],
+    "conditions": [
+      {
+        "type": "frontmost_application_if",
+        "bundle_identifiers": ["^com\\.microsoft\\.VSCode(?:Insiders)?$"]
+      }
+    ]
+  }
+}

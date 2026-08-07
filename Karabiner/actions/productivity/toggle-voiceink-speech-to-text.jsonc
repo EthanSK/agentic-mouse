@@ -1,0 +1,15 @@
+// Taps the Control-Option-Shift chord used by VoiceInk++ to toggle speech-to-text.
+{
+  "id": "toggle-voiceink-speech-to-text",
+  "title": "Toggle VoiceInk++ speech-to-text",
+  "description": "Toggle VoiceInk++ using its existing Control-Option-Shift shortcut.",
+  "manipulator": {
+    "to": [
+      {
+        "key_code": "left_shift",
+        "modifiers": ["left_control", "left_option"],
+        "repeat": false
+      }
+    ]
+  }
+}

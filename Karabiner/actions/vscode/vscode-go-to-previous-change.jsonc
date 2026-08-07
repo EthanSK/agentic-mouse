@@ -1,0 +1,17 @@
+// In Visual Studio Code, emits F17 for the existing Better Git Previous Change keybinding.
+{
+  "id": "vscode-go-to-previous-change",
+  "title": "VS Code: go to previous change",
+  "description": "Move up to the previous source-control change through the existing Better Git F17 keybinding.",
+  "manipulator": {
+    "to": [
+      { "key_code": "f17" }
+    ],
+    "conditions": [
+      {
+        "type": "frontmost_application_if",
+        "bundle_identifiers": ["^com\\.microsoft\\.VSCode(?:Insiders)?$"]
+      }
+    ]
+  }
+}

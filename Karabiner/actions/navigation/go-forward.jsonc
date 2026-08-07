@@ -1,0 +1,11 @@
+// Emits the conventional auxiliary pointing-button event used for Forward navigation.
+{
+  "id": "go-forward",
+  "title": "Go forward",
+  "description": "Use ordinary Forward navigation without app-specific source-control interception.",
+  "manipulator": {
+    "to": [
+      { "pointing_button": "button5" }
+    ]
+  }
+}

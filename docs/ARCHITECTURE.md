@@ -35,6 +35,21 @@ The state machines, Hue/lighting pipeline, transports, and coordinator logic in
 `NSWorkspace`/`NSRunningApplication`; `ScimitarUI` contains the drawing and
 non-activating panel implementation. The pure multi-tap engine is AppKit-free.
 
+## Shared Karabiner source/build layer
+
+`Karabiner/actions/` contains one JSONC source file per named semantic action.
+`Karabiner/bindings/bindings.json` is the separate physical adapter layer: it
+connects an observed source transport and exact device identity to an action
+name. `Scripts/generate-karabiner.py` validates both layers and deterministically
+produces the action catalog and installable complex-modification JSON under
+`Karabiner/generated/`.
+
+This split keeps physical numbering and vendor transports out of the action
+definitions. iCUE still owns Corsair hardware settings and neutral transports;
+Karabiner owns approved device-scoped live semantics; Agentic Mouse owns the
+reviewable sources and build. An empty binding layer intentionally generates
+zero live rules.
+
 ## Design decisions, and why
 
 ### The input route is raw macro keys, not synthesised mouse buttons

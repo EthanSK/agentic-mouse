@@ -1,0 +1,17 @@
+// In Visual Studio Code, emits F18 for Better Git Stage Current File and Advance to Next Changed File.
+{
+  "id": "vscode-stage-and-go-to-next-change",
+  "title": "VS Code: stage and go to next change",
+  "description": "Stage the current changed file and advance through the existing Better Git F18 keybinding.",
+  "manipulator": {
+    "to": [
+      { "key_code": "f18" }
+    ],
+    "conditions": [
+      {
+        "type": "frontmost_application_if",
+        "bundle_identifiers": ["^com\\.microsoft\\.VSCode(?:Insiders)?$"]
+      }
+    ]
+  }
+}

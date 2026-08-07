@@ -1,0 +1,11 @@
+// Sends the standard macOS Previous Track consumer key.
+{
+  "id": "play-previous-track",
+  "title": "Play previous track",
+  "description": "Return to the previous track through the standard macOS media-key route.",
+  "manipulator": {
+    "to": [
+      { "consumer_key_code": "scan_previous_track" }
+    ]
+  }
+}

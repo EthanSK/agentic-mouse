@@ -1,0 +1,207 @@
+{
+  "schemaVersion": 1,
+  "actions": [
+    {
+      "id": "go-back",
+      "title": "Go back",
+      "description": "Use ordinary Back navigation without app-specific source-control interception.",
+      "source": "navigation/go-back.jsonc",
+      "manipulator": {
+        "to": [
+          {
+            "pointing_button": "button4"
+          }
+        ]
+      }
+    },
+    {
+      "id": "go-forward",
+      "title": "Go forward",
+      "description": "Use ordinary Forward navigation without app-specific source-control interception.",
+      "source": "navigation/go-forward.jsonc",
+      "manipulator": {
+        "to": [
+          {
+            "pointing_button": "button5"
+          }
+        ]
+      }
+    },
+    {
+      "id": "hold-open-app-switcher",
+      "title": "Hold open App Switcher",
+      "description": "Open the native macOS App Switcher, keep it available for selection while held, and commit the highlighted app on release.",
+      "source": "app-switching/hold-open-app-switcher.jsonc",
+      "manipulator": {
+        "to": [
+          {
+            "sticky_modifier": {
+              "left_command": "on"
+            }
+          },
+          {
+            "key_code": "tab",
+            "repeat": false
+          }
+        ],
+        "to_after_key_up": [
+          {
+            "sticky_modifier": {
+              "left_command": "off"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "play-next-track",
+      "title": "Play next track",
+      "description": "Advance to the next track through the standard macOS media-key route.",
+      "source": "media/play-next-track.jsonc",
+      "manipulator": {
+        "to": [
+          {
+            "consumer_key_code": "scan_next_track"
+          }
+        ]
+      }
+    },
+    {
+      "id": "play-pause-current-media",
+      "title": "Play or pause current media",
+      "description": "Toggle playback through the standard macOS media-key route.",
+      "source": "media/play-pause-current-media.jsonc",
+      "manipulator": {
+        "to": [
+          {
+            "consumer_key_code": "play_or_pause"
+          }
+        ]
+      }
+    },
+    {
+      "id": "play-previous-track",
+      "title": "Play previous track",
+      "description": "Return to the previous track through the standard macOS media-key route.",
+      "source": "media/play-previous-track.jsonc",
+      "manipulator": {
+        "to": [
+          {
+            "consumer_key_code": "scan_previous_track"
+          }
+        ]
+      }
+    },
+    {
+      "id": "scroll-horizontally-left",
+      "title": "Scroll horizontally left",
+      "description": "Move horizontally to the left, repeating naturally while the physical trigger remains held.",
+      "source": "navigation/scroll-horizontally-left.jsonc",
+      "manipulator": {
+        "to": [
+          {
+            "mouse_key": {
+              "horizontal_wheel": -64
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "scroll-horizontally-right",
+      "title": "Scroll horizontally right",
+      "description": "Move horizontally to the right, repeating naturally while the physical trigger remains held.",
+      "source": "navigation/scroll-horizontally-right.jsonc",
+      "manipulator": {
+        "to": [
+          {
+            "mouse_key": {
+              "horizontal_wheel": 64
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "toggle-voiceink-speech-to-text",
+      "title": "Toggle VoiceInk++ speech-to-text",
+      "description": "Toggle VoiceInk++ using its existing Control-Option-Shift shortcut.",
+      "source": "productivity/toggle-voiceink-speech-to-text.jsonc",
+      "manipulator": {
+        "to": [
+          {
+            "key_code": "left_shift",
+            "modifiers": [
+              "left_control",
+              "left_option"
+            ],
+            "repeat": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "vscode-go-to-next-change",
+      "title": "VS Code: go to next change",
+      "description": "Move down to the next source-control change through the existing Better Git F13 keybinding.",
+      "source": "vscode/vscode-go-to-next-change.jsonc",
+      "manipulator": {
+        "to": [
+          {
+            "key_code": "f13"
+          }
+        ],
+        "conditions": [
+          {
+            "type": "frontmost_application_if",
+            "bundle_identifiers": [
+              "^com\\.microsoft\\.VSCode(?:Insiders)?$"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "vscode-go-to-previous-change",
+      "title": "VS Code: go to previous change",
+      "description": "Move up to the previous source-control change through the existing Better Git F17 keybinding.",
+      "source": "vscode/vscode-go-to-previous-change.jsonc",
+      "manipulator": {
+        "to": [
+          {
+            "key_code": "f17"
+          }
+        ],
+        "conditions": [
+          {
+            "type": "frontmost_application_if",
+            "bundle_identifiers": [
+              "^com\\.microsoft\\.VSCode(?:Insiders)?$"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "vscode-stage-and-go-to-next-change",
+      "title": "VS Code: stage and go to next change",
+      "description": "Stage the current changed file and advance through the existing Better Git F18 keybinding.",
+      "source": "vscode/vscode-stage-and-go-to-next-change.jsonc",
+      "manipulator": {
+        "to": [
+          {
+            "key_code": "f18"
+          }
+        ],
+        "conditions": [
+          {
+            "type": "frontmost_application_if",
+            "bundle_identifiers": [
+              "^com\\.microsoft\\.VSCode(?:Insiders)?$"
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

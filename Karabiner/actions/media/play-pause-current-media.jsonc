@@ -1,0 +1,11 @@
+// Sends the standard macOS Play/Pause consumer key to the current media session.
+{
+  "id": "play-pause-current-media",
+  "title": "Play or pause current media",
+  "description": "Toggle playback through the standard macOS media-key route.",
+  "manipulator": {
+    "to": [
+      { "consumer_key_code": "play_or_pause" }
+    ]
+  }
+}

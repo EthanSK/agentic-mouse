@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "_comment": [
+    "Physical bindings are deliberately empty until Ethan chooses the final positions.",
+    "A later binding names one action, supplies a Karabiner from event, and adds",
+    "an exact device_if condition for either the Corsair or Razer adapter."
+  ],
+  "bindings": []
+}
