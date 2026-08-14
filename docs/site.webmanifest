@@ -1,11 +1,11 @@
 {
   "name": "Agentic Mouse",
   "short_name": "Agentic Mouse",
-  "description": "A local-first macOS control layer for two twelve-button mice.",
+  "description": "Ethan's setup for the agentic future: two twelve-button mice, visible modes and local-first macOS automation.",
   "start_url": "./",
   "display": "standalone",
-  "background_color": "#080b12",
-  "theme_color": "#080b12",
+  "background_color": "#05070b",
+  "theme_color": "#05070b",
   "icons": [
     {
       "src": "./agentic-mouse-mark.svg",

@@ -4,14 +4,14 @@ const CELLS = [
     default: ["Horizontal scroll left", "Scroll the current surface horizontally to the left."],
     vscode: ["Horizontal scroll left", "Inherited from the global Default layer."],
     keys: ["Left Arrow", "Emit one native, non-repeating Left Arrow."],
-    utility: ["Brightness Down", "Lower the current display brightness."],
+    utility: ["Brightness Up", "Raise the current display brightness."],
   },
   {
     id: 2, corsair: 2, razer: 2,
     default: ["Switch App", "Hold to keep the macOS App Switcher open; release to choose."],
     vscode: ["Switch App", "The same global hold-open App Switcher action."],
     keys: ["Paste password", "Read the local When-Unlocked Keychain item and type it without the clipboard."],
-    utility: ["Brightness Up", "Raise the current display brightness."],
+    utility: ["Zoom In", "Send the standard macOS Command-Plus zoom shortcut."],
   },
   {
     id: 3, corsair: 3, razer: 1,
@@ -25,14 +25,14 @@ const CELLS = [
     default: ["Horizontal scroll right", "Scroll the current surface horizontally to the right."],
     vscode: ["Horizontal scroll right", "Inherited from the global Default layer."],
     keys: ["Down Arrow", "Emit one native, non-repeating Down Arrow."],
-    utility: ["Zoom Out", "Send the standard macOS Command-Minus zoom shortcut."],
+    utility: ["Brightness Down", "Lower the current display brightness."],
   },
   {
     id: 5, corsair: 5, razer: 5,
     default: ["Forward", "Go forward one page or navigation step."],
     vscode: ["Previous Change", "Move to the previous Better Git change through F17."],
     keys: ["Up Arrow", "Emit one native, non-repeating Up Arrow."],
-    utility: ["Zoom In", "Send the standard macOS Command-Plus zoom shortcut."],
+    utility: ["Zoom Out", "Send the standard macOS Command-Minus zoom shortcut."],
   },
   {
     id: 6, corsair: 6, razer: 4,
@@ -105,6 +105,10 @@ const elements = {
 };
 
 function actionFor(cell, device = state.selectedDevice) {
+  if (["default", "vscode"].includes(state.layer) && device === "razer") {
+    if (cell.id === 2) return ["Legend toggle", "Show or hide the Razer Default legend."];
+    if (cell.id === 10) return ["Switch App", "Hold the App Switcher open until release. Exit while a mode is active."];
+  }
   if (state.layer === "keys" && device === "razer") {
     if (cell.id === 1) return ["Right Arrow", "Emit one native, non-repeating Right Arrow."];
     if (cell.id === 7) return ["Left Arrow", "Emit one native, non-repeating Left Arrow."];
@@ -114,6 +118,7 @@ function actionFor(cell, device = state.selectedDevice) {
 
 function renderGrid(device) {
   const grid = elements[`${device}Grid`];
+  if (!grid) return;
   const fragment = document.createDocumentFragment();
   DISPLAY_ORDER[device].forEach((physicalCell) => {
     const cell = byId.get(physicalCell);
@@ -139,6 +144,7 @@ function renderGrid(device) {
 }
 
 function render() {
+  if (!elements.deck) return;
   renderGrid("razer");
   renderGrid("corsair");
   const cell = byId.get(state.selected);
@@ -164,15 +170,8 @@ function handleGridKeydown(event) {
   event.preventDefault();
   const buttons = [...event.currentTarget.parentElement.querySelectorAll(".mouse-cell")];
   const current = buttons.indexOf(event.currentTarget);
-  const columns = 4;
-  const delta = {
-    ArrowLeft: -1,
-    ArrowRight: 1,
-    ArrowUp: -columns,
-    ArrowDown: columns,
-  }[event.key];
-  const next = Math.max(0, Math.min(buttons.length - 1, current + delta));
-  buttons[next].focus();
+  const delta = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -4, ArrowDown: 4 }[event.key];
+  buttons[Math.max(0, Math.min(buttons.length - 1, current + delta))].focus();
 }
 
 document.querySelectorAll("[data-layer]").forEach((button) => {
@@ -199,16 +198,16 @@ document.querySelectorAll("[data-device-view]").forEach((button) => {
   });
 });
 
+const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 document.querySelectorAll('a[href^="#"]').forEach((link) => {
   link.addEventListener("click", (event) => {
     const target = document.querySelector(link.getAttribute("href"));
     if (!target) return;
     event.preventDefault();
-    target.scrollIntoView({ behavior: "smooth", block: "start" });
+    target.scrollIntoView({ behavior: reducedMotion ? "auto" : "smooth", block: "start" });
   });
 });
 
-const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 if (reducedMotion || !("IntersectionObserver" in window)) {
   document.querySelectorAll(".reveal").forEach((element) => element.classList.add("is-visible"));
 } else {
@@ -222,4 +221,73 @@ if (reducedMotion || !("IntersectionObserver" in window)) {
   document.querySelectorAll(".reveal").forEach((element) => observer.observe(element));
 }
 
+const clamp = (value, minimum = 0, maximum = 1) => Math.min(maximum, Math.max(minimum, value));
+const lerp = (from, to, progress) => from + ((to - from) * progress);
+const ease = (value) => 1 - ((1 - clamp(value)) ** 3);
+
+function configureFutureStage() {
+  const stage = document.getElementById("future");
+  const sticky = stage?.querySelector(".future-sticky");
+  const razer = stage?.querySelector(".future-mouse-razer");
+  const corsair = stage?.querySelector(".future-mouse-corsair");
+  const grid = stage?.querySelector(".stage-grid");
+  const scenes = [...(stage?.querySelectorAll("[data-future-scene]") || [])];
+  if (!stage || !sticky || !razer || !corsair || !scenes.length || reducedMotion) return;
+
+  const centers = [0.04, 0.34, 0.64, 0.92];
+  let pointerX = 0;
+  let pointerY = 0;
+  let requestedFrame = 0;
+
+  function sceneOpacity(progress, center, index) {
+    const width = index === 0 || index === centers.length - 1 ? 0.24 : 0.21;
+    return clamp(1 - (Math.abs(progress - center) / width));
+  }
+
+  function update() {
+    requestedFrame = 0;
+    const rect = stage.getBoundingClientRect();
+    const travel = Math.max(1, stage.offsetHeight - window.innerHeight);
+    const progress = clamp(-rect.top / travel);
+    const motion = ease(progress);
+    sticky.style.setProperty("--future-progress", progress.toFixed(4));
+
+    const inward = lerp(0, 7.4, motion);
+    const rise = lerp(12, -1.5, motion);
+    const razerScale = lerp(.76, .98, motion);
+    const corsairScale = lerp(.72, .93, motion);
+    razer.style.transform = `translate3d(${(-8 + inward + pointerX).toFixed(2)}vw, ${(rise + pointerY).toFixed(2)}vh, 0) rotateX(${lerp(19, 8, motion).toFixed(2)}deg) rotateY(${lerp(12, 3, motion).toFixed(2)}deg) rotateZ(${lerp(-16, -5, motion).toFixed(2)}deg) scale(${razerScale.toFixed(3)})`;
+    corsair.style.transform = `translate3d(${(8 - inward + pointerX).toFixed(2)}vw, ${(rise - pointerY).toFixed(2)}vh, 0) rotateX(${lerp(17, 7, motion).toFixed(2)}deg) rotateY(${lerp(-12, -3, motion).toFixed(2)}deg) rotateZ(${lerp(16, 5, motion).toFixed(2)}deg) scale(${corsairScale.toFixed(3)})`;
+    if (grid) grid.style.transform = `perspective(800px) rotateX(58deg) scale(1.7) translateY(${lerp(15, 4, motion).toFixed(2)}%)`;
+
+    scenes.forEach((scene, index) => {
+      const opacity = sceneOpacity(progress, centers[index], index);
+      scene.style.opacity = opacity.toFixed(3);
+      scene.style.transform = `translate3d(0, ${((1 - opacity) * 28).toFixed(1)}px, ${lerp(65, 110, opacity).toFixed(1)}px) scale(${lerp(.965, 1, opacity).toFixed(3)})`;
+      scene.classList.toggle("is-visible", opacity > .36);
+      scene.setAttribute("aria-hidden", String(opacity <= .36));
+    });
+  }
+
+  function scheduleUpdate() {
+    if (requestedFrame) return;
+    requestedFrame = requestAnimationFrame(update);
+  }
+
+  sticky.addEventListener("pointermove", (event) => {
+    pointerX = ((event.clientX / window.innerWidth) - .5) * .7;
+    pointerY = ((event.clientY / window.innerHeight) - .5) * .45;
+    scheduleUpdate();
+  }, { passive: true });
+  sticky.addEventListener("pointerleave", () => {
+    pointerX = 0;
+    pointerY = 0;
+    scheduleUpdate();
+  }, { passive: true });
+  window.addEventListener("scroll", scheduleUpdate, { passive: true });
+  window.addEventListener("resize", scheduleUpdate, { passive: true });
+  update();
+}
+
+configureFutureStage();
 render();

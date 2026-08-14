@@ -41,6 +41,10 @@ const PAIRS = [
     id: "c2", corsair: 2, razer: 2, row: 2, col: 1,
     action: "Switch App", short: "⌘ Tab", description: "Hold to open the macOS App Switcher; release to choose the highlighted app.",
     signal: "keyboard", output: "native Karabiner ⌘-Tab + held ⌘", status: "PHYSICALLY ACCEPTED · BOTH MICE",
+    razerAction: {
+      action: "Legend toggle", short: "Legend", description: "Toggle the persistent Razer Default legend outside modes.",
+      signal: "runtime", output: "Agentic Mouse Razer legend toggle", status: "INSTALLED · PHYSICAL ACCEPTANCE PENDING",
+    },
   },
   {
     id: "c3", corsair: 3, razer: 1, row: 1, col: 1,
@@ -93,6 +97,10 @@ const PAIRS = [
     id: "c10", corsair: 10, razer: 12, row: 3, col: 4,
     action: "Legend toggle", short: "Legend", description: "Toggle the persistent Default legend outside modes; exit the current mode while one is active.",
     signal: "runtime", output: "Agentic Mouse legend toggle / universal mode exit", status: "INSTALLED · PHYSICAL ACCEPTANCE PENDING",
+    razerAction: {
+      action: "Switch App", short: "⌘ Tab", description: "Hold to open the macOS App Switcher outside modes; the same button exits while a Razer mode is active.",
+      signal: "keyboard", output: "native Karabiner ⌘-Tab + held ⌘ / active-mode Exit", status: "INSTALLED · PHYSICAL ACCEPTANCE PENDING",
+    },
   },
   {
     id: "c11", corsair: 11, razer: 11, row: 2, col: 4,
@@ -143,6 +151,7 @@ const state = {
   extra: EXTRAS[location.hash.slice(1).toLowerCase()] ? location.hash.slice(1).toLowerCase() : null,
   layer: new URLSearchParams(location.search).get("layer") === "vscode" ? "vscode" : "normal",
   keyDevice: "corsair",
+  selectedDevice: "corsair",
   keyOpen: false,
 };
 
@@ -200,13 +209,14 @@ function razerTransport(number) {
   return "equal_sign";
 }
 
-function activeAction(pair) {
+function activeAction(pair, device = state.selectedDevice) {
+  if (device === "razer" && pair.razerAction && !(state.layer === "vscode" && pair.vscodeAction)) return pair.razerAction;
   return state.layer === "vscode" && pair.vscodeAction ? pair.vscodeAction : pair;
 }
 
 function makeMouseKey(device, pair) {
   const number = pair[device];
-  const action = activeAction(pair);
+  const action = activeAction(pair, device);
   const button = document.createElement("button");
   button.type = "button";
   button.className = "mouse-key";
@@ -225,7 +235,7 @@ function makeMouseKey(device, pair) {
     `${device === "corsair" ? "Corsair" : "Razer"} ${number}; paired with ${device === "corsair" ? `Razer ${pair.razer}` : `Corsair ${pair.corsair}`}; ${action.action}; ${SIGNALS[action.signal].name}`,
   );
   button.innerHTML = `<span class="key-number">${number}</span><span class="key-action">${action.short}</span>`;
-  button.addEventListener("click", () => selectPair(pair.id, { focus: false }));
+  button.addEventListener("click", () => selectPair(pair.id, { focus: false, device }));
   button.addEventListener("pointerenter", () => previewPair(pair.id));
   button.addEventListener("pointerenter", () => showTooltip(button));
   button.addEventListener("pointerleave", (event) => {
@@ -253,7 +263,7 @@ function renderMouseGrids() {
 function renderKeyGrid() {
   const order = [...PAIRS].sort((a, b) => a.row - b.row || a.col - b.col);
   const buttons = order.map((pair) => {
-    const action = activeAction(pair);
+    const action = activeAction(pair, state.keyDevice);
     const button = document.createElement("button");
     button.type = "button";
     button.className = "key-cell";
@@ -284,6 +294,7 @@ function selectPair(pairId, options = {}) {
   if (!pair) return;
   clearPairPreviews();
   state.selected = pairId;
+  if (options.device) state.selectedDevice = options.device;
   state.extra = null;
   document.querySelectorAll(".top-control.is-selected").forEach((button) => button.classList.remove("is-selected"));
   updateSelectionUI(pair, options);
@@ -291,7 +302,7 @@ function selectPair(pairId, options = {}) {
 }
 
 function updateSelectionUI(pair, options = {}) {
-  const action = activeAction(pair);
+  const action = activeAction(pair, state.selectedDevice);
   const signal = SIGNALS[action.signal];
   const selectedButtons = pairButtons(pair.id);
 
@@ -404,6 +415,7 @@ function updateLayerNote() {
 
 function setKeyDevice(device) {
   state.keyDevice = device;
+  state.selectedDevice = device;
   document.querySelectorAll("[data-key-device]").forEach((button) => {
     const active = button.dataset.keyDevice === device;
     button.classList.toggle("is-active", active);

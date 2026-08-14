@@ -5,83 +5,134 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta
       name="description"
-      content="Agentic Mouse gives Ethan's right-hand Corsair Scimitar and left-hand Razer Naga one local-first macOS action vocabulary."
+      content="Agentic Mouse is Ethan's setup for the agentic future: two twelve-button mice, visible modes, local macOS automation and a hard lock-screen boundary."
     />
-    <meta name="theme-color" content="#080b12" />
+    <meta name="theme-color" content="#05070b" />
     <meta property="og:type" content="website" />
-    <meta property="og:title" content="Agentic Mouse — two hands, one action vocabulary" />
+    <meta property="og:title" content="Agentic Mouse — the setup for the agentic future" />
     <meta
       property="og:description"
-      content="A local-first macOS control layer for a right-hand Corsair Scimitar and left-hand Razer Naga."
+      content="A left-handed Razer. A right-handed Corsair. Twenty-four thumb buttons turned into one ridiculous, useful macOS setup."
     />
     <meta property="og:url" content="https://ethansk.github.io/agentic-mouse/" />
     <meta name="twitter:card" content="summary" />
     <link rel="canonical" href="https://ethansk.github.io/agentic-mouse/" />
+    <link rel="preconnect" href="https://assets.corsair.com" />
+    <link rel="preconnect" href="https://medias-p1.phoenix.razer.com" />
+    <link rel="preconnect" href="https://avatars.githubusercontent.com" />
     <link rel="icon" href="./agentic-mouse-mark.svg" type="image/svg+xml" />
     <link rel="manifest" href="./site.webmanifest" />
-    <link rel="stylesheet" href="./styles.css?v=20260814" />
-    <script src="./script.js?v=20260814" defer></script>
-    <title>Agentic Mouse — two hands, one action vocabulary</title>
+    <link rel="stylesheet" href="./styles.css?v=20260814c" />
+    <script src="./script.js?v=20260814c" defer></script>
+    <title>Agentic Mouse — the setup for the agentic future</title>
   </head>
   <body>
-    <a class="skip-link" href="#control-deck">Skip to the live mouse map</a>
+    <a class="skip-link" href="#control-deck">Skip to the interactive mouse map</a>
 
     <header class="site-header">
       <a class="brand" href="./" aria-label="Agentic Mouse home">
         <span class="brand-grid" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
-        <span><strong>AGENTIC MOUSE</strong><small>ETHAN'S SETUP / OPEN SOURCE</small></span>
+        <span><strong>AGENTIC MOUSE</strong><small>BUILT BY ETHAN / OPEN SOURCE</small></span>
       </a>
       <nav aria-label="Primary navigation">
-        <a href="#control-deck">Live map</a>
+        <a href="#ethan">Why</a>
+        <a href="#control-deck">The map</a>
         <a href="#setup">The setup</a>
-        <a href="#architecture">How it works</a>
         <a class="nav-github" href="https://github.com/EthanSK/agentic-mouse">GitHub <span aria-hidden="true">↗</span></a>
       </nav>
     </header>
 
     <main>
-      <section class="hero" aria-labelledby="hero-title">
-        <div class="hero-copy reveal">
-          <p class="kicker"><span></span> MACOS · LOCAL-FIRST · TWO EXACT DEVICES</p>
-          <h1 id="hero-title">Two hands.<br /><em>One action vocabulary.</em></h1>
-          <p class="hero-lede">
-            Agentic Mouse makes a right-hand Corsair Scimitar and a left-hand Razer Naga feel like
-            the same twelve controls—then adds readable modes, source-aware legends and fail-closed automation.
-          </p>
-          <div class="hero-actions">
-            <a class="button button-primary" href="#control-deck">Try Ethan's map <span aria-hidden="true">↓</span></a>
-            <a class="button button-ghost" href="https://github.com/EthanSK/agentic-mouse">Read the source <span aria-hidden="true">↗</span></a>
-          </div>
-          <p class="hero-note">MIT licensed · no cloud account · no private profiles in Git</p>
-        </div>
+      <section class="future-stage" id="future" aria-labelledby="hero-title">
+        <div class="future-sticky">
+          <div class="stage-grid" aria-hidden="true"></div>
+          <div class="stage-glow stage-glow-left" aria-hidden="true"></div>
+          <div class="stage-glow stage-glow-right" aria-hidden="true"></div>
 
-        <div class="hero-workstation reveal" aria-label="Illustration of Ethan's dual-mouse desk">
-          <div class="hero-screen"><span>MAC</span><b>AGENTIC<br />MOUSE</b><i></i></div>
-          <div class="hero-desk">
-            <div class="hero-mouse hero-mouse-left"><span>RAZER</span><i></i><i></i><i></i></div>
-            <div class="hero-keyboard" aria-hidden="true"></div>
-            <div class="hero-mouse hero-mouse-right"><span>CORSAIR</span><i></i><i></i><i></i></div>
+          <figure class="future-mouse future-mouse-razer">
+            <figcaption><span>LEFT HAND</span><strong>RAZER NAGA</strong></figcaption>
+            <img
+              src="https://medias-p1.phoenix.razer.com/sys-master-phoenix-images-container/h09/hba/9529652346910/naga-left-handed-2-500x500.png"
+              width="500"
+              height="500"
+              alt="Razer Naga Left-Handed Edition mouse"
+              fetchpriority="high"
+              referrerpolicy="no-referrer"
+            />
+            <i class="mouse-floor" aria-hidden="true"></i>
+          </figure>
+
+          <figure class="future-mouse future-mouse-corsair">
+            <figcaption><span>RIGHT HAND</span><strong>CORSAIR SCIMITAR</strong></figcaption>
+            <img
+              src="https://assets.corsair.com/image/upload/c_scale,q_auto,w_1200/products/Gaming-Mice/CH-9314415-WW/gallery/SCIMITAR_ELITE_SE_BLK-YLO_01.png"
+              width="1200"
+              height="1200"
+              alt="Corsair Scimitar Elite Wireless SE mouse"
+              fetchpriority="high"
+              referrerpolicy="no-referrer"
+            />
+            <i class="mouse-floor" aria-hidden="true"></i>
+          </figure>
+
+          <div class="future-copy">
+            <div class="future-scene is-visible" data-future-scene="0">
+              <p class="kicker"><span></span> ETHAN'S ACTUAL DESK / NOT A CONCEPT</p>
+              <h1 id="hero-title">THE SETUP FOR THE <em>AGENTIC FUTURE.</em></h1>
+              <p>Two MMO mice. Twenty-four thumb buttons. One Mac that knows which hand pressed what. Obviously.</p>
+              <a class="scroll-cue" href="#ethan">SCROLL TO ENTER <b aria-hidden="true">↓</b></a>
+            </div>
+            <div class="future-scene" data-future-scene="1" aria-hidden="true">
+              <p class="scene-index">01 / BOTH HANDS</p>
+              <h2>TWELVE BUTTONS UNDER <em>EACH</em> THUMB.</h2>
+              <p>The easy buttons do everyday stuff. The weird reaches get modes, app controls and shortcuts worth remembering.</p>
+            </div>
+            <div class="future-scene" data-future-scene="2" aria-hidden="true">
+              <p class="scene-index">02 / VISIBLE STATE</p>
+              <h2>THE MOUSE TELLS ME WHAT MODE IT'S IN.</h2>
+              <p>Bold lighting on the hardware. A floating legend on every display. No wondering what button seven does today.</p>
+            </div>
+            <div class="future-scene" data-future-scene="3" aria-hidden="true">
+              <p class="scene-index">03 / FAIL CLOSED</p>
+              <h2>AND WHEN THE MAC LOCKS, IT ALL SHUTS UP.</h2>
+              <p>No mouse macros on the lock screen. No stale mode after wake. If Agentic Mouse is uncertain, it does nothing.</p>
+            </div>
           </div>
-          <div class="hero-chair" aria-hidden="true"><i></i><b></b><span></span></div>
-          <p class="hero-coordinate"><span>LEFT-HAND GRID</span><b>↔</b><span>RIGHT-HAND GRID</span></p>
+
+          <div class="stage-meter" aria-hidden="true"><i></i><span>00</span><span>100</span></div>
+          <p class="stage-credit">REAL PRODUCT IMAGERY / RAZER + CORSAIR</p>
         </div>
       </section>
 
-      <section class="manifesto" aria-label="Project premise">
-        <p class="manifesto-index">01 / THE PREMISE</p>
-        <p>
-          It started as <strong>Ethan's setup.</strong> The reusable idea is simpler:
-          hardware transports can differ while physical intent stays the same.
-        </p>
+      <section class="ethan-section" id="ethan" aria-labelledby="ethan-title">
+        <div class="ethan-portrait reveal">
+          <div class="portrait-halo" aria-hidden="true"></div>
+          <img
+            src="https://avatars.githubusercontent.com/u/13756744?v=4"
+            width="460"
+            height="460"
+            alt="Ethan Sarif-Kattan wearing a bicycle helmet and looking mock-serious"
+            loading="lazy"
+            referrerpolicy="no-referrer"
+          />
+          <p><span>ETHAN SARIF-KATTAN</span><b>LONDON / BUILDER / BOTH-HANDED MOUSE NONSENSE</b></p>
+        </div>
+        <div class="ethan-copy reveal">
+          <p class="kicker"><span></span> WHY I BUILT IT</p>
+          <h2 id="ethan-title">I HAD TWELVE BUTTONS. THEN I THOUGHT: WHY NOT TWENTY-FOUR?</h2>
+          <p>
+            I wanted to lean back, talk to Codex, move through code, change apps, type, control media and stop reaching for the keyboard every five seconds. Then I bought a left-handed Naga and made the two mice work as one ridiculous setup.
+          </p>
+          <blockquote>“I make cool stuff. This is one of the cooler ones.”</blockquote>
+        </div>
       </section>
 
       <section class="control-section" id="control-deck" aria-labelledby="deck-title">
         <div class="section-intro reveal">
-          <p class="kicker"><span></span> INTERACTIVE CONTROL DECK</p>
-          <h2 id="deck-title">Touch either side.<br />See the shared intent.</h2>
+          <p class="kicker"><span></span> PRESS THE VIRTUAL BUTTONS</p>
+          <h2 id="deck-title">THIS IS WHAT MY THUMBS ACTUALLY DO.</h2>
           <p>
-            Choose a layer, then press any virtual thumb button. The matching physical cell lights up
-            on both mice even though the printed numbers are mirrored.
+            Pick a layer and click around. The page uses the real Corsair and Razer numbering—including the left-handed Razer exceptions—so it matches the mouse in your hand.
           </p>
         </div>
 
@@ -114,7 +165,7 @@
             <strong id="bus-action">Back</strong>
             <p id="bus-detail">Go back one page or step.</p>
             <div class="bus-route"><span id="bus-layer">DEFAULT</span><i></i><span id="bus-crosswalk">C8 ↔ R8</span></div>
-            <a href="./mouse-map.html" id="bus-deep-link">Inspect the full signal path <span aria-hidden="true">→</span></a>
+            <a href="./mouse-map.html" id="bus-deep-link">Open the forensic map <span aria-hidden="true">→</span></a>
           </div>
 
           <article class="device device-corsair" data-device="corsair">
@@ -128,102 +179,126 @@
         </div>
       </section>
 
+      <section class="mode-section" aria-labelledby="mode-title">
+        <div class="mode-copy reveal">
+          <p class="kicker"><span></span> MODES THAT EXPLAIN THEMSELVES</p>
+          <h2 id="mode-title">THE COLOUR ISN'T DECORATION. IT'S STATE.</h2>
+          <p>
+            Keys is orange. Utility is violet. App modes follow the app. The hardware lights up, the floating legend appears on every display and the buttons say what they do. Strong colours, because subtle mode state is useless.
+          </p>
+        </div>
+        <div class="mode-swatches reveal" role="group" aria-label="Agentic Mouse mode colour system">
+          <div class="mode-swatch utility"><span>UTILITY</span><b>Brightness · Zoom · Spaces</b></div>
+          <div class="mode-swatch keys"><span>KEYS</span><b>Arrows · Copy · Paste · Space</b></div>
+          <div class="mode-swatch app"><span>CODEX MODE</span><b>Pin · Voice · Steer · Effort</b></div>
+        </div>
+      </section>
+
       <section class="setup-section" id="setup" aria-labelledby="setup-title">
         <div class="setup-heading reveal">
-          <p class="kicker"><span></span> ETHAN'S RECOMMENDED SETUP</p>
-          <h2 id="setup-title">Built around reach,<br />recline and long sessions.</h2>
+          <p class="kicker"><span></span> THE PHYSICAL SETUP</p>
+          <h2 id="setup-title">LEAN BACK. TALK TO THE AGENT. KEEP BOTH THUMBS BUSY.</h2>
           <p>
-            These are the exact public-safe product choices verified from the current Mac and purchase records.
-            Prices, addresses, order numbers, serials and private mail stay private.
+            The software only makes sense because the desk does: a left mouse, a right mouse, a big standing desk and a chair I can properly lounge back in.
           </p>
         </div>
 
-        <div class="setup-blueprint reveal">
-          <div class="blueprint-desk" aria-hidden="true">
-            <div class="desk-top"><i></i><i></i><i></i></div><div class="desk-leg one"></div><div class="desk-leg two"></div>
-          </div>
-          <div class="blueprint-chair" aria-hidden="true"><span></span><i></i><b></b><em></em></div>
-          <p class="blueprint-caption"><span>180 × 80 CM BAMBOO</span><span>140° RECLINE + FOOTREST</span></p>
+        <div class="setup-scene reveal" role="img" aria-label="Illustration of Ethan's desk setup">
+          <div class="setup-monitor setup-monitor-left"><span>HUD</span></div>
+          <div class="setup-monitor setup-monitor-main"><span>CODEX</span><b>AGENTIC<br />MOUSE</b></div>
+          <div class="setup-monitor setup-monitor-right"><span>CODE</span></div>
+          <div class="setup-desk"><i></i><i></i></div>
+          <img
+            class="setup-chair"
+            src="https://www.hbada.uk/cdn/shop/files/E3_Pro_2026_Gray_with_footrest_ergonomic_office_chair_front.png?v=1778028844&amp;width=1200"
+            width="1200"
+            height="1200"
+            alt="Grey Hbada E3 Pro ergonomic chair with footrest"
+            loading="lazy"
+            referrerpolicy="no-referrer"
+          />
+          <img
+            class="setup-mouse setup-mouse-left"
+            src="https://medias-p1.phoenix.razer.com/sys-master-phoenix-images-container/h09/hba/9529652346910/naga-left-handed-2-500x500.png"
+            width="500"
+            height="500"
+            alt=""
+            loading="lazy"
+            referrerpolicy="no-referrer"
+          />
+          <img
+            class="setup-mouse setup-mouse-right"
+            src="https://assets.corsair.com/image/upload/c_scale,q_auto,w_1200/products/Gaming-Mice/CH-9314415-WW/gallery/SCIMITAR_ELITE_SE_BLK-YLO_01.png"
+            width="1200"
+            height="1200"
+            alt=""
+            loading="lazy"
+            referrerpolicy="no-referrer"
+          />
+          <p class="setup-scene-label"><span>LEFT-HAND RAZER</span><b>ETHAN'S DESK</b><span>RIGHT-HAND CORSAIR</span></p>
         </div>
 
-        <div class="setup-ledger">
+        <div class="setup-ledger reveal">
           <a class="setup-row" href="https://www.razer.com/gaming-mice/razer-naga-left-handed-edition" rel="noreferrer">
-            <span class="setup-number">01</span><span><b>Left hand</b><strong>Razer Naga Left-Handed Edition</strong></span><em>12-button thumb grid ↗</em>
+            <span class="setup-number">L</span><span><b>Left hand</b><strong>Razer Naga Left-Handed Edition</strong></span><em>12-button thumb grid ↗</em>
           </a>
           <a class="setup-row" href="https://www.corsair.com/uk/en/p/gaming-mouse/CH-9314415-WW/scimitar-elite-wireless-se-mmo-gaming-mouse-black-%26-yellow-ch-9314415-ww" rel="noreferrer">
-            <span class="setup-number">02</span><span><b>Right hand</b><strong>Corsair Scimitar Elite Wireless SE</strong></span><em>adjustable 12-button grid ↗</em>
+            <span class="setup-number">R</span><span><b>Right hand</b><strong>Corsair Scimitar Elite Wireless SE</strong></span><em>adjustable 12-button grid ↗</em>
           </a>
           <a class="setup-row" href="https://flexispot.co.uk/next-generation-standing-desk-e7-pro" rel="noreferrer">
-            <span class="setup-number">03</span><span><b>Foundation</b><strong>FlexiSpot E7 Pro · black frame</strong></span><em>bamboo · 180 × 80 cm ↗</em>
+            <span class="setup-number">↑</span><span><b>Foundation</b><strong>FlexiSpot E7 Pro · black frame</strong></span><em>bamboo · 180 × 80 cm ↗</em>
           </a>
           <a class="setup-row" href="https://www.hbada.uk/products/e3-pro-ergonomic-office-chair?variant=57072259858807" rel="noreferrer">
-            <span class="setup-number">04</span><span><b>Recline</b><strong>HBADA E3 Pro 2026 · grey</strong></span><em>footrest · up to 140° ↗</em>
+            <span class="setup-number">↘</span><span><b>Recline</b><strong>Hbada E3 Pro 2026 · grey</strong></span><em>footrest · up to 140° ↗</em>
           </a>
           <div class="setup-row">
-            <span class="setup-number">05</span><span><b>Compute</b><strong>MacBook Pro · M5 Max · 64 GB</strong></span><em>local Swift runtime</em>
+            <span class="setup-number">⌘</span><span><b>Compute</b><strong>MacBook Pro · M5 Max · 64 GB</strong></span><em>local Swift runtime</em>
           </div>
-          <a class="setup-row" href="https://www.samsung.com/pt/monitors/high-resolution/s80ua-27-inch-ips-uhd-4k-ls27a800ujpxen/" rel="noreferrer">
-            <span class="setup-number">06</span><span><b>Visible workspace</b><strong>Samsung ViewFinity S80UA · 27-inch 4K</strong></span><em>plus captured ultrawide ↗</em>
-          </a>
         </div>
+        <p class="image-credit">Product imagery is served by and remains © its respective manufacturer. Product names and marks belong to their owners.</p>
       </section>
 
       <section class="architecture-section" id="architecture" aria-labelledby="architecture-title">
         <div class="section-intro reveal">
-          <p class="kicker"><span></span> OWNERSHIP, NOT MAGIC</p>
-          <h2 id="architecture-title">Every layer has<br />one clear job.</h2>
+          <p class="kicker"><span></span> NO MAGIC / NO MYSTERY DAEMON</p>
+          <h2 id="architecture-title">EVERY LAYER HAS ONE JOB.</h2>
         </div>
         <ol class="architecture-flow reveal">
-          <li><span>01</span><b>Vendor transport</b><p>iCUE and the Razer onboard profile expose harmless, distinct raw controls.</p></li>
-          <li><span>02</span><b>Karabiner semantics</b><p>Exact-device rules turn the two transports into one physical action vocabulary.</p></li>
-          <li><span>03</span><b>Agentic Mouse runtime</b><p>A signed menu-bar app owns modes, HUDs, lighting and focus-aware application shortcuts.</p></li>
-          <li><span>04</span><b>Visible result</b><p>Native output reaches macOS while a source-aware legend explains the active layer.</p></li>
+          <li><span>HARDWARE</span><b>The mice send neutral keys</b><p>iCUE and the Razer onboard profile expose distinct, exact-device controls without owning the final action.</p></li>
+          <li><span>MAPPING</span><b>Karabiner emits native input</b><p>Each mouse has its own guarded route to normal macOS keys, media controls and shortcuts.</p></li>
+          <li><span>RUNTIME</span><b>Agentic Mouse owns state</b><p>The signed menu-bar app runs modes, independent HUDs, lighting and focus-aware app shortcuts.</p></li>
+          <li><span>SECURITY</span><b>Unlocked or nothing</b><p>A short expiring lease kills every custom command on lock, sleep, crash or uncertain state.</p></li>
         </ol>
       </section>
 
-      <section class="mode-section" aria-labelledby="mode-title">
-        <div class="mode-copy reveal">
-          <p class="kicker"><span></span> MODES YOU CAN SEE</p>
-          <h2 id="mode-title">Bold for controls.<br />Pastel for context.</h2>
-          <p>
-            Utility and Keys use saturated, opaque action cards. App-specific mode follows the frontmost app,
-            names it directly—<strong>Chrome mode</strong>, <strong>VS Code mode</strong>, <strong>Codex mode</strong>—and gives it a stable pastel identity.
-          </p>
-        </div>
-        <div class="mode-swatches reveal" aria-label="Agentic Mouse mode colour system">
-          <div class="mode-swatch utility"><span>UTILITY</span><b>Brightness · Zoom · Spaces</b></div>
-          <div class="mode-swatch keys"><span>KEYS</span><b>Arrows · Copy · Paste · Space</b></div>
-          <div class="mode-swatch app"><span>CHROME MODE</span><b>App-aware pastel identity</b></div>
-        </div>
-      </section>
-
       <section class="safety-section" aria-labelledby="safety-title">
-        <p class="kicker"><span></span> THE SECURITY BOUNDARY</p>
-        <h2 id="safety-title">Unlocked or nothing.</h2>
+        <p class="kicker"><span></span> THE PART I REFUSED TO FAKE</p>
+        <h2 id="safety-title">IF IT ISN'T SAFE, IT DOESN'T FIRE.</h2>
         <div class="safety-grid">
           <p><b>LOCKED SESSION</b><span>Every custom side-grid, DPI and runtime command is consumed.</span></p>
-          <p><b>UNCERTAIN FOCUS</b><span>Text actions fail closed instead of guessing a target.</span></p>
-          <p><b>APP FAILURE</b><span>Short expiring leases restore the ordinary map automatically.</span></p>
+          <p><b>UNCERTAIN FOCUS</b><span>Text actions fail closed instead of guessing where to type.</span></p>
+          <p><b>APP FAILURE</b><span>Short leases expire and restore the ordinary map automatically.</span></p>
         </div>
       </section>
 
       <section class="launch-section">
-        <p class="kicker"><span></span> BUILD THE SOURCE, NOT A MYSTERY BINARY</p>
-        <h2>Make the map yours.</h2>
+        <p class="kicker"><span></span> STEAL THE GOOD BITS</p>
+        <h2>BUILD YOUR OWN AGENTIC SETUP.</h2>
+        <p>You probably do not own my exact desk, my exact two mice or my exact tolerance for twelve-button grids. Fine. The source shows every layer so you can take what is useful.</p>
         <pre><code>git clone https://github.com/EthanSK/agentic-mouse.git
 cd agentic-mouse
 make check
 make app</code></pre>
         <div class="hero-actions">
           <a class="button button-primary" href="https://github.com/EthanSK/agentic-mouse">Open the repository <span aria-hidden="true">↗</span></a>
-          <a class="button button-ghost light" href="./mouse-map.html">Explore the full map <span aria-hidden="true">→</span></a>
+          <a class="button button-ghost light" href="./mouse-map.html">Open the full mouse map <span aria-hidden="true">→</span></a>
         </div>
       </section>
     </main>
 
     <footer>
       <span>AGENTIC MOUSE / 2026</span>
-      <span>Designed and built by <a href="https://github.com/EthanSK">Ethan Sarif-Kattan</a></span>
+      <span>Designed, overthought and built by <a href="https://github.com/EthanSK">Ethan Sarif-Kattan</a></span>
       <span>LOCAL-FIRST / MIT</span>
     </footer>
   </body>
