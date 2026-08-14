@@ -1,4 +1,4 @@
-// Opens the shared Keys mode directly from Razer physical cell 9 (printed 7).
+// Opens the shared Keys mode directly from Razer physical cell 2 (printed 2).
 {
   "id": "open-keys-mode-razer",
   "title": "Open Keys mode (Razer)",
@@ -10,7 +10,7 @@
           "command": "agentic_mouse_mode_picker",
           "action": "openKeys",
           "source": "razer",
-          "physical_cell": 6,
+          "physical_cell": 2,
           "phase": "press"
         }
       },

@@ -61,7 +61,7 @@
                 "command": "agentic_mouse_mode_picker",
                 "action": "openAppSpecific",
                 "source": "corsair",
-                "physical_cell": 2,
+                "physical_cell": 6,
                 "phase": "press"
               }
             },
@@ -83,7 +83,7 @@
                 "command": "agentic_mouse_mode_picker",
                 "action": "openAppSpecific",
                 "source": "razer",
-                "physical_cell": 2,
+                "physical_cell": 6,
                 "phase": "press"
               }
             },
@@ -105,7 +105,7 @@
                 "command": "agentic_mouse_mode_picker",
                 "action": "openKeys",
                 "source": "corsair",
-                "physical_cell": 6,
+                "physical_cell": 2,
                 "phase": "press"
               }
             },
@@ -127,7 +127,7 @@
                 "command": "agentic_mouse_mode_picker",
                 "action": "openKeys",
                 "source": "razer",
-                "physical_cell": 6,
+                "physical_cell": 2,
                 "phase": "press"
               }
             },

@@ -147,11 +147,12 @@ iCUE's database files.
 
 **Normal-mode assignments are not managed by this helper.** iCUE owns the
 Corsair neutral keypad transports, while one exact-device Karabiner base maps
-them globally: 1 = horizontal scroll left, 2 = Legend toggle, 3 = Screenshot,
-4 = horizontal scroll right, 5 = Forward, 6 = app-specific wildcard, 7 = Enter, 8 = Back,
-9 = Keys mode, 10 = Switch App, 11 = app-specific mode and 12 = Utility
-modes. Physical cell 3 starts a native selected-area Screenshot outside modes.
-Physical cell 10 exits the active mode instead of opening Switch App;
+them globally: 1 = horizontal scroll left, 2 = Keys mode, 3 = Screenshot,
+4 = horizontal scroll right, 5 = Forward, 6 = current frontmost-app mode, 7 = Enter, 8 = Back,
+9 = app-specific wildcard, 10 = blank outside modes / universal Exit,
+11 = Switch App and 12 = Utility-single / Default-legend-double.
+Physical cell 3 starts a native selected-area Screenshot outside modes.
+Physical cell 10 exits the active mode;
 there is no separate in-mode legend toggle. Wheel
 click also stays a
 neutral middle-click source and becomes Play/Pause in Karabiner. Every visible
@@ -163,7 +164,7 @@ checked, but it never writes either live configuration.
 **App overrides are Karabiner's business, not the helper's.** The helper suspends
 all twelve buttons while multi-tap is active and releases them on exit. In VS
 Code, Karabiner maps physical cell 5 to non-repeating F17 Previous Change,
-cell 6 to non-repeating F18 Stage + Next, and cell 8 to non-repeating F13 Next
+cell 9 to non-repeating F18 Stage + Next, and cell 8 to non-repeating F13 Next
 Change. Matching exclusions preserve Forward/Back plus a silent wildcard base
 everywhere else without duplicating other controls. In Keys, cell 6 copies,
 cell 3 pastes, and cell 9 emits Next Track; the Razer swaps the horizontal-arrow

@@ -1,5 +1,11 @@
 # Learnings
 
+## 2026-08-14 — Swap a top-level mode only through the shared canonical cell
+
+- Ethan swapped the two top-level mode entries: canonical physical cell 2 now opens Keys, while cell 6 opens the live frontmost-app mode. This is one shared semantic change after Corsair/Razer crosswalk normalization, not a device-specific exception.
+- Carry a top-level relocation through `PhysicalCell` aliases, the ordinary map, exact-device bindings and action payloads, generated runtime rules, the Default legend, tests, public maps, durable project instructions, and physical acceptance. Utility cell 9 still enters Keys and Utility cell 11 still opens the manual configured-app selector; those downstream journeys did not move.
+- Before installing a relocation, preserve the full live Karabiner file and selected-profile rule inventory. Afterward require both mice to prove cell 2 enters Keys, cell 6 enters the correct frontmost-app page, and universal cell 10 exits, while every unrelated rule remains byte-equivalent.
+
 ## 2026-08-14 — A shared single/double control needs one bounded classifier
 
 - Physical cell 12 has two intentional top-level meanings on both mice: one press opens Utility, while a rapid second press toggles only that source mouse's persistent Default legend. Dispatching Utility immediately makes the second press land inside a mode; treating every first press as a legend action makes the common single press unusable.
@@ -21,7 +27,7 @@
 ## 2026-08-14 — A printed mouse button names a shared physical cell, not a semantic fork
 
 - When Ethan says `Razer 12`, `Corsair 10`, or another printed mouse button, treat the device name as the way to locate the canonical physical cell through `PhysicalCell.crosswalk`. It does not authorize a different action on that mouse merely because Ethan happened to be holding or describing that device.
-- The regression was exact: a late Razer-worded request was implemented as a Razer-only ordinary-map exception, splitting Default cells between the two devices. The corrected invariant is shared semantic behavior after crosswalk normalization: physical cell 2 opens the frontmost app mode, cell 3 is Screenshot, cell 6 is Keys, cell 9 is the app wildcard, cell 10 is blank outside modes and Exit inside modes, cell 11 is Switch App, and cell 12 is the Utility-single / Default-legend-double classifier.
+- The regression was exact: a late Razer-worded request was implemented as a Razer-only ordinary-map exception, splitting Default cells between the two devices. The corrected invariant is shared semantic behavior after crosswalk normalization: physical cell 2 opens Keys, cell 3 is Screenshot, cell 6 opens the frontmost app mode, cell 9 is the app wildcard, cell 10 is blank outside modes and Exit inside modes, cell 11 is Switch App, and cell 12 is the Utility-single / Default-legend-double classifier.
 - Require explicit wording and a concrete hardware, handedness, transport, or presentation reason before introducing a device-specific semantic exception. Keep legitimate source differences—printed-number crosswalks, neutral HID transports, independent HUD corners, Razer left-handed grid presentation, DPI transport, and lighting calibration—without letting them split the logical action map.
 - Pin the invariant in source and generator tests for both exact-device adapters. Whenever one mouse binding changes, compare the corresponding canonical cell on the other mouse before packaging or installing.
 
@@ -80,7 +86,7 @@
 ## 2026-08-14 — Keep app wildcards silent and move rare media into Keys
 
 - A top-level app-specific wildcard must fail closed when the frontmost app has no configured meaning. Keep one exact-device base manipulator that consumes the neutral transport under the matching application exclusion, then add only narrow application overrides. Do not let the Corsair keypad or Razer main-row source key leak as text.
-- Physical cell 9 is now the wildcard on both mice: Corsair printed 9 / Razer printed 7. VS Code alone emits bounded non-repeating F18 Stage + Next on a single press and F16 exact undo on a rapid double; every other app receives no output until its own explicit override exists. Physical cell 6 opens Keys directly.
+- Physical cell 9 is now the wildcard on both mice: Corsair printed 9 / Razer printed 7. VS Code alone emits bounded non-repeating F18 Stage + Next on a single press and F16 exact undo on a rapid double; every other app receives no output until its own explicit override exists. Physical cell 2 opens Keys directly.
 - Rare Next Track moved to Keys physical cell 9, where the generated exact-device route emits one non-repeating `scan_next_track` consumer event and Agentic Mouse updates only the HUD/lighting state. Screenshot copy deliberately reads `Screenshot` while idle and `Cancel screenshot` only while the owned capture is running.
 
 ## 2026-08-14 — Give every HUD card an internal horizontal inset
@@ -147,7 +153,7 @@
 
 ## 2026-08-13 — Historical cell-10 Default legend design
 
-**Status:** Superseded by the shared semantic contract at the top of this file. Both mice now use cell 2 for frontmost app mode, cell 10 as blank / active Exit, cell 11 for Switch App, and cell 12 for Utility single / Default legend double.
+**Status:** Superseded by the shared semantic contract at the top of this file. Both mice now use cell 2 for Keys, cell 6 for frontmost app mode, cell 10 as blank / active Exit, cell 11 for Switch App, and cell 12 for Utility single / Default legend double.
 
 - At this historical stage, Switch App was on physical cell 2, selected-area Screenshot was on physical cell 3, and the persistent Default legend was on physical cell 10.
 - The context-gated cell-10 mechanism remains useful history, but it no longer describes the live ordinary action: the higher-priority Modes rule still owns cell 10 as Exit while active, and the base leaves cell 10 blank. Switch App now lives on physical cell 11.
@@ -155,7 +161,7 @@
 
 ## 2026-08-13 — Separate live frontmost-app mode from manual background targeting
 
-- Ethan needs two app-specific journeys: top-level physical cell 2 follows the current frontmost application and refreshes as focus changes, while Utility cell 11 opens a lower-priority configured-app selector whose chosen target stays locked without activation.
+- Ethan needs two app-specific journeys: top-level physical cell 6 follows the current frontmost application and refreshes as focus changes, while Utility cell 11 opens a lower-priority configured-app selector whose chosen target stays locked without activation.
 - Use one generic bounded `CGEvent.postToPid` shortcut dispatcher selected by bundle identifier. App-specific code supplies only the shortcut meaning: Chrome cell 1 is Command-W, while Codex uses its own commands. This avoids one executor per app without pretending that all apps interpret the same shortcut identically.
 - Preserve every existing Codex keyboard shortcut. Reasoning Effort Up/Down are the narrow exception because Codex exposes configurable commands with no existing binding; add dedicated Hyper-F18/F19 bindings without replacing Pin, New Task, Voice, Submit, or the existing Hyper-F20 microphone route. Block all dispatch while the unlocked-session boundary is absent.
 - Treat mode identity as a saturated visual state, not a pastel hint: distinct full-channel RGB mode accents drive temporary mouse lighting, and HUD cards use visibly stronger accent fills and borders. Keep unsupported app pages honest and leave ambiguous or conflicting button ideas in the outstanding ledger instead of assigning them by guess.
@@ -194,8 +200,8 @@
 
 - Agentic Mouse synthetic arrows can fail with an Accessibility warning even when exact-device mode ingress and the HUD are healthy. Emit Keys-mode arrows directly from the generated Karabiner rule, keep each output non-repeating, and send a separate `selectNative` command only for HUD and lighting state. The installed app must not try to synthesize the same arrow again.
 - A runtime page change and its Karabiner page variable must be one transition. Set the per-source page variable before the matching `send_user_command`; otherwise a selector, child, or exit press can fall through to another page or the ordinary base.
-- Ethan's accepted journey uses dedicated entries but one universal exit: Utility 12, Keypad 7, frontmost App-specific 2, and Keys 6 enter their pages; active physical cell 10 exits every page. Active-mode legends remain visible until exit, app-specific children retain cell 12 for a real app action, and Keypad uses cell 3 for DEF plus cell 12 for Space/hold-Return because cell 10 is reserved for Exit.
-- Keep both app-specific journeys distinct. Top-level cell 2 follows the current frontmost process; Utility cell 11 shows an explicit Codex/Chrome/VS Code selector and locks the chosen target without activation. For Codex, preserve every normal shortcut and add only missing configurable commands as non-conflicting user bindings. Unsupported Chrome/VS Code cards remain visibly Spare until they own a tested command.
+- Ethan's accepted journey uses dedicated entries but one universal exit: Utility 12, Keypad 7, frontmost App-specific 6, and Keys 2 enter their pages; active physical cell 10 exits every page. Active-mode legends remain visible until exit, app-specific children retain cell 12 for a real app action, and Keypad uses cell 3 for DEF plus cell 12 for Space/hold-Return because cell 10 is reserved for Exit.
+- Keep both app-specific journeys distinct. Top-level cell 6 follows the current frontmost process; Utility cell 11 shows an explicit Codex/Chrome/VS Code selector and locks the chosen target without activation. For Codex, preserve every normal shortcut and add only missing configurable commands as non-conflicting user bindings. Unsupported Chrome/VS Code cards remain visibly Spare until they own a tested command.
 
 ## 2026-08-13 — Split runtime ownership by mouse and fail closed before synthetic keys
 
@@ -207,12 +213,12 @@
 
 ## 2026-08-13 — Keep top-level media and Keys mode distinct across every layer
 
-- The accepted shared map uses physical cell 6 for direct Keys-mode entry and physical cell 9 for the app wildcard. Next Track lives inside Keys on physical cell 9. Preserve the exact-device crosswalk: Corsair printed 6/9 and Razer printed 4/7.
+- The accepted shared map uses physical cell 2 for direct Keys-mode entry and physical cell 9 for the app wildcard. Next Track lives inside Keys on physical cell 9. Preserve the exact-device crosswalk: Corsair printed 2/9 and Razer printed 2/7.
 - Keys mode owns one orange, all-display legend and only four bounded native arrow actions: cells 5/4/7/1 are Up/Down/Right/Left. Universal cell 10 exits it and immediately restores the ordinary map.
 - Utility mode may still use cells 6/9 for Space Left/Right because those bindings are scoped to its active lease. Keep top-level and child-mode semantics explicit in generated tests instead of inferring a conflict from matching physical cells.
 - A visible card is not acceptance by itself. Pin the generated exact-device ingress, coordinator route, native key down/up executor, distinct Default-legend accent, installed command receiver, all-display HUD lifecycle and both exit paths separately; reserve physical arrow acceptance for the real mice.
 
-**Status:** Current as of 14 August 2026. Physical cell 6 enters Keys, physical cell 9 is the fail-closed app wildcard outside modes, and Next Track lives on Keys physical cell 9 alongside Copy, Paste, Space, Backspace, and Escape.
+**Status:** Current as of 14 August 2026. Physical cell 2 enters Keys, physical cell 6 enters the frontmost app mode, physical cell 9 is the fail-closed app wildcard outside modes, and Next Track lives on Keys physical cell 9 alongside Copy, Paste, Space, Backspace, and Escape.
 
 ## 2026-08-12 — Verify every HUD card against a real action boundary
 

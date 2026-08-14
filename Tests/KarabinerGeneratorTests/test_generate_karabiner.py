@@ -668,11 +668,11 @@ class KarabinerGeneratorTests(unittest.TestCase):
         }
         expected_corsair_action_by_side = {
             1: "scroll-horizontally-left",
-            2: "open-app-specific-mode-corsair",
+            2: "open-keys-mode-corsair",
             3: "toggle-selected-screen-area-corsair",
             4: "scroll-horizontally-right",
             5: "go-forward",
-            6: "open-keys-mode-corsair",
+            6: "open-app-specific-mode-corsair",
             7: "press-enter",
             8: "go-back",
             9: "suppress-neutral-transport",
@@ -729,9 +729,9 @@ class KarabinerGeneratorTests(unittest.TestCase):
         }
         expected_razer_actions_by_side = {
             1: ["toggle-selected-screen-area-razer"],
-            2: ["open-app-specific-mode-razer"],
+            2: ["open-keys-mode-razer"],
             3: ["scroll-horizontally-right"],
-            4: ["open-keys-mode-razer"],
+            4: ["open-app-specific-mode-razer"],
             5: ["go-forward"],
             6: ["scroll-horizontally-left"],
             7: ["suppress-neutral-transport"],

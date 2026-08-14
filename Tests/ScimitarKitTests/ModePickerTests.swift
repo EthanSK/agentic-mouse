@@ -170,7 +170,7 @@ final class ModePickerTests: XCTestCase {
         XCTAssertEqual(selected.map { $0.1.rawValue }, [9])
     }
 
-    func testTopLevelCellTwoFollowsTheFrontmostAppAndCellTenExits() {
+    func testTopLevelCellSixFollowsTheFrontmostAppAndCellTenExits() {
         let lease = RecordingModePickerLease()
         let hud = RecordingModeHUDPresenter()
         let coordinator = makeCoordinator(lease: lease, hud: hud)
@@ -201,7 +201,7 @@ final class ModePickerTests: XCTestCase {
         XCTAssertEqual(lease.deactivateCount, 1)
     }
 
-    func testTopLevelCellSixOpensKeysModeAndCellTenExits() {
+    func testTopLevelCellTwoOpensKeysModeAndCellTenExits() {
         let lease = RecordingModePickerLease()
         let hud = RecordingModeHUDPresenter()
         let coordinator = makeCoordinator(lease: lease, hud: hud)

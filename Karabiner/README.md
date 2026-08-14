@@ -73,10 +73,10 @@ cell 3 sends a source-specific screenshot-toggle command outside modes.
 Physical cell 12 opens the shared Modes lease after its single-press window:
 Corsair printed 12 or Razer printed 10. While active, all twelve exact-device transports send ordered
 press/release `agentic_mouse_mode_picker` payloads, independent of frontmost-app
-base conditions. Cell 7 selects Keypad; top-level cell 2 opens the current
+base conditions. Cell 7 selects Keypad; top-level cell 6 opens the current
 frontmost app's mode, while Utility cell 11 opens the manual configured-app
 selector. Cell 10 exits from every page; app children keep cell 12 available
-for a real app action. Top-level cell 6 and Utility cell 9 open Keys. Utility
+for a real app action. Top-level cell 2 and Utility cell 9 open Keys. Utility
 uses cells 1/4 for brightness up/down, 2/5 for zoom in/out, and 3/6 for Space
 left/right. Keys uses cell 6 for Copy, cell 3 for Paste, cell 9 for Next Track,
 cell 8 for Space, cell 11 for Backspace, and cell 12 for Escape. Its four arrows

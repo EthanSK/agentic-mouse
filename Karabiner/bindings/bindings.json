@@ -43,11 +43,11 @@
     "bindingsBySource": {
       "corsair": [
         "corsair-side-01-horizontal-left",
-        "corsair-side-02-app-specific-mode",
+        "corsair-side-02-keys-mode",
         "corsair-side-03-screenshot",
         "corsair-side-04-horizontal-right",
         "corsair-side-05-forward",
-        "corsair-side-06-keys-mode",
+        "corsair-side-06-app-specific-mode",
         "corsair-side-07-enter",
         "corsair-side-08-back",
         "corsair-side-09-app-shortcut",
@@ -57,11 +57,11 @@
       ],
       "razer": [
         "razer-side-03-horizontal-right",
-        "razer-side-02-app-specific-mode",
+        "razer-side-02-keys-mode",
         "razer-side-01-screenshot",
         "razer-side-06-horizontal-left",
         "razer-side-05-forward",
-        "razer-side-04-keys-mode",
+        "razer-side-04-app-specific-mode",
         "razer-side-09-enter",
         "razer-side-08-back",
         "razer-side-07-app-shortcut",
@@ -109,9 +109,9 @@
       ]
     },
     {
-      "id": "corsair-side-02-app-specific-mode",
-      "description": "Corsair side 2 opens the current frontmost app mode",
-      "action": "open-app-specific-mode-corsair",
+      "id": "corsair-side-02-keys-mode",
+      "description": "Corsair side 2 opens the shared Agentic Mouse Keys mode",
+      "action": "open-keys-mode-corsair",
       "rule": "Corsair base layer",
       "from": {
         "key_code": "keypad_2",
@@ -203,9 +203,9 @@
       ]
     },
     {
-      "id": "corsair-side-06-keys-mode",
-      "description": "Corsair side 6 opens the shared Agentic Mouse Keys mode",
-      "action": "open-keys-mode-corsair",
+      "id": "corsair-side-06-app-specific-mode",
+      "description": "Corsair side 6 opens the current frontmost app mode",
+      "action": "open-app-specific-mode-corsair",
       "rule": "Corsair base layer",
       "from": {
         "key_code": "keypad_6",
@@ -463,9 +463,9 @@
       ]
     },
     {
-      "id": "razer-side-02-app-specific-mode",
-      "description": "Razer side 2 shares physical cell 2 and opens the current frontmost app mode",
-      "action": "open-app-specific-mode-razer",
+      "id": "razer-side-02-keys-mode",
+      "description": "Razer side 2 shares physical cell 2 and opens the shared Agentic Mouse Keys mode",
+      "action": "open-keys-mode-razer",
       "rule": "Razer base layer",
       "from": {
         "key_code": "2",
@@ -499,9 +499,9 @@
       ]
     },
     {
-      "id": "razer-side-04-keys-mode",
-      "description": "Razer side 4 shares physical cell 6 and opens the shared Agentic Mouse Keys mode",
-      "action": "open-keys-mode-razer",
+      "id": "razer-side-04-app-specific-mode",
+      "description": "Razer side 4 shares physical cell 6 and opens the current frontmost app mode",
+      "action": "open-app-specific-mode-razer",
       "rule": "Razer base layer",
       "from": {
         "key_code": "4",

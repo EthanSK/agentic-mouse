@@ -91,14 +91,15 @@ button outputs. Specifically you lose, until you switch profiles back:
 | Button | Normal action |
 |---|---|
 | 1 | horizontal scroll left (repeating) |
+| 2 | Keys mode |
 | 4 | horizontal scroll right (repeating) |
 | 5 | Forward |
-| 6 | App-specific wildcard (silent outside configured apps) |
+| 6 | Current frontmost-app mode |
 | 8 | Back |
-| 9 | Keys mode |
+| 9 | App-specific wildcard (silent outside configured apps) |
 
 VS Code additionally overrides physical cell 5 to Better Git Previous Change,
-cell 6 to one-press Stage + Next, and cell 8 to Next Change; those app-scoped actions are also unavailable while
+cell 9 to one-press Stage + Next, and cell 8 to Next Change; those app-scoped actions are also unavailable while
 the fallback profile replaces the neutral transports.
 
 The separate DPI VoiceInk++ control remains available. The primary route keeps

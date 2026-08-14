@@ -37,11 +37,11 @@ These are the currently authoritative Corsair assignments:
 | Wheel press | Play / Pause through Karabiner | Same global action |
 | DPI button | VoiceInk++ speech-to-text; DPI remains fixed | Same global action |
 | Button 1 | Horizontal scroll left | Same global action |
-| Button 2 | Open the current frontmost app mode | Same global action |
+| Button 2 | Open Keys mode | Same global action |
 | Button 3 | Start / cancel selected-area Screenshot | Same global action |
 | Button 4 | Horizontal scroll right | Same global action |
 | Button 5 | Forward | Previous Change through F17 |
-| Button 6 | Open Keys mode | Same global action |
+| Button 6 | Open the current frontmost app mode | Same global action |
 | Button 7 | Enter | Enter; inside Modes, selects Keypad |
 | Button 8 | Back | Next Change through F13 |
 | Button 9 | App shortcut; silent when unconfigured | One-press Stage + Next through F18 |
@@ -50,7 +50,7 @@ These are the currently authoritative Corsair assignments:
 | Button 12 | Single: Utility; rapid double: Default legend | Same global action |
 | DPI stages, including Sniper | 2,750 DPI | 2,750 DPI |
 
-Button 9 is the fail-closed app-specific wildcard and button 6 opens the shared Keys mode. Switch App uses shared physical cell 11; cell 10 is blank outside modes and exits any active mode. On cell 12, one press opens Utility after the bounded click window and a rapid double press toggles that source mouse's independent Default legend. The native Switch App hold lifecycle is proven; the final relocated positions still need one final two-mouse acceptance press.
+Button 9 is the fail-closed app-specific wildcard and button 2 opens the shared Keys mode. Switch App uses shared physical cell 11; cell 10 is blank outside modes and exits any active mode. On cell 12, one press opens Utility after the bounded click window and a rapid double press toggles that source mouse's independent Default legend. The native Switch App hold lifecycle is proven; the final relocated positions still need one final two-mouse acceptance press.
 
 VS Code has three exact-device overrides: physical cell 5 emits non-repeating F17
 for Better Git Previous Change, cell 8 emits non-repeating F13 for Next Change,
@@ -104,7 +104,7 @@ The macOS menu-bar app adds four optional runtime behaviours:
   the selected YouTube target by five seconds through the VoiceInk YouTube
   Bridge without focusing Chrome. Cell 4 lowers display brightness and cell 5
   zooms out; cell 7 selects Keypad, and cell 9 opens Keys.
-  Top-level cell 2 opens the current frontmost app's mode and refreshes it as
+  Top-level cell 6 opens the current frontmost app's mode and refreshes it as
   focus changes. Utility cell 11 opens the separate manual selector for Codex,
   Chrome, and VS Code and locks the chosen target. App children keep cell 12
   available for a real app action and use universal cell 10 to exit. Codex mode currently provides

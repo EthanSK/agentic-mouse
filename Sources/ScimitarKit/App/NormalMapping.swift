@@ -69,8 +69,8 @@ public struct ScimitarNormalMapping: Equatable, Sendable {
             ),
             Assignment(
                 button: 2,
-                action: "App-specific mode",
-                implementation: "Exact-device Karabiner opens the current frontmost app mode; active cell 10 exits"
+                action: "Keys mode",
+                implementation: "Exact-device Karabiner opens the shared native-key mode; active cell 10 exits"
             ),
             Assignment(
                 button: 3,
@@ -85,8 +85,8 @@ public struct ScimitarNormalMapping: Equatable, Sendable {
             Assignment(button: 5, action: "Forward"),
             Assignment(
                 button: 6,
-                action: "Keys mode",
-                implementation: "Exact-device Karabiner opens the shared native arrow-key mode; active cell 10 exits"
+                action: "App-specific mode",
+                implementation: "Exact-device Karabiner opens the current frontmost app mode; active cell 10 exits"
             ),
             Assignment(
                 button: 7,

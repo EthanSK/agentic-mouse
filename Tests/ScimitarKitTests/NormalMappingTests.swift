@@ -63,25 +63,21 @@ final class NormalMappingTests: XCTestCase {
         )
     }
 
-    func testSixOpensKeysAndNineIsTheAppShortcut() {
-        XCTAssertEqual(ScimitarNormalMapping.normal.assignment(for: 6)?.action, "Keys mode")
+    func testTwoOpensKeysSixOpensTheFrontmostAppAndNineIsTheAppShortcut() {
+        XCTAssertEqual(ScimitarNormalMapping.normal.assignment(for: 2)?.action, "Keys mode")
+        XCTAssertEqual(
+            ScimitarNormalMapping.normal.assignment(for: 2)?.implementation,
+            "Exact-device Karabiner opens the shared native-key mode; active cell 10 exits"
+        )
+        XCTAssertEqual(ScimitarNormalMapping.normal.assignment(for: 6)?.action, "App-specific mode")
         XCTAssertEqual(
             ScimitarNormalMapping.normal.assignment(for: 6)?.implementation,
-            "Exact-device Karabiner opens the shared native arrow-key mode; active cell 10 exits"
+            "Exact-device Karabiner opens the current frontmost app mode; active cell 10 exits"
         )
         XCTAssertEqual(ScimitarNormalMapping.normal.assignment(for: 9)?.action, "App shortcut")
         XCTAssertEqual(
             ScimitarNormalMapping.normal.assignment(for: 9)?.implementation,
             "Karabiner suppresses the neutral transport by default; VS Code emits Stage + Next and supports the configured double-click action"
-        )
-    }
-
-    func testCellTwoOpensTheCurrentFrontmostAppModeDirectly() {
-        let assignment = ScimitarNormalMapping.normal.assignment(for: 2)
-        XCTAssertEqual(assignment?.action, "App-specific mode")
-        XCTAssertEqual(
-            assignment?.implementation,
-            "Exact-device Karabiner opens the current frontmost app mode; active cell 10 exits"
         )
     }
 

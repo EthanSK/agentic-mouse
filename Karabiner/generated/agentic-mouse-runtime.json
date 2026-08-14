@@ -6658,14 +6658,14 @@
             {
               "set_variable": {
                 "name": "agentic_mouse_mode_picker_corsair_page",
-                "value": 4
+                "value": 2
               }
             },
             {
               "send_user_command": {
                 "payload": {
                   "command": "agentic_mouse_mode_picker",
-                  "action": "openAppSpecific",
+                  "action": "openKeys",
                   "source": "corsair",
                   "physical_cell": 2,
                   "phase": "press"
@@ -6873,14 +6873,14 @@
             {
               "set_variable": {
                 "name": "agentic_mouse_mode_picker_corsair_page",
-                "value": 2
+                "value": 4
               }
             },
             {
               "send_user_command": {
                 "payload": {
                   "command": "agentic_mouse_mode_picker",
-                  "action": "openKeys",
+                  "action": "openAppSpecific",
                   "source": "corsair",
                   "physical_cell": 6,
                   "phase": "press"
@@ -7810,14 +7810,14 @@
             {
               "set_variable": {
                 "name": "agentic_mouse_mode_picker_razer_page",
-                "value": 4
+                "value": 2
               }
             },
             {
               "send_user_command": {
                 "payload": {
                   "command": "agentic_mouse_mode_picker",
-                  "action": "openAppSpecific",
+                  "action": "openKeys",
                   "source": "razer",
                   "physical_cell": 2,
                   "phase": "press"
@@ -7917,14 +7917,14 @@
             {
               "set_variable": {
                 "name": "agentic_mouse_mode_picker_razer_page",
-                "value": 2
+                "value": 4
               }
             },
             {
               "send_user_command": {
                 "payload": {
                   "command": "agentic_mouse_mode_picker",
-                  "action": "openKeys",
+                  "action": "openAppSpecific",
                   "source": "razer",
                   "physical_cell": 6,
                   "phase": "press"

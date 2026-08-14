@@ -134,7 +134,7 @@ public final class ModePickerCoordinator {
         activate(source: source, page: .modes, definition: nil)
     }
 
-    /// Opens the current frontmost app directly from top-level physical cell 2.
+    /// Opens the current frontmost app directly from top-level physical cell 6.
     /// The HUD follows later app activations until the user opens the manual selector.
     public func enterAppSpecific(source: MouseSource) {
         guard !isActive else { return }
@@ -157,7 +157,7 @@ public final class ModePickerCoordinator {
         followsFrontmostApp = false
     }
 
-    /// Opens the shared arrow-key child directly from top-level physical cell 6.
+    /// Opens the shared native-key child directly from top-level physical cell 2.
     /// Physical cell 10 exits it.
     public func enterKeys(source: MouseSource) {
         guard !isActive else { return }

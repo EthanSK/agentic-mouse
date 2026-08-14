@@ -112,8 +112,8 @@ The things worth confirming:
 - the **DPI Toggle button** emits the named iCUE F19 transport, and Karabiner
   triggers VoiceInk++ on release without changing DPI;
 - **5** = Forward, **8** = Back;
-- **2** opens the current frontmost app mode, **3** starts/cancels Screenshot,
-  **6** opens Keys, and **7** = Enter;
+- **2** opens Keys, **3** starts/cancels Screenshot,
+  **6** opens the current frontmost app mode, and **7** = Enter;
 - **9** is the app-specific wildcard (silent by default; VS Code single press
   Stage + Next and rapid double press exact undo), **10** is blank outside
   modes, **11** holds open Switch App, and **12** opens Utility on a single

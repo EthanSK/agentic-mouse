@@ -252,10 +252,10 @@ double-press window; a rapid double press toggles the independent Default legend
 all twelve transports feed one ordered press/release stream, independent of
 ordinary frontmost-app conditions. Universal physical cell 10 exits any active
 mode and is blank outside modes. Cell 7 selects Keypad. Top-level
-cell 2 opens a live frontmost-app child that refreshes on workspace activation;
+cell 6 opens a live frontmost-app child that refreshes on workspace activation;
 Utility cell 11 opens the separate configured-app selector and locks the chosen
 target without activation. App children keep cell 12 available for real app
-actions and use universal cell 10 to exit. Top-level cell 6 and Utility cell 9
+actions and use universal cell 10 to exit. Top-level cell 2 and Utility cell 9
 open Keys mode. Within Keys, Corsair physical cells 5/4/7/1
 emit Up/Down/Right/Left; the left-handed Razer swaps the horizontal meanings
 of cells 1 and 7. Cell 6 emits Copy, cell 3 emits Paste, cell 9 emits Next Track,

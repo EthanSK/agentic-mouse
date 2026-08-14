@@ -43,8 +43,8 @@ const PAIRS = [
   },
   {
     id: "c2", corsair: 2, razer: 2, row: 2, col: 1,
-    action: "Current app mode", short: "App mode", description: "Open the mode for the current frontmost application and follow later app changes.",
-    signal: "runtime", output: "Agentic Mouse current-app mode", status: "IMPLEMENTED · PHYSICAL ACCEPTANCE PENDING",
+    action: "Keys mode", short: "Keys", description: "Open the shared native keys mode; active cell 10 exits.",
+    signal: "runtime", output: "Agentic Mouse Keys mode", status: "IMPLEMENTED · PHYSICAL ACCEPTANCE PENDING",
   },
   {
     id: "c3", corsair: 3, razer: 1, row: 1, col: 1,
@@ -71,8 +71,8 @@ const PAIRS = [
   },
   {
     id: "c6", corsair: 6, razer: 4, row: 1, col: 2,
-    action: "Keys mode", short: "Keys", description: "Open the shared native keys mode; active cell 10 exits.",
-    signal: "runtime", output: "Agentic Mouse Keys mode", status: "IMPLEMENTED · PHYSICAL ACCEPTANCE PENDING",
+    action: "Current app mode", short: "App mode", description: "Open the mode for the current frontmost application and follow later app changes.",
+    signal: "runtime", output: "Agentic Mouse current-app mode", status: "IMPLEMENTED · PHYSICAL ACCEPTANCE PENDING",
   },
   {
     id: "c7", corsair: 7, razer: 9, row: 3, col: 3,
@@ -409,8 +409,8 @@ function setLayer(layer) {
 
 function updateLayerNote() {
   elements.layerNote.innerHTML = state.layer === "vscode"
-    ? "<strong>VS Code preview.</strong> Physical cell 5 emits Previous Change through F17, cell 6 emits Stage + Next through F18, and cell 8 emits Next Change through F13; every other cell inherits its normal base action."
-    : "<strong>Normal preview.</strong> Physical cell 5 remains Forward, cell 6 stays silent until an app shortcut is configured, and cell 8 remains Back outside VS Code.";
+    ? "<strong>VS Code preview.</strong> Physical cell 5 emits Previous Change through F17, cell 9 emits Stage + Next through F18, and cell 8 emits Next Change through F13; every other cell inherits its normal base action."
+    : "<strong>Normal preview.</strong> Physical cell 5 remains Forward, cell 9 stays silent until an app shortcut is configured, and cell 8 remains Back outside VS Code.";
 }
 
 function setKeyDevice(device) {

@@ -108,13 +108,13 @@ public struct PhysicalCell: RawRepresentable, Hashable, Codable, Sendable, Compa
     public static let appSpecificModeSelector = PhysicalCell(rawValue: 11)!
 
     /// Opens the current frontmost application's mode from the ordinary layer.
-    public static let frontmostAppModeSelector = PhysicalCell(rawValue: 2)!
+    public static let frontmostAppModeSelector = PhysicalCell(rawValue: 6)!
 
     /// Opens the shared native arrow-key mode from Utility.
     public static let keysModeSelector = PhysicalCell(rawValue: 9)!
 
     /// Opens the shared native arrow-key mode directly from the ordinary layer.
-    public static let keysModeEntry = PhysicalCell(rawValue: 6)!
+    public static let keysModeEntry = PhysicalCell(rawValue: 2)!
 
     /// Ordinary app-specific wildcard. It is silent unless the current app has
     /// an explicit override.

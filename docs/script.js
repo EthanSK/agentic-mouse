@@ -8,8 +8,8 @@ const CELLS = [
   },
   {
     id: 2, corsair: 2, razer: 2,
-    default: ["Switch App", "Hold to keep the macOS App Switcher open; release to choose."],
-    vscode: ["Switch App", "The same global hold-open App Switcher action."],
+    default: ["Keys mode", "Open the shared native-key mode."],
+    vscode: ["Keys mode", "The same global Keys mode entry."],
     keys: ["Paste password", "Read the local When-Unlocked Keychain item and type it without the clipboard."],
     utility: ["Zoom In", "Send the standard macOS Command-Plus zoom shortcut."],
   },
@@ -36,8 +36,8 @@ const CELLS = [
   },
   {
     id: 6, corsair: 6, razer: 4,
-    default: ["App shortcut", "Stay silent unless the frontmost app has an explicit wildcard action."],
-    vscode: ["Stage + Next", "Stage the current Better Git change and advance through F18."],
+    default: ["Current app mode", "Open a live mode named and coloured for the frontmost app."],
+    vscode: ["VS Code mode", "Open the live VS Code-specific mode."],
     keys: ["Copy", "Send the standard Command-C shortcut."],
     utility: ["Space Right", "Move one macOS desktop Space to the right."],
   },
@@ -57,22 +57,22 @@ const CELLS = [
   },
   {
     id: 9, corsair: 9, razer: 7,
-    default: ["Keys mode", "Open the shared native-key mode."],
-    vscode: ["Keys mode", "The same global Keys mode entry."],
+    default: ["App shortcut", "Stay silent unless the frontmost app has an explicit wildcard action."],
+    vscode: ["Stage + Next", "Stage the current Better Git change and advance through F18."],
     keys: ["Next Track", "Emit the native system Next Track media key."],
     utility: ["Keys mode", "Move directly into the shared Keys page."],
   },
   {
     id: 10, corsair: 10, razer: 12,
-    default: ["Legend toggle", "Show or hide the source-aware Default legend."],
-    vscode: ["Legend toggle", "Show or hide the source-aware Default legend."],
+    default: ["Blank", "Reserved outside modes."],
+    vscode: ["Blank", "Reserved outside modes."],
     keys: ["Exit Keys mode", "Clear the expiring mode lease and restore Default."],
     utility: ["Exit Utility modes", "Clear the expiring mode lease and restore Default."],
   },
   {
     id: 11, corsair: 11, razer: 11,
-    default: ["Current app mode", "Open a live mode named and coloured for the frontmost app."],
-    vscode: ["VS Code mode", "Open the live VS Code-specific mode."],
+    default: ["Switch App", "Hold to keep the macOS App Switcher open; release to choose."],
+    vscode: ["Switch App", "The same global hold-open App Switcher action."],
     keys: ["Backspace", "Emit one native Delete/Backspace key."],
     utility: ["Choose app", "Open the manual Codex, Chrome and VS Code selector."],
   },
@@ -105,10 +105,6 @@ const elements = {
 };
 
 function actionFor(cell, device = state.selectedDevice) {
-  if (["default", "vscode"].includes(state.layer) && device === "razer") {
-    if (cell.id === 2) return ["Legend toggle", "Show or hide the Razer Default legend."];
-    if (cell.id === 10) return ["Switch App", "Hold the App Switcher open until release. Exit while a mode is active."];
-  }
   if (state.layer === "keys" && device === "razer") {
     if (cell.id === 1) return ["Right Arrow", "Emit one native, non-repeating Right Arrow."];
     if (cell.id === 7) return ["Left Arrow", "Emit one native, non-repeating Left Arrow."];

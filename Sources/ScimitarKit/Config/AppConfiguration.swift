@@ -159,7 +159,7 @@ public struct AppConfiguration: Codable, Equatable, Sendable {
     // MARK: - Default-map reference
 
     public struct DefaultMapHintConfiguration: Codable, Equatable, Sendable {
-        /// Shared physical cell 2 toggles each source's persistent reference.
+        /// Shared physical cell 12 rapidly double-toggles each source's persistent reference.
         public var enabled: Bool
         public var doubleClickInterval: TimeInterval
         /// Optional legacy auto-hide timeout. Zero keeps the map visible until

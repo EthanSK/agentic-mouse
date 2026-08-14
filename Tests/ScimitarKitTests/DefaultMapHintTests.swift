@@ -28,11 +28,11 @@ final class DefaultMapHintCommandTests: XCTestCase {
         XCTAssertEqual(DefaultMapLegend.legend.map(\.cell), PhysicalCell.all)
         XCTAssertEqual(DefaultMapLegend.legend[0].actionTitle, "Horizontal scroll left")
         XCTAssertEqual(DefaultMapLegend.legend[2].actionTitle, "Screenshot")
-        XCTAssertEqual(DefaultMapLegend.legend[5].actionTitle, "Keys mode")
-        XCTAssertEqual(DefaultMapLegend.legend[5].accent, ModePickerCoordinator.keysAccent)
-        XCTAssertEqual(DefaultMapLegend.legend[5].destinationModeAccent, ModePickerCoordinator.keysAccent)
-        XCTAssertEqual(DefaultMapLegend.legend[1].actionTitle, "App mode")
-        XCTAssertEqual(DefaultMapLegend.legend[1].destinationModeAccent, AppSpecificMode.selectorAccent)
+        XCTAssertEqual(DefaultMapLegend.legend[1].actionTitle, "Keys mode")
+        XCTAssertEqual(DefaultMapLegend.legend[1].accent, ModePickerCoordinator.keysAccent)
+        XCTAssertEqual(DefaultMapLegend.legend[1].destinationModeAccent, ModePickerCoordinator.keysAccent)
+        XCTAssertEqual(DefaultMapLegend.legend[5].actionTitle, "App mode")
+        XCTAssertEqual(DefaultMapLegend.legend[5].destinationModeAccent, AppSpecificMode.selectorAccent)
         XCTAssertEqual(DefaultMapLegend.legend[8].actionTitle, "App shortcut")
         XCTAssertEqual(DefaultMapLegend.legend[10].actionTitle, "Switch App")
         XCTAssertEqual(DefaultMapLegend.legend[11].actionTitle, "Legend toggle")
@@ -152,12 +152,12 @@ final class DefaultMapHintCoordinatorTests: XCTestCase {
         )
         coordinator.handleToggle(source: .corsair)
 
-        XCTAssertEqual(hud.snapshots.last?.legend[1].actionTitle, "Chrome mode")
+        XCTAssertEqual(hud.snapshots.last?.legend[5].actionTitle, "Chrome mode")
         XCTAssertEqual(
-            hud.snapshots.last?.legend[1].accent,
+            hud.snapshots.last?.legend[5].accent,
             ChromeMode.accent.blended(with: .white, amount: 0.58)
         )
-        XCTAssertEqual(hud.snapshots.last?.legend[1].destinationModeAccent, ChromeMode.accent)
+        XCTAssertEqual(hud.snapshots.last?.legend[5].destinationModeAccent, ChromeMode.accent)
 
         frontmostAppContext = FrontmostAppModeContext(
             target: .vsCode,
@@ -166,7 +166,7 @@ final class DefaultMapHintCoordinatorTests: XCTestCase {
         )
         coordinator.refresh()
 
-        XCTAssertEqual(hud.snapshots.last?.legend[1].actionTitle, "VS Code mode")
+        XCTAssertEqual(hud.snapshots.last?.legend[5].actionTitle, "VS Code mode")
         XCTAssertTrue(coordinator.isShowingHint)
     }
 
