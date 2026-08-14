@@ -37,8 +37,7 @@ public final class AccessibilityPermission: AccessibilityPermissionChecking {
         Grant it in System Settings → Privacy & Security → Accessibility, then \
         quit and relaunch Agentic Mouse.
 
-        Without it, multi-tap mode stays disabled. Hue colour mirroring does not \
-        need this permission and keeps working.
+        Without it, multi-tap mode stays disabled.
         """
 
     /// Deep link to the right System Settings pane. Opening it is always a

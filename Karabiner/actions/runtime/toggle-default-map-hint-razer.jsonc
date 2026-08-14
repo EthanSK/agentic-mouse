@@ -1,0 +1,18 @@
+// Toggles the persistent top-level legend from Razer physical cell 10 (printed 12) without leaking key input.
+{
+  "id": "toggle-default-map-hint-razer",
+  "title": "Toggle Default mode legend (Razer)",
+  "description": "Send one exact-device Razer legend toggle to Agentic Mouse.",
+  "manipulator": {
+    "to": [{
+      "send_user_command": {
+        "payload": {
+          "command": "agentic_mouse_default_map_toggle",
+          "source": "razer",
+          "physical_cell": 10
+        }
+      },
+      "repeat": false
+    }]
+  }
+}

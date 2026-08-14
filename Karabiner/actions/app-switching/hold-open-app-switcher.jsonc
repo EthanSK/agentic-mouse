@@ -1,15 +1,19 @@
-// Opens macOS App Switcher, holds Command while the trigger is held, and releases it when the trigger is released; physical acceptance is still required.
+// Opens macOS App Switcher once, then keeps Command held until the physical trigger is released; physical acceptance is still required.
 {
   "id": "hold-open-app-switcher",
   "title": "Hold open App Switcher",
   "description": "Open the native macOS App Switcher, keep it available for selection while held, and commit the highlighted app on release.",
   "manipulator": {
     "to": [
-      { "sticky_modifier": { "left_command": "on" } },
-      { "key_code": "tab", "repeat": false }
-    ],
-    "to_after_key_up": [
-      { "sticky_modifier": { "left_command": "off" } }
+      {
+        "key_code": "tab",
+        "modifiers": ["left_command"],
+        "repeat": false
+      },
+      {
+        "key_code": "left_command",
+        "repeat": true
+      }
     ]
   }
 }

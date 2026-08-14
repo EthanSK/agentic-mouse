@@ -1,21 +1,21 @@
 import Foundation
 
-/// The side-button assignments that live in **iCUE**, recorded here so the
-/// helper can describe and check them.
+/// The intended side-button semantics implemented by the generated Karabiner
+/// adapter, recorded here so the helper can describe and check them.
 ///
-/// This type configures nothing. iCUE owns these assignments; the helper never
-/// writes an iCUE profile and never edits iCUE's database. What it is for:
+/// This type configures nothing. iCUE owns Corsair hardware and neutral source
+/// transports; Karabiner owns these semantics. The helper never writes an iCUE
+/// profile or edits iCUE's database. What it is for:
 ///
-///  * `agentic-mouse-doctor mapping` prints it, so the profile in iCUE can be
-///    checked against what the helper believes is true.
-///  * Tests assert that the multi-tap toggle does not displace an assignment.
+///  * `agentic-mouse-doctor mapping` prints it, so the generated and installed
+///    Karabiner rules can be checked against what the helper believes is true.
+///  * Tests assert that the shared Modes entry does not leak a transport.
 ///  * It is the single place to correct when the mapping changes, instead of a
 ///    dozen prose descriptions drifting out of date in the docs.
 ///
-/// While multi-tap mode is active, buttons 1–12 are intercepted through
-/// `CAL_ExclusiveKeyEventsListening` and none of these actions fire. Exiting
-/// releases the interception, and iCUE resumes whichever profile is applicable
-/// — the normal one, or the VS Code one if VS Code is frontmost.
+/// While a runtime mode is active, exact-device Karabiner routing owns cells
+/// 1–12 and none of these actions fire. Exiting clears the expiring lease, and
+/// Karabiner resumes this base behavior or the VS Code override for cells 5/8.
 public struct ScimitarNormalMapping: Equatable, Sendable {
 
     /// A single button's documented purpose.
@@ -23,7 +23,7 @@ public struct ScimitarNormalMapping: Equatable, Sendable {
         public let button: Int
         /// What it does, in Ethan's words.
         public let action: String
-        /// How it is implemented in iCUE, where that matters for verification.
+        /// How it is implemented, where that matters for verification.
         public let implementation: String?
 
         public init(button: Int, action: String, implementation: String? = nil) {
@@ -35,7 +35,7 @@ public struct ScimitarNormalMapping: Equatable, Sendable {
 
     public let profileName: String
     public let assignments: [Assignment]
-    /// Set when this profile is linked to a specific application in iCUE.
+    /// Set when this semantic context is scoped to a specific application.
     public let linkedApplicationPath: String?
 
     public init(profileName: String, assignments: [Assignment], linkedApplicationPath: String? = nil) {
@@ -54,90 +54,86 @@ public struct ScimitarNormalMapping: Equatable, Sendable {
     /// pointer feels identical to the Logitech regardless of stage.
     public static let unifiedDPI = 2750
 
-    /// The default profile.
+    /// The default semantic layer.
     ///
-    /// Buttons 5/8 are the ordinary Forward/Back pair and 7/10 are the
-    /// horizontal-scroll pair. Speech-to-text sits on button 4 because that is
-    /// where the thumb naturally rests — the DPI Toggle button is explicitly
-    /// **disabled** and must never trigger it.
+    /// Buttons 5/8 are the ordinary Forward/Back pair and 1/4 are the
+    /// horizontal-scroll pair. Speech-to-text remains on the separate DPI
+    /// Toggle control, matching the last complete pre-removal iCUE export.
     public static let normal = ScimitarNormalMapping(
         profileName: "Normal",
         assignments: [
             Assignment(
+                button: 1,
+                action: "Horizontal scroll left",
+                implementation: "Karabiner action: scroll-horizontally-left"
+            ),
+            Assignment(
+                button: 2,
+                action: "Switch App",
+                implementation: "Karabiner action: hold-open-app-switcher"
+            ),
+            Assignment(
+                button: 3,
+                action: "Screenshot",
+                implementation: "Agentic Mouse toggles the native selected-area screenshot session"
+            ),
+            Assignment(
                 button: 4,
-                action: "VoiceInk++ speech-to-text toggle",
-                implementation: "direct iCUE macro: LeftShift+LeftCtrl+LeftAlt press, then the reverse release sequence"
+                action: "Horizontal scroll right",
+                implementation: "Karabiner action: scroll-horizontally-right"
             ),
             Assignment(button: 5, action: "Forward"),
-            Assignment(button: 6, action: "Next Track"),
-            Assignment(button: 7, action: "Horizontal scroll left", implementation: "repeating while held"),
+            Assignment(
+                button: 6,
+                action: "App shortcut",
+                implementation: "Karabiner suppresses the neutral transport by default; VS Code emits F18 Stage + Next"
+            ),
+            Assignment(
+                button: 7,
+                action: "Enter",
+                implementation: "Karabiner action: press-enter outside runtime modes"
+            ),
             Assignment(button: 8, action: "Back"),
-            Assignment(button: 9, action: "Previous Track"),
-            Assignment(button: 10, action: "Horizontal scroll right", implementation: "repeating while held"),
+            Assignment(
+                button: 9,
+                action: "Keys mode",
+                implementation: "Exact-device Karabiner opens the shared native arrow-key mode; active cell 10 exits"
+            ),
+            Assignment(
+                button: 10,
+                action: "Legend toggle",
+                implementation: "Agentic Mouse persistent Default mode legend toggle; active modes use the same cell to exit"
+            ),
+            Assignment(
+                button: 11,
+                action: "App-specific mode",
+                implementation: "Exact-device Karabiner opens the current frontmost app mode; active cell 10 exits"
+            ),
             Assignment(
                 button: 12,
-                action: "Multi-tap mode toggle",
-                implementation: "no iCUE assignment; the helper listens for the raw CMKI_12 macro-key event"
+                action: "Utility modes",
+                implementation: "Exact-device Karabiner opens the shared Agentic Mouse Modes lease; active cell 10 exits"
             )
         ]
     )
 
-    /// The application-linked profile for VS Code.
-    ///
-    /// It overrides **only** 7, 8 and 10, sending function keys that VS Code
-    /// binds to Better Git commands. Buttons 4, 5, 6 and 9 deliberately keep
-    /// their normal behaviour, so speech-to-text, Forward/Back and track
-    /// skipping work identically inside and outside the editor.
-    ///
-    /// Think of 7/8 as moving through the diff in 3D: 8 goes "up" to the
-    /// previous change, 7 goes "down" to the next one, and 10 — right beside
-    /// them — stages what you are looking at.
-    public static let vsCode = ScimitarNormalMapping(
-        profileName: "VS Code",
-        assignments: [
-            Assignment(button: 4, action: "VoiceInk++ speech-to-text toggle", implementation: "inherited from Normal"),
-            Assignment(button: 5, action: "Forward", implementation: "inherited from Normal"),
-            Assignment(button: 6, action: "Next Track", implementation: "inherited from Normal"),
-            Assignment(
-                button: 7,
-                action: "Better Git: next change",
-                implementation: "F13 → better-git-vscode.next-scm-change"
-            ),
-            Assignment(
-                button: 8,
-                action: "Better Git: previous change",
-                implementation: "F17 → better-git-vscode.previous-scm-change"
-            ),
-            Assignment(button: 9, action: "Previous Track", implementation: "inherited from Normal"),
-            Assignment(
-                button: 10,
-                action: "Better Git: stage current file",
-                implementation: "F18 → better-git-vscode.stage-current-file"
-            ),
-            Assignment(
-                button: 12,
-                action: "Multi-tap mode toggle",
-                implementation: "no iCUE assignment; the helper listens for the raw CMKI_12 macro-key event"
-            )
-        ],
-        linkedApplicationPath: "/Applications/Visual Studio Code.app"
-    )
-
-    public static let allProfiles: [ScimitarNormalMapping] = [.normal, .vsCode]
+    /// This readable helper records the default map. Karabiner separately owns
+    /// the approved VS Code-only navigation override for physical cells 5/8.
+    public static let allProfiles: [ScimitarNormalMapping] = [.normal]
 
     /// Controls that are **never** part of the multi-tap grid and are never
     /// intercepted, in any mode.
     ///
-    /// The DPI Toggle button matters most here: it is disabled in iCUE, and it
-    /// must not acquire a speech-to-text role by accident. Speech-to-text is on
-    /// side button 4 and nowhere else.
+    /// The DPI Toggle control stays outside the side-grid interception. iCUE
+    /// emits one neutral transport; Karabiner triggers VoiceInk++ on release
+    /// without changing sensor DPI.
     public static let untouchedControls: [String] = [
         "Left click",
         "Right click",
         "Wheel scroll (vertical)",
-        "Wheel press — Play/Pause",
+        "Wheel press — neutral middle click; exact-device Karabiner Play/Pause",
         "Pointer movement",
-        "DPI Toggle button — disabled in iCUE; must never trigger speech-to-text"
+        "DPI Toggle button — neutral exact-device F19 transport; Karabiner triggers VoiceInk++ speech-to-text on physical release; does not change DPI"
     ]
 
     /// A human-readable table, used by `agentic-mouse-doctor mapping`.

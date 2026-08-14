@@ -3,44 +3,71 @@
 An honest list. Where something is unverified, it says so rather than implying
 otherwise.
 
-## Hardware-gated: not proven by this codebase
+## Hardware-gated: not fully proven by this codebase
 
-These need the physical mouse and a live iCUE, and are covered in
-[`LIVE-PROOF.md`](LIVE-PROOF.md).
+Current ordinary and mode input uses exact-device Karabiner transports, not the
+older iCUE exclusive-key interception experiment. The remaining gates are:
 
-1. **Whether a *disabled* button 12 still emits a shared raw macro-key event.**
-   The mouse is known to report `CMKI_1…CMKI_12`. Whether clearing M12's
-   assignment in iCUE suppresses the SDK event as well as the action is a
-   firmware/iCUE behaviour that only a physical test can settle. If it does
-   suppress it, button 12 needs a harmless assignment instead of an empty one.
+1. **DPI release timing on the current saved transports.** Corsair F19 and Razer
+   F22 are installed as release actions, but the latest configuration still
+   needs one physical down/up capture and one VoiceInk activation on each mouse.
 
-2. **Whether `CorsairConfigureKeyEvent` actually stops the normal assignment
-   reaching macOS.** The SDK documents interception as routing the event to the
-   exclusive client instead of other SDK clients. Whether iCUE *also* suppresses
-   its own profile action for an intercepted key is the behaviour multi-tap mode
-   depends on. If it does not, pressing `4` in the mode would type a letter *and*
-   scroll — visible immediately, and the fallback is to clear the twelve
-   assignments in a dedicated iCUE profile.
-
-3. **Whether iCUE grants `CAL_ExclusiveKeyEventsListening` on this setup.**
-   Code `7` means it is switched off in iCUE's settings. Handled and explained,
-   but the happy path is unproven here.
-
-4. **Real LED appearance.** The two LUIDs and the colour maths are implemented
-   and unit-tested, but nobody has looked at the actual mouse.
-
-5. **Typing into real applications.** `postToPid` + `keyboardSetUnicodeString`
+2. **Typing into real applications.** `postToPid` + `keyboardSetUnicodeString`
    is the standard layout-independent approach, but individual apps vary. Known
    awkward cases: terminal emulators in some modes, remote-desktop clients,
    games with raw input, and anything that ignores synthetic events.
 
+3. **Final physical lock-screen acceptance.** Automated tests prove the
+   documented session lifecycle, three-second fail-closed lease, complete
+   exact-device transport sink, output-time guards, and destructive mode/HUD
+   teardown. Ethan still needs to lock the real Mac once and physically confirm
+   that both mice retain ordinary pointer/click behavior while every custom
+   side-grid, DPI, wheel-command, and active-mode action remains inert.
+
 ## Known behavioural limits
 
-**Entering the mode can leak one button press.** Interception starts *after*
-entry succeeds, so the press of button 12 that enters the mode is still seen by
-iCUE. Clearing button 12's assignment avoids it. The same is true in reverse:
-the press that exits happens while interception is still active, so it does not
-leak.
+**Locked-session protection depends on Agentic Mouse and the installed generated
+Karabiner rules agreeing on the same lease variable.** A process crash or stale
+lease fails closed within three seconds. Replacing only one side of that pair is
+not a supported installation. Unlock never resumes the previously active mode.
+
+**Colour Proof is retired from the live map.** Its accepted input, HUD, Corsair,
+and Razer lighting paths remain only as regression infrastructure. It has no
+generated rule or selectable mouse slot.
+
+**Razer macOS RGB through standard HID LampArray is physically rejected.**
+Read-only inspection proved that exact device `1532:008d` exposes a standard
+three-lamp LampArray and reports each lamp programmable. However, solid red, a
+distinctive three-zone pattern, and a five-minute red/off strobe all returned
+successful HID writes while the mouse visibly stayed on its autonomous rainbow.
+Report 6 (`AutonomousMode`) reads back the previous valid feature response
+instead of its declared state, proving that the advertised control is not
+implemented correctly enough for this route. Do not ship or install this source
+adapter as a working lighting target.
+
+`agentic-mouse-doctor razer` remains a read-only exact-interface diagnostic.
+Its write flags preserve the failed acceptance probes for reproducibility, but
+must not be repeated without a new reason, a macOS heads-up, and Ethan's exact
+approval. Windows has now supplied the reference result: Dynamic Lighting with
+Synapse stopped changed only its own UI and had no physical effect, while
+Synapse 4 Quick Effects -> Static physically changed the same mouse to green
+and red. A Windows-configured effect is still separate from live per-mode macOS
+colour and is not assumed to persist onboard.
+
+**The exact Razer vendor route is live and physically accepted.** Agentic Mouse
+uses the acknowledged `NOSTORE` custom-frame path for PID `008d`, returns to
+50%-scaled cool idle white `(124,129,130)` outside modes, and keeps mode/alert
+colours independent. The remaining gate is only Ethan's final side-by-side hue
+and brightness judgment against the Corsair.
+
+**The accepted live Modes entry is physical cell 12.** That is Corsair printed
+12 and Razer printed 10. Universal physical cell 10 (Corsair printed 10 /
+Razer printed 12) exits the menu and every child mode; outside modes it toggles
+the persistent Default legend. Physical cell 3 starts or cancels Screenshot
+outside modes; active-mode legends remain visible until cell 10 exits the mode.
+There is no idle or absolute timeout while Agentic Mouse is healthy; the short
+Karabiner lease fails closed after process failure. Exact-device mode ingress
+consumes the neutral transport, so no keypad digit leaks into applications.
 
 **Focus detection is per-element, not per-caret.** Moving the caret within one
 text field is not a target change, so a pending character still commits there.
@@ -80,32 +107,20 @@ Pin one with `lighting.device.deviceTag`.
 
 **No T9.** Deliberately. No dictionary, no prediction, no surprises.
 
-## Hue limits
-
-**Local network only.** No cloud API, no remote access. The bridge must be
-reachable directly.
-
-**Bridge TLS uses a host-scoped trust exception, not certificate pinning.** Hue bridges present a
-certificate signed by Philips' private root with the bridge id as the common
-name, which system trust rejects. The delegate accepts it for the exact
-configured request host and refuses every other host. It does not verify a
-certificate fingerprint or public key, so a LAN attacker able to impersonate
-that host is not excluded. Pair and operate only on a trusted local network.
-
-**Only lights, not groups or scenes.** Four light resource ids, two clusters.
-Scenes are not read.
-
-**A light missing from the bridge is treated as absent.** Its zone renders
-black rather than guessing.
-
-**Colour is approximate.** Two small LEDs cannot reproduce a room. Brightness
-has a floor so a lamp at 1% does not look broken, and saturation is boosted
-slightly because small LEDs read washed out.
-
 ## iCUE limits
 
-**iCUE must be running.** No iCUE means no lighting and no multi-tap. The menu
-bar says so.
+**iCUE must be running for Corsair RGB and the neutral Corsair transports must
+remain configured.** Keypad and Modes input now arrive through exact-device
+Karabiner rules, so they do not depend on Scimitar SDK macro callbacks. iCUE's
+absence does not suppress the universal HUD or Razer runtime path. The menu bar
+reports the Corsair/iCUE boundary separately.
+
+**The public SDK does not document macOS support.** Corsair's current public
+iCUE SDK reference lists Windows requirements. iCUE for macOS contains an SDK
+library and approval UI, and this project can load its audited ABI, but that is
+not enough to call the integration a supported public macOS API. Treat runtime
+mode colours as experimental until Corsair documents macOS support and a
+guarded physical write/release test is explicitly approved.
 
 **Shared layer only.** iCUE renders at 127, other shared clients at 128, this
 helper at 130. Another SDK client at a higher priority would win, and this
@@ -120,23 +135,34 @@ multi-tap mode, the mode exits.
 
 ## Scope
 
-**Nothing is installed.** No LaunchAgent, no login item, no system settings
-touched. `make app` writes to `build/` and stops.
+**Nothing is installed by the build.** `make app` writes to `build/` and stops.
+When the packaged app is launched from its installed location, it registers
+itself as a native macOS login item. It does not install a LaunchAgent.
 
 **iCUE profiles are never edited.** The helper reads device properties and
 writes shared-layer colours. It does not modify a profile, and it never touches
 iCUE's database files.
 
-**Normal-mode assignments are not managed by this helper.** The mapping lives in
-iCUE: 4 = VoiceInk++ speech-to-text, 5 = Forward, 6 = Next Track, 7 = horizontal
-scroll left, 8 = Back, 9 = Previous Track, 10 = horizontal scroll right, with a
-VS Code-linked profile overriding only 7/8/10 for Better Git. Every visible DPI
-stage is 2,750 and the DPI Toggle button is disabled. The helper prints this
-table (`agentic-mouse-doctor mapping`) so it can be checked, but it never writes it —
-if iCUE and the table disagree, iCUE wins.
+**Normal-mode assignments are not managed by this helper.** iCUE owns the
+Corsair neutral keypad transports, while one exact-device Karabiner base maps
+them globally: 1 = horizontal scroll left, 2 = Switch App, 3 = Screenshot,
+4 = horizontal scroll right, 5 = Forward, 6 = app-specific wildcard, 7 = Enter, 8 = Back,
+9 = Keys mode, 10 = Legend toggle, 11 = app-specific mode and 12 = Utility
+modes. Physical cell 3 starts a native selected-area Screenshot outside modes.
+Physical cell 10 exits the active mode instead of toggling the Default legend;
+there is no separate in-mode legend toggle. Wheel
+click also stays a
+neutral middle-click source and becomes Play/Pause in Karabiner. Every visible
+DPI stage is 2,750. The separate DPI Toggle control emits iCUE's named F19
+neutral transport and exact-device Karabiner triggers VoiceInk++ on release.
+The helper prints this table (`agentic-mouse-doctor mapping`) so it can be
+checked, but it never writes either live configuration.
 
-**Profile switching is iCUE's business, not the helper's.** The helper suspends
-all twelve buttons while multi-tap is active and releases them on exit. Which
-profile iCUE then resumes — Normal or the VS Code-linked one — is decided by
-iCUE from the frontmost app. The helper does not read, switch or influence that,
-so if profile switching itself is flaky, this cannot compensate for it.
+**App overrides are Karabiner's business, not the helper's.** The helper suspends
+all twelve buttons while multi-tap is active and releases them on exit. In VS
+Code, Karabiner maps physical cell 5 to non-repeating F17 Previous Change,
+cell 6 to non-repeating F18 Stage + Next, and cell 8 to non-repeating F13 Next
+Change. Matching exclusions preserve Forward/Back plus a silent wildcard base
+everywhere else without duplicating other controls. In Keys, cell 6 copies,
+cell 3 pastes, and cell 9 emits Next Track; the Razer swaps the horizontal-arrow
+meanings of physical cells 1 and 7 for its left-handed layout.

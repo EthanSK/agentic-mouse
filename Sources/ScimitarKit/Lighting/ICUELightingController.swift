@@ -199,7 +199,7 @@ public final class ICUELightingController: LightingController {
         let error = session.setColors(deviceIdentifier: device.identifier, colors: payload)
         hasWrittenSinceSelection = false
         guard error == Int32(SC_ICUE_SUCCESS.rawValue) else {
-            // Do not leave a stale Hue/mode colour visible for the rest of a
+            // Do not leave a stale mode colour visible for the rest of a
             // healthy-looking session. Ending this SDK client is the vendor's
             // fail-safe guarantee that iCUE discards its shared layer; the app
             // lifecycle reconnects without re-entering multi-tap mode.

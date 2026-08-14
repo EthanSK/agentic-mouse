@@ -1,0 +1,19 @@
+{
+  "manifest_version": 3,
+  "name": "Agentic Mouse — Musixmatch Play/Pause",
+  "version": "0.1.0",
+  "description": "Activates whole-song Play/Pause from one proven Corsair transport on Musixmatch Pro only.",
+  "content_scripts": [
+    {
+      "matches": [
+        "https://pro.musixmatch.com/*"
+      ],
+      "js": [
+        "controller.js",
+        "runtime-config.js",
+        "content.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ]
+}

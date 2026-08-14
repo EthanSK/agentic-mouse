@@ -1,0 +1,18 @@
+// Toggles one native selected-area screenshot interaction from Corsair physical cell 3.
+{
+  "id": "toggle-selected-screen-area-corsair",
+  "title": "Toggle selected screen area (Corsair)",
+  "description": "Start a native selected-area screenshot, or cancel the still-running interaction on the next Corsair press.",
+  "manipulator": {
+    "to": [{
+      "send_user_command": {
+        "payload": {
+          "command": "agentic_mouse_selected_area_screenshot_toggle",
+          "source": "corsair",
+          "physical_cell": 3
+        }
+      },
+      "repeat": false
+    }]
+  }
+}

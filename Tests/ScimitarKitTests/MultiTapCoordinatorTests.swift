@@ -81,6 +81,21 @@ final class MultiTapCoordinatorTests: XCTestCase {
         XCTAssertTrue(scheduler.isRunning)
     }
 
+    func testInactiveToggleClassifierCanOwnThePressWithoutEntering() {
+        var classifications = 0
+        coordinator.onInactiveTogglePress = {
+            classifications += 1
+            return true
+        }
+
+        pressButton(12)
+
+        XCTAssertEqual(classifications, 1)
+        XCTAssertFalse(coordinator.isActive)
+        XCTAssertFalse(hud.isVisible)
+        XCTAssertTrue(keyControl.interceptedKeys.isEmpty)
+    }
+
     func testButtonTwelveExitsTheMode() {
         pressButton(12)
         clock.advance(by: 0.5)
@@ -126,6 +141,30 @@ final class MultiTapCoordinatorTests: XCTestCase {
         // A second press inside the debounce window must not immediately exit.
         keyControl.emit(macroKeyId: 12, isPressed: true)
         XCTAssertTrue(coordinator.isActive)
+    }
+
+    func testAnotherRuntimeModeCanSuppressEntryWithoutSideEffects() {
+        coordinator = MultiTapCoordinator(
+            engine: engine,
+            transport: transport,
+            textOutput: textOutput,
+            targetResolver: resolver,
+            permission: permission,
+            hud: hud,
+            clock: clock,
+            scheduler: scheduler,
+            log: Log(category: "test", sink: NullLogSink()),
+            entryAllowed: { false },
+            autoExitAfterIdle: 10
+        )
+        transport.delegate = coordinator
+
+        pressButton(12)
+
+        XCTAssertFalse(coordinator.isActive)
+        XCTAssertFalse(hud.isVisible)
+        XCTAssertTrue(keyControl.interceptedKeys.isEmpty)
+        XCTAssertEqual(keyControl.currentAccessLevel, .shared)
     }
 
     // MARK: - Typing while active

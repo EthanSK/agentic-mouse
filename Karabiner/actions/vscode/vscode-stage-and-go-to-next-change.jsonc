@@ -5,7 +5,7 @@
   "description": "Stage the current changed file and advance through the existing Better Git F18 keybinding.",
   "manipulator": {
     "to": [
-      { "key_code": "f18" }
+      { "key_code": "f18", "repeat": false }
     ],
     "conditions": [
       {

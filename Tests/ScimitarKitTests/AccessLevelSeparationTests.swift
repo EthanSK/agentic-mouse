@@ -58,17 +58,13 @@ final class AccessLevelSeparationTests: XCTestCase {
             log: Log(category: "test", sink: NullLogSink())
         )
 
-        let room = LightingFrame(logo: .white, side: RGBColor(red: 200, green: 40, blue: 10))
-        lighting.updateHueFrame(room)
+        lighting.setModeActive(true)
 
         try transport.start()
         try transport.beginInterception()
         XCTAssertEqual(control.currentAccessLevel, .exclusiveKeyEvents)
 
-        // A Hue update lands normally even though key events are exclusive.
-        let newRoom = LightingFrame(uniform: RGBColor(red: 10, green: 200, blue: 10))
-        lighting.updateHueFrame(newRoom)
-        XCTAssertEqual(recorder.appliedFrames.last, newRoom)
+        XCTAssertEqual(lighting.winningSource, .modeIndicator)
 
         // Handing key control back must not disturb the lighting layer.
         let framesBefore = recorder.appliedFrames.count
@@ -79,7 +75,7 @@ final class AccessLevelSeparationTests: XCTestCase {
             framesBefore,
             "releasing key control is an input-only operation and must not repaint the mouse"
         )
-        XCTAssertEqual(recorder.appliedFrames.last, newRoom)
+        XCTAssertEqual(lighting.winningSource, .modeIndicator)
     }
 
     func testTheModeIndicatorIsLightingOnlyAndSurvivesWithoutKeyControl() {

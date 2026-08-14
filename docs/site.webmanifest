@@ -1,0 +1,17 @@
+{
+  "name": "Agentic Mouse",
+  "short_name": "Agentic Mouse",
+  "description": "A local-first macOS control layer for two twelve-button mice.",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#080b12",
+  "theme_color": "#080b12",
+  "icons": [
+    {
+      "src": "./agentic-mouse-mark.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

@@ -20,13 +20,29 @@ let package = Package(
             path: "Sources/CICUEBridge"
         ),
 
+        // Small IOKit USB shim for the exact Naga vendor protocol. It exposes
+        // only device discovery and one acknowledged 90-byte control exchange;
+        // packet construction and exact-device safety checks remain in Swift.
+        .target(
+            name: "CRazerUSBTransport",
+            path: "Sources/CRazerUSBTransport",
+            publicHeadersPath: "include",
+            linkerSettings: [
+                .linkedFramework("IOKit"),
+                .linkedFramework("CoreFoundation")
+            ]
+        ),
+
         // Injectable core and macOS target-discovery adapters. The pure state
         // machines remain testable without a mouse, Hue, iCUE, or AX grants;
         // the focus adapters use AppKit's workspace/process APIs.
         .target(
             name: "ScimitarKit",
-            dependencies: ["CICUEBridge"],
-            path: "Sources/ScimitarKit"
+            dependencies: ["CICUEBridge", "CRazerUSBTransport"],
+            path: "Sources/ScimitarKit",
+            linkerSettings: [
+                .linkedFramework("IOKit")
+            ]
         ),
 
         // AppKit/SwiftUI shell: non-activating HUD panel + menu bar item.
@@ -52,6 +68,12 @@ let package = Package(
             name: "ScimitarKitTests",
             dependencies: ["ScimitarKit"],
             path: "Tests/ScimitarKitTests"
+        ),
+
+        .testTarget(
+            name: "AgenticMouseAppTests",
+            dependencies: ["AgenticMouseApp"],
+            path: "Tests/AgenticMouseAppTests"
         )
     ]
 )

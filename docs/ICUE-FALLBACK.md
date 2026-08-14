@@ -36,7 +36,7 @@ Which is why the fallback requires reconfiguring iCUE.
 {
   "input": {
     "transport": "cgEventTap",
-    "toggleKey": 12,
+    "toggleKey": 10,
     "fallbackBindings": {
       "k1":  { "kind": "mouseButton", "button": 3 },
       "k2":  { "kind": "mouseButton", "button": 4 },
@@ -74,9 +74,12 @@ and never by editing iCUE's database or profile files.
    `Agentic Mouse Fallback`.
 2. In the *copy only*, reassign the twelve side buttons to distinct
    `Mouse Button` outputs — 4 through 15 — matching the JSON above.
-3. Leave everything else untouched: the 2,750 DPI on every stage, the wheel
-   press (Play/Pause), and the **DPI Toggle button, which stays disabled**. None
-   of them are part of the grid and none are ever intercepted.
+3. Leave everything else untouched: the 2,750 DPI on every stage, the wheel's
+   default middle-click source (mapped to Play/Pause by exact-device Karabiner),
+   and the **DPI Toggle button, which keeps its neutral F19 transport without
+   changing DPI**. The exact-device Karabiner rule turns that release into the
+   VoiceInk++ shortcut. None of them are part of the grid and none are ever
+   intercepted by this fallback.
 4. Switch to the copy when you want multi-tap; switch back to the original
    otherwise.
 
@@ -87,21 +90,20 @@ button outputs. Specifically you lose, until you switch profiles back:
 
 | Button | Normal action |
 |---|---|
-| 4 | **VoiceInk++ speech-to-text** |
+| 1 | horizontal scroll left (repeating) |
+| 4 | horizontal scroll right (repeating) |
 | 5 | Forward |
-| 6 | Next Track |
-| 7 | horizontal scroll left (repeating) |
+| 6 | App-specific wildcard (silent outside configured apps) |
 | 8 | Back |
-| 9 | Previous Track |
-| 10 | horizontal scroll right (repeating) |
+| 9 | Keys mode |
 
-And, if VS Code is frontmost, the Better Git overrides on 7 (next change),
-8 (previous change) and 10 (stage current file) go with them, because the
-fallback profile is not the VS Code-linked one.
+VS Code additionally overrides physical cell 5 to Better Git Previous Change,
+cell 6 to one-press Stage + Next, and cell 8 to Next Change; those app-scoped actions are also unavailable while
+the fallback profile replaces the neutral transports.
 
-Losing speech-to-text on button 4 is the part that stings, and it is precisely
-why this is the fallback. The primary route keeps every one of these and
-suspends them only while the mode is actually active.
+The separate DPI VoiceInk++ control remains available. The primary route keeps
+every normal grid action and suspends them only while the mode is actually
+active.
 
 ### Reverting
 
@@ -111,11 +113,10 @@ helper wrote nothing to iCUE. Delete the duplicate profile if you want.
 ## Keystroke bindings
 
 If mouse buttons collide with something, use keystrokes instead. Do not reuse
-F13 (`0x69`), F17 (`0x40`), or F18 (`0x4F`): the VS Code profile already uses
-those for Better Git next/previous/stage. F14 (`0x6B`), F15 (`0x71`), F16
-(`0x6A`), and F19 (`0x50`) are currently unclaimed; use distinct modifier
-combinations as well if you need twelve bindings, and verify them against your
-other app shortcuts. For example, F14 is:
+F13, F17, F18, or F19: the preserved G502 VS Code workflow owns those four
+transports. Prefer the same twelve modifier-free keypad transports as the
+primary Corsair adapter, and verify that an ordinary physical numpad is excluded
+by exact-device Karabiner conditions. A plain F14 fallback would be:
 
 ```json
 "k1": { "kind": "keyCode", "keyCode": 107, "modifiers": "" }

@@ -1,83 +1,117 @@
-# Two mice, one vocabulary
+# Scimitar mapping and ownership
 
-Agentic Mouse keeps **meaning** consistent between mice without pretending that
-their shapes are identical. Map actions to the buttons your thumb can reach
-reliably; do not force a twelve-key grid onto a mouse that does not have one.
+Agentic Mouse adds optional runtime features without becoming a second device
+profile editor. Keep each capability with the layer that can actually own it.
 
 ## Corsair Scimitar Elite Wireless SE
 
-Use iCUE for the actual device profile. This project reads the map and may use
-the iCUE SDK for the optional multi-tap and lighting features, but it does not
-write iCUE settings.
+Use iCUE for hardware settings, lighting, profiles and the neutral source
+transport on each side cell. Karabiner owns the exact-device semantic actions;
+the Agentic Mouse app separately owns the accepted runtime modes, legends and
+temporary lighting, but it does not write iCUE settings.
 
 | Control | Assignment |
 |---|---|
-| Wheel press | Play / Pause |
-| Top DPI button | Disabled |
-| Button 4 | VoiceInk++ speech-to-text |
-| Button 5 | Forward |
-| Button 6 | Next Track |
-| Button 7 | Horizontal scroll left; Better Git Next Change in VS Code |
-| Button 8 | Back; Better Git Previous Change in VS Code |
-| Button 9 | Previous Track |
-| Button 10 | Horizontal scroll right; Better Git Stage Current File in VS Code |
-| Button 12 | Multi-tap toggle, with no normal iCUE action |
+| Wheel press | Default middle-click source → exact-device Karabiner Play / Pause |
+| Top DPI button | iCUE F19 neutral transport → exact-device Karabiner VoiceInk++ on release; all DPI stages remain 2,750 |
+| Button 3 | Start / cancel selected-area Screenshot outside modes; mode-specific action inside modes |
+| Button 1 | Horizontal scroll left in every app |
+| Button 2 | Hold-open Switch App through native Karabiner |
+| Button 4 | Horizontal scroll right in every app |
+| Button 5 | Forward; VS Code overrides it to Previous Change through F17 |
+| Button 7 | Enter; selects Keypad inside Modes |
+| Button 8 | Back; VS Code overrides it to Next Change through F13 |
+| Button 6 | App-specific wildcard; silent by default, VS Code Stage + Next through F18 |
+| Button 9 | Open Keys mode |
+| Button 10 | Legend toggle outside modes; universal Exit inside modes |
+| Button 11 | Open the current frontmost app mode |
+| Button 12 | Open Utility modes |
 | Every DPI stage | 2,750 DPI |
 
-Buttons 1–3 and 11 remain unassigned for now. The layout is intentionally
-single-layer: normal behaviour stays normal unless multi-tap is deliberately
-entered.
+Ethan physically accepted the Corsair wheel's Karabiner-owned Play/Pause
+behavior on 9 August 2026 after **Modify events** was enabled for its exact
+physical pointing interface. The equivalent Razer wheel remains separately
+unaccepted until that mouse is reconnected and tested.
 
-## Razer Naga Left-Handed Edition (RZ01-0341)
+Button 6 is the fail-closed app-specific wildcard, while button 9 opens shared Keys mode.
+Inside Keys, cell 6 copies, cell 3 pastes, and cell 9 owns Next Track.
+Normal behavior
+stays normal unless a mode is deliberately entered or the three approved VS Code
+overrides apply to physical cells 5, 6, and 8.
 
-The Naga can be used alongside the Scimitar. On this Mac it is visible as USB
-vendor/product `1532:008d`. Do **not** assume its grid labels equal the event
-numbers macOS sees.
+Switch App uses Karabiner's native output lifecycle. The action sends one
+self-contained Command-Tab first, then places a repeat-enabled bare left Command
+last so its key-up follows the physical source release. Ethan physically
+accepted this hold-open behavior on the exact Corsair and Razer rules on
+10 August 2026. It needs no Agentic Mouse command receiver or Accessibility
+permission.
 
-### Why Karabiner, not Synapse
+In VS Code only, physical cell 5 emits non-repeating F17 for Better Git Previous
+Change, physical cell 6 emits non-repeating F18 for one-press Stage + Next, and
+physical cell 8 emits non-repeating F13 for Next Change. Matching base
+exclusions preserve Forward, Back, and a silent wildcard everywhere else; every
+untouched control continues to inherit the exact-device base.
 
-Razer's current Mac-compatible device list does not include the Naga
-Left-Handed Edition. Razer also documents that Synapse for Mac can conflict
-with Karabiner-Elements. The safe route is therefore Karabiner-first:
+Physical cell 3 starts or cancels the selected-area Screenshot interaction:
+Corsair printed 3 and mirrored Razer printed 1. Runtime pages own it only while
+active: Space Left in Utility, Paste in Keys, DEF in Keypad, or Spare when
+the current app page has no assignment. Physical cell 10 toggles the persistent Default mode legend outside modes and remains
+the universal Exit inside modes: Corsair printed 10 / Razer printed 12.
 
-1. Leave Synapse uninstalled for this mouse.
-2. Open **Karabiner-EventViewer** and press every physical Naga button once.
-3. Record each observed event and its device identity in a Karabiner
-   `device_if` condition. Do not map a device based on a guessed model name.
-4. Start with universal actions: Back, Forward, media, and accessibility-safe
-   keyboard shortcuts. Add app-specific rules only when their normal app
-   shortcut has been verified.
-5. Preserve direct normal Back/Forward, and do not reuse the VoiceInk trigger
-   or VS Code signals without checking the existing rules.
+### Musixmatch Pro continuous playback
 
-The first capture is intentionally left as a physical step because different
-firmware and prior onboard profiles can change what the grid emits. Once it is
-captured, this repository can carry a named, reviewable Karabiner complex
-modification instead of an opaque vendor profile.
+Musixmatch Pro 3.9.0 uses `Tab` for whole-song Play/Pause; `Enter` previews only
+the current line and therefore stops at its boundary. On the currently inspected
+Mac, Musixmatch Pro is an ordinary tab in Google Chrome rather than a dedicated
+macOS app. iCUE must not link a `Tab` assignment to Google Chrome, because that
+would affect unrelated Chrome pages.
 
-## Cross-mouse update rule
+The preferred route is a tiny local Chrome extension whose only page match is
+`https://pro.musixmatch.com/*`. A genuinely free Corsair button will emit a
+unique transport key or chord that is first proven in Karabiner-EventViewer.
+The extension will accept only that trusted press and directly activate the
+real whole-song Play/Pause control on Musixmatch Pro; it will not synthesize
+`Tab` and it will not run on unrelated Chrome pages.
 
-Before changing either mouse:
+Button 2 is only the current ergonomic proposal. Although it looked unassigned
+in the inspected iCUE view, it is not considered free until every relevant
+profile and its real EventViewer output have been checked. No Musixmatch mouse
+assignment is live until the free button, transport, exact semantic control,
+across-line playback, and unrelated-tab no-op have all been physically proven.
+A dedicated Chrome web app remains the fallback only if the extension cannot
+prove this exact-origin, fail-closed behaviour. See
+[the Musixmatch extension plan](MUSIXMATCH-EXTENSION.md).
 
-1. Inspect the existing Corsair iCUE profile and Razer/Karabiner rule.
-2. Decide whether the action is **shared**, **device-specific** or
-   **app-specific**.
-3. Update the other mouse's map when it is a shared action and physical reach
-   allows it; otherwise document why it differs.
-4. Verify the changed mouse physically and confirm that the other one still
-   sends its expected event.
+## Shared semantic source
 
-This keeps one ergonomic vocabulary without making either device worse.
+The named action definitions now live under [`Karabiner/actions`](../Karabiner/actions),
+one commented file per behavior. The generator combines them with the separate
+physical adapter file because Karabiner cannot import action fragments. The
+approved Corsair adapter maps side 1–9 to `keypad_1`–`keypad_9`, side 10 to
+`keypad_0`, side 11 to `keypad_hyphen`, and side 12 to `keypad_plus`, all scoped
+to the exact iCUE VirtualHIDKeyboard identity. The generated Razer adapter uses
+the onboard main-row `1–9`, `0`, `hyphen`, and `equal_sign` transports from
+exact device `1532:008d`, with meanings matched by physical cell rather than
+printed number. Generated source is never installed automatically. The Corsair
+adapter is live after raw EventViewer proof but still needs full semantic
+acceptance. The Razer adapter is also live after the exact device was present
+and the returned mouse physically produced F21/F22 plus its ordered main-row
+side-grid namespace; its global semantics still need acceptance.
+The Razer's lower DPI transport `F22` additionally maps to the existing
+VoiceInk++ action, while `F21` remains unchanged.
 
-## Shared semantic source and physical adapters
+## Ownership rule
 
-Agentic Mouse keeps each semantic Karabiner action in a separate named file
-under `Karabiner/actions/`. The physical Corsair and Razer adapters live
-separately in `Karabiner/bindings/bindings.json`; every binding must use the
-transport observed from the real device and an exact Karabiner `device_if`
-identity. That lets matching physical cells share action names without assuming
-that printed numbers or transports match.
+1. **iCUE owns the Scimitar hardware layer:** DPI, software profiles, device
+   memory, supported lighting and neutral source transports.
+2. **The Naga onboard profile owns its hardware transports.**
+3. **Karabiner owns enabled exact-device semantic mappings.** It cannot
+   configure either sensor, firmware profile or lighting layer.
+4. **Agentic Mouse owns the semantic source/build tree and its accepted runtime
+   features:** currently Modes, Keypad, App-specific Codex controls, reference
+   legends and temporary runtime lighting. It never
+   silently installs the generated Karabiner output or writes a vendor profile.
 
-Until approved physical bindings are added, the generated installable artifact
-contains zero rules and changes no live mapping. See `Karabiner/README.md` for
-the build and connection workflow.
+Before changing the Scimitar, inspect the saved iCUE assignment and any
+downstream rule separately. Verify the physical button and state plainly which
+layer owns the behavior.

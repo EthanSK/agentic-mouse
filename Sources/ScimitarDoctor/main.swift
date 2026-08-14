@@ -4,13 +4,11 @@ import ScimitarKit
 /// `agentic-mouse-doctor` — read-only diagnostics and a hardware-free simulator.
 ///
 /// Everything here is safe to run: it reads, it prints, it simulates. It never
-/// changes an iCUE profile, never writes to a Hue light, never modifies system
-/// settings, and never prints a secret, a bridge address, a device id or a
-/// serial number.
+/// changes an iCUE profile, never modifies system settings, and never prints a
+/// device id or serial number.
 ///
-/// The one exception is `keymap` and `simulate`, which touch nothing at all,
-/// and `lighting --probe`, which writes to the *shared* SDK layer and releases
-/// it again — and which therefore requires an explicit `--i-mean-it` flag.
+/// The write exceptions are the explicitly gated iCUE and Razer lighting tests;
+/// both require `--i-mean-it` and release their temporary control before exit.
 
 let arguments = Array(CommandLine.arguments.dropFirst())
 let command = arguments.first ?? "help"
@@ -32,14 +30,16 @@ case "config":
     runConfig()
 case "icue":
     runICUE()
+case "razer":
+    runRazer()
+case "razer-vendor":
+    runRazerVendor()
 case "keymap":
     runKeymap()
 case "mapping":
     runMapping()
 case "simulate":
     runSimulate()
-case "colors", "colours":
-    runColors()
 case "help", "--help", "-h":
     runHelp()
 default:
@@ -61,21 +61,263 @@ func runHelp() {
       config      Show the resolved configuration, fully redacted, with warnings.
       icue        Probe the iCUE SDK: session, devices, LEDs, macro keys.
                   Read-only unless --probe-lighting is given.
+      razer       Validate the exact Razer HID LampArray read-only. The optional
+                  solid-red test requires separate approval and two flags.
+      razer-vendor
+                  Run only the separately approved exact-device vendor test.
       keymap      Print the multi-tap keymap and the physical grid layout.
       mapping     Print the normal / VS Code iCUE assignments this helper
                   assumes, so they can be checked against iCUE itself.
       simulate    Run the whole coordinator against fakes — no hardware needed.
-      colors      Show how Hue readings convert to mouse colours.
-
     FLAGS
       --verbose            Debug logging to stderr.
       --probe-lighting     (icue) Briefly write to the shared lighting layer and
                            release it again. Requires --i-mean-it.
+      --solid-red-test     (razer) Set all three zones red for three seconds,
+                           then restore autonomous lighting. Requires --i-mean-it.
+      --deep-thought-test  (razer) Run a distinctive three-zone violet/cyan/RGB
+                           pattern for five minutes, then restore autonomous
+                           lighting. Requires --i-mean-it.
+      --red-strobe-test    (razer) Alternate solid red and fully off every half
+                           second for five minutes, then restore autonomous
+                           lighting. Requires --i-mean-it.
+      --green-restore-test (razer-vendor) Send acknowledged transient green to
+                           all three exact zones for three seconds, then send
+                           acknowledged Spectrum Cycling and close. Requires
+                           --i-mean-it.
+      --red-green-until-stopped
+                           (razer-vendor) Alternate acknowledged solid red and
+                           green once per second until interrupted, then restore
+                           Spectrum Cycling and close. Requires --i-mean-it.
       --i-mean-it          Confirms an action that touches the device.
 
-    Nothing this tool does can change an iCUE profile, a Hue light, or any
-    system setting.
+    Nothing this tool does can change an iCUE profile or system setting.
     """)
+}
+
+// MARK: - Razer acknowledged vendor protocol
+
+func runRazerVendor() {
+    heading("Razer vendor lighting — guarded exact-device test")
+    let wantsGreenRestore = flags.contains("--green-restore-test")
+    let wantsRedGreen = flags.contains("--red-green-until-stopped")
+    guard (wantsGreenRestore != wantsRedGreen), flags.contains("--i-mean-it") else {
+        output("  refused: select exactly one vendor test and add --i-mean-it")
+        output("  no USB device was opened and no vendor report was sent")
+        exit(1)
+    }
+
+    output("  target:   exact USB 1532:008d only")
+    output("  storage:  NOSTORE (transient; no onboard-profile write)")
+    output("  action:   acknowledged \(wantsRedGreen ? "red/green alternation" : "solid green") on scroll, logo and thumb grid")
+    output("  restore:  acknowledged Spectrum Cycling on the same three zones")
+
+    let controller = RazerVendorLightingController(
+        transport: RazerVendorUSBTransport(),
+        log: log
+    )
+    controller.onProblem = { output("  restore warning: \($0)") }
+    defer { controller.release() }
+
+    if wantsRedGreen {
+        runRedGreenVendorLoop(controller: controller)
+        return
+    }
+
+    guard controller.setColor(RGBColor(red: 0, green: 255, blue: 0)) else {
+        output("  failed: the device did not acknowledge all three transient green commands")
+        output("  Spectrum restore was attempted and the USB device was closed; stop here")
+        exit(1)
+    }
+    output("  accepted: all three green commands were acknowledged")
+    Thread.sleep(forTimeInterval: 3)
+    controller.release()
+    output("  complete: Spectrum restore was acknowledged where available; USB closed")
+    output("  confirm: ordinary pointer/buttons still work and the rainbow returned")
+}
+
+func runRedGreenVendorLoop(controller: RazerVendorLightingController) {
+    let stop = DispatchSemaphore(value: 0)
+    signal(SIGINT, SIG_IGN)
+    signal(SIGTERM, SIG_IGN)
+    let interruptSource = DispatchSource.makeSignalSource(signal: SIGINT, queue: .global())
+    let terminateSource = DispatchSource.makeSignalSource(signal: SIGTERM, queue: .global())
+    interruptSource.setEventHandler { stop.signal() }
+    terminateSource.setEventHandler { stop.signal() }
+    interruptSource.resume()
+    terminateSource.resume()
+
+    output("  running:  solid red / solid green, one second per colour")
+    output("  stop:     interrupt this process to restore Spectrum Cycling")
+    var showRed = true
+    while stop.wait(timeout: .now()) == .timedOut {
+        let color = showRed
+            ? RGBColor(red: 255, green: 0, blue: 0)
+            : RGBColor(red: 0, green: 255, blue: 0)
+        guard controller.setColor(color) else {
+            output("  failed: a colour was rejected; Spectrum restore was attempted")
+            exit(1)
+        }
+        output("  acknowledged: \(showRed ? "RED" : "GREEN")")
+        showRed.toggle()
+        if stop.wait(timeout: .now() + 1.0) == .success { break }
+    }
+
+    controller.release()
+    output("  stopped: Spectrum restore acknowledged where available; USB closed")
+}
+
+// MARK: - Razer LampArray
+
+func runRazer() {
+    heading("Razer HID LampArray")
+    let transport = RazerLampArrayIOHIDTransport()
+    let controller = RazerLampArrayController(
+        transport: transport,
+        log: log
+    )
+    defer { controller.release() }
+
+    do {
+        let attributes = try controller.probe()
+        output("  exact interface: 1532:008d / usage page 0x59 / usage 0x01")
+        output("  lamps:           \(attributes.lampCount)")
+        output("  kind:            \(attributes.kind == RazerNagaLampArray.mouseKind ? "mouse" : String(attributes.kind))")
+        output("  minimum update:  \(attributes.minimumUpdateIntervalMicroseconds) µs")
+        output("  descriptor:      exact audited match")
+
+        do {
+            let report = try transport.readFeatureReport(
+                id: 6,
+                maximumLength: RazerNagaLampArray.maximumFeatureReportLength
+            )
+            let prefix = report.prefix(8).map { String(format: "%02x", $0) }.joined(separator: " ")
+            output("  report 6 read:   \(report.count) bytes [\(prefix)] (read-only)")
+        } catch {
+            output("  report 6 read:   unavailable read-only (\(error))")
+        }
+
+        do {
+            for attempt in 1...3 {
+                let lamp = try controller.readCurrentLampAttributes()
+                output("  lamp report 3.\(attempt): id \(lamp.lampID), programmable \(lamp.isProgrammable ? "yes" : "NO")")
+                output("                   RGB levels \(lamp.redLevelCount)/\(lamp.greenLevelCount)/\(lamp.blueLevelCount), latency \(lamp.updateLatencyMicroseconds) µs")
+            }
+        } catch {
+            output("  lamp report 3:   unavailable read-only (\(error))")
+        }
+
+        do {
+            let report = try transport.readFeatureReport(id: 6, maximumLength: 2)
+            let bytes = report.map { String(format: "%02x", $0) }.joined(separator: " ")
+            output("  report 6 after 3: \(report.count) bytes [\(bytes)] (read-only, two-byte buffer)")
+        } catch {
+            output("  report 6 after 3: unavailable read-only (\(error))")
+        }
+
+        let wantsSolidRed = flags.contains("--solid-red-test")
+        let wantsDeepThought = flags.contains("--deep-thought-test")
+        let wantsRedStrobe = flags.contains("--red-strobe-test")
+        guard wantsSolidRed || wantsDeepThought || wantsRedStrobe else {
+            output("  state:           read-only; no feature report was written")
+            return
+        }
+        guard flags.contains("--i-mean-it") else {
+            output("  refused: a Razer lighting test also requires --i-mean-it")
+            exit(1)
+        }
+
+        if wantsDeepThought {
+            runDeepThoughtPattern(controller: controller)
+            return
+        }
+        if wantsRedStrobe {
+            runRedStrobe(controller: controller)
+            return
+        }
+
+        heading("Guarded solid-red test")
+        output("  disabling autonomous lighting and setting all three lamps red…")
+        guard controller.setColor(RGBColor(red: 255, green: 0, blue: 0)) else {
+            output("  failed before the solid colour was accepted; autonomous restore was attempted")
+            exit(1)
+        }
+        Thread.sleep(forTimeInterval: 3)
+        controller.release()
+        output("  autonomous lighting restore requested; confirm the rainbow returned")
+    } catch {
+        output("  unavailable: \(error)")
+        exit(1)
+    }
+}
+
+func runDeepThoughtPattern(controller: RazerLampArrayController) {
+    heading("Guarded five-minute deep-thought pattern")
+    output("  violet/cyan thought waves, RGB chases, and white sparks are starting…")
+
+    let black = RGBColor(red: 0, green: 0, blue: 0)
+    let indigo = RGBColor(red: 18, green: 0, blue: 72)
+    let violet = RGBColor(red: 112, green: 0, blue: 255)
+    let cyan = RGBColor(red: 0, green: 225, blue: 255)
+    let white = RGBColor(red: 255, green: 255, blue: 255)
+    let red = RGBColor(red: 255, green: 0, blue: 0)
+    let green = RGBColor(red: 0, green: 255, blue: 0)
+    let blue = RGBColor(red: 0, green: 0, blue: 255)
+
+    let frames: [[RGBColor]] = [
+        [indigo, black, black],
+        [violet, indigo, black],
+        [cyan, violet, indigo],
+        [white, cyan, violet],
+        [cyan, white, cyan],
+        [violet, cyan, white],
+        [indigo, violet, cyan],
+        [black, indigo, violet],
+        [red, green, blue],
+        [blue, red, green],
+        [green, blue, red],
+        [indigo, indigo, indigo],
+        [cyan, cyan, cyan],
+        [white, white, white],
+        [cyan, cyan, cyan],
+        [violet, violet, violet],
+    ]
+
+    let deadline = ProcessInfo.processInfo.systemUptime + 300
+    var frameIndex = 0
+    while ProcessInfo.processInfo.systemUptime < deadline {
+        guard controller.setFrame(frames[frameIndex % frames.count]) else {
+            output("  failed during the pattern; autonomous restore was attempted")
+            exit(1)
+        }
+        frameIndex += 1
+        Thread.sleep(forTimeInterval: 0.35)
+    }
+
+    controller.release()
+    output("  five-minute pattern complete; autonomous rainbow restore requested")
+}
+
+func runRedStrobe(controller: RazerLampArrayController) {
+    heading("Guarded five-minute red strobe")
+    output("  all three zones are alternating solid red and fully off every 0.5 seconds…")
+
+    let red = RGBColor(red: 255, green: 0, blue: 0)
+    let off = RGBColor(red: 0, green: 0, blue: 0)
+    let deadline = ProcessInfo.processInfo.systemUptime + 300
+    var showRed = true
+
+    while ProcessInfo.processInfo.systemUptime < deadline {
+        guard controller.setColor(showRed ? red : off) else {
+            output("  failed during the red strobe; autonomous restore was attempted")
+            exit(1)
+        }
+        showRed.toggle()
+        Thread.sleep(forTimeInterval: 0.5)
+    }
+
+    controller.release()
+    output("  five-minute red strobe complete; autonomous rainbow restore requested")
 }
 
 // MARK: - config
@@ -83,8 +325,7 @@ func runHelp() {
 func runConfig() {
     heading("Configuration")
     let (configuration, warnings) = ConfigurationLoader.load(log: log)
-    let resolver = KeychainSecretResolver(log: log)
-    output(ConfigurationLoader.describe(configuration, resolver: resolver))
+    output(ConfigurationLoader.describe(configuration))
 
     heading("Warnings")
     if warnings.isEmpty {
@@ -178,8 +419,7 @@ func runICUE() {
         for led in leds {
             let zone = MouseZone(rawValue: led.luid)
             let name = zone?.displayName ?? "unrecognised"
-            let cluster = zone.map { " ← \($0.hueCluster.displayName)" } ?? ""
-            output("  • 0x\(String(led.luid, radix: 16))  \(name)\(cluster)")
+            output("  • 0x\(String(led.luid, radix: 16))  \(name)")
         }
         if leds.isEmpty { output("  none reported") }
 
@@ -305,11 +545,11 @@ func runMapping() {
     output()
     output("  Every visible DPI stage, Sniper included: \(ScimitarNormalMapping.unifiedDPI)")
 
-    heading("While multi-tap mode is active")
+    heading("While Keypad mode is active")
     output("""
       All twelve side buttons are intercepted, so none of the actions above
-      fire — including speech-to-text on button 4. Exiting releases the
-      interception and iCUE resumes whichever profile applies.
+      fire. The separate top DPI VoiceInk++ control stays outside the grid.
+      Exiting releases the interception and the global base resumes.
     """)
 }
 
@@ -400,48 +640,4 @@ func runSimulate() {
     output("  intercepted keys: \(keyControl.interceptedKeys.sorted())")
     output("  access level: \(keyControl.currentAccessLevel)")
     output("  fully released: \(keyControl.isFullyReleased)")
-}
-
-// MARK: - colors
-
-func runColors() {
-    heading("Hue → mouse colour")
-
-    let policy = HueMirrorPolicy.default
-    let samples: [(String, HueLightState)] = [
-        ("warm white 2700K @100%", .init(identifier: "a", isOn: true, brightnessPercent: 100, mirek: 370, mirekValid: true)),
-        ("warm white 2700K @10%", .init(identifier: "a", isOn: true, brightnessPercent: 10, mirek: 370, mirekValid: true)),
-        ("cool white 6500K @100%", .init(identifier: "a", isOn: true, brightnessPercent: 100, mirek: 153, mirekValid: true)),
-        ("red", .init(identifier: "a", isOn: true, brightnessPercent: 100, chromaticity: .init(x: 0.675, y: 0.322))),
-        ("green", .init(identifier: "a", isOn: true, brightnessPercent: 100, chromaticity: .init(x: 0.409, y: 0.518))),
-        ("blue", .init(identifier: "a", isOn: true, brightnessPercent: 100, chromaticity: .init(x: 0.167, y: 0.04))),
-        ("off", .init(identifier: "a", isOn: false))
-    ]
-
-    for (label, state) in samples {
-        let color = HueColorConverter.contribution(for: state, policy: policy)
-        let described = color.map(\.hexString) ?? "— (zone goes dark)"
-        output("  \(label.padding(toLength: 26, withPad: " ", startingAt: 0)) \(described)")
-    }
-
-    heading("Two-cluster aggregation")
-    let assignments = [
-        HueLightAssignment(resourceIdentifier: "candle", cluster: .candleAndSofa, label: "Candle"),
-        HueLightAssignment(resourceIdentifier: "sofa", cluster: .candleAndSofa, label: "Sofa"),
-        HueLightAssignment(resourceIdentifier: "luster-1", cluster: .deskLusters, label: "Luster 1"),
-        HueLightAssignment(resourceIdentifier: "luster-2", cluster: .deskLusters, label: "Luster 2")
-    ]
-    let states: [String: HueLightState] = [
-        "candle": .init(identifier: "candle", isOn: true, brightnessPercent: 80, chromaticity: .init(x: 0.675, y: 0.322)),
-        "sofa": .init(identifier: "sofa", isOn: true, brightnessPercent: 80, chromaticity: .init(x: 0.409, y: 0.518)),
-        "luster-1": .init(identifier: "luster-1", isOn: true, brightnessPercent: 60, mirek: 370, mirekValid: true),
-        "luster-2": .init(identifier: "luster-2", isOn: false)
-    ]
-
-    if let frame = HueClusterAggregator.frame(assignments: assignments, states: states) {
-        for zone in MouseZone.allCases {
-            let color = frame[zone]?.hexString ?? "—"
-            output("  \(zone.displayName) (0x\(String(zone.luid, radix: 16)))  ← \(zone.hueCluster.displayName)  \(color)")
-        }
-    }
 }

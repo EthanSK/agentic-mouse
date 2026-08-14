@@ -70,9 +70,8 @@ extension ICUESession: ICUEKeyControlling {
 /// Scope: only `CMKI_1 … CMKI_12` are ever configured. The left button, right
 /// button, wheel, wheel click, pointer motion and the DPI Toggle button are not
 /// macro keys and are never touched by this transport — not even while the mode
-/// is active. (Speech-to-text lives on *side button 4*, which is part of the
-/// grid and is therefore suspended along with the rest of it while the mode is
-/// on; the DPI Toggle button is disabled in iCUE and has no speech role at all.)
+/// is active. The DPI Toggle button retains its separate iCUE-owned VoiceInk++
+/// macro and does not change sensor DPI.
 public final class ICUEMacroKeyTransport: InputTransport {
 
     /// The buttons the grid uses. Exactly the twelve side keys.

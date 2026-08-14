@@ -1,10 +1,10 @@
-// Taps the Control-Option-Shift chord used by VoiceInk++ to toggle speech-to-text.
+// Taps the VoiceInk++ shortcut only after the mouse's source key is released.
 {
   "id": "toggle-voiceink-speech-to-text",
   "title": "Toggle VoiceInk++ speech-to-text",
-  "description": "Toggle VoiceInk++ using its existing Control-Option-Shift shortcut.",
+  "description": "Toggle VoiceInk++ on physical button release using its existing Control-Option-Shift shortcut.",
   "manipulator": {
-    "to": [
+    "to_after_key_up": [
       {
         "key_code": "left_shift",
         "modifiers": ["left_control", "left_option"],

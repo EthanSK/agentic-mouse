@@ -3,10 +3,6 @@
 ## Shape
 
 ```
-                    ┌──────────────────────────┐
-  Hue bridge ──SSE──▶│  HueRoomObserver (actor) │──frame──┐
-   (read-only)       └──────────────────────────┘         │
-                                                          ▼
                                               ┌────────────────────────┐
                                               │  LightingCoordinator   │
                                               │  ├ LightingArbiter     │
@@ -30,25 +26,59 @@
             (pure)              (AX: pid + element)      (postToPid)
 ```
 
-The state machines, Hue/lighting pipeline, transports, and coordinator logic in
+The state machines, lighting pipeline, transports, and coordinator logic in
 `ScimitarKit` are injectable. Its macOS target-discovery adapters use AppKit's
 `NSWorkspace`/`NSRunningApplication`; `ScimitarUI` contains the drawing and
 non-activating panel implementation. The pure multi-tap engine is AppKit-free.
 
-## Shared Karabiner source/build layer
+The shared Karabiner source/build path is deliberately independent of the app
+runtime:
 
-`Karabiner/actions/` contains one JSONC source file per named semantic action.
-`Karabiner/bindings/bindings.json` is the separate physical adapter layer: it
-connects an observed source transport and exact device identity to an action
-name. `Scripts/generate-karabiner.py` validates both layers and deterministically
-produces the action catalog and installable complex-modification JSON under
-`Karabiner/generated/`.
+```text
+Karabiner/actions/**/*.jsonc ─┐
+                              ├─▶ Scripts/generate-karabiner.py
+Karabiner/bindings/*.json ────┘        ├─▶ action-catalog.json
+                                       └─▶ agentic-mouse.json
+```
 
-This split keeps physical numbering and vendor transports out of the action
-definitions. iCUE still owns Corsair hardware settings and neutral transports;
-Karabiner owns approved device-scoped live semantics; Agentic Mouse owns the
-reviewable sources and build. An empty binding layer intentionally generates
-zero live rules.
+Action definitions contain output semantics but no `from` event. Bindings add
+the exact-device source event only after a physical position is approved. The
+current Corsair adapter generates twelve side-cell manipulators plus one wheel
+binding from iCUE's keypad and physical-pointing namespaces. The separate Razer
+adapter generates the same base shape from its onboard main-row and
+physical-pointing namespaces, plus its lower-DPI VoiceInk binding. Physical
+cells 5, 6, and 8 also generate exact-device VS Code overrides with matching base
+exclusions; every other control inherits its ordinary action. Cell 6's ordinary
+action is deliberately a silent sink until another app override is configured. Generation never installs or
+enables rules as a side effect, and linted output is not physical proof. The
+Razer output was installed only after the returned exact device and ordered
+transport sequence were physically captured; downstream semantic behavior is
+still a separate physical acceptance gate.
+
+### Locked-session security boundary
+
+`SessionSecurityController` starts fail closed during
+`applicationWillFinishLaunching`, observes AppKit's documented workspace-session
+and sleep notifications, and renews
+`agentic_mouse_session_unlocked_expires_at` for three seconds once per second
+only while the session is active. A failed write locks the runtime instead of
+assuming that the previous value remains trustworthy.
+
+The generator applies two independent controls:
+
+1. every ordinary or runtime manipulator requires the unlocked lease when its
+   source event matches, and every native/delayed/release output checks it again
+   at emission time;
+2. a highest-priority exact-device rule consumes every neutral Corsair and
+   Razer side-grid, DPI, and custom wheel transport with `vk_none` whenever the
+   lease is inactive.
+
+The second control prevents a disabled command rule from exposing raw keypad,
+digit, or function-key transports to the lock screen. Ordinary movement,
+scrolling, and primary/secondary clicks are outside this custom transport set.
+On lock or session resign, the app exits every mode, clears its per-mouse mode
+variables, hides every HUD, cancels pending Keypad state, and refuses socket
+commands. Unlock starts a fresh idle session; no ephemeral state is restored.
 
 ## Design decisions, and why
 
@@ -130,6 +160,13 @@ rebuilt and the lighting repainted, but the mode stays off. Being put back into
 a modal state by a background event you did not initiate is exactly the kind of
 surprise that makes a helper untrustworthy.
 
+iCUE's connection callback remains the fast path, but a two-second
+`ICUEDeviceRecoveryMonitor` also probes exact device presence. It emits only
+real missing/recovered/replaced/lighting-availability transitions. Stable polls
+do not repaint. This covers Slipstream re-plugs for which iCUE omits a callback,
+without using a busy loop or treating enumeration as permission to restore a
+mode.
+
 ### Buffered commit with dual anchoring
 
 The state machine is pure: `(key, timestamp, TextTargetResolution)` in, text
@@ -160,8 +197,8 @@ cannot occur.
 The device exposes two controllable LEDs, and the LUIDs follow the documented
 `(group << 16) | index` encoding with `CLG_Mouse == 4`:
 
-- `0x40001` `MouseLogoLed` ← desk lusters
-- `0x40002` `MouseSideLed` ← candle + sofa
+- `0x40001` `MouseLogoLed`
+- `0x40002` `MouseSideLed`
 
 They are named constants because they are a property of the device, but every
 write goes through `LightingFrame.resolve(availableLuids:)`, which emits only
@@ -169,10 +206,84 @@ the two audited LUIDs when the device actually reports them. A firmware change
 that renumbers or adds zones fails closed: unknown LEDs stay under iCUE rather
 than inheriting an unrelated zone colour.
 
-Cluster mixing is done in linear light (`gammaDecode` → weighted mean →
-`gammaEncode`) and weighted by each lamp's effective brightness. Gamma-space
-averaging would turn red + green into dark olive; linear averaging gives the
-yellow a real room shows.
+### Independent runtime lighting outputs
+
+The universal mode HUD is authoritative. Hardware lighting fans out to the
+accepted Corsair and Razer adapters:
+
+```text
+mode colour ─┬─▶ LightingCoordinator ─▶ iCUE shared layer (Corsair)
+             ├─▶ RazerVendorLightingController ─▶ exact USB 1532:008d
+             └─▶ ModeHUDLegendItem[] ─▶ non-activating HUD
+```
+
+A missing iCUE session never suppresses the HUD. A Razer open or write failure
+likewise never suppresses Corsair. `ModeLightingTargets` records which adapters accepted
+the current colour so the HUD can say exactly what is live.
+
+The old standard-HID adapter is retained only as negative diagnostic evidence:
+macOS and Windows both expose a plausible LampArray, but physical tests proved
+that its colour reports do not control the LEDs. The live vendor adapter is
+not a second button-mapping owner. Its C shim opens only the whole exact USB
+device `1532:008d`, does not open/detach/seize an input interface, and exchanges
+only acknowledged 90-byte feature reports on interface zero. Swift owns the
+clean packet encoding, exact transaction and command IDs, three audited zones,
+`NOSTORE` invariant, response validation and Spectrum Cycling rollback.
+
+`ModeHUDLegendItem` separates the visible button action from the original
+colour-validation implementation. That internal proof supplies `Solid Red`,
+`Solid Orange`, and so on; real modes can
+provide navigation, editing, or submenu labels without forking the panel or
+making RGB the only state signal. The shared view uses the accepted 705-point
+layout — 75% of the earlier 940-point experiment — so it remains a readable
+on-demand reference without wasting display space.
+
+One `ModePickerCoordinator` per exact `MouseSource` is the authoritative layer
+above individual modes. Physical cell 12 (Corsair 12 / Razer 10) opens
+that mouse's Utility page and expiring exact-device lease. While it is alive,
+all twelve transports feed one ordered press/release stream, independent of
+ordinary frontmost-app conditions. Universal physical cell 10 exits any active
+mode and toggles the persistent Default legend outside modes. Cell 7 selects Keypad. Top-level
+cell 11 opens a live frontmost-app child that refreshes on workspace activation;
+Utility cell 11 opens the separate configured-app selector and locks the chosen
+target without activation. App children keep cell 12 available for real app
+actions and use universal cell 10 to exit. Utility cell 9 opens Keys mode and
+Keys cell 12 returns to Utility. Within Keys, Corsair physical cells 5/4/7/1
+emit Up/Down/Right/Left; the left-handed Razer swaps the horizontal meanings
+of cells 1 and 7. Cell 6 emits Copy, cell 3 emits Paste, cell 9 emits Next Track,
+cell 8 emits Space, and cell 11 emits Backspace through non-repeating exact-device
+Karabiner output. Enter remains available on top-level cell 7 and is not duplicated in Keys.
+Within Keypad, cell 1 owns the complete punctuation cycle, cells 2–9 use the
+classic phone letter groups with digit holds, cell 11 cycles the shift state,
+and cell 12 sends Space or hold-for-Return. The HUD wraps long cycles rather
+than clipping the punctuation preview.
+The coordinator keeps a cycle-free navigation path per mouse, reusing an
+existing ancestor rather than stacking duplicate pages. Utility assigns cell 3
+to Space Left, Keypad restores its familiar DEF key, and pages without a real
+cell-3 action render it as Spare. Active-mode legends remain visible until
+universal cell 10 exits. The Corsair and Razer use distinct variables,
+presenters, and lighting callbacks, so their HUDs and modes may coexist. Colour Proof is neither generated nor selectable;
+its lighting source remains only as internal regression infrastructure.
+
+The same `ModeHUDSnapshot` and non-activating presenter supports the persistent
+ordinary Default mode legend. Cell 10 toggles it with one exact-device command
+and no lease or lighting change. Each source owns an independent legend; hiding
+one never retargets or closes the other. Mode entry suspends only that source's panel; exit restores it only
+if it was already visible. Outside modes, cell 3 starts or cancels one native
+selected-area screenshot interaction; it is not a universal in-mode legend
+control. Mode HUDs and Keypad panels appear on all connected
+displays, use a distinct accent per mode, keep the actual function prominent,
+and show only the initiating mouse's small printed button label under each function.
+Every card border repeats the current mode accent, while related action pairs or
+groups share one internal fill colour; selection strengthens that mode-coloured
+border instead of introducing a competing hue. Default mode uses white borders
+as the neutral baseline.
+
+The colour-proof coordinator defaults both its idle and absolute timeouts to
+zero, so the mode and HUD remain active until the entry cell explicitly exits.
+The short Karabiner routing lease is still renewed every heartbeat and expires
+if the helper disappears; sleep, active-device loss, lease failure, and app
+shutdown still use the common teardown path.
 
 ### Injectable boundaries
 
@@ -180,7 +291,6 @@ yellow a real room shows.
 |---|---|---|
 | iCUE key control | `ICUEKeyControlling` | `FakeICUEKeyControl` |
 | Input events | `InputTransport` | `SimulatedInputTransport` |
-| Hue network | `HueReadOnlyTransport` | `StubHueTransport` |
 | Text output | `TextOutput` | `RecordingTextOutput` |
 | Focus target | `TextTargetResolving` | `StubTextTargetResolver` |
 | Accessibility | `AccessibilityPermissionChecking` | `StubAccessibilityPermission` |
@@ -189,7 +299,6 @@ yellow a real room shows.
 | Time | `MonotonicClock` | `ManualClock` |
 | Timers | `TickScheduler` | `ManualTickScheduler` |
 | Logging | `LogSink` | `RecordingLogSink` |
-| Secrets | `SecretResolving` | `StaticSecretResolver` |
 
 The fakes live in the library rather than the test bundle, so
 `agentic-mouse-doctor simulate` can drive the real coordinator end to end on a
@@ -215,17 +324,13 @@ Consequences, all deliberate:
 
 ### Redaction
 
-`Redaction` turns device ids, hosts and secrets into stable 8-hex tags before
-they reach a log, the menu bar or the doctor output. AX element titles and
-values are never read for target identity. Tests assert
-that raw identifiers never appear in log output, and that the redacted config
-dump contains neither the bridge address, the application key, nor a light id.
+`Redaction` turns device ids into stable 8-hex tags before they reach a log, the
+menu bar or the doctor output. AX element titles and values are never read for
+target identity. Tests assert that raw identifiers never appear in log output.
 
 ## Threading
 
 - Input callbacks, the tick scheduler and all AppKit work are on the main queue.
 - `ICUESession` marshals its C callbacks onto the main queue.
-- `HueRoomObserver` is an actor; its frame handler hops back to the main queue
-  before touching the lighting coordinator.
 - `MultiTapEngine` has no concurrency at all — it is only ever touched from the
   main queue.

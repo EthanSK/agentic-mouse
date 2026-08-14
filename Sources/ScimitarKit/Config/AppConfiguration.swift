@@ -7,88 +7,30 @@ import Foundation
 /// loader recognises those placeholders and treats the corresponding feature as
 /// unconfigured rather than trying to use them.
 public struct AppConfiguration: Codable, Equatable, Sendable {
-    public var hue: HueConfiguration
     public var lighting: LightingConfiguration
     public var multiTap: MultiTapConfigurationFile
+    public var colorProof: ColorProofConfiguration
+    public var defaultMapHint: DefaultMapHintConfiguration
     public var input: InputConfiguration
     public var hud: HUDConfiguration
 
     public init(
-        hue: HueConfiguration = .init(),
         lighting: LightingConfiguration = .init(),
         multiTap: MultiTapConfigurationFile = .init(),
+        colorProof: ColorProofConfiguration = .init(),
+        defaultMapHint: DefaultMapHintConfiguration = .init(),
         input: InputConfiguration = .init(),
         hud: HUDConfiguration = .init()
     ) {
-        self.hue = hue
         self.lighting = lighting
         self.multiTap = multiTap
+        self.colorProof = colorProof
+        self.defaultMapHint = defaultMapHint
         self.input = input
         self.hud = hud
     }
 
     public static let `default` = AppConfiguration()
-
-    // MARK: - Hue
-
-    public struct HueConfiguration: Codable, Equatable, Sendable {
-        public var enabled: Bool
-        /// Bridge IP or `.local` name. Never committed.
-        public var bridgeHost: String
-        /// Where the application key comes from. Prefer the Keychain.
-        public var applicationKeySource: SecretSource
-        public var lights: [HueLightAssignment]
-        public var brightnessFloor: Double
-        public var brightnessCeiling: Double
-        public var brightnessGamma: Double
-        public var saturationBoost: Double
-        public var offPolicy: LampOffPolicy
-        public var coalescingInterval: TimeInterval
-
-        public init(
-            enabled: Bool = true,
-            bridgeHost: String = "REPLACE_ME_BRIDGE_HOST",
-            applicationKeySource: SecretSource = .keychain(
-                service: "com.ethan.agentic-mouse",
-                account: "hue-application-key"
-            ),
-            lights: [HueLightAssignment] = [],
-            brightnessFloor: Double = 0.12,
-            brightnessCeiling: Double = 1.0,
-            brightnessGamma: Double = 0.7,
-            saturationBoost: Double = 0.15,
-            offPolicy: LampOffPolicy = .blackout,
-            coalescingInterval: TimeInterval = 0.08
-        ) {
-            self.enabled = enabled
-            self.bridgeHost = bridgeHost
-            self.applicationKeySource = applicationKeySource
-            self.lights = lights
-            self.brightnessFloor = brightnessFloor
-            self.brightnessCeiling = brightnessCeiling
-            self.brightnessGamma = brightnessGamma
-            self.saturationBoost = saturationBoost
-            self.offPolicy = offPolicy
-            self.coalescingInterval = coalescingInterval
-        }
-
-        public var policy: HueMirrorPolicy {
-            HueMirrorPolicy(
-                brightnessFloor: brightnessFloor,
-                brightnessCeiling: brightnessCeiling,
-                brightnessGamma: brightnessGamma,
-                offPolicy: offPolicy,
-                saturationBoost: saturationBoost
-            )
-        }
-
-        public var isConfigured: Bool {
-            enabled
-                && !bridgeHost.isEmpty
-                && !bridgeHost.hasPrefix("REPLACE_ME")
-                && lights.contains { !$0.isPlaceholder }
-        }
-    }
 
     // MARK: - Lighting
 
@@ -188,6 +130,53 @@ public struct AppConfiguration: Codable, Equatable, Sendable {
         }
     }
 
+    // MARK: - Colour proof
+
+    public struct ColorProofConfiguration: Codable, Equatable, Sendable {
+        public var enabled: Bool
+        /// Leave the mode automatically after this long with no input. 0 = never.
+        public var autoExitAfterIdle: TimeInterval
+        /// End the mode after this total duration. 0 = no duration limit.
+        public var absoluteTimeout: TimeInterval
+        public var heartbeatInterval: TimeInterval
+        public var leaseDuration: TimeInterval
+
+        public init(
+            enabled: Bool = false,
+            autoExitAfterIdle: TimeInterval = 0,
+            absoluteTimeout: TimeInterval = 0,
+            heartbeatInterval: TimeInterval = 2,
+            leaseDuration: TimeInterval = 6
+        ) {
+            self.enabled = enabled
+            self.autoExitAfterIdle = autoExitAfterIdle
+            self.absoluteTimeout = absoluteTimeout
+            self.heartbeatInterval = heartbeatInterval
+            self.leaseDuration = leaseDuration
+        }
+    }
+
+    // MARK: - Default-map reference
+
+    public struct DefaultMapHintConfiguration: Codable, Equatable, Sendable {
+        /// Physical cell 10 toggles this persistent top-level reference on both mice.
+        public var enabled: Bool
+        public var doubleClickInterval: TimeInterval
+        /// Optional legacy auto-hide timeout. Zero keeps the map visible until
+        /// the same-source cell-10 toggle closes it.
+        public var displayDuration: TimeInterval
+
+        public init(
+            enabled: Bool = true,
+            doubleClickInterval: TimeInterval = 0.34,
+            displayDuration: TimeInterval = 0
+        ) {
+            self.enabled = enabled
+            self.doubleClickInterval = doubleClickInterval
+            self.displayDuration = displayDuration
+        }
+    }
+
     // MARK: - Input
 
     public struct InputConfiguration: Codable, Equatable, Sendable {
@@ -201,7 +190,7 @@ public struct AppConfiguration: Codable, Equatable, Sendable {
         public var transport: TransportKind
         /// Which macro keys form the grid. The audited Scimitar reports 1…12.
         public var gridMacroKeys: [Int]
-        /// The button that enters and leaves the mode.
+        /// Legacy fallback binding for the universal runtime-mode exit.
         public var toggleKey: Int
         /// Fallback-only: how each grid key appears as a CGEvent.
         public var fallbackBindings: [String: InputBinding]
@@ -209,7 +198,7 @@ public struct AppConfiguration: Codable, Equatable, Sendable {
         public init(
             transport: TransportKind = .icueMacroKey,
             gridMacroKeys: [Int] = Array(1...12),
-            toggleKey: Int = 12,
+            toggleKey: Int = 10,
             fallbackBindings: [String: InputBinding] = [:]
         ) {
             self.transport = transport
@@ -253,7 +242,7 @@ public struct AppConfiguration: Codable, Equatable, Sendable {
         public var showsTapProgressRing: Bool
 
         public init(
-            corner: Corner = .bottomRight,
+            corner: Corner = .bottomLeft,
             margin: Double = 28,
             opacity: Double = 0.96,
             followsPointerScreen: Bool = true,
@@ -265,64 +254,18 @@ public struct AppConfiguration: Codable, Equatable, Sendable {
             self.followsPointerScreen = followsPointerScreen
             self.showsTapProgressRing = showsTapProgressRing
         }
-    }
-}
 
-// MARK: - Secret sourcing
-
-/// Where a secret comes from. The value itself never appears in the config
-/// file unless the user explicitly chooses `.inlineValue`, which the loader
-/// warns about.
-public enum SecretSource: Codable, Equatable, Sendable {
-    case keychain(service: String, account: String)
-    case environmentVariable(String)
-    /// Discouraged. Present so a machine without Keychain access still works.
-    case inlineValue(String)
-    case none
-
-    private enum CodingKeys: String, CodingKey { case kind, service, account, name, value }
-
-    public init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        switch try container.decode(String.self, forKey: .kind) {
-        case "keychain":
-            self = .keychain(
-                service: try container.decode(String.self, forKey: .service),
-                account: try container.decode(String.self, forKey: .account)
-            )
-        case "environment":
-            self = .environmentVariable(try container.decode(String.self, forKey: .name))
-        case "inline":
-            self = .inlineValue(try container.decode(String.self, forKey: .value))
-        default:
-            self = .none
-        }
-    }
-
-    public func encode(to encoder: Encoder) throws {
-        var container = encoder.container(keyedBy: CodingKeys.self)
-        switch self {
-        case .keychain(let service, let account):
-            try container.encode("keychain", forKey: .kind)
-            try container.encode(service, forKey: .service)
-            try container.encode(account, forKey: .account)
-        case .environmentVariable(let name):
-            try container.encode("environment", forKey: .kind)
-            try container.encode(name, forKey: .name)
-        case .inlineValue(let value):
-            try container.encode("inline", forKey: .kind)
-            try container.encode(value, forKey: .value)
-        case .none:
-            try container.encode("none", forKey: .kind)
-        }
-    }
-
-    public var redactedDescription: String {
-        switch self {
-        case .keychain(let service, let account): return "keychain(\(service)/\(account))"
-        case .environmentVariable(let name): return "environment(\(name))"
-        case .inlineValue(let value): return "inline\(Redaction.secret(value))"
-        case .none: return "none"
+        /// Authoritative handed placement for every source-owned mouse HUD.
+        ///
+        /// The persisted `corner` remains available for legacy generic HUDs,
+        /// but a HUD that belongs to an exact mouse must never use one shared
+        /// corner: the right-handed Corsair lives at bottom-right and the
+        /// left-handed Razer at bottom-left.
+        public static func sourceCorner(for source: MouseSource) -> Corner {
+            switch source {
+            case .corsair: return .bottomRight
+            case .razer: return .bottomLeft
+            }
         }
     }
 }

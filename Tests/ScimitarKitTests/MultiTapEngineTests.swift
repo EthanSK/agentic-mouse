@@ -245,6 +245,21 @@ final class MultiTapEngineTests: XCTestCase {
         }
     }
 
+    func testModesKeypadCellElevenCyclesShiftOnEachTap() {
+        engine = MultiTapEngine(
+            keymap: .modesKeypad,
+            configuration: MultiTapConfiguration(initialShiftState: .lower)
+        )
+
+        var now: TimeInterval = 0
+        for expected in [ShiftState.initialCaps, .upper, .numeric, .lower] {
+            _ = engine.press(.k11, at: now, target: resolution)
+            _ = engine.release(.k11, at: now + 0.05, target: resolution)
+            XCTAssertEqual(engine.state.shift, expected)
+            now += 0.2
+        }
+    }
+
     private func rebuild(shift: ShiftState) -> MultiTapEngine {
         let rebuilt = MultiTapEngine(
             keymap: .classic,

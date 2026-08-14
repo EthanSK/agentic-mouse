@@ -68,9 +68,8 @@ public final class RecordingLightingController: LightingController {
 
 /// Drops writes that would change nothing, and rate-limits the rest.
 ///
-/// The Hue mirror can fire several updates per second while a lamp fades; the
-/// mode pulse ticks continuously. Neither should hammer iCUE, and neither
-/// should re-send a frame the mouse is already displaying.
+/// The mode pulse ticks continuously. It must not hammer iCUE or re-send a
+/// frame the mouse is already displaying.
 public final class ThrottlingLightingController: LightingController {
     private let wrapped: LightingController
     private let clock: MonotonicClock

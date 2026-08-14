@@ -3,7 +3,13 @@ import Foundation
 /// What the HUD needs to draw itself. Pure data.
 public struct HUDSnapshot: Equatable, Sendable {
     public var isActive: Bool
+    /// Exact mouse that selected Keypad. It controls printed button labels and
+    /// presentation mirroring only; the typing engine still uses canonical
+    /// physical cells.
+    public var source: MouseSource
     public var keymap: MultiTapKeymap
+    /// The universal physical cell that exits this runtime mode.
+    public var toggleKey: MultiTapKey
     public var state: MultiTapState
     public var multiTapTimeout: TimeInterval
     public var now: TimeInterval
@@ -12,14 +18,18 @@ public struct HUDSnapshot: Equatable, Sendable {
 
     public init(
         isActive: Bool,
+        source: MouseSource = .corsair,
         keymap: MultiTapKeymap,
+        toggleKey: MultiTapKey = .k12,
         state: MultiTapState,
         multiTapTimeout: TimeInterval,
         now: TimeInterval,
         problem: String? = nil
     ) {
         self.isActive = isActive
+        self.source = source
         self.keymap = keymap
+        self.toggleKey = toggleKey
         self.state = state
         self.multiTapTimeout = multiTapTimeout
         self.now = now
@@ -122,6 +132,8 @@ public enum ModeExitReason: Equatable, Sendable {
 /// permission being revoked, or the app quitting.
 public final class MultiTapCoordinator {
     public private(set) var isActive = false
+    public private(set) var source: MouseSource = .corsair
+    public private(set) var isHUDVisible = false
 
     private let engine: MultiTapEngine
     private let transport: InputTransport
@@ -132,6 +144,7 @@ public final class MultiTapCoordinator {
     private let clock: MonotonicClock
     private let scheduler: TickScheduler
     private let log: Log
+    private let entryAllowed: () -> Bool
 
     private let toggleKey: MultiTapKey
     private let autoExitAfterIdle: TimeInterval
@@ -148,6 +161,9 @@ public final class MultiTapCoordinator {
     /// Called when an entry attempt is refused, with the list of reasons.
     public var onEntryRefused: (([String]) -> Void)?
     public var onExit: ((ModeExitReason) -> Void)?
+    /// Lets the app classify the inactive toggle press before the normal
+    /// single-click entry runs. Returning true means the classifier owns it.
+    public var onInactiveTogglePress: (() -> Bool)?
 
     public init(
         engine: MultiTapEngine,
@@ -159,6 +175,7 @@ public final class MultiTapCoordinator {
         clock: MonotonicClock,
         scheduler: TickScheduler,
         log: Log,
+        entryAllowed: @escaping () -> Bool = { true },
         toggleKey: MultiTapKey = .k12,
         autoExitAfterIdle: TimeInterval = 180,
         toggleDebounce: TimeInterval = 0.25,
@@ -173,6 +190,7 @@ public final class MultiTapCoordinator {
         self.clock = clock
         self.scheduler = scheduler
         self.log = log
+        self.entryAllowed = entryAllowed
         self.toggleKey = toggleKey
         self.autoExitAfterIdle = autoExitAfterIdle
         self.toggleDebounce = toggleDebounce
@@ -198,8 +216,12 @@ public final class MultiTapCoordinator {
     }
 
     @discardableResult
-    public func enter() -> Bool {
+    public func enter(source: MouseSource = .corsair) -> Bool {
         guard !isActive else { return true }
+        guard entryAllowed() else {
+            log.debug("multi-tap entry ignored while another runtime mode owns the grid")
+            return false
+        }
 
         let readiness = preflight()
         guard readiness.isReady else {
@@ -229,6 +251,8 @@ public final class MultiTapCoordinator {
         engine.reset()
         _ = engine.tick(at: clock.now, target: targetResolver.resolveCurrentTarget())
         isActive = true
+        self.source = source
+        isHUDVisible = true
         lastInputAt = clock.now
 
         hud.show(snapshot())
@@ -248,6 +272,7 @@ public final class MultiTapCoordinator {
     private func forceExit(reason: ModeExitReason) {
         let wasActive = isActive
         isActive = false
+        isHUDVisible = false
         activationGeneration &+= 1
 
         scheduler.stop()
@@ -285,6 +310,7 @@ public final class MultiTapCoordinator {
         // is the one button that works in both states.
         if key == toggleKey && !isActive {
             guard event.phase == .press else { return }
+            if onInactiveTogglePress?() == true { return }
             guard now - lastToggleAt >= toggleDebounce else { return }
             lastToggleAt = now
             _ = enter()
@@ -349,7 +375,7 @@ public final class MultiTapCoordinator {
         // A tick scheduled before the last exit must not resurrect the mode.
         guard generation == activationGeneration, isActive else { return }
         apply(outcome, reason: .userRequested)
-        hud.update(snapshot())
+        if isHUDVisible { hud.update(snapshot()) }
     }
 
     // MARK: - Outcome handling
@@ -374,7 +400,7 @@ public final class MultiTapCoordinator {
             return
         }
 
-        if outcome.stateChanged, isActive {
+        if outcome.stateChanged, isActive, isHUDVisible {
             hud.update(snapshot())
         }
     }
@@ -382,7 +408,9 @@ public final class MultiTapCoordinator {
     private func snapshot(problem: String? = nil) -> HUDSnapshot {
         HUDSnapshot(
             isActive: isActive,
+            source: source,
             keymap: engine.keymap,
+            toggleKey: toggleKey,
             state: engine.state,
             multiTapTimeout: engine.configuration.multiTapTimeout,
             now: clock.now,

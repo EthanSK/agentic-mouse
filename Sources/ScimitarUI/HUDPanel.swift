@@ -61,29 +61,48 @@ final class HUDPanel: NSPanel {
 /// coordinator's tick scheduler and the input callbacks both run there), and
 /// keeping it non-isolated lets it satisfy the plain `HUDPresenting` protocol
 /// that the hardware-free tests use.
-public final class AppKitHUDPresenter: HUDPresenting {
-    private var panel: HUDPanel?
-    private var hostingView: NSHostingView<HUDView>?
-    private let model = HUDViewModel()
+public final class AppKitHUDPresenter: NSObject, HUDPresenting {
+    private struct PanelInstance {
+        let panel: HUDPanel
+        let hostingView: NSHostingView<HUDView>
+    }
+
+    private var panels: [ObjectIdentifier: PanelInstance] = [:]
+    private let model: HUDViewModel
+    private let source: MouseSource
     private let configuration: AppConfiguration.HUDConfiguration
     private var problemDismissWorkItem: DispatchWorkItem?
 
-    public init(configuration: AppConfiguration.HUDConfiguration = .init()) {
+    public init(
+        source: MouseSource,
+        configuration: AppConfiguration.HUDConfiguration = .init()
+    ) {
+        self.source = source
+        self.model = HUDViewModel(source: source)
         self.configuration = configuration
+        super.init()
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(screenParametersDidChange),
+            name: NSApplication.didChangeScreenParametersNotification,
+            object: nil
+        )
     }
 
-    public var isVisible: Bool { panel?.isVisible ?? false }
+    deinit { NotificationCenter.default.removeObserver(self) }
+
+    public var isVisible: Bool { panels.values.contains { $0.panel.isVisible } }
 
     public func show(_ snapshot: HUDSnapshot) {
+        guard snapshot.source == source else { return }
         model.apply(snapshot)
-        let panel = ensurePanel()
-        position(panel)
-        // Regardless — this is what keeps the previously focused app frontmost.
-        panel.orderFrontRegardless()
+        reconcilePanels(show: true)
     }
 
     public func update(_ snapshot: HUDSnapshot) {
+        guard snapshot.source == source else { return }
         model.apply(snapshot)
+        if isVisible { reconcilePanels(show: true) }
     }
 
     public func hide() {
@@ -94,7 +113,7 @@ public final class AppKitHUDPresenter: HUDPresenting {
         // failure message on screen indefinitely, because `hide()` is followed
         // by `flashProblem()` on every failure exit.
         model.isActive = false
-        panel?.orderOut(nil)
+        panels.values.forEach { $0.panel.orderOut(nil) }
     }
 
     /// Shows a short-lived explanation when the mode could not be entered.
@@ -102,15 +121,13 @@ public final class AppKitHUDPresenter: HUDPresenting {
     /// either.
     public func flashProblem(_ message: String) {
         model.problem = message
-        let panel = ensurePanel()
-        position(panel)
-        panel.orderFrontRegardless()
+        reconcilePanels(show: true)
 
         problemDismissWorkItem?.cancel()
         let work = DispatchWorkItem { [weak self] in
             guard let self else { return }
             self.model.problem = nil
-            if !self.model.isActive { self.panel?.orderOut(nil) }
+            if !self.model.isActive { self.panels.values.forEach { $0.panel.orderOut(nil) } }
         }
         problemDismissWorkItem = work
         DispatchQueue.main.asyncAfter(deadline: .now() + 4, execute: work)
@@ -118,9 +135,14 @@ public final class AppKitHUDPresenter: HUDPresenting {
 
     // MARK: - Panel plumbing
 
-    private func ensurePanel() -> HUDPanel {
-        if let panel { return panel }
+    @objc private func screenParametersDidChange(_ notification: Notification) {
+        guard isVisible else { return }
+        reconcilePanels(show: true)
+    }
 
+    private func ensurePanel(for screen: NSScreen) -> PanelInstance {
+        let key = ObjectIdentifier(screen)
+        if let existing = panels[key] { return existing }
         let view = HUDView(
             model: model,
             showsTapProgressRing: configuration.showsTapProgressRing
@@ -131,23 +153,35 @@ public final class AppKitHUDPresenter: HUDPresenting {
         panel.contentView = hosting
         panel.alphaValue = CGFloat(configuration.opacity)
 
-        self.panel = panel
-        self.hostingView = hosting
-        return panel
+        let instance = PanelInstance(panel: panel, hostingView: hosting)
+        panels[key] = instance
+        return instance
     }
 
-    private func position(_ panel: HUDPanel) {
-        guard let screen = targetScreen() else { return }
+    private func reconcilePanels(show: Bool) {
+        let screens = NSScreen.screens
+        let targetKeys = Set(screens.map(ObjectIdentifier.init))
+        for key in panels.keys.filter({ !targetKeys.contains($0) }) {
+            panels.removeValue(forKey: key)?.panel.orderOut(nil)
+        }
+        for screen in screens {
+            let instance = ensurePanel(for: screen)
+            position(instance, on: screen)
+            if show { instance.panel.orderFrontRegardless() }
+        }
+    }
+
+    private func position(_ instance: PanelInstance, on screen: NSScreen) {
         let visible = screen.visibleFrame
         // `problem` conditionally inserts a banner. Force SwiftUI/AppKit to
         // settle that published change before measuring, or the first failure
         // message can be positioned with the smaller pre-banner size.
-        hostingView?.layoutSubtreeIfNeeded()
-        let size = hostingView?.fittingSize ?? panel.frame.size
+        instance.hostingView.layoutSubtreeIfNeeded()
+        let size = instance.hostingView.fittingSize
         let margin = CGFloat(configuration.margin)
 
         let origin: NSPoint
-        switch configuration.corner {
+        switch AppConfiguration.HUDConfiguration.sourceCorner(for: source) {
         case .topLeft:
             origin = NSPoint(x: visible.minX + margin, y: visible.maxY - size.height - margin)
         case .topRight:
@@ -162,12 +196,6 @@ public final class AppKitHUDPresenter: HUDPresenting {
                 y: visible.midY - size.height / 2
             )
         }
-        panel.setFrame(NSRect(origin: origin, size: size), display: true)
-    }
-
-    private func targetScreen() -> NSScreen? {
-        guard configuration.followsPointerScreen else { return NSScreen.main }
-        let location = NSEvent.mouseLocation
-        return NSScreen.screens.first { NSMouseInRect(location, $0.frame, false) } ?? NSScreen.main
+        instance.panel.setFrame(NSRect(origin: origin, size: size), display: true)
     }
 }

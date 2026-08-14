@@ -36,5 +36,8 @@ secrets.json
 # ---- Local scratch ----
 .DS_Store
 *.log
+__pycache__/
+*.pyc
+.vscode/
 /tmp/
 Local/

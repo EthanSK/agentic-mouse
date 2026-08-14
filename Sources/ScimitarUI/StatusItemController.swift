@@ -4,34 +4,40 @@ import ScimitarKit
 /// The menu bar presence.
 ///
 /// Deliberately minimal: status, the things that commonly go wrong, and a way
-/// out. It never mutates iCUE, Hue or system settings — the only action that
+/// out. It never mutates iCUE or system settings — the only action that
 /// leaves the app is opening the Accessibility pane, and that is a direct
 /// response to the user clicking it.
 public final class StatusItemController {
     public struct Status {
         public var isModeActive: Bool
+        public var activeModeName: String?
         public var multiTapEnabled: Bool
         public var accessibilityGranted: Bool
+        public var keysPasswordConfigured: Bool
+        public var launchAtLoginState: String
         public var icueState: String
         public var deviceDescription: String?
-        public var hueStatus: String
         public var warnings: [String]
 
         public init(
             isModeActive: Bool = false,
+            activeModeName: String? = nil,
             multiTapEnabled: Bool = true,
             accessibilityGranted: Bool = false,
+            keysPasswordConfigured: Bool = false,
+            launchAtLoginState: String = "unknown",
             icueState: String = "unknown",
             deviceDescription: String? = nil,
-            hueStatus: String = "idle",
             warnings: [String] = []
         ) {
             self.isModeActive = isModeActive
+            self.activeModeName = activeModeName
             self.multiTapEnabled = multiTapEnabled
             self.accessibilityGranted = accessibilityGranted
+            self.keysPasswordConfigured = keysPasswordConfigured
+            self.launchAtLoginState = launchAtLoginState
             self.icueState = icueState
             self.deviceDescription = deviceDescription
-            self.hueStatus = hueStatus
             self.warnings = warnings
         }
     }
@@ -42,6 +48,8 @@ public final class StatusItemController {
     public var onToggleMode: (() -> Void)?
     public var onQuit: (() -> Void)?
     public var onReloadConfiguration: (() -> Void)?
+    public var onSetKeysPassword: (() -> Void)?
+    public var onClearKeysPassword: (() -> Void)?
 
     public init() {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
@@ -62,12 +70,15 @@ public final class StatusItemController {
         let symbolName = status.isModeActive ? "keyboard.fill" : "computermouse"
         button.image = NSImage(
             systemSymbolName: symbolName,
-            accessibilityDescription: status.isModeActive ? "Multi-tap mode active" : "Agentic Mouse"
+            accessibilityDescription: status.activeModeName.map { "\($0) active" } ?? "Agentic Mouse"
         )
         button.image?.isTemplate = !status.isModeActive
-        button.toolTip = status.isModeActive
-            ? "Multi-tap mode is ON — press side button 12 to exit"
-            : "Agentic Mouse"
+        if let activeModeName = status.activeModeName {
+            let exit = PhysicalCell.modeExit
+            button.toolTip = "\(activeModeName) is ON — press Corsair \(exit.printedSide(on: .corsair)!) or Razer \(exit.printedSide(on: .razer)!) to exit"
+        } else {
+            button.toolTip = "Agentic Mouse"
+        }
     }
 
     // MARK: - Menu
@@ -75,19 +86,23 @@ public final class StatusItemController {
     private func rebuildMenu() {
         let menu = NSMenu()
 
+        let headerTitle: String
+        if let activeModeName = status.activeModeName {
+            headerTitle = "\(activeModeName): ON"
+        } else {
+            headerTitle = status.multiTapEnabled ? "Modes: ready" : "Keypad mode: disabled"
+        }
         let header = NSMenuItem(
-            title: !status.multiTapEnabled
-                ? "Multi-tap mode: disabled"
-                : (status.isModeActive ? "Multi-tap mode: ON" : "Multi-tap mode: off"),
+            title: headerTitle,
             action: nil,
             keyEquivalent: ""
         )
         header.isEnabled = false
         menu.addItem(header)
 
-        if status.multiTapEnabled {
+        if status.activeModeName != nil || status.multiTapEnabled {
             let toggle = NSMenuItem(
-                title: status.isModeActive ? "Exit multi-tap mode" : "Enter multi-tap mode",
+                title: status.activeModeName.map { "Exit \($0.lowercased())" } ?? "Open Modes",
                 action: #selector(toggleMode),
                 keyEquivalent: ""
             )
@@ -99,16 +114,14 @@ public final class StatusItemController {
 
         addInfo(to: menu, "Mouse", status.deviceDescription ?? "not detected")
         addInfo(to: menu, "iCUE", status.icueState)
-        addInfo(to: menu, "Hue", status.hueStatus)
-        if status.multiTapEnabled {
-            addInfo(
-                to: menu,
-                "Accessibility",
-                status.accessibilityGranted ? "granted" : "NOT granted — multi-tap disabled"
-            )
-        }
+        addInfo(
+            to: menu,
+            "Accessibility",
+            status.accessibilityGranted ? "granted" : "NOT granted — multi-tap typing disabled"
+        )
+        addInfo(to: menu, "Launch at login", status.launchAtLoginState)
 
-        if status.multiTapEnabled, !status.accessibilityGranted {
+        if !status.accessibilityGranted {
             let item = NSMenuItem(
                 title: "Open Accessibility settings…",
                 action: #selector(openAccessibilitySettings),
@@ -116,6 +129,26 @@ public final class StatusItemController {
             )
             item.target = self
             menu.addItem(item)
+        }
+
+        let setPassword = NSMenuItem(
+            title: status.keysPasswordConfigured
+                ? "Replace Keys Mode password…"
+                : "Set Keys Mode password…",
+            action: #selector(setKeysPassword),
+            keyEquivalent: ""
+        )
+        setPassword.target = self
+        menu.addItem(setPassword)
+
+        if status.keysPasswordConfigured {
+            let clearPassword = NSMenuItem(
+                title: "Clear Keys Mode password…",
+                action: #selector(clearKeysPassword),
+                keyEquivalent: ""
+            )
+            clearPassword.target = self
+            menu.addItem(clearPassword)
         }
 
         if !status.warnings.isEmpty {
@@ -155,6 +188,8 @@ public final class StatusItemController {
     @objc private func toggleMode() { onToggleMode?() }
     @objc private func reload() { onReloadConfiguration?() }
     @objc private func quit() { onQuit?() }
+    @objc private func setKeysPassword() { onSetKeysPassword?() }
+    @objc private func clearKeysPassword() { onClearKeysPassword?() }
 
     @objc private func openAccessibilitySettings() {
         guard let url = URL(string: AccessibilityPermission.settingsURLString) else { return }

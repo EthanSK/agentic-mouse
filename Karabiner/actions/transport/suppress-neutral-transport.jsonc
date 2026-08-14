@@ -1,0 +1,11 @@
+// Suppresses a device-scoped neutral transport so spare or runtime-owned mouse cells never leak keyboard input.
+{
+  "id": "suppress-neutral-transport",
+  "title": "Suppress neutral transport",
+  "description": "Consume a mouse transport without producing keyboard, pointing, or system output.",
+  "manipulator": {
+    "to": [
+      { "key_code": "vk_none" }
+    ]
+  }
+}

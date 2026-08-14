@@ -35,20 +35,103 @@
       "manipulator": {
         "to": [
           {
-            "sticky_modifier": {
-              "left_command": "on"
-            }
+            "key_code": "tab",
+            "modifiers": [
+              "left_command"
+            ],
+            "repeat": false
           },
           {
-            "key_code": "tab",
+            "key_code": "left_command",
+            "repeat": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "open-app-specific-mode-corsair",
+      "title": "Open app-specific mode (Corsair)",
+      "description": "Send one exact-device Corsair app-specific mode request to Agentic Mouse.",
+      "source": "runtime/open-app-specific-mode-corsair.jsonc",
+      "manipulator": {
+        "to": [
+          {
+            "send_user_command": {
+              "payload": {
+                "command": "agentic_mouse_mode_picker",
+                "action": "openAppSpecific",
+                "source": "corsair",
+                "physical_cell": 11,
+                "phase": "press"
+              }
+            },
             "repeat": false
           }
-        ],
-        "to_after_key_up": [
+        ]
+      }
+    },
+    {
+      "id": "open-app-specific-mode-razer",
+      "title": "Open app-specific mode (Razer)",
+      "description": "Send one exact-device Razer app-specific mode request to Agentic Mouse.",
+      "source": "runtime/open-app-specific-mode-razer.jsonc",
+      "manipulator": {
+        "to": [
           {
-            "sticky_modifier": {
-              "left_command": "off"
-            }
+            "send_user_command": {
+              "payload": {
+                "command": "agentic_mouse_mode_picker",
+                "action": "openAppSpecific",
+                "source": "razer",
+                "physical_cell": 11,
+                "phase": "press"
+              }
+            },
+            "repeat": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "open-keys-mode-corsair",
+      "title": "Open Keys mode (Corsair)",
+      "description": "Send one exact-device Corsair Keys mode request to Agentic Mouse.",
+      "source": "runtime/open-keys-mode-corsair.jsonc",
+      "manipulator": {
+        "to": [
+          {
+            "send_user_command": {
+              "payload": {
+                "command": "agentic_mouse_mode_picker",
+                "action": "openKeys",
+                "source": "corsair",
+                "physical_cell": 9,
+                "phase": "press"
+              }
+            },
+            "repeat": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "open-keys-mode-razer",
+      "title": "Open Keys mode (Razer)",
+      "description": "Send one exact-device Razer Keys mode request to Agentic Mouse.",
+      "source": "runtime/open-keys-mode-razer.jsonc",
+      "manipulator": {
+        "to": [
+          {
+            "send_user_command": {
+              "payload": {
+                "command": "agentic_mouse_mode_picker",
+                "action": "openKeys",
+                "source": "razer",
+                "physical_cell": 9,
+                "phase": "press"
+              }
+            },
+            "repeat": false
           }
         ]
       }
@@ -93,6 +176,20 @@
       }
     },
     {
+      "id": "press-enter",
+      "title": "Enter",
+      "description": "Presses the native Return/Enter key exactly once.",
+      "source": "productivity/press-enter.jsonc",
+      "manipulator": {
+        "to": [
+          {
+            "key_code": "return_or_enter",
+            "repeat": false
+          }
+        ]
+      }
+    },
+    {
       "id": "scroll-horizontally-left",
       "title": "Scroll horizontally left",
       "description": "Move horizontally to the left, repeating naturally while the physical trigger remains held.",
@@ -123,10 +220,121 @@
       }
     },
     {
+      "id": "suppress-neutral-transport",
+      "title": "Suppress neutral transport",
+      "description": "Consume a mouse transport without producing keyboard, pointing, or system output.",
+      "source": "transport/suppress-neutral-transport.jsonc",
+      "manipulator": {
+        "to": [
+          {
+            "key_code": "vk_none"
+          }
+        ]
+      }
+    },
+    {
+      "id": "toggle-default-map-hint-corsair",
+      "title": "Toggle Default mode legend (Corsair)",
+      "description": "Send one exact-device Corsair legend toggle to Agentic Mouse.",
+      "source": "runtime/toggle-default-map-hint-corsair.jsonc",
+      "manipulator": {
+        "to": [
+          {
+            "send_user_command": {
+              "payload": {
+                "command": "agentic_mouse_default_map_toggle",
+                "source": "corsair",
+                "physical_cell": 10
+              }
+            },
+            "repeat": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "toggle-default-map-hint-razer",
+      "title": "Toggle Default mode legend (Razer)",
+      "description": "Send one exact-device Razer legend toggle to Agentic Mouse.",
+      "source": "runtime/toggle-default-map-hint-razer.jsonc",
+      "manipulator": {
+        "to": [
+          {
+            "send_user_command": {
+              "payload": {
+                "command": "agentic_mouse_default_map_toggle",
+                "source": "razer",
+                "physical_cell": 10
+              }
+            },
+            "repeat": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "toggle-selected-screen-area-corsair",
+      "title": "Toggle selected screen area (Corsair)",
+      "description": "Start a native selected-area screenshot, or cancel the still-running interaction on the next Corsair press.",
+      "source": "productivity/toggle-selected-screen-area-corsair.jsonc",
+      "manipulator": {
+        "to": [
+          {
+            "send_user_command": {
+              "payload": {
+                "command": "agentic_mouse_selected_area_screenshot_toggle",
+                "source": "corsair",
+                "physical_cell": 3
+              }
+            },
+            "repeat": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "toggle-selected-screen-area-razer",
+      "title": "Toggle selected screen area (Razer)",
+      "description": "Start a native selected-area screenshot, or cancel the still-running interaction on the next Razer press.",
+      "source": "productivity/toggle-selected-screen-area-razer.jsonc",
+      "manipulator": {
+        "to": [
+          {
+            "send_user_command": {
+              "payload": {
+                "command": "agentic_mouse_selected_area_screenshot_toggle",
+                "source": "razer",
+                "physical_cell": 3
+              }
+            },
+            "repeat": false
+          }
+        ]
+      }
+    },
+    {
       "id": "toggle-voiceink-speech-to-text",
       "title": "Toggle VoiceInk++ speech-to-text",
-      "description": "Toggle VoiceInk++ using its existing Control-Option-Shift shortcut.",
+      "description": "Toggle VoiceInk++ on physical button release using its existing Control-Option-Shift shortcut.",
       "source": "productivity/toggle-voiceink-speech-to-text.jsonc",
+      "manipulator": {
+        "to_after_key_up": [
+          {
+            "key_code": "left_shift",
+            "modifiers": [
+              "left_control",
+              "left_option"
+            ],
+            "repeat": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "toggle-voiceink-speech-to-text-on-press",
+      "title": "Toggle VoiceInk++ speech-to-text on press",
+      "description": "Toggle VoiceInk++ on physical button press using its existing Control-Option-Shift shortcut.",
+      "source": "productivity/toggle-voiceink-speech-to-text-on-press.jsonc",
       "manipulator": {
         "to": [
           {
@@ -143,44 +351,194 @@
     {
       "id": "vscode-go-to-next-change",
       "title": "VS Code: go to next change",
-      "description": "Move down to the next source-control change through the existing Better Git F13 keybinding.",
+      "description": "Single-click moves to the next change with F13; double-click stages and advances with F18, matching the proven G502 behavior.",
       "source": "vscode/vscode-go-to-next-change.jsonc",
-      "manipulator": {
-        "to": [
-          {
-            "key_code": "f13"
-          }
-        ],
-        "conditions": [
-          {
-            "type": "frontmost_application_if",
-            "bundle_identifiers": [
-              "^com\\.microsoft\\.VSCode(?:Insiders)?$"
+      "manipulators": [
+        {
+          "conditions": [
+            {
+              "type": "variable_if",
+              "name": "$binding_variable",
+              "value": true
+            },
+            {
+              "type": "frontmost_application_if",
+              "bundle_identifiers": [
+                "^com\\.microsoft\\.VSCode(?:Insiders)?$"
+              ]
+            }
+          ],
+          "to": [
+            {
+              "set_variable": {
+                "name": "$binding_variable",
+                "value": false
+              }
+            },
+            {
+              "key_code": "f18",
+              "repeat": false
+            }
+          ]
+        },
+        {
+          "conditions": [
+            {
+              "type": "frontmost_application_if",
+              "bundle_identifiers": [
+                "^com\\.microsoft\\.VSCode(?:Insiders)?$"
+              ]
+            }
+          ],
+          "parameters": {
+            "basic.to_delayed_action_delay_milliseconds": 300
+          },
+          "to": [
+            {
+              "set_variable": {
+                "name": "$binding_variable",
+                "value": true
+              }
+            }
+          ],
+          "to_delayed_action": {
+            "to_if_canceled": [
+              {
+                "key_code": "f13",
+                "repeat": false,
+                "conditions": [
+                  {
+                    "type": "variable_if",
+                    "name": "$binding_variable",
+                    "value": true
+                  }
+                ]
+              },
+              {
+                "set_variable": {
+                  "name": "$binding_variable",
+                  "value": false
+                }
+              }
+            ],
+            "to_if_invoked": [
+              {
+                "key_code": "f13",
+                "repeat": false,
+                "conditions": [
+                  {
+                    "type": "variable_if",
+                    "name": "$binding_variable",
+                    "value": true
+                  }
+                ]
+              },
+              {
+                "set_variable": {
+                  "name": "$binding_variable",
+                  "value": false
+                }
+              }
             ]
           }
-        ]
-      }
+        }
+      ]
     },
     {
       "id": "vscode-go-to-previous-change",
       "title": "VS Code: go to previous change",
-      "description": "Move up to the previous source-control change through the existing Better Git F17 keybinding.",
+      "description": "Single-click moves to the previous change with F17; double-click stages and moves back with F19, matching the proven G502 behavior.",
       "source": "vscode/vscode-go-to-previous-change.jsonc",
-      "manipulator": {
-        "to": [
-          {
-            "key_code": "f17"
-          }
-        ],
-        "conditions": [
-          {
-            "type": "frontmost_application_if",
-            "bundle_identifiers": [
-              "^com\\.microsoft\\.VSCode(?:Insiders)?$"
+      "manipulators": [
+        {
+          "conditions": [
+            {
+              "type": "variable_if",
+              "name": "$binding_variable",
+              "value": true
+            },
+            {
+              "type": "frontmost_application_if",
+              "bundle_identifiers": [
+                "^com\\.microsoft\\.VSCode(?:Insiders)?$"
+              ]
+            }
+          ],
+          "to": [
+            {
+              "set_variable": {
+                "name": "$binding_variable",
+                "value": false
+              }
+            },
+            {
+              "key_code": "f19",
+              "repeat": false
+            }
+          ]
+        },
+        {
+          "conditions": [
+            {
+              "type": "frontmost_application_if",
+              "bundle_identifiers": [
+                "^com\\.microsoft\\.VSCode(?:Insiders)?$"
+              ]
+            }
+          ],
+          "parameters": {
+            "basic.to_delayed_action_delay_milliseconds": 300
+          },
+          "to": [
+            {
+              "set_variable": {
+                "name": "$binding_variable",
+                "value": true
+              }
+            }
+          ],
+          "to_delayed_action": {
+            "to_if_canceled": [
+              {
+                "key_code": "f17",
+                "repeat": false,
+                "conditions": [
+                  {
+                    "type": "variable_if",
+                    "name": "$binding_variable",
+                    "value": true
+                  }
+                ]
+              },
+              {
+                "set_variable": {
+                  "name": "$binding_variable",
+                  "value": false
+                }
+              }
+            ],
+            "to_if_invoked": [
+              {
+                "key_code": "f17",
+                "repeat": false,
+                "conditions": [
+                  {
+                    "type": "variable_if",
+                    "name": "$binding_variable",
+                    "value": true
+                  }
+                ]
+              },
+              {
+                "set_variable": {
+                  "name": "$binding_variable",
+                  "value": false
+                }
+              }
             ]
           }
-        ]
-      }
+        }
+      ]
     },
     {
       "id": "vscode-stage-and-go-to-next-change",
@@ -190,7 +548,8 @@
       "manipulator": {
         "to": [
           {
-            "key_code": "f18"
+            "key_code": "f18",
+            "repeat": false
           }
         ],
         "conditions": [

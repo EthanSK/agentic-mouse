@@ -39,13 +39,12 @@ public enum HUDLayout {
     public static let columnCount = 4
     public static let rowCount = 3
 
-    /// Row-major cells, i.e. `[[1, 4, 7, 10], [2, 5, 8, 11], [3, 6, 9, 12]]`.
+    /// Row-major cells from the top of the mouse to the desk, i.e.
+    /// `[[3, 6, 9, 12], [2, 5, 8, 11], [1, 4, 7, 10]]`.
     public static func grid(for snapshot: HUDSnapshot, toggleKey: MultiTapKey = .k12) -> [[Cell]] {
-        (0..<rowCount).map { row in
-            (0..<columnCount).map { column in
-                // Corsair numbers the pad in columns of three, front to back.
-                let rawValue = column * rowCount + row + 1
-                let key = MultiTapKey(rawValue: rawValue) ?? .k1
+        PhysicalCell.displayRowsTopToBottom(for: snapshot.source).map { row in
+            row.map { physicalCell in
+                let key = MultiTapKey(rawValue: physicalCell.rawValue) ?? .k1
                 return cell(for: key, snapshot: snapshot, toggleKey: toggleKey)
             }
         }

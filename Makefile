@@ -1,7 +1,7 @@
 .DEFAULT_GOAL := help
 SHELL := /bin/bash
 
-.PHONY: help build release test test-verbose test-karabiner clean app doctor keymap mapping simulate colors karabiner check
+.PHONY: help build release test test-extension test-karabiner test-verbose clean app doctor keymap mapping simulate karabiner check
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
@@ -16,10 +16,29 @@ release: ## Release build
 test: ## Run the hardware-free test suite
 	swift test
 
+test-extension: ## Test the fail-closed Musixmatch Chrome extension
+	node --test extensions/musixmatch-playback/tests/*.test.mjs
+
+karabiner: ## Generate the Karabiner adapter and action catalog
+	python3 Scripts/generate-karabiner.py
+
+test-karabiner: ## Validate semantic action sources and generated Karabiner JSON
+	python3 Scripts/generate-karabiner.py --check
+	python3 -m unittest discover -s Tests/KarabinerGeneratorTests -p 'test_*.py'
+	@if [ -x "/Library/Application Support/org.pqrs/Karabiner-Elements/bin/karabiner_cli" ]; then \
+		"/Library/Application Support/org.pqrs/Karabiner-Elements/bin/karabiner_cli" \
+			--lint-complex-modifications Karabiner/generated/agentic-mouse.json; \
+		"/Library/Application Support/org.pqrs/Karabiner-Elements/bin/karabiner_cli" \
+			--lint-complex-modifications Karabiner/generated/agentic-mouse-runtime.json; \
+	else \
+		echo "Karabiner CLI not installed; structural generator tests passed"; \
+	fi
+
 test-verbose: ## Run tests with full output
 	swift test --verbose
 
-check: clean build test test-karabiner ## Clean build followed by the full test suite
+check: clean build test test-extension test-karabiner ## Clean build followed by the full test suite
+	bash -n Scripts/package-app.sh
 	@echo "clean build + tests passed"
 
 clean: ## Remove build products
@@ -28,6 +47,9 @@ clean: ## Remove build products
 
 app: ## Package AgenticMouse.app into ./build (installs nothing)
 	bash ./Scripts/package-app.sh
+
+install-candidate: ## Package a stable Developer-ID app for guarded installation
+	INSTALL_CANDIDATE=1 CODE_SIGN_IDENTITY="Developer ID Application: Ethan Sarif-Kattan (T34G959ZG8)" bash ./Scripts/package-app.sh
 
 doctor: build ## Show the resolved configuration, redacted
 	swift run agentic-mouse-doctor config
@@ -40,18 +62,3 @@ mapping: build ## Print the normal / VS Code iCUE assignments this helper assume
 
 simulate: build ## Drive the whole coordinator against fakes, no hardware needed
 	swift run agentic-mouse-doctor simulate
-
-colors: build ## Show how Hue readings convert to mouse colours
-	swift run agentic-mouse-doctor colors
-
-karabiner: ## Generate Karabiner complex-modification artifacts from named sources
-	python3 Scripts/generate-karabiner.py
-
-test-karabiner: ## Validate the Karabiner generator, generated files, and Karabiner syntax
-	python3 Scripts/generate-karabiner.py --check
-	python3 -m unittest discover -s Tests/KarabinerGeneratorTests -p 'test_*.py'
-	@if command -v karabiner_cli >/dev/null 2>&1; then \
-		karabiner_cli --lint-complex-modifications Karabiner/generated/agentic-mouse.json; \
-	else \
-		echo "karabiner_cli not found; skipped installed-CLI syntax validation"; \
-	fi

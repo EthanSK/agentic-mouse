@@ -20,6 +20,13 @@ BUILD_DIR="${REPO_ROOT}/build"
 APP_NAME="AgenticMouse"
 APP_DIR="${BUILD_DIR}/${APP_NAME}.app"
 CONFIGURATION="${CONFIGURATION:-release}"
+CODE_SIGN_IDENTITY="${CODE_SIGN_IDENTITY:--}"
+INSTALL_CANDIDATE="${INSTALL_CANDIDATE:-0}"
+
+if [[ "${INSTALL_CANDIDATE}" == "1" && "${CODE_SIGN_IDENTITY}" == "-" ]]; then
+  printf '\033[31m error:\033[0m INSTALL_CANDIDATE=1 requires a stable Developer ID identity; refusing an ad-hoc bundle that would invalidate Accessibility trust.\n' >&2
+  exit 1
+fi
 
 # Where to look for the SDK to embed. Override with ICUE_SDK_FRAMEWORK.
 ICUE_SDK_FRAMEWORK="${ICUE_SDK_FRAMEWORK:-/Volumes/iCUESDK/iCUESDK.framework}"
@@ -49,24 +56,58 @@ if [[ -d "${ICUE_SDK_FRAMEWORK}" ]]; then
   cp -R "${ICUE_SDK_FRAMEWORK}" "${APP_DIR}/Contents/Frameworks/"
 else
   warn "iCUE SDK not found at ${ICUE_SDK_FRAMEWORK}."
+  if [[ "${CODE_SIGN_IDENTITY}" != "-" ]]; then
+    printf '\033[31m error:\033[0m a Developer-ID build requires the audited iCUE SDK; refusing to produce a crippled install candidate.\n' >&2
+    exit 1
+  fi
   warn "The app will still run; lighting and multi-tap stay unavailable until"
   warn "the SDK is installed. See docs/SETUP.md. Set ICUE_SDK_FRAMEWORK to"
   warn "point at iCUESDK.framework and re-run to embed it."
 fi
 
-# Ad-hoc signature for a locally built bundle. This is not a stable signing
-# identity: macOS may invalidate Accessibility approval after any rebuild even
-# when the bundle id and installation path remain unchanged.
-log "Signing (ad-hoc)"
-codesign --force --deep --sign - "${APP_DIR}" >/dev/null 2>&1 || \
-  warn "codesign failed; the app will still run but must be checked again in Accessibility settings."
+# The portable default remains ad-hoc, but a real identity can be supplied for
+# a stable designated requirement. That lets macOS retain Accessibility
+# approval across rebuilt bundles installed at the same path.
+if [[ "${CODE_SIGN_IDENTITY}" == "-" ]]; then
+  log "Signing (ad-hoc)"
+else
+  log "Signing (${CODE_SIGN_IDENTITY})"
+fi
+if ! codesign --force --sign "${CODE_SIGN_IDENTITY}" \
+  "${APP_DIR}/Contents/MacOS/agentic-mouse-doctor"; then
+  printf '\033[31m error:\033[0m codesign failed for the bundled doctor; refusing to continue.\n' >&2
+  exit 1
+fi
+
+# Sign the app bundle without --deep. The embedded iCUE framework is an
+# independently signed vendor binary; --deep would rewrite that audited binary
+# even though its existing nested signature is already valid.
+if ! codesign --force --sign "${CODE_SIGN_IDENTITY}" "${APP_DIR}"; then
+  printf '\033[31m error:\033[0m codesign failed for %s; refusing to produce an installable app.\n' \
+    "${CODE_SIGN_IDENTITY}" >&2
+  exit 1
+fi
+
+if ! codesign --verify --deep --strict "${APP_DIR}"; then
+  printf '\033[31m error:\033[0m signature verification failed; refusing to continue.\n' >&2
+  exit 1
+fi
 
 log "Done: ${APP_DIR}"
+if [[ "${CODE_SIGN_IDENTITY}" == "-" ]]; then
+  cat <<EOF
+
+Ad-hoc development bundle only. Do not move this build to /Applications: its
+identity is not stable enough for Accessibility permission. Use the documented
+Developer-ID install-candidate command in docs/SETUP.md instead.
+EOF
+  exit 0
+fi
 cat <<EOF
 
 Next steps (all manual, none of them performed by this script):
 
-  1. Move ${APP_NAME}.app wherever you want it, e.g. /Applications.
+  1. Preserve the current installed app as rollback, then install this signed candidate.
   2. Launch it once. It appears in the menu bar; it has no Dock icon.
   3. Grant Accessibility permission when asked, then quit and relaunch.
   4. Copy Config/config.example.json to ~/.config/agentic-mouse/config.json,

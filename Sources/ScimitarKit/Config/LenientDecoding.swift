@@ -17,14 +17,17 @@ private extension KeyedDecodingContainer {
 }
 
 extension AppConfiguration {
-    private enum Keys: String, CodingKey { case hue, lighting, multiTap, input, hud }
+    private enum Keys: String, CodingKey {
+        case lighting, multiTap, colorProof, defaultMapHint, input, hud
+    }
 
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: Keys.self)
         self.init(
-            hue: container.value(.hue, default: HueConfiguration()),
             lighting: container.value(.lighting, default: LightingConfiguration()),
             multiTap: container.value(.multiTap, default: MultiTapConfigurationFile()),
+            colorProof: container.value(.colorProof, default: ColorProofConfiguration()),
+            defaultMapHint: container.value(.defaultMapHint, default: DefaultMapHintConfiguration()),
             input: container.value(.input, default: InputConfiguration()),
             hud: container.value(.hud, default: HUDConfiguration())
         )
@@ -32,53 +35,65 @@ extension AppConfiguration {
 
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: Keys.self)
-        try container.encode(hue, forKey: .hue)
         try container.encode(lighting, forKey: .lighting)
         try container.encode(multiTap, forKey: .multiTap)
+        try container.encode(colorProof, forKey: .colorProof)
+        try container.encode(defaultMapHint, forKey: .defaultMapHint)
         try container.encode(input, forKey: .input)
         try container.encode(hud, forKey: .hud)
     }
 }
 
-extension AppConfiguration.HueConfiguration {
+extension AppConfiguration.DefaultMapHintConfiguration {
     private enum Keys: String, CodingKey {
-        case enabled, bridgeHost, applicationKeySource, lights
-        case brightnessFloor, brightnessCeiling, brightnessGamma, saturationBoost
-        case offPolicy, coalescingInterval
+        case enabled, doubleClickInterval, displayDuration
     }
 
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: Keys.self)
-        let defaults = AppConfiguration.HueConfiguration()
+        let defaults = AppConfiguration.DefaultMapHintConfiguration()
         self.init(
             enabled: container.value(.enabled, default: defaults.enabled),
-            bridgeHost: container.value(.bridgeHost, default: defaults.bridgeHost),
-            applicationKeySource: container.value(
-                .applicationKeySource,
-                default: defaults.applicationKeySource
+            doubleClickInterval: container.value(
+                .doubleClickInterval,
+                default: defaults.doubleClickInterval
             ),
-            lights: container.value(.lights, default: defaults.lights),
-            brightnessFloor: container.value(.brightnessFloor, default: defaults.brightnessFloor),
-            brightnessCeiling: container.value(.brightnessCeiling, default: defaults.brightnessCeiling),
-            brightnessGamma: container.value(.brightnessGamma, default: defaults.brightnessGamma),
-            saturationBoost: container.value(.saturationBoost, default: defaults.saturationBoost),
-            offPolicy: container.value(.offPolicy, default: defaults.offPolicy),
-            coalescingInterval: container.value(.coalescingInterval, default: defaults.coalescingInterval)
+            displayDuration: container.value(.displayDuration, default: defaults.displayDuration)
         )
     }
 
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: Keys.self)
         try container.encode(enabled, forKey: .enabled)
-        try container.encode(bridgeHost, forKey: .bridgeHost)
-        try container.encode(applicationKeySource, forKey: .applicationKeySource)
-        try container.encode(lights, forKey: .lights)
-        try container.encode(brightnessFloor, forKey: .brightnessFloor)
-        try container.encode(brightnessCeiling, forKey: .brightnessCeiling)
-        try container.encode(brightnessGamma, forKey: .brightnessGamma)
-        try container.encode(saturationBoost, forKey: .saturationBoost)
-        try container.encode(offPolicy, forKey: .offPolicy)
-        try container.encode(coalescingInterval, forKey: .coalescingInterval)
+        try container.encode(doubleClickInterval, forKey: .doubleClickInterval)
+        try container.encode(displayDuration, forKey: .displayDuration)
+    }
+}
+
+extension AppConfiguration.ColorProofConfiguration {
+    private enum Keys: String, CodingKey {
+        case enabled, autoExitAfterIdle, absoluteTimeout, heartbeatInterval, leaseDuration
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: Keys.self)
+        let defaults = AppConfiguration.ColorProofConfiguration()
+        self.init(
+            enabled: container.value(.enabled, default: defaults.enabled),
+            autoExitAfterIdle: container.value(.autoExitAfterIdle, default: defaults.autoExitAfterIdle),
+            absoluteTimeout: container.value(.absoluteTimeout, default: defaults.absoluteTimeout),
+            heartbeatInterval: container.value(.heartbeatInterval, default: defaults.heartbeatInterval),
+            leaseDuration: container.value(.leaseDuration, default: defaults.leaseDuration)
+        )
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: Keys.self)
+        try container.encode(enabled, forKey: .enabled)
+        try container.encode(autoExitAfterIdle, forKey: .autoExitAfterIdle)
+        try container.encode(absoluteTimeout, forKey: .absoluteTimeout)
+        try container.encode(heartbeatInterval, forKey: .heartbeatInterval)
+        try container.encode(leaseDuration, forKey: .leaseDuration)
     }
 }
 
@@ -248,29 +263,5 @@ extension DeviceMatcher {
         try container.encode(modelContains, forKey: .modelContains)
         try container.encodeIfPresent(deviceTag, forKey: .deviceTag)
         try container.encode(requiresUniqueMatch, forKey: .requiresUniqueMatch)
-    }
-}
-
-extension HueLightAssignment {
-    private enum Keys: String, CodingKey { case resourceIdentifier, cluster, label, weight }
-
-    public init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: Keys.self)
-        let identifier = try container.decode(String.self, forKey: .resourceIdentifier)
-        let cluster = try container.decode(HueCluster.self, forKey: .cluster)
-        self.init(
-            resourceIdentifier: identifier,
-            cluster: cluster,
-            label: container.value(.label, default: cluster.displayName),
-            weight: container.value(.weight, default: 1.0)
-        )
-    }
-
-    public func encode(to encoder: Encoder) throws {
-        var container = encoder.container(keyedBy: Keys.self)
-        try container.encode(resourceIdentifier, forKey: .resourceIdentifier)
-        try container.encode(cluster, forKey: .cluster)
-        try container.encode(label, forKey: .label)
-        try container.encode(weight, forKey: .weight)
     }
 }

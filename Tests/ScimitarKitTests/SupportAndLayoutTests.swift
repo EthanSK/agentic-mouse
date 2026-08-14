@@ -1,3 +1,4 @@
+import CICUEBridge
 import XCTest
 @testable import ScimitarKit
 
@@ -88,9 +89,18 @@ final class KeymapGeometryTests: XCTestCase {
 
 final class HUDLayoutTests: XCTestCase {
 
-    private func snapshot(state: MultiTapState = MultiTapState(), now: TimeInterval = 0) -> HUDSnapshot {
+    func testEveryHUDCardReservesHorizontalSpaceInsideItsBorder() {
+        XCTAssertEqual(ModeHUDLayoutMetrics.cardHorizontalContentInset, 12)
+    }
+
+    private func snapshot(
+        state: MultiTapState = MultiTapState(),
+        now: TimeInterval = 0,
+        source: MouseSource = .corsair
+    ) -> HUDSnapshot {
         HUDSnapshot(
             isActive: true,
+            source: source,
             keymap: .classic,
             state: state,
             multiTapTimeout: 0.9,
@@ -101,9 +111,16 @@ final class HUDLayoutTests: XCTestCase {
     func testGridMatchesThePhysicalMouseLayout() {
         let grid = HUDLayout.grid(for: snapshot())
         XCTAssertEqual(grid.count, 3)
-        XCTAssertEqual(grid[0].map(\.key.rawValue), [1, 4, 7, 10])
+        XCTAssertEqual(grid[0].map(\.key.rawValue), [3, 6, 9, 12])
         XCTAssertEqual(grid[1].map(\.key.rawValue), [2, 5, 8, 11])
-        XCTAssertEqual(grid[2].map(\.key.rawValue), [3, 6, 9, 12])
+        XCTAssertEqual(grid[2].map(\.key.rawValue), [1, 4, 7, 10])
+    }
+
+    func testRazerGridMirrorsColumnsWithoutChangingCanonicalKeys() {
+        let grid = HUDLayout.grid(for: snapshot(source: .razer))
+        XCTAssertEqual(grid[0].map(\.key.rawValue), [12, 9, 6, 3])
+        XCTAssertEqual(grid[1].map(\.key.rawValue), [11, 8, 5, 2])
+        XCTAssertEqual(grid[2].map(\.key.rawValue), [10, 7, 4, 1])
     }
 
     func testCellsCarryThePhoneLegendAndTheLetters() {
@@ -137,6 +154,26 @@ final class HUDLayoutTests: XCTestCase {
     func testTheToggleCellIsMarked() {
         XCTAssertTrue(HUDLayout.cell(for: .k12, snapshot: snapshot()).isModeToggle)
         XCTAssertFalse(HUDLayout.cell(for: .k1, snapshot: snapshot()).isModeToggle)
+    }
+
+    func testRuntimeKeypadMarksUniversalCellTenAndRestoresCellThreeDEF() {
+        var runtime = snapshot()
+        runtime.keymap = .modesKeypad
+        runtime.toggleKey = .k10
+
+        XCTAssertTrue(HUDLayout.cell(for: .k10, snapshot: runtime, toggleKey: runtime.toggleKey).isModeToggle)
+        XCTAssertFalse(HUDLayout.cell(for: .k12, snapshot: runtime, toggleKey: runtime.toggleKey).isModeToggle)
+        XCTAssertEqual(runtime.keymap[.k3]?.caption, "DEF")
+        XCTAssertEqual(runtime.keymap[.k3]?.cycle, ["d", "e", "f"])
+        XCTAssertEqual(runtime.keymap[.k11]?.caption, "SHIFT")
+        XCTAssertEqual(runtime.keymap[.k11]?.tapAction, .shiftCycle)
+    }
+
+    func testPunctuationPreviewPreservesEveryClassicPhoneSymbol() {
+        let cell = HUDLayout.cell(for: .k1, snapshot: snapshot())
+
+        XCTAssertEqual(cell.cycle, [".", ",", "?", "!", "'", "\"", "-", ":", ";", "/", "(", ")", "@"])
+        XCTAssertEqual(cell.cycle.count, 13)
     }
 
     func testCancellationIsExplained() {
@@ -240,21 +277,33 @@ final class ConfigurationTests: XCTestCase {
         XCTAssertEqual(configuration.multiTap.echoPolicy, .commitOnly)
         XCTAssertEqual(configuration.multiTap.focusChangePolicy, .cancelPending)
         XCTAssertEqual(configuration.input.transport, .icueMacroKey)
-        XCTAssertEqual(configuration.input.toggleKey, 12)
+        XCTAssertEqual(configuration.input.toggleKey, 10)
         XCTAssertEqual(configuration.input.gridMacroKeys, Array(1...12))
+        XCTAssertTrue(configuration.defaultMapHint.enabled)
+        XCTAssertEqual(configuration.defaultMapHint.doubleClickInterval, 0.34)
+        XCTAssertEqual(configuration.defaultMapHint.displayDuration, 0)
     }
 
-    func testDefaultBridgeHostIsAPlaceholderNotARealAddress() {
-        XCTAssertTrue(AppConfiguration.default.hue.bridgeHost.hasPrefix("REPLACE_ME"))
-        XCTAssertFalse(AppConfiguration.default.hue.isConfigured)
+    func testEverySourceOwnedHUDUsesTheMouseHandedCorner() {
+        XCTAssertEqual(
+            AppConfiguration.HUDConfiguration.sourceCorner(for: .corsair),
+            .bottomRight
+        )
+        XCTAssertEqual(
+            AppConfiguration.HUDConfiguration.sourceCorner(for: .razer),
+            .bottomLeft
+        )
+        XCTAssertEqual(MouseSource.allCases.count, 2)
+    }
+
+    func testOlderConfigWithoutDefaultMapHintUsesTheCurrentEnabledDefault() throws {
+        let decoded = try JSONDecoder().decode(AppConfiguration.self, from: Data("{}".utf8))
+        XCTAssertTrue(decoded.defaultMapHint.enabled)
+        XCTAssertEqual(decoded.defaultMapHint, AppConfiguration.default.defaultMapHint)
     }
 
     func testConfigurationRoundTripsThroughJSON() throws {
         var configuration = AppConfiguration.default
-        configuration.hue.lights = [
-            HueLightAssignment(resourceIdentifier: "abc", cluster: .candleAndSofa, label: "Candle"),
-            HueLightAssignment(resourceIdentifier: "def", cluster: .deskLusters, label: "Luster")
-        ]
         configuration.input.fallbackBindings = ["k1": .mouseButton(3)]
 
         let data = try JSONEncoder().encode(configuration)
@@ -331,14 +380,6 @@ final class ConfigurationTests: XCTestCase {
 
     func testSanitizationRestoresSafeTimingColourAndHUDRanges() {
         var configuration = AppConfiguration.default
-        configuration.hue.brightnessFloor = -1
-        configuration.hue.brightnessCeiling = 4
-        configuration.hue.brightnessGamma = 0
-        configuration.hue.saturationBoost = 2
-        configuration.hue.coalescingInterval = -0.5
-        configuration.hue.lights = [
-            HueLightAssignment(resourceIdentifier: "lamp", cluster: .candleAndSofa, label: "Lamp", weight: -3)
-        ]
         configuration.lighting.modeIndicatorPulsePeriod = -1
         configuration.lighting.modeIndicatorPulseDepth = 9
         configuration.lighting.maximumWritesPerSecond = 0
@@ -346,17 +387,34 @@ final class ConfigurationTests: XCTestCase {
         configuration.multiTap.holdThreshold = 0
         configuration.multiTap.autoExitAfterIdle = -1
         configuration.multiTap.toggleDebounce = -1
+        configuration.colorProof.autoExitAfterIdle = -1
+        configuration.colorProof.absoluteTimeout = -1
+        configuration.defaultMapHint.doubleClickInterval = 10
+        configuration.defaultMapHint.displayDuration = -1
         configuration.hud.margin = -20
         configuration.hud.opacity = 4
 
         let result = ConfigurationLoader.sanitize(configuration)
-        XCTAssertEqual(result.configuration.hue.brightnessFloor, AppConfiguration.default.hue.brightnessFloor)
-        XCTAssertEqual(result.configuration.hue.brightnessCeiling, AppConfiguration.default.hue.brightnessCeiling)
-        XCTAssertEqual(result.configuration.hue.lights[0].weight, 1)
         XCTAssertEqual(result.configuration.lighting.maximumWritesPerSecond, 30)
         XCTAssertEqual(result.configuration.multiTap.multiTapTimeout, 0.9)
+        XCTAssertEqual(result.configuration.colorProof.autoExitAfterIdle, 0)
+        XCTAssertEqual(result.configuration.colorProof.absoluteTimeout, 0)
+        XCTAssertEqual(result.configuration.defaultMapHint.doubleClickInterval, 0.34)
+        XCTAssertEqual(result.configuration.defaultMapHint.displayDuration, 0)
         XCTAssertEqual(result.configuration.hud.opacity, 0.96)
-        XCTAssertGreaterThan(result.warnings.count, 10)
+        XCTAssertGreaterThanOrEqual(result.warnings.count, 11)
+    }
+
+    func testColorProofZeroTimeoutsAreValidAndMeanExplicitExitOnly() {
+        var configuration = AppConfiguration.default
+        configuration.colorProof.autoExitAfterIdle = 0
+        configuration.colorProof.absoluteTimeout = 0
+
+        let result = ConfigurationLoader.sanitize(configuration)
+
+        XCTAssertEqual(result.configuration.colorProof.autoExitAfterIdle, 0)
+        XCTAssertEqual(result.configuration.colorProof.absoluteTimeout, 0)
+        XCTAssertFalse(result.warnings.contains { $0.contains("colorProof") })
     }
 
     func testSanitizationRequiresTheAuditedGridAndARealSideButtonToggle() {
@@ -366,39 +424,21 @@ final class ConfigurationTests: XCTestCase {
 
         let result = ConfigurationLoader.sanitize(configuration)
         XCTAssertEqual(result.configuration.input.gridMacroKeys, Array(1...12))
-        XCTAssertEqual(result.configuration.input.toggleKey, 12)
+        XCTAssertEqual(result.configuration.input.toggleKey, 10)
         XCTAssertTrue(result.warnings.contains { $0.contains("gridMacroKeys") })
         XCTAssertTrue(result.warnings.contains { $0.contains("toggleKey") })
     }
 
-    func testClassicKeymapForcesToggleToItsExitKey() {
+    func testRuntimeConfigurationForcesTheUniversalExitCell() {
         var configuration = AppConfiguration.default
-        configuration.input.toggleKey = 10
+        configuration.input.toggleKey = 12
 
         let result = ConfigurationLoader.sanitize(configuration)
 
-        XCTAssertEqual(result.configuration.input.toggleKey, 12)
-        XCTAssertEqual(MultiTapKeymap.classic[.k12]?.tapAction, .exitMode)
-        XCTAssertNotEqual(MultiTapKeymap.classic[.k10]?.tapAction, .exitMode)
-        XCTAssertTrue(result.warnings.contains { $0.contains("classic phone keymap") })
-    }
-
-    func testDescriptionNeverContainsTheSecret() {
-        var configuration = AppConfiguration.default
-        configuration.hue.bridgeHost = "192.168.1.99"
-        configuration.hue.applicationKeySource = .inlineValue("SUPER-SECRET-APPLICATION-KEY")
-        configuration.hue.lights = [
-            HueLightAssignment(resourceIdentifier: "real-light-uuid", cluster: .candleAndSofa, label: "Candle")
-        ]
-
-        let described = ConfigurationLoader.describe(
-            configuration,
-            resolver: StaticSecretResolver(values: [:])
-        )
-
-        XCTAssertFalse(described.contains("SUPER-SECRET-APPLICATION-KEY"))
-        XCTAssertFalse(described.contains("192.168.1.99"))
-        XCTAssertFalse(described.contains("real-light-uuid"))
+        XCTAssertEqual(result.configuration.input.toggleKey, 10)
+        XCTAssertEqual(MultiTapKeymap.modesKeypad[.k10]?.tapAction, .exitMode)
+        XCTAssertNotEqual(MultiTapKeymap.modesKeypad[.k12]?.tapAction, .exitMode)
+        XCTAssertTrue(result.warnings.contains { $0.contains("universal runtime-mode exit") })
     }
 
     func testInputBindingCodableRoundTrip() throws {
@@ -420,6 +460,24 @@ final class ConfigurationTests: XCTestCase {
 }
 
 final class ICUECStringTests: XCTestCase {
+    func testConnectRecoveryOnlyResetsInvalidOperation() {
+        XCTAssertTrue(
+            ICUEConnectRecoveryPolicy.shouldResetAndRetry(
+                error: Int32(SC_ICUE_INVALID_OPERATION.rawValue)
+            )
+        )
+        XCTAssertFalse(
+            ICUEConnectRecoveryPolicy.shouldResetAndRetry(
+                error: Int32(SC_ICUE_NOT_CONNECTED.rawValue)
+            )
+        )
+        XCTAssertFalse(
+            ICUEConnectRecoveryPolicy.shouldResetAndRetry(
+                error: Int32(SC_ICUE_NOT_ALLOWED.rawValue)
+            )
+        )
+    }
+
     func testFixedCStringStopsAtTheFirstNul() {
         var bytes: (CChar, CChar, CChar, CChar, CChar) = (65, 66, 0, 88, 89)
         XCTAssertEqual(ICUESession.string(from: &bytes), "AB")

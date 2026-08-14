@@ -1,9 +1,712 @@
 {
   "schemaVersion": 1,
   "_comment": [
-    "Physical bindings are deliberately empty until Ethan chooses the final positions.",
-    "A later binding names one action, supplies a Karabiner from event, and adds",
-    "an exact device_if condition for either the Corsair or Razer adapter."
+    "The Corsair adapter uses iCUE's neutral keypad transports and exact VirtualHIDKeyboard identity.",
+    "The Razer adapter uses its onboard main-row transports and exact RZ01-03410 identity.",
+    "Shared meanings follow physical cells, not the two mice's opposing printed-number order.",
+    "Base rules stay app-agnostic except where an approved VS Code override excludes the same physical transport.",
+    "Each physical wheel click is captured from that mouse's exact pointing interface and emits the shared Play/Pause action.",
+    "Spare and runtime-owned transports are consumed so source keys never leak into applications."
   ],
-  "bindings": []
+  "security": {
+    "unlockedLeaseVariable": "agentic_mouse_session_unlocked_expires_at",
+    "additionalLockedSources": [
+      {
+        "from": {
+          "key_code": "f21",
+          "modifiers": { "optional": ["any"] }
+        },
+        "conditions": [
+          {
+            "type": "device_if",
+            "identifiers": [
+              { "vendor_id": 5426, "product_id": 141, "is_keyboard": true }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "modePicker": {
+    "leaseVariablesBySource": {
+      "corsair": "agentic_mouse_mode_picker_corsair_expires_at",
+      "razer": "agentic_mouse_mode_picker_razer_expires_at"
+    },
+    "pageVariablesBySource": {
+      "corsair": "agentic_mouse_mode_picker_corsair_page",
+      "razer": "agentic_mouse_mode_picker_razer_page"
+    },
+    "bootstrapMilliseconds": 1200,
+    "entryPhysicalCell": 12,
+    "exitPhysicalCell": 10,
+    "interceptPhysicalCells": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+    "bindingsBySource": {
+      "corsair": [
+        "corsair-side-01-horizontal-left",
+        "corsair-side-02-switch-app",
+        "corsair-side-03-screenshot",
+        "corsair-side-04-horizontal-right",
+        "corsair-side-05-forward",
+        "corsair-side-06-app-shortcut",
+        "corsair-side-07-enter",
+        "corsair-side-08-back",
+        "corsair-side-09-keys-mode",
+        "corsair-side-10-show-legend",
+        "corsair-side-11-app-specific-mode",
+        "corsair-side-12-agentic-runtime"
+      ],
+      "razer": [
+        "razer-side-03-horizontal-left",
+        "razer-side-02-switch-app",
+        "razer-side-01-screenshot",
+        "razer-side-06-horizontal-right",
+        "razer-side-05-forward",
+        "razer-side-04-app-shortcut",
+        "razer-side-09-enter",
+        "razer-side-08-back",
+        "razer-side-07-keys-mode",
+        "razer-side-12-show-legend",
+        "razer-side-11-app-specific-mode",
+        "razer-side-10-agentic-runtime"
+      ]
+    }
+  },
+  "bindings": [
+    {
+      "id": "corsair-side-01-horizontal-left",
+      "description": "Corsair side 1 scrolls horizontally left, matching the last complete pre-removal Default Profile",
+      "action": "scroll-horizontally-left",
+      "rule": "Corsair base layer",
+      "from": {
+        "key_code": "keypad_1",
+        "modifiers": { "optional": ["any"] }
+      },
+      "conditions": [
+        {
+          "type": "device_if",
+          "identifiers": [
+            { "vendor_id": 6940, "product_id": 65535, "is_keyboard": true }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "corsair-vscode-side-05-previous-change",
+      "description": "Corsair side 5 emits the Better Git Previous Change transport only in VS Code",
+      "action": "vscode-go-to-previous-change",
+      "rule": "Corsair VS Code layer",
+      "from": {
+        "key_code": "keypad_5",
+        "modifiers": { "optional": ["any"] }
+      },
+      "conditions": [
+        {
+          "type": "device_if",
+          "identifiers": [
+            { "vendor_id": 6940, "product_id": 65535, "is_keyboard": true }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "corsair-side-02-switch-app",
+      "description": "Corsair side 2 holds open the macOS App Switcher",
+      "action": "hold-open-app-switcher",
+      "rule": "Corsair base layer",
+      "from": {
+        "key_code": "keypad_2",
+        "modifiers": { "optional": ["any"] }
+      },
+      "conditions": [
+        {
+          "type": "device_if",
+          "identifiers": [
+            { "vendor_id": 6940, "product_id": 65535, "is_keyboard": true }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "corsair-vscode-side-08-next-change",
+      "description": "Corsair side 8 emits the Better Git Next Change transport only in VS Code",
+      "action": "vscode-go-to-next-change",
+      "rule": "Corsair VS Code layer",
+      "from": {
+        "key_code": "keypad_8",
+        "modifiers": { "optional": ["any"] }
+      },
+      "conditions": [
+        {
+          "type": "device_if",
+          "identifiers": [
+            { "vendor_id": 6940, "product_id": 65535, "is_keyboard": true }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "corsair-side-03-screenshot",
+      "description": "Corsair side 3 starts or cancels the native selected-area screenshot interaction",
+      "action": "toggle-selected-screen-area-corsair",
+      "rule": "Corsair base layer",
+      "from": {
+        "key_code": "keypad_3",
+        "modifiers": { "optional": ["any"] }
+      },
+      "conditions": [
+        {
+          "type": "device_if",
+          "identifiers": [
+            { "vendor_id": 6940, "product_id": 65535, "is_keyboard": true }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "corsair-side-04-horizontal-right",
+      "description": "Corsair side 4 scrolls horizontally right, matching the last complete pre-removal Default Profile",
+      "action": "scroll-horizontally-right",
+      "rule": "Corsair base layer",
+      "from": {
+        "key_code": "keypad_4",
+        "modifiers": { "optional": ["any"] }
+      },
+      "conditions": [
+        {
+          "type": "device_if",
+          "identifiers": [
+            { "vendor_id": 6940, "product_id": 65535, "is_keyboard": true }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "corsair-side-05-forward",
+      "description": "Corsair side 5 performs ordinary Forward navigation",
+      "action": "go-forward",
+      "rule": "Corsair base layer",
+      "from": {
+        "key_code": "keypad_5",
+        "modifiers": { "optional": ["any"] }
+      },
+      "conditions": [
+        {
+          "type": "device_if",
+          "identifiers": [
+            { "vendor_id": 6940, "product_id": 65535, "is_keyboard": true }
+          ]
+        },
+        {
+          "type": "frontmost_application_unless",
+          "bundle_identifiers": ["^com\\.microsoft\\.VSCode(?:Insiders)?$"]
+        }
+      ]
+    },
+    {
+      "id": "corsair-side-06-app-shortcut",
+      "description": "Corsair side 6 is an app-specific wildcard and stays silent outside configured application overrides",
+      "action": "suppress-neutral-transport",
+      "rule": "Corsair base layer",
+      "from": {
+        "key_code": "keypad_6",
+        "modifiers": { "optional": ["any"] }
+      },
+      "conditions": [
+        {
+          "type": "device_if",
+          "identifiers": [
+            { "vendor_id": 6940, "product_id": 65535, "is_keyboard": true }
+          ]
+        },
+        {
+          "type": "frontmost_application_unless",
+          "bundle_identifiers": ["^com\\.microsoft\\.VSCode(?:Insiders)?$"]
+        }
+      ]
+    },
+    {
+      "id": "corsair-vscode-side-06-stage-next",
+      "description": "Corsair side 6 performs Better Git Stage + Next with one press in VS Code",
+      "action": "vscode-stage-and-go-to-next-change",
+      "rule": "Corsair VS Code layer",
+      "from": {
+        "key_code": "keypad_6",
+        "modifiers": { "optional": ["any"] }
+      },
+      "conditions": [
+        {
+          "type": "device_if",
+          "identifiers": [
+            { "vendor_id": 6940, "product_id": 65535, "is_keyboard": true }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "corsair-side-07-enter",
+      "description": "Corsair side 7 presses Enter outside runtime modes",
+      "action": "press-enter",
+      "rule": "Corsair base layer",
+      "from": {
+        "key_code": "keypad_7",
+        "modifiers": { "optional": ["any"] }
+      },
+      "conditions": [
+        {
+          "type": "device_if",
+          "identifiers": [
+            { "vendor_id": 6940, "product_id": 65535, "is_keyboard": true }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "corsair-side-08-back",
+      "description": "Corsair side 8 performs ordinary Back navigation in every application",
+      "action": "go-back",
+      "rule": "Corsair base layer",
+      "from": {
+        "key_code": "keypad_8",
+        "modifiers": { "optional": ["any"] }
+      },
+      "conditions": [
+        {
+          "type": "device_if",
+          "identifiers": [
+            { "vendor_id": 6940, "product_id": 65535, "is_keyboard": true }
+          ]
+        },
+        {
+          "type": "frontmost_application_unless",
+          "bundle_identifiers": ["^com\\.microsoft\\.VSCode(?:Insiders)?$"]
+        }
+      ]
+    },
+    {
+      "id": "corsair-side-09-keys-mode",
+      "description": "Corsair side 9 opens the shared Agentic Mouse Keys mode",
+      "action": "open-keys-mode-corsair",
+      "rule": "Corsair base layer",
+      "from": {
+        "key_code": "keypad_9",
+        "modifiers": { "optional": ["any"] }
+      },
+      "conditions": [
+        {
+          "type": "device_if",
+          "identifiers": [
+            { "vendor_id": 6940, "product_id": 65535, "is_keyboard": true }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "corsair-side-10-show-legend",
+      "description": "Corsair side 10 toggles the persistent Default mode legend outside modes and remains universal Exit while a mode is active",
+      "action": "toggle-default-map-hint-corsair",
+      "rule": "Corsair base layer",
+      "from": {
+        "key_code": "keypad_0",
+        "modifiers": { "optional": ["any"] }
+      },
+      "conditions": [
+        {
+          "type": "device_if",
+          "identifiers": [
+            { "vendor_id": 6940, "product_id": 65535, "is_keyboard": true }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "corsair-side-11-app-specific-mode",
+      "description": "Corsair side 11 opens the current frontmost app mode",
+      "action": "open-app-specific-mode-corsair",
+      "rule": "Corsair base layer",
+      "from": {
+        "key_code": "keypad_hyphen",
+        "modifiers": { "optional": ["any"] }
+      },
+      "conditions": [
+        {
+          "type": "device_if",
+          "identifiers": [
+            { "vendor_id": 6940, "product_id": 65535, "is_keyboard": true }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "corsair-side-12-agentic-runtime",
+      "description": "Corsair side 12 opens Utility modes and must not leak keypad plus",
+      "action": "suppress-neutral-transport",
+      "rule": "Corsair base layer",
+      "from": {
+        "key_code": "keypad_plus",
+        "modifiers": { "optional": ["any"] }
+      },
+      "conditions": [
+        {
+          "type": "device_if",
+          "identifiers": [
+            { "vendor_id": 6940, "product_id": 65535, "is_keyboard": true }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "corsair-wheel-play-pause",
+      "description": "Corsair wheel click controls the current macOS media session through Karabiner",
+      "action": "play-pause-current-media",
+      "rule": "Corsair base layer",
+      "from": {
+        "pointing_button": "button3",
+        "modifiers": { "optional": ["any"] }
+      },
+      "conditions": [
+        {
+          "type": "device_if",
+          "identifiers": [
+            { "vendor_id": 6940, "product_id": 11008, "is_pointing_device": true }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "corsair-dpi-toggle-voiceink",
+      "description": "Corsair top DPI button uses its iCUE F19 transport to toggle VoiceInk++ only on physical release",
+      "action": "toggle-voiceink-speech-to-text",
+      "rule": "Corsair base layer",
+      "from": {
+        "key_code": "f19",
+        "modifiers": { "optional": ["any"] }
+      },
+      "conditions": [
+        {
+          "type": "device_if",
+          "identifiers": [
+            { "vendor_id": 6940, "product_id": 65535, "is_keyboard": true }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "razer-dpi-down-voiceink",
+      "description": "Razer lower DPI button uses its proven F22 transport to toggle VoiceInk++ only on physical release",
+      "action": "toggle-voiceink-speech-to-text",
+      "rule": "Razer base layer",
+      "from": {
+        "key_code": "f22",
+        "modifiers": { "optional": ["any"] }
+      },
+      "conditions": [
+        {
+          "type": "device_if",
+          "identifiers": [
+            { "vendor_id": 5426, "product_id": 141, "is_keyboard": true }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "razer-vscode-side-05-previous-change",
+      "description": "Razer side 5 emits the Better Git Previous Change transport only in VS Code",
+      "action": "vscode-go-to-previous-change",
+      "rule": "Razer VS Code layer",
+      "from": {
+        "key_code": "5",
+        "modifiers": { "optional": ["any"] }
+      },
+      "conditions": [
+        {
+          "type": "device_if",
+          "identifiers": [
+            { "vendor_id": 5426, "product_id": 141, "is_keyboard": true }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "razer-wheel-play-pause",
+      "description": "Razer wheel click controls the current macOS media session through Karabiner",
+      "action": "play-pause-current-media",
+      "rule": "Razer base layer",
+      "from": {
+        "pointing_button": "button3",
+        "modifiers": { "optional": ["any"] }
+      },
+      "conditions": [
+        {
+          "type": "device_if",
+          "identifiers": [
+            { "vendor_id": 5426, "product_id": 141, "is_pointing_device": true }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "razer-side-01-screenshot",
+      "description": "Razer side 1 mirrors physical cell 3 and starts or cancels the native selected-area screenshot interaction",
+      "action": "toggle-selected-screen-area-razer",
+      "rule": "Razer base layer",
+      "from": {
+        "key_code": "1",
+        "modifiers": { "optional": ["any"] }
+      },
+      "conditions": [
+        {
+          "type": "device_if",
+          "identifiers": [
+            { "vendor_id": 5426, "product_id": 141, "is_keyboard": true }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "razer-side-02-switch-app",
+      "description": "Razer side 2 shares Corsair side 2's physical cell and holds open the macOS App Switcher",
+      "action": "hold-open-app-switcher",
+      "rule": "Razer base layer",
+      "from": {
+        "key_code": "2",
+        "modifiers": { "optional": ["any"] }
+      },
+      "conditions": [
+        {
+          "type": "device_if",
+          "identifiers": [
+            { "vendor_id": 5426, "product_id": 141, "is_keyboard": true }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "razer-side-03-horizontal-left",
+      "description": "Razer side 3 shares Corsair side 1's physical cell and scrolls horizontally left",
+      "action": "scroll-horizontally-left",
+      "rule": "Razer base layer",
+      "from": {
+        "key_code": "3",
+        "modifiers": { "optional": ["any"] }
+      },
+      "conditions": [
+        {
+          "type": "device_if",
+          "identifiers": [
+            { "vendor_id": 5426, "product_id": 141, "is_keyboard": true }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "razer-side-04-app-shortcut",
+      "description": "Razer side 4 shares physical cell 6 as an app-specific wildcard and stays silent outside configured application overrides",
+      "action": "suppress-neutral-transport",
+      "rule": "Razer base layer",
+      "from": {
+        "key_code": "4",
+        "modifiers": { "optional": ["any"] }
+      },
+      "conditions": [
+        {
+          "type": "device_if",
+          "identifiers": [
+            { "vendor_id": 5426, "product_id": 141, "is_keyboard": true }
+          ]
+        },
+        {
+          "type": "frontmost_application_unless",
+          "bundle_identifiers": ["^com\\.microsoft\\.VSCode(?:Insiders)?$"]
+        }
+      ]
+    },
+    {
+      "id": "razer-vscode-side-04-stage-next",
+      "description": "Razer side 4 shares physical cell 6 and performs Better Git Stage + Next with one press in VS Code",
+      "action": "vscode-stage-and-go-to-next-change",
+      "rule": "Razer VS Code layer",
+      "from": {
+        "key_code": "4",
+        "modifiers": { "optional": ["any"] }
+      },
+      "conditions": [
+        {
+          "type": "device_if",
+          "identifiers": [
+            { "vendor_id": 5426, "product_id": 141, "is_keyboard": true }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "razer-side-05-forward",
+      "description": "Razer side 5 shares Corsair side 5's physical cell and performs ordinary Forward navigation",
+      "action": "go-forward",
+      "rule": "Razer base layer",
+      "from": {
+        "key_code": "5",
+        "modifiers": { "optional": ["any"] }
+      },
+      "conditions": [
+        {
+          "type": "device_if",
+          "identifiers": [
+            { "vendor_id": 5426, "product_id": 141, "is_keyboard": true }
+          ]
+        },
+        {
+          "type": "frontmost_application_unless",
+          "bundle_identifiers": ["^com\\.microsoft\\.VSCode(?:Insiders)?$"]
+        }
+      ]
+    },
+    {
+      "id": "razer-side-06-horizontal-right",
+      "description": "Razer side 6 shares Corsair side 4's physical cell and scrolls horizontally right",
+      "action": "scroll-horizontally-right",
+      "rule": "Razer base layer",
+      "from": {
+        "key_code": "6",
+        "modifiers": { "optional": ["any"] }
+      },
+      "conditions": [
+        {
+          "type": "device_if",
+          "identifiers": [
+            { "vendor_id": 5426, "product_id": 141, "is_keyboard": true }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "razer-side-07-keys-mode",
+      "description": "Razer side 7 shares Corsair physical cell 9 and opens the shared Agentic Mouse Keys mode",
+      "action": "open-keys-mode-razer",
+      "rule": "Razer base layer",
+      "from": {
+        "key_code": "7",
+        "modifiers": { "optional": ["any"] }
+      },
+      "conditions": [
+        {
+          "type": "device_if",
+          "identifiers": [
+            { "vendor_id": 5426, "product_id": 141, "is_keyboard": true }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "razer-vscode-side-08-next-change",
+      "description": "Razer side 8 emits the Better Git Next Change transport only in VS Code",
+      "action": "vscode-go-to-next-change",
+      "rule": "Razer VS Code layer",
+      "from": {
+        "key_code": "8",
+        "modifiers": { "optional": ["any"] }
+      },
+      "conditions": [
+        {
+          "type": "device_if",
+          "identifiers": [
+            { "vendor_id": 5426, "product_id": 141, "is_keyboard": true }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "razer-side-08-back",
+      "description": "Razer side 8 shares Corsair side 8's physical cell and performs ordinary Back navigation in every application",
+      "action": "go-back",
+      "rule": "Razer base layer",
+      "from": {
+        "key_code": "8",
+        "modifiers": { "optional": ["any"] }
+      },
+      "conditions": [
+        {
+          "type": "device_if",
+          "identifiers": [
+            { "vendor_id": 5426, "product_id": 141, "is_keyboard": true }
+          ]
+        },
+        {
+          "type": "frontmost_application_unless",
+          "bundle_identifiers": ["^com\\.microsoft\\.VSCode(?:Insiders)?$"]
+        }
+      ]
+    },
+    {
+      "id": "razer-side-09-enter",
+      "description": "Razer side 9 shares Corsair side 7's physical cell and presses Enter outside runtime modes",
+      "action": "press-enter",
+      "rule": "Razer base layer",
+      "from": {
+        "key_code": "9",
+        "modifiers": { "optional": ["any"] }
+      },
+      "conditions": [
+        {
+          "type": "device_if",
+          "identifiers": [
+            { "vendor_id": 5426, "product_id": 141, "is_keyboard": true }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "razer-side-10-agentic-runtime",
+      "description": "Razer side 10 shares Corsair physical cell 12, opens Utility modes, and must not leak main-row 0",
+      "action": "suppress-neutral-transport",
+      "rule": "Razer base layer",
+      "from": {
+        "key_code": "0",
+        "modifiers": { "optional": ["any"] }
+      },
+      "conditions": [
+        {
+          "type": "device_if",
+          "identifiers": [
+            { "vendor_id": 5426, "product_id": 141, "is_keyboard": true }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "razer-side-11-app-specific-mode",
+      "description": "Razer side 11 shares Corsair physical cell 11 and opens the current frontmost app mode",
+      "action": "open-app-specific-mode-razer",
+      "rule": "Razer base layer",
+      "from": {
+        "key_code": "hyphen",
+        "modifiers": { "optional": ["any"] }
+      },
+      "conditions": [
+        {
+          "type": "device_if",
+          "identifiers": [
+            { "vendor_id": 5426, "product_id": 141, "is_keyboard": true }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "razer-side-12-show-legend",
+      "description": "Razer side 12 shares physical cell 10, toggles its persistent Default legend outside modes, and remains universal Exit while a mode is active",
+      "action": "toggle-default-map-hint-razer",
+      "rule": "Razer base layer",
+      "from": {
+        "key_code": "equal_sign",
+        "modifiers": { "optional": ["any"] }
+      },
+      "conditions": [
+        {
+          "type": "device_if",
+          "identifiers": [
+            { "vendor_id": 5426, "product_id": 141, "is_keyboard": true }
+          ]
+        }
+      ]
+    }
+  ]
 }

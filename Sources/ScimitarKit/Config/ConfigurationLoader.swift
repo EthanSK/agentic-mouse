@@ -1,71 +1,4 @@
 import Foundation
-import Security
-
-/// Reads a secret from wherever the config says it lives.
-public protocol SecretResolving: AnyObject {
-    func resolve(_ source: SecretSource) -> String?
-}
-
-/// Keychain-backed resolver. Reads only; it never creates or updates items, so
-/// running the companion cannot silently store a credential anywhere.
-public final class KeychainSecretResolver: SecretResolving {
-    private let environment: [String: String]
-    private let log: Log
-
-    public init(environment: [String: String] = ProcessInfo.processInfo.environment, log: Log) {
-        self.environment = environment
-        self.log = log
-    }
-
-    public func resolve(_ source: SecretSource) -> String? {
-        switch source {
-        case .keychain(let service, let account):
-            return readKeychain(service: service, account: account)
-        case .environmentVariable(let name):
-            return environment[name].flatMap { $0.isEmpty ? nil : $0 }
-        case .inlineValue(let value):
-            guard !value.isEmpty, !value.hasPrefix("REPLACE_ME") else { return nil }
-            log.notice("using an inline secret from the config file; the Keychain is safer")
-            return value
-        case .none:
-            return nil
-        }
-    }
-
-    private func readKeychain(service: String, account: String) -> String? {
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: service,
-            kSecAttrAccount as String: account,
-            kSecReturnData as String: true,
-            kSecMatchLimit as String: kSecMatchLimitOne
-        ]
-        var item: CFTypeRef?
-        let status = SecItemCopyMatching(query as CFDictionary, &item)
-        guard status == errSecSuccess, let data = item as? Data, let value = String(data: data, encoding: .utf8) else {
-            if status != errSecItemNotFound {
-                log.notice("Keychain lookup failed with status \(status)")
-            }
-            return nil
-        }
-        return value.isEmpty ? nil : value
-    }
-}
-
-/// Test/simulation resolver.
-public final class StaticSecretResolver: SecretResolving {
-    private let values: [String: String]
-    public init(values: [String: String] = [:]) { self.values = values }
-
-    public func resolve(_ source: SecretSource) -> String? {
-        switch source {
-        case .keychain(let service, let account): return values["\(service)/\(account)"]
-        case .environmentVariable(let name): return values[name]
-        case .inlineValue(let value): return value.hasPrefix("REPLACE_ME") ? nil : value
-        case .none: return nil
-        }
-    }
-}
 
 public enum ConfigurationLoaderError: Error, Equatable {
     case unreadable(String)
@@ -96,7 +29,8 @@ public enum ConfigurationLoader {
             return (.default, warnings)
         }
 
-        // A world-readable file holding a bridge key is worth complaining about.
+        // A world-readable configuration can expose private device or
+        // automation details, so keep this warning.
         if let attributes = try? FileManager.default.attributesOfItem(atPath: target.path),
            let permissions = attributes[.posixPermissions] as? NSNumber,
            permissions.int16Value & 0o077 != 0 {
@@ -142,39 +76,6 @@ public enum ConfigurationLoader {
             warnings.append("\(path) \(description); using the documented default.")
         }
 
-        if !validUnit(result.hue.brightnessFloor) {
-            replace("hue.brightnessFloor", "must be finite and between 0 and 1")
-            result.hue.brightnessFloor = defaults.hue.brightnessFloor
-        }
-        if !validUnit(result.hue.brightnessCeiling) {
-            replace("hue.brightnessCeiling", "must be finite and between 0 and 1")
-            result.hue.brightnessCeiling = defaults.hue.brightnessCeiling
-        }
-        if result.hue.brightnessFloor > result.hue.brightnessCeiling {
-            replace("hue brightness range", "must have floor no greater than ceiling")
-            result.hue.brightnessFloor = defaults.hue.brightnessFloor
-            result.hue.brightnessCeiling = defaults.hue.brightnessCeiling
-        }
-        if !result.hue.brightnessGamma.isFinite || result.hue.brightnessGamma <= 0 {
-            replace("hue.brightnessGamma", "must be finite and greater than zero")
-            result.hue.brightnessGamma = defaults.hue.brightnessGamma
-        }
-        if !validUnit(result.hue.saturationBoost) {
-            replace("hue.saturationBoost", "must be finite and between 0 and 1")
-            result.hue.saturationBoost = defaults.hue.saturationBoost
-        }
-        if !result.hue.coalescingInterval.isFinite || result.hue.coalescingInterval < 0 {
-            replace("hue.coalescingInterval", "must be finite and non-negative")
-            result.hue.coalescingInterval = defaults.hue.coalescingInterval
-        }
-        for index in result.hue.lights.indices {
-            let weight = result.hue.lights[index].weight
-            if !weight.isFinite || weight <= 0 {
-                replace("hue.lights[\(index)].weight", "must be finite and greater than zero")
-                result.hue.lights[index].weight = 1
-            }
-        }
-
         if RGBColor(hex: result.lighting.modeIndicatorColor) == nil {
             replace("lighting.modeIndicatorColor", "must be a six-digit hex colour")
             result.lighting.modeIndicatorColor = defaults.lighting.modeIndicatorColor
@@ -215,13 +116,52 @@ public enum ConfigurationLoader {
             result.multiTap.toggleDebounce = defaults.multiTap.toggleDebounce
         }
 
+        if !result.colorProof.autoExitAfterIdle.isFinite || result.colorProof.autoExitAfterIdle < 0 {
+            replace("colorProof.autoExitAfterIdle", "must be finite and non-negative")
+            result.colorProof.autoExitAfterIdle = defaults.colorProof.autoExitAfterIdle
+        }
+        if !result.colorProof.absoluteTimeout.isFinite || result.colorProof.absoluteTimeout < 0 {
+            replace("colorProof.absoluteTimeout", "must be finite and non-negative")
+            result.colorProof.absoluteTimeout = defaults.colorProof.absoluteTimeout
+        }
+        if !result.colorProof.heartbeatInterval.isFinite || result.colorProof.heartbeatInterval <= 0 {
+            replace("colorProof.heartbeatInterval", "must be finite and greater than zero")
+            result.colorProof.heartbeatInterval = defaults.colorProof.heartbeatInterval
+        }
+        if !result.colorProof.leaseDuration.isFinite
+            || result.colorProof.leaseDuration < result.colorProof.heartbeatInterval * 2
+            || result.colorProof.leaseDuration > 10 {
+            replace(
+                "colorProof.leaseDuration",
+                "must be at least twice the heartbeat interval and no more than 10 seconds"
+            )
+            result.colorProof.leaseDuration = defaults.colorProof.leaseDuration
+        }
+
+        if !result.defaultMapHint.doubleClickInterval.isFinite
+            || !(0.15...0.8).contains(result.defaultMapHint.doubleClickInterval) {
+            replace(
+                "defaultMapHint.doubleClickInterval",
+                "must be finite and between 0.15 and 0.8 seconds"
+            )
+            result.defaultMapHint.doubleClickInterval = defaults.defaultMapHint.doubleClickInterval
+        }
+        if !result.defaultMapHint.displayDuration.isFinite
+            || !(0...30).contains(result.defaultMapHint.displayDuration) {
+            replace(
+                "defaultMapHint.displayDuration",
+                "must be finite and between 0 and 30 seconds; 0 keeps it visible until toggled"
+            )
+            result.defaultMapHint.displayDuration = defaults.defaultMapHint.displayDuration
+        }
+
         if result.input.gridMacroKeys != Array(1...12) {
             warnings.append("input.gridMacroKeys must be exactly [1...12]; using that audited grid.")
             result.input.gridMacroKeys = Array(1...12)
         }
-        if result.input.toggleKey != 12 {
+        if result.input.toggleKey != 10 {
             warnings.append(
-                "input.toggleKey must be 12 with the classic phone keymap (where k12 is Exit); using 12."
+                "input.toggleKey must be 10, the universal runtime-mode exit; using 10."
             )
             result.input.toggleKey = defaults.input.toggleKey
         }
@@ -246,22 +186,6 @@ public enum ConfigurationLoader {
 
     private static func semanticWarnings(_ configuration: AppConfiguration) -> [String] {
         var warnings: [String] = []
-
-        if configuration.hue.enabled && !configuration.hue.isConfigured {
-            warnings.append("Hue mirroring is enabled but the bridge host or the light list is still a placeholder.")
-        }
-
-        let configuredLights = configuration.hue.lights.filter { !$0.isPlaceholder }
-        for cluster in HueCluster.allCases where configuration.hue.enabled {
-            let members = configuredLights.filter { $0.cluster == cluster }
-            if members.isEmpty && !configuredLights.isEmpty {
-                warnings.append("No lights assigned to the \(cluster.displayName) cluster; \(cluster.zone.displayName) will stay dark.")
-            }
-        }
-
-        if case .inlineValue = configuration.hue.applicationKeySource {
-            warnings.append("The Hue application key is stored inline in the config file. Move it to the Keychain.")
-        }
 
         if configuration.input.transport == .cgEventTap {
             warnings.append(
@@ -300,24 +224,9 @@ public enum ConfigurationLoader {
         }
     }
 
-    /// A redacted, human-readable dump. Safe to paste into a bug report.
-    public static func describe(_ configuration: AppConfiguration, resolver: SecretResolving) -> String {
+    /// A human-readable dump. Safe to paste into a bug report.
+    public static func describe(_ configuration: AppConfiguration) -> String {
         var lines: [String] = []
-        lines.append("Hue")
-        lines.append("  enabled:            \(configuration.hue.enabled)")
-        lines.append("  bridge:             \(Redaction.host(configuration.hue.bridgeHost))")
-        lines.append("  application key:    \(configuration.hue.applicationKeySource.redactedDescription) "
-                     + "-> \(Redaction.secret(resolver.resolve(configuration.hue.applicationKeySource)))")
-        lines.append("  off policy:         \(configuration.hue.offPolicy.rawValue)")
-        for cluster in HueCluster.allCases {
-            let members = configuration.hue.lights.filter { $0.cluster == cluster }
-            let described = members.map { member in
-                "\(member.label)[\(member.isPlaceholder ? "placeholder" : Redaction.tag(member.resourceIdentifier))]"
-            }
-            lines.append("  \(cluster.displayName) -> \(cluster.zone.displayName) (0x\(String(cluster.zone.luid, radix: 16))): "
-                         + (described.isEmpty ? "none" : described.joined(separator: ", ")))
-        }
-
         lines.append("Lighting")
         lines.append("  enabled:            \(configuration.lighting.enabled)")
         lines.append("  device filter:      model contains \(configuration.lighting.device.modelContains)")
@@ -331,6 +240,21 @@ public enum ConfigurationLoader {
         lines.append("  tap timeout:        \(configuration.multiTap.multiTapTimeout)s")
         lines.append("  hold threshold:     \(configuration.multiTap.holdThreshold)s")
         lines.append("  idle auto-exit:     \(configuration.multiTap.autoExitAfterIdle)s")
+
+        lines.append("Colour proof")
+        lines.append("  enabled:            \(configuration.colorProof.enabled)")
+        lines.append("  idle auto-exit:     \(configuration.colorProof.autoExitAfterIdle)s")
+        lines.append("  absolute limit:     \(configuration.colorProof.absoluteTimeout)s")
+        lines.append("  routing heartbeat:  \(configuration.colorProof.heartbeatInterval)s")
+        lines.append("  routing lease:      \(configuration.colorProof.leaseDuration)s")
+
+        lines.append("Default button map")
+        lines.append("  enabled:            \(configuration.defaultMapHint.enabled)")
+        lines.append("  toggle:             physical cell \(PhysicalCell.defaultMapToggle.rawValue)")
+        let mapDuration = configuration.defaultMapHint.displayDuration == 0
+            ? "until toggled"
+            : "\(configuration.defaultMapHint.displayDuration)s"
+        lines.append("  display duration:   \(mapDuration)")
 
         lines.append("Input")
         lines.append("  transport:          \(configuration.input.transport.rawValue)")

@@ -3,96 +3,9 @@
     "Copy this file to ~/.config/agentic-mouse/config.json and fill in the",
     "REPLACE_ME values, then `chmod 600` it.",
     "",
-    "Every REPLACE_ME_* value below is a placeholder. The loader recognises them",
-    "and treats the corresponding feature as unconfigured rather than trying to",
-    "use them, so an unedited copy of this file is harmless.",
-    "",
-    "Nothing in this example is a real bridge address, light id, device id or",
-    "application key, and none of those may ever be committed to this repository.",
-    "Run `agentic-mouse-doctor config` to see the resolved configuration, fully",
-    "redacted, along with any warnings."
+    "No real device identifier belongs in this repository.",
+    "Run `agentic-mouse-doctor config` to see the resolved configuration and warnings."
   ],
-
-  "hue": {
-    "enabled": true,
-
-    "_comment_bridgeHost": [
-      "The bridge's IP address or its <bridge-id>.local name, on your LAN.",
-      "Find it in the Hue app under Settings -> My Hue System -> your bridge."
-    ],
-    "bridgeHost": "REPLACE_ME_BRIDGE_HOST",
-
-    "_comment_applicationKeySource": [
-      "Where the hue-application-key comes from. 'keychain' is strongly",
-      "preferred; see docs/SETUP.md for the one-line `security` command that",
-      "stores it. Alternatives:",
-      "  {\"kind\": \"environment\", \"name\": \"SCIMITAR_HUE_APPLICATION_KEY\"}",
-      "  {\"kind\": \"inline\", \"value\": \"...\"}   (discouraged; warned about)"
-    ],
-    "applicationKeySource": {
-      "kind": "keychain",
-      "service": "com.ethan.agentic-mouse",
-      "account": "hue-application-key"
-    },
-
-    "_comment_lights": [
-      "The four chosen Hue lights, split into the two clusters that drive the",
-      "two mouse LEDs:",
-      "  candleAndSofa -> MouseSideLed (0x40002), the thumb pad",
-      "  deskLusters   -> MouseLogoLed (0x40001), the palm logo",
-      "",
-      "`resourceIdentifier` is a Hue v2 light resource UUID. List yours with:",
-      "  curl -sk -H \"hue-application-key: $KEY\" https://$BRIDGE/clip/v2/resource/light",
-      "`label` is free text, only used in the menu and the doctor output.",
-      "`weight` biases a lamp inside its cluster; leave it at 1.0 normally."
-    ],
-    "lights": [
-      {
-        "resourceIdentifier": "REPLACE_ME_CANDLE_LIGHT_ID",
-        "cluster": "candleAndSofa",
-        "label": "Candle",
-        "weight": 1.0
-      },
-      {
-        "resourceIdentifier": "REPLACE_ME_SOFA_LIGHT_ID",
-        "cluster": "candleAndSofa",
-        "label": "Sofa",
-        "weight": 1.0
-      },
-      {
-        "resourceIdentifier": "REPLACE_ME_LUSTER_1_LIGHT_ID",
-        "cluster": "deskLusters",
-        "label": "Desk luster 1",
-        "weight": 1.0
-      },
-      {
-        "resourceIdentifier": "REPLACE_ME_LUSTER_2_LIGHT_ID",
-        "cluster": "deskLusters",
-        "label": "Desk luster 2",
-        "weight": 1.0
-      }
-    ],
-
-    "_comment_brightness": [
-      "brightnessFloor keeps a lamp at 1% from making the mouse look broken.",
-      "brightnessGamma < 1 lifts the low end, because Hue reports brightness",
-      "roughly perceptually while LEDs respond roughly linearly."
-    ],
-    "brightnessFloor": 0.12,
-    "brightnessCeiling": 1.0,
-    "brightnessGamma": 0.7,
-    "saturationBoost": 0.15,
-
-    "_comment_offPolicy": [
-      "What a zone does when every lamp in its cluster is off:",
-      "  blackout     - the zone goes dark, mirroring the room (default)",
-      "  releaseLayer - the zone becomes translucent and iCUE takes it back",
-      "  dimLastColor - a faint hint of the last colour"
-    ],
-    "offPolicy": "blackout",
-
-    "coalescingInterval": 0.08
-  },
 
   "lighting": {
     "enabled": true,
@@ -164,11 +77,32 @@
     "toggleDebounce": 0.25
   },
 
+  "colorProof": {
+    "_comment": [
+      "Retired internal twelve-colour validation source. It has no generated",
+      "mouse rule or selectable Modes slot; leave it disabled."
+    ],
+    "enabled": false,
+    "_comment_autoExitAfterIdle": "Seconds of no input before the proof exits. 0 keeps it open until explicit exit.",
+    "autoExitAfterIdle": 0,
+    "_comment_absoluteTimeout": "Maximum total seconds for the proof. 0 keeps it open until explicit exit.",
+    "absoluteTimeout": 0,
+    "heartbeatInterval": 2,
+    "leaseDuration": 6
+  },
+
+  "defaultMapHint": {
+    "_comment": "Cell 10 toggles the persistent Default mode legend (Corsair 10 / Razer 12); the same cell exits an active mode.",
+    "enabled": true,
+    "doubleClickInterval": 0.34,
+    "_comment_displayDuration": "0 keeps the legend visible until the same mouse's cell-3 toggle hides it.",
+    "displayDuration": 0
+  },
+
   "input": {
     "_comment_transport": [
-      "icueMacroKey - the production route. Raw CorsairKeyEvents from the exact",
-      "               Scimitar, suppressed while the mode is active via",
-      "               CorsairConfigureKeyEvent under CAL_ExclusiveKeyEventsListening.",
+      "Runtime Modes use exact-device Karabiner user-command press/release input.",
+      "icueMacroKey remains a legacy source-only diagnostic transport.",
       "cgEventTap   - documented fallback only. It cannot tell one physical mouse",
       "               from another. See docs/ICUE-FALLBACK.md."
     ],
@@ -177,8 +111,8 @@
     "_comment_gridMacroKeys": "The audited Scimitar reports CMKI_1 ... CMKI_12.",
     "gridMacroKeys": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
 
-    "_comment_toggleKey": "Side button 12 enters and exits the mode. It displaces no applied normal action.",
-    "toggleKey": 12,
+    "_comment_toggleKey": "Universal physical cell 10 exits every runtime mode; entry is owned by each dedicated Karabiner mode trigger.",
+    "toggleKey": 10,
 
     "_comment_fallbackBindings": [
       "Only used when transport is cgEventTap. Maps each grid key name (k1..k12)",
@@ -191,7 +125,7 @@
 
   "hud": {
     "_comment": "corner: topLeft | topRight | bottomLeft | bottomRight | center",
-    "corner": "bottomRight",
+    "corner": "bottomLeft",
     "margin": 28,
     "opacity": 0.96,
     "followsPointerScreen": true,

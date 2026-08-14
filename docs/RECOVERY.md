@@ -14,46 +14,52 @@ killall AgenticMouse
 
 Nothing needs repairing after that.
 
+### Custom buttons do nothing after unlocking
+
+This is the intentional fail-closed session boundary until Agentic Mouse has
+re-established its short unlocked lease. Wait up to three seconds and confirm
+the menu-bar app is running. Do not remove the locked-session sink: without it,
+the mice's neutral keypad/digit/function-key transports could leak into the
+lock screen when ordinary rules are inactive.
+
+Unlock starts a new idle runtime. A mode, legend, pending Keypad character, or
+queued action that existed before lock is deliberately discarded and must be
+opened again.
+
 ---
 
 ## Symptoms
 
 ### The side buttons are doing letters instead of their normal jobs
 
-You are in multi-tap mode. Press side button **12**.
+You are in Keypad mode. Press universal exit physical cell **10** — Corsair
+printed 10 or Razer printed 12 — to leave the mode.
 
 If that does not work, any of these also exit:
 
-- Wait for the idle timeout (default 3 minutes).
 - Menu bar → **Exit multi-tap mode**.
 - Quit the app.
-- Quit iCUE — losing the session forces an exit.
+- Let the short Karabiner mode lease expire after an app failure.
 
 The mode also exits by itself if the mouse disconnects, iCUE drops, or
 Accessibility permission is revoked.
 
-### Button 12 does nothing
+### Physical cell 12 does nothing
 
-Entry is failing a precondition, and the reference card should say which for a
-few seconds. Check:
+Modes is driven by the installed exact-device Karabiner rules and Agentic
+Mouse's user-command socket. It does not depend on iCUE SDK key interception.
 
-```bash
-swift run agentic-mouse-doctor icue
-```
+1. Confirm Agentic Mouse is running and owns Karabiner's documented
+   `user_command_receiver.sock`.
+2. Confirm the selected Karabiner profile still contains both exact-device
+   Agentic Mouse base rules and the Modes rule.
+3. In EventViewer, bypass modifications temporarily and check the source:
+   Corsair printed 12 must emit `keypad_plus` from `6940:65535`; Razer printed
+   10 must emit main-row `0` from `5426:141`.
+4. If every Corsair side transport is absent together, recover iCUE's virtual
+   HID producer or replug the Slipstream receiver before changing rules.
 
-That doctor command checks the read-only prerequisites. Key-control codes `7`
-and `2` appear only after an actual button-12 entry attempt in the helper.
-
-| Reason | Fix |
-|---|---|
-| Accessibility not granted | System Settings → Privacy & Security → Accessibility, then **relaunch** |
-| iCUE not connected | Start iCUE; enable SDK / third-party control |
-| key control refused, code 7 | Key interception is disabled in iCUE settings |
-| key control refused, code 2 | Another SDK client holds exclusive control — close it |
-| fewer than 12 macro keys | The mouse is asleep or on a profile that hides them |
-| no Scimitar selected | Check `lighting.device.modelContains` |
-
-Entry that fails changes nothing at all — no HUD, no colour, no interception.
+Entry that fails changes no lighting, HUD, or ordinary mapping.
 
 ### The mouse is stuck on a strange colour
 
@@ -70,15 +76,34 @@ The helper writes only to a *shared* layer at priority 130 and clears it with
 alpha 0 on exit. It never requests exclusive lighting control, so it cannot
 prevent iCUE from painting the mouse.
 
-### The mouse went dark
+The saved iCUE software fallback is deliberately dim amber. It means iCUE is
+visible because Agentic Mouse's runtime layer is absent or has not recovered;
+it is not a mode colour. The app's two-second exact-device recovery monitor
+normally restores idle white after a Slipstream receiver replug. If it does not,
+quit and relaunch Agentic Mouse, then use the preserved official `.cueprofile`
+export rather than editing iCUE's private files.
 
-Expected if all four Living room lights are off and `hue.offPolicy` is
-`blackout` — the mouse mirrors the room going dark. To have it fall back to
-iCUE's own lighting instead:
+### Corsair buttons work but Agentic Mouse cannot connect to the iCUE SDK
 
-```json
-"hue": { "offPolicy": "releaseLayer" }
-```
+These are separate paths. iCUE's VirtualHIDKeyboard can keep the side-grid and
+DPI transports working while the SDK's local server is unavailable.
+
+Inspect the newest iCUE log for
+`QLocalServer::listen: Address in use` and inspect the exact temporary
+`iCUESDKv4` Unix socket with `lsof`. If an owner exists, do not move or delete
+it. If no process owns the socket, send the native heads-up, cleanly stop iCUE
+and Agentic Mouse, re-check that it remains unowned, and move only that exact
+socket to a timestamped quarantine path. Start iCUE first, then Agentic Mouse.
+
+Recovery requires all of these, in order:
+
+- iCUE logs `Starting listening` without the address-in-use failure;
+- Agentic Mouse completes the SDK handshake and subscription;
+- the SDK enumerates the exact Scimitar before any runtime-lighting claim.
+
+A successful handshake without device enumeration repairs the SDK transport,
+but it does not prove the receiver/mouse is paired or available to runtime
+lighting.
 
 ### Typing produces nothing
 
@@ -101,22 +126,6 @@ cancelled rather than risk typing it somewhere unintended. Retype it.
 Check the case indicator on the card. In `123` mode every key types its digit.
 Hold button 10 to cycle back to `abc`.
 
-### Hue mirroring is not following the lights
-
-```bash
-swift run agentic-mouse-doctor config
-```
-
-| Menu shows | Meaning |
-|---|---|
-| `not configured` | Bridge host or light ids are still `REPLACE_ME` |
-| `missing application key` | The Keychain item is absent or unreadable |
-| `failed(...)` | Bridge unreachable, or key rejected |
-| `streaming` | Working |
-
-Both zones clear (alpha 0) when Hue is unavailable, so the mouse falls back to
-iCUE lighting rather than freezing on a stale colour.
-
 ### The HUD stole focus / moved my cursor
 
 It should be structurally impossible: the panel is a non-activating borderless
@@ -134,17 +143,14 @@ happened over.
 ```bash
 killall AgenticMouse                            # stop the helper
 rm -rf ~/.config/agentic-mouse                  # forget the configuration
-security delete-generic-password \
-  -s com.ethan.agentic-mouse \
-  -a hue-application-key                       # forget the Hue key
 ```
 
 Then remove the app bundle. To also revoke the permission: System Settings →
 Privacy & Security → Accessibility → remove Agentic Mouse.
 
-Uninstalling changes nothing about iCUE, your profiles, your DPI stages, your
-Hue lights, the Logitech setup, or the VoiceInk++ macro on side button 4. The
-helper never modified any of them.
+Uninstalling changes nothing about iCUE, your profiles, your DPI stages, the
+Logitech setup, or the VoiceInk++ macro on the top DPI control. The helper never
+modified any of them.
 
 ---
 

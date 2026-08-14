@@ -31,7 +31,7 @@
 	<true/>
 
 	<key>NSHumanReadableCopyright</key>
-	<string>Local helper. No network access except the local Philips Hue bridge.</string>
+	<string>Local Corsair helper.</string>
 
 	<!--
 	  Shown by macOS in the Accessibility permission prompt. Multi-tap mode
@@ -40,13 +40,10 @@
 	  letter is never delivered to the wrong place.
 	-->
 	<key>NSAccessibilityUsageDescription</key>
-	<string>Agentic Mouse needs Accessibility permission to type the characters you tap out on the mouse, and to check which text field has focus so a half-typed letter is never sent to the wrong app. Hue colour mirroring does not use this permission.</string>
+	<string>Agentic Mouse needs Accessibility permission to type the characters you tap out on the mouse, and to check which text field has focus so a half-typed letter is never sent to the wrong app.</string>
 
 	<key>NSAppleEventsUsageDescription</key>
 	<string>Not used. Agentic Mouse does not script other applications.</string>
-
-	<key>NSLocalNetworkUsageDescription</key>
-	<string>Agentic Mouse reads the state of your Philips Hue bridge on your local network so it can mirror your chosen Philips Hue lights onto the mouse. It only ever reads; it never changes a light.</string>
 
 	<key>NSHighResolutionCapable</key>
 	<true/>

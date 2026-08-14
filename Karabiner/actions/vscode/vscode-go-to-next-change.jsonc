@@ -2,16 +2,36 @@
 {
   "id": "vscode-go-to-next-change",
   "title": "VS Code: go to next change",
-  "description": "Move down to the next source-control change through the existing Better Git F13 keybinding.",
-  "manipulator": {
-    "to": [
-      { "key_code": "f13" }
-    ],
-    "conditions": [
-      {
-        "type": "frontmost_application_if",
-        "bundle_identifiers": ["^com\\.microsoft\\.VSCode(?:Insiders)?$"]
+  "description": "Single-click moves to the next change with F13; double-click stages and advances with F18, matching the proven G502 behavior.",
+  "manipulators": [
+    {
+      "conditions": [
+        { "type": "variable_if", "name": "$binding_variable", "value": true },
+        { "type": "frontmost_application_if", "bundle_identifiers": ["^com\\.microsoft\\.VSCode(?:Insiders)?$"] }
+      ],
+      "to": [
+        { "set_variable": { "name": "$binding_variable", "value": false } },
+        { "key_code": "f18", "repeat": false }
+      ]
+    },
+    {
+      "conditions": [
+        { "type": "frontmost_application_if", "bundle_identifiers": ["^com\\.microsoft\\.VSCode(?:Insiders)?$"] }
+      ],
+      "parameters": { "basic.to_delayed_action_delay_milliseconds": 300 },
+      "to": [
+        { "set_variable": { "name": "$binding_variable", "value": true } }
+      ],
+      "to_delayed_action": {
+        "to_if_canceled": [
+          { "key_code": "f13", "repeat": false, "conditions": [{ "type": "variable_if", "name": "$binding_variable", "value": true }] },
+          { "set_variable": { "name": "$binding_variable", "value": false } }
+        ],
+        "to_if_invoked": [
+          { "key_code": "f13", "repeat": false, "conditions": [{ "type": "variable_if", "name": "$binding_variable", "value": true }] },
+          { "set_variable": { "name": "$binding_variable", "value": false } }
+        ]
       }
-    ]
-  }
+    }
+  ]
 }

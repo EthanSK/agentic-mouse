@@ -1,11 +1,9 @@
 import XCTest
 @testable import ScimitarKit
 
-/// Precedence, restoration, deduplication, throttling and device selection.
+/// Precedence, release, deduplication, throttling and device selection.
 final class LightingArbiterTests: XCTestCase {
 
-    private let hueFrame = LightingFrame(logo: RGBColor(red: 10, green: 20, blue: 30),
-                                         side: RGBColor(red: 40, green: 50, blue: 60))
     private let modeFrame = LightingFrame(uniform: RGBColor(red: 255, green: 0, blue: 168))
     private let alertFrame = LightingFrame(uniform: RGBColor(red: 255, green: 80, blue: 0))
 
@@ -15,16 +13,8 @@ final class LightingArbiterTests: XCTestCase {
         XCTAssertNil(arbiter.winningSource)
     }
 
-    func testHueShowsWhenItIsTheOnlySource() {
+    func testModeIndicatorShowsWhenItIsTheOnlySource() {
         var arbiter = LightingArbiter()
-        arbiter.set(.hueMirror, frame: hueFrame)
-        XCTAssertEqual(arbiter.resolved, hueFrame)
-        XCTAssertEqual(arbiter.winningSource, .hueMirror)
-    }
-
-    func testModeIndicatorOutranksHue() {
-        var arbiter = LightingArbiter()
-        arbiter.set(.hueMirror, frame: hueFrame)
         arbiter.set(.modeIndicator, frame: modeFrame)
         XCTAssertEqual(arbiter.resolved, modeFrame)
         XCTAssertEqual(arbiter.winningSource, .modeIndicator)
@@ -32,31 +22,20 @@ final class LightingArbiterTests: XCTestCase {
 
     func testAlertOutranksEverything() {
         var arbiter = LightingArbiter()
-        arbiter.set(.hueMirror, frame: hueFrame)
         arbiter.set(.modeIndicator, frame: modeFrame)
         arbiter.set(.alert, frame: alertFrame)
         XCTAssertEqual(arbiter.resolved, alertFrame)
     }
 
-    func testClearingTheModeFallsBackToHue() {
+    func testClearingTheModeReleasesTheLayer() {
         var arbiter = LightingArbiter()
-        arbiter.set(.hueMirror, frame: hueFrame)
         arbiter.set(.modeIndicator, frame: modeFrame)
         arbiter.clear(.modeIndicator)
-        XCTAssertEqual(arbiter.resolved, hueFrame)
-    }
-
-    func testClearingHueWhileTheModeIsActiveKeepsTheIndicator() {
-        var arbiter = LightingArbiter()
-        arbiter.set(.hueMirror, frame: hueFrame)
-        arbiter.set(.modeIndicator, frame: modeFrame)
-        arbiter.clear(.hueMirror)
-        XCTAssertEqual(arbiter.resolved, modeFrame)
+        XCTAssertNil(arbiter.resolved)
     }
 
     func testPriorityOrderIsTotalAndStable() {
         XCTAssertGreaterThan(LightingSource.alert.priority, LightingSource.modeIndicator.priority)
-        XCTAssertGreaterThan(LightingSource.modeIndicator.priority, LightingSource.hueMirror.priority)
     }
 }
 
@@ -102,9 +81,6 @@ final class LightingCoordinatorTests: XCTestCase {
     private var clock: ManualClock!
     private var coordinator: LightingCoordinator!
 
-    private let roomFrame = LightingFrame(logo: RGBColor(red: 200, green: 120, blue: 40),
-                                          side: RGBColor(red: 30, green: 60, blue: 200))
-
     override func setUp() {
         super.setUp()
         clock = ManualClock()
@@ -118,67 +94,149 @@ final class LightingCoordinatorTests: XCTestCase {
         )
     }
 
-    func testHueFramesReachTheDevice() {
-        coordinator.updateHueFrame(roomFrame)
-        XCTAssertEqual(recorder.appliedFrames.last, roomFrame)
-    }
-
-    func testModeOverridesHue() {
-        coordinator.updateHueFrame(roomFrame)
+    func testModeReachesTheDevice() {
         coordinator.setModeActive(true)
 
         XCTAssertEqual(coordinator.winningSource, .modeIndicator)
-        XCTAssertNotEqual(recorder.appliedFrames.last, roomFrame)
+        XCTAssertNotNil(recorder.appliedFrames.last)
     }
 
-    func testHueKeepsUpdatingWhileTheModeIsActiveAndTheNewestFrameIsRestoredOnExit() {
-        coordinator.updateHueFrame(roomFrame)
+    func testModeExitReleasesTheLayer() {
         coordinator.setModeActive(true)
-
-        // The room changes while the mouse is showing the mode colour.
-        let newerFrame = LightingFrame(uniform: RGBColor(red: 5, green: 250, blue: 5))
-        clock.advance(by: 1)
-        coordinator.updateHueFrame(newerFrame)
-
-        XCTAssertEqual(coordinator.cachedHueFrame, newerFrame, "Hue must keep being cached under the override")
-        XCTAssertEqual(coordinator.winningSource, .modeIndicator, "but it must not show yet")
-
-        clock.advance(by: 1)
-        coordinator.setModeActive(false)
-
-        XCTAssertEqual(
-            recorder.appliedFrames.last,
-            newerFrame,
-            "leaving the mode restores the *newest* room colour, not the one from when the mode started"
-        )
-    }
-
-    func testHueGoingAwayWhileTheModeIsActiveReleasesTheLayerOnExit() {
-        coordinator.updateHueFrame(roomFrame)
-        coordinator.setModeActive(true)
-        coordinator.updateHueFrame(nil)     // bridge unreachable
         coordinator.setModeActive(false)
 
         XCTAssertEqual(recorder.appliedFrames.last, .released)
         XCTAssertGreaterThan(recorder.releaseCount, 0)
     }
 
+    func testConfiguredIdleWhiteReturnsAfterModeExitAndReconnect() {
+        let idleRecorder = RecordingLightingController()
+        let idleThrottle = ThrottlingLightingController(
+            wrapping: idleRecorder,
+            clock: clock,
+            minimumInterval: 0
+        )
+        let idleCoordinator = LightingCoordinator(
+            controller: idleThrottle,
+            modeStyle: ModeIndicatorStyle(pulse: nil),
+            idleColor: .white,
+            clock: clock,
+            log: Log(category: "test", sink: NullLogSink())
+        )
+
+        idleCoordinator.handleSessionRestored()
+        XCTAssertEqual(idleRecorder.appliedFrames.last, LightingFrame(uniform: .white))
+
+        idleCoordinator.setModeActive(true)
+        XCTAssertNotEqual(idleRecorder.appliedFrames.last, LightingFrame(uniform: .white))
+
+        idleCoordinator.setModeActive(false)
+        XCTAssertEqual(idleRecorder.appliedFrames.last, LightingFrame(uniform: .white))
+        XCTAssertEqual(idleRecorder.releaseCount, 0)
+
+        idleCoordinator.handleSessionLost()
+        idleRecorder.reset()
+        idleCoordinator.handleSessionRestored()
+        XCTAssertEqual(idleRecorder.appliedFrames.last, LightingFrame(uniform: .white))
+    }
+
+    func testConfiguredIdleWhiteReturnsAfterColourProofExitButTeardownStillReleases() {
+        let idleRecorder = RecordingLightingController()
+        let idleThrottle = ThrottlingLightingController(
+            wrapping: idleRecorder,
+            clock: clock,
+            minimumInterval: 0
+        )
+        let idleCoordinator = LightingCoordinator(
+            controller: idleThrottle,
+            modeStyle: ModeIndicatorStyle(pulse: nil),
+            idleColor: .white,
+            clock: clock,
+            log: Log(category: "test", sink: NullLogSink())
+        )
+
+        XCTAssertTrue(idleCoordinator.setColorProofColor(RGBColor(red: 255, green: 0, blue: 0)))
+        XCTAssertTrue(idleCoordinator.setColorProofColor(nil))
+        XCTAssertEqual(idleRecorder.appliedFrames.last, LightingFrame(uniform: .white))
+        XCTAssertEqual(idleRecorder.releaseCount, 0)
+
+        idleCoordinator.releaseEverything()
+        XCTAssertEqual(idleRecorder.appliedFrames.last, .released)
+        XCTAssertEqual(idleRecorder.releaseCount, 1)
+    }
+
+    func testColourProofUsesOneSelectedColourOnBothZones() {
+        let color = RGBColor(hex: "#0A84FF")!
+
+        XCTAssertTrue(coordinator.setColorProofColor(color))
+
+        XCTAssertEqual(recorder.appliedFrames.last, LightingFrame(uniform: color))
+        XCTAssertEqual(coordinator.colorProofColor, color)
+        XCTAssertEqual(coordinator.winningSource, .modeIndicator)
+    }
+
+    func testModeAppearanceUsesLogoForModeAndWholeSideZoneForLastAction() {
+        let mode = ScimitarKit.RGBColor(red: 255, green: 0, blue: 140)
+        let action = ScimitarKit.RGBColor(red: 0, green: 220, blue: 255)
+
+        XCTAssertTrue(coordinator.setModeAppearance(modeColor: mode, actionColor: action))
+
+        XCTAssertEqual(recorder.appliedFrames.last, LightingFrame(logo: mode, side: action))
+        XCTAssertEqual(
+            coordinator.modeAppearanceFrame,
+            LightingFrame(logo: mode, side: action)
+        )
+        XCTAssertEqual(coordinator.colorProofColor, Optional(mode))
+    }
+
+    func testColourProofExitReleasesAndReconnectRestoresOnlyWhileActive() {
+        let color = RGBColor(hex: "#30D158")!
+        XCTAssertTrue(coordinator.setColorProofColor(color))
+
+        coordinator.handleSessionLost()
+        recorder.reset()
+        coordinator.handleSessionRestored()
+        XCTAssertEqual(recorder.appliedFrames.last, LightingFrame(uniform: color))
+
+        XCTAssertFalse(coordinator.setColorProofColor(nil))
+        XCTAssertEqual(recorder.appliedFrames.last, .released)
+        XCTAssertNil(coordinator.colorProofColor)
+    }
+
+    func testColourProofReportsUnavailableWithoutLeavingAStaleFrame() {
+        recorder.errorToThrow = .deviceNotFound
+        let color = RGBColor(hex: "#FF9500")!
+
+        XCTAssertFalse(coordinator.setColorProofColor(color))
+        XCTAssertFalse(
+            coordinator.setColorProofColor(color),
+            "repeating a failed colour must not be reported as a successful write"
+        )
+        XCTAssertTrue(recorder.appliedFrames.isEmpty)
+
+        recorder.errorToThrow = nil
+        XCTAssertTrue(
+            coordinator.setColorProofColor(color),
+            "repeating the same colour must retry after the device becomes available"
+        )
+        XCTAssertFalse(coordinator.setColorProofColor(nil))
+        XCTAssertEqual(recorder.appliedFrames.last, .released)
+    }
+
     func testReleaseEverythingClearsTheLayer() {
-        coordinator.updateHueFrame(roomFrame)
         coordinator.releaseEverything()
 
         XCTAssertGreaterThan(recorder.releaseCount, 0)
         XCTAssertNil(coordinator.winningSource)
     }
 
-    func testSessionLossThenRestoreRepaintsFromCache() {
-        coordinator.updateHueFrame(roomFrame)
+    func testSessionLossThenRestoreStaysReleasedWhenModeIsOff() {
         coordinator.handleSessionLost()
         XCTAssertNil(coordinator.winningSource)
 
         recorder.reset()
         coordinator.handleSessionRestored()
-        XCTAssertEqual(recorder.appliedFrames.last, roomFrame)
+        XCTAssertGreaterThan(recorder.releaseCount, 0)
     }
 
     func testModeSurvivesAnICUEReconnect() {
@@ -188,7 +246,7 @@ final class LightingCoordinatorTests: XCTestCase {
         XCTAssertEqual(coordinator.winningSource, .modeIndicator)
     }
 
-    func testModeExitEventuallyRestoresHueWhenRateLimited() {
+    func testModeExitReleasesImmediatelyEvenWhenFramesAreRateLimited() {
         let delayedRecorder = RecordingLightingController()
         let delayedThrottle = ThrottlingLightingController(
             wrapping: delayedRecorder,
@@ -204,18 +262,13 @@ final class LightingCoordinatorTests: XCTestCase {
             deferredFlushScheduler: deferredScheduler
         )
 
-        delayedCoordinator.updateHueFrame(roomFrame)
         delayedCoordinator.setModeActive(true)
         clock.advance(by: 0.11)
         deferredScheduler.fire()
-        XCTAssertNotEqual(delayedRecorder.appliedFrames.last, roomFrame)
+        XCTAssertNotNil(delayedRecorder.appliedFrames.last)
 
         delayedCoordinator.setModeActive(false)
-        XCTAssertTrue(delayedThrottle.hasDeferredFrame)
-        clock.advance(by: 0.11)
-        deferredScheduler.fire()
-
-        XCTAssertEqual(delayedRecorder.appliedFrames.last, roomFrame)
+        XCTAssertEqual(delayedRecorder.appliedFrames.last, .released)
         XCTAssertFalse(delayedThrottle.hasDeferredFrame)
     }
 }

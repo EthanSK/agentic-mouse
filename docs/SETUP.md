@@ -9,7 +9,6 @@ system setting.
 - macOS 13 or later, Apple Silicon or Intel
 - Xcode command line tools (Swift 5.10+)
 - iCUE 5.x installed and running
-- A Philips Hue bridge on your LAN (optional — multi-tap works without it)
 
 ## 1. Build and verify
 
@@ -70,20 +69,29 @@ is missing. The doctor stays read-only and does not request key control; code
 Do this in the iCUE app, visibly. Never edit iCUE's database or profile files
 directly.
 
-## 4. Free up side button 12
+## 4. Configure neutral side-grid transports
 
-Button 12 is the mode toggle. In iCUE, make sure it has no assignment (or an
-assignment you do not mind losing while the mode is active).
+In iCUE, create one Keyboard Remap for every side cell. Use modifier-free
+NumKeyboard keys so the source is easy to diagnose and cannot strand a
+modifier:
 
-The helper will still work if button 12 has an assignment — the macro key event
-fires regardless — but the assignment will also fire when you press it to
-*enter* the mode, because interception is not active until after entry
-succeeds. Clearing it avoids that one-shot leak.
+| Side | iCUE transport |
+|---:|---|
+| 1–9 | keypad 1 through keypad 9 |
+| 10 | keypad 0 |
+| 11 | keypad hyphen |
+| 12 | keypad plus |
 
-> **Open hardware question.** Whether a *disabled* M12 still emits shared raw
-> macro-key events is the one thing that could not be settled without physical
-> testing. See [`docs/LIVE-PROOF.md`](LIVE-PROOF.md) for the exact test and the
-> fallback if the answer turns out to be "no".
+Keep `Retain Original Key Output` off. Keep `Imitate Holding Key` off when a
+physical two-second hold already produces one clean down and one clean up; turn
+it on only if EventViewer proves that it is required. Reopen each assignment
+after saving it. The selected NumKeyboard target must still be present before
+you generate or install a downstream rule.
+
+Button 12 remains the Agentic Mouse Utility modes toggle through the exact-device
+Karabiner user-command route. Karabiner consumes its neutral keypad transport so
+the key does not leak into the frontmost application while the runtime owner
+handles it. The older SDK raw macro-key route remains source-only diagnostics.
 
 ## 4a. Check the rest of the mapping matches
 
@@ -91,21 +99,29 @@ succeeds. Clearing it avoids that one-shot leak.
 make mapping
 ```
 
-This prints what the helper believes is in iCUE. Compare it against the actual
-profiles. It changes nothing — if the two disagree, iCUE is right and the table
-in `Sources/ScimitarKit/App/NormalMapping.swift` is what needs updating.
+This prints the intended semantic layout. Compare it with the generated
+Karabiner adapter and the actual iCUE neutral transports. It changes nothing;
+saved iCUE state, generated source, installed Karabiner state and physical proof
+remain separate evidence classes.
 
-The things worth confirming by eye:
+The things worth confirming:
 
-- side button **4** runs the VoiceInk++ macro, and the **DPI Toggle button is
-  disabled** and does *not*;
+- side buttons **1** and **4** are the horizontal-scroll pair, left then right;
+- the **DPI Toggle button** emits the named iCUE F19 transport, and Karabiner
+  triggers VoiceInk++ on release without changing DPI;
 - **5** = Forward, **8** = Back;
-- **7** and **10** are the horizontal-scroll pair;
-- **6** = Next Track, **9** = Previous Track;
+- **3** = start/cancel Screenshot and **11** opens the current frontmost app mode;
+- **7** = Enter, **10** = Legend toggle, and **12** = Utility modes;
+- **6** = app-specific wildcard (silent by default; VS Code Stage + Next) and **9** opens shared Keys mode, where **6** = Copy, **3** = Paste, and **9** = Next Track;
+- while any runtime mode is active, **10** exits it (outside modes **10** toggles the Default legend);
 - every visible DPI stage, Sniper included, reads **2,750**;
-- the **VS Code** profile is linked to `/Applications/Visual Studio Code.app`
-  and overrides only **7** (F13), **8** (F17) and **10** (F18), with the
-  matching Better Git keybindings on the VS Code side.
+- the generated Karabiner map gives **5**, **6**, and **8** matching base exclusions
+  plus exact-device VS Code overrides: F17 Previous Change, F18 Stage + Next, and F13 Next Change;
+- every other physical cell inherits the same base action in VS Code;
+- the wheel click on each mouse arrives as ordinary `pointing_button: button3`
+  from its exact pointing interface and becomes `play_or_pause` in Karabiner;
+- every binding contains the exact Corsair `device_if` and optional-any
+  modifier handling, and an ordinary physical numpad does not trigger it.
 
 ## 5. Package the app
 
@@ -129,16 +145,34 @@ Then **quit and relaunch** — macOS only re-reads the grant at launch.
 
 The permission is used for two things: typing the characters you tap out, and
 reading which text field has focus so field changes are detected before each
-delivery step. Hue mirroring does not need it. A narrow same-application
-last-check-to-delivery race remains; see [`LIMITATIONS.md`](LIMITATIONS.md).
+delivery step. A narrow same-application last-check-to-delivery race remains;
+see [`LIMITATIONS.md`](LIMITATIONS.md).
 
 The app never prompts behind your back — it uses the non-prompting
 `AXIsProcessTrusted()` and explains what is missing in the menu.
 
-> The local package is only ad-hoc signed. Keep the bundle at one stable path
-> and keep the bundle id `com.ethan.agentic-mouse`, but do not rely on that
-> to preserve TCC approval: macOS can invalidate Accessibility permission after
-> a rebuild. Re-check the app in this pane and remove/re-add it if necessary.
+The portable package defaults to an ad-hoc signature. For a personal install
+that should retain Accessibility approval across rebuilds, package with one
+stable signing identity and keep the bundle id and installation path stable:
+
+```bash
+make install-candidate
+```
+
+Grant Accessibility once to that signed `/Applications/AgenticMouse.app`.
+Do not reset TCC or use an ad-hoc build for later replacements, because its
+designated requirement is a changing code hash.
+
+If the Accessibility row appears enabled but the app still reports that the
+grant is unavailable, the row may still be bound to an older ad-hoc build's
+exact code hash. Quit Agentic Mouse, remove that row completely with the minus
+button, add the literal `/Applications/AgenticMouse.app`, then launch that exact
+path again. Do not toggle the stale row, reset all TCC grants, edit the TCC
+database, or use `sfltool` as a substitute for this supported repair.
+
+Plain `make app` intentionally produces a development-only ad-hoc bundle and
+prints a warning not to install it. The install-candidate target fails closed
+if the stable Developer-ID identity or audited iCUE SDK is unavailable.
 
 ## 7. Configure
 
@@ -158,71 +192,7 @@ swift run agentic-mouse-doctor config
 
 prints the resolved configuration, fully redacted, with warnings.
 
-### Multi-tap only
-
-If you do not want Hue mirroring, set `"hue": { "enabled": false }` and you are
-done.
-
-## 8. Hue (optional)
-
-### 8a. Find the bridge
-
-The Hue app shows it under **Settings → My Hue System**. Or:
-
-```bash
-curl -s https://discovery.meethue.com/
-```
-
-### 8b. Create an application key
-
-This is the one setup step that writes to the bridge — it creates a credential
-for this app. It does not touch any light.
-
-Press the physical **link button** on the bridge, then within 30 seconds:
-
-```bash
-curl -sk -X POST https://<BRIDGE-IP>/api \
-  -H 'Content-Type: application/json' \
-  -d '{"devicetype":"agentic-mouse#mac","generateclientkey":true}'
-```
-
-The response contains `"username": "<long string>"`. That is your
-`hue-application-key`.
-
-### 8c. Store it in the Keychain
-
-```bash
-security add-generic-password \
-  -s com.ethan.agentic-mouse \
-  -a hue-application-key \
-  -w '<THE KEY>' \
-  -U
-```
-
-The helper only ever *reads* this item. It never creates or updates one.
-
-### 8d. Find your four light ids
-
-```bash
-KEY=$(security find-generic-password -s com.ethan.agentic-mouse -a hue-application-key -w)
-curl -sk -H "hue-application-key: $KEY" https://<BRIDGE-IP>/clip/v2/resource/light \
-  | python3 -c 'import json,sys; [print(l["id"], l.get("metadata",{}).get("name")) for l in json.load(sys.stdin)["data"]]'
-```
-
-Put the ids into `hue.lights`, assigning each to `candleAndSofa` or
-`deskLusters`.
-
-> None of these values — bridge address, application key, light ids — may be
-> committed to this repository. They belong in `~/.config` and the Keychain.
-
-### 8e. Check it
-
-```bash
-swift run agentic-mouse-doctor colors    # how readings convert to mouse colours
-swift run agentic-mouse-doctor config    # confirms the key resolves, without printing it
-```
-
-## 9. Use it
+## 8. Use it
 
 1. Click into a text field.
 2. Press side button **12**. The mouse turns magenta and pulses; the reference
@@ -233,7 +203,9 @@ swift run agentic-mouse-doctor config    # confirms the key resolves, without pr
 If entry is refused, the card says why for a few seconds and the mouse does not
 change colour at all.
 
-## Running at login (optional, manual)
+## Running at login
 
-This project deliberately does not install a LaunchAgent. If you want one, add
-the app under **System Settings → General → Login Items**.
+The installed menu-bar app registers itself with macOS using `SMAppService`.
+It does not install a separate LaunchAgent. If macOS reports that approval is
+required, enable **Agentic Mouse** under **System Settings → General → Login
+Items**; the menu-bar status reports that state.

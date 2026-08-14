@@ -1,0 +1,18 @@
+// Toggles one native selected-area screenshot interaction from Razer physical cell 3 (printed 1).
+{
+  "id": "toggle-selected-screen-area-razer",
+  "title": "Toggle selected screen area (Razer)",
+  "description": "Start a native selected-area screenshot, or cancel the still-running interaction on the next Razer press.",
+  "manipulator": {
+    "to": [{
+      "send_user_command": {
+        "payload": {
+          "command": "agentic_mouse_selected_area_screenshot_toggle",
+          "source": "razer",
+          "physical_cell": 3
+        }
+      },
+      "repeat": false
+    }]
+  }
+}

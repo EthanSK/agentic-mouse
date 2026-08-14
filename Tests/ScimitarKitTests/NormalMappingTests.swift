@@ -5,20 +5,32 @@ import XCTest
 ///
 /// These assertions exist because the mapping has been revised several times,
 /// and prose in a README drifts silently while a failing test does not. iCUE
-/// owns the real assignments; this is the helper's record of them, and the
-/// place to correct when they change.
+/// owns neutral Corsair transports, Karabiner owns enabled semantics, and this
+/// is the helper's readable record of the intended behavior.
 final class NormalMappingTests: XCTestCase {
 
     // MARK: - Normal profile
 
-    func testSpeechToTextIsOnSideButtonFour() {
-        let assignment = ScimitarNormalMapping.normal.assignment(for: 4)
-        XCTAssertEqual(assignment?.action, "VoiceInk++ speech-to-text toggle")
+    func testHorizontalScrollIsTheOneFourPair() {
+        let left = ScimitarNormalMapping.normal.assignment(for: 1)
+        XCTAssertEqual(left?.action, "Horizontal scroll left")
         XCTAssertEqual(
-            assignment?.implementation,
-            "direct iCUE macro: LeftShift+LeftCtrl+LeftAlt press, then the reverse release sequence",
-            "the working direct macro, not an F-key bridge or a Karabiner rule"
+            left?.implementation,
+            "Karabiner action: scroll-horizontally-left"
         )
+
+        let right = ScimitarNormalMapping.normal.assignment(for: 4)
+        XCTAssertEqual(right?.action, "Horizontal scroll right")
+        XCTAssertEqual(
+            right?.implementation,
+            "Karabiner action: scroll-horizontally-right"
+        )
+    }
+
+    func testSwitchAppIsOnSideButtonTwo() {
+        let assignment = ScimitarNormalMapping.normal.assignment(for: 2)
+        XCTAssertEqual(assignment?.action, "Switch App")
+        XCTAssertEqual(assignment?.implementation, "Karabiner action: hold-open-app-switcher")
     }
 
     func testForwardAndBackAreFiveAndEight() {
@@ -26,17 +38,46 @@ final class NormalMappingTests: XCTestCase {
         XCTAssertEqual(ScimitarNormalMapping.normal.assignment(for: 8)?.action, "Back")
     }
 
-    func testHorizontalScrollIsTheSevenTenPair() {
-        XCTAssertEqual(ScimitarNormalMapping.normal.assignment(for: 7)?.action, "Horizontal scroll left")
-        XCTAssertEqual(ScimitarNormalMapping.normal.assignment(for: 10)?.action, "Horizontal scroll right")
+    func testSevenPressesEnterThreeTakesScreenshotsAndTenShowsTheLegend() {
+        XCTAssertEqual(ScimitarNormalMapping.normal.assignment(for: 7)?.action, "Enter")
+        XCTAssertEqual(
+            ScimitarNormalMapping.normal.assignment(for: 7)?.implementation,
+            "Karabiner action: press-enter outside runtime modes"
+        )
+        XCTAssertEqual(
+            ScimitarNormalMapping.normal.assignment(for: 3)?.action,
+            "Screenshot"
+        )
+        XCTAssertEqual(
+            ScimitarNormalMapping.normal.assignment(for: 3)?.implementation,
+            "Agentic Mouse toggles the native selected-area screenshot session"
+        )
+        XCTAssertEqual(ScimitarNormalMapping.normal.assignment(for: 10)?.action, "Legend toggle")
+        XCTAssertEqual(
+            ScimitarNormalMapping.normal.assignment(for: 10)?.implementation,
+            "Agentic Mouse persistent Default mode legend toggle; active modes use the same cell to exit"
+        )
     }
 
-    func testTrackSkippingIsSixForwardAndNineBack() {
-        XCTAssertEqual(ScimitarNormalMapping.normal.assignment(for: 6)?.action, "Next Track")
+    func testSixIsTheAppShortcutAndNineOpensKeysMode() {
+        XCTAssertEqual(ScimitarNormalMapping.normal.assignment(for: 6)?.action, "App shortcut")
         XCTAssertEqual(
-            ScimitarNormalMapping.normal.assignment(for: 9)?.action,
-            "Previous Track",
-            "9 rewinds; it is the mirror of 6"
+            ScimitarNormalMapping.normal.assignment(for: 6)?.implementation,
+            "Karabiner suppresses the neutral transport by default; VS Code emits F18 Stage + Next"
+        )
+        XCTAssertEqual(ScimitarNormalMapping.normal.assignment(for: 9)?.action, "Keys mode")
+        XCTAssertEqual(
+            ScimitarNormalMapping.normal.assignment(for: 9)?.implementation,
+            "Exact-device Karabiner opens the shared native arrow-key mode; active cell 10 exits"
+        )
+    }
+
+    func testCellElevenOpensTheCurrentFrontmostAppModeDirectly() {
+        let assignment = ScimitarNormalMapping.normal.assignment(for: 11)
+        XCTAssertEqual(assignment?.action, "App-specific mode")
+        XCTAssertEqual(
+            assignment?.implementation,
+            "Exact-device Karabiner opens the current frontmost app mode; active cell 10 exits"
         )
     }
 
@@ -44,101 +85,66 @@ final class NormalMappingTests: XCTestCase {
         XCTAssertEqual(ScimitarNormalMapping.unifiedDPI, 2750)
     }
 
-    func testTheDpiToggleButtonIsDisabledAndHasNoSpeechRole() throws {
+    func testTheDpiToggleButtonOwnsSpeechWithoutChangingDpi() throws {
         let entry = try XCTUnwrap(
             ScimitarNormalMapping.untouchedControls.first { $0.contains("DPI Toggle") },
             "the DPI Toggle button must be listed among the controls this helper never touches"
         )
-        XCTAssertTrue(entry.contains("disabled"))
-        XCTAssertTrue(
-            entry.lowercased().contains("never trigger speech"),
-            "the DPI button must not be the speech-to-text route"
-        )
+        XCTAssertTrue(entry.contains("VoiceInk++ speech-to-text"))
+        XCTAssertTrue(entry.contains("does not change DPI"))
     }
 
-    func testNoNormalAssignmentClaimsToBeAKarabinerOrFunctionKeyBridge() {
-        for profile in ScimitarNormalMapping.allProfiles {
-            for assignment in profile.assignments {
-                let text = ((assignment.implementation ?? "") + assignment.action).lowercased()
-                XCTAssertFalse(text.contains("karabiner"), "the Karabiner interception was removed")
-                XCTAssertFalse(text.contains("f20"), "the F20 speech bridge no longer exists")
+    func testNoSideGridAssignmentDuplicatesSpeechToText() {
+        XCTAssertFalse(
+            ScimitarNormalMapping.normal.assignments.contains {
+                $0.action.lowercased().contains("speech")
             }
-        }
-    }
-
-    // MARK: - VS Code profile
-
-    func testVsCodeProfileIsLinkedToTheApplication() {
-        XCTAssertEqual(
-            ScimitarNormalMapping.vsCode.linkedApplicationPath,
-            "/Applications/Visual Studio Code.app"
-        )
-        XCTAssertEqual(ScimitarNormalMapping.vsCode.profileName, "VS Code")
-    }
-
-    func testVsCodeOverridesOnlySevenEightAndTen() {
-        let normal = ScimitarNormalMapping.normal
-        let vsCode = ScimitarNormalMapping.vsCode
-
-        let overridden = vsCode.assignments.filter { assignment in
-            normal.assignment(for: assignment.button)?.action != assignment.action
-        }
-        XCTAssertEqual(
-            Set(overridden.map(\.button)),
-            [7, 8, 10],
-            "4, 5, 6, 9 and 12 must behave identically inside and outside VS Code"
         )
     }
 
-    func testVsCodeBetterGitBindings() {
-        let vsCode = ScimitarNormalMapping.vsCode
+    // MARK: - Application scope
 
-        // 8 goes "up" to the previous change, 7 goes "down" to the next one,
-        // and 10 — right beside them — stages the file.
-        XCTAssertEqual(vsCode.assignment(for: 7)?.action, "Better Git: next change")
-        XCTAssertEqual(vsCode.assignment(for: 8)?.action, "Better Git: previous change")
-        XCTAssertEqual(vsCode.assignment(for: 10)?.action, "Better Git: stage current file")
-
-        XCTAssertEqual(
-            vsCode.assignment(for: 7)?.implementation,
-            "F13 → better-git-vscode.next-scm-change"
-        )
-        XCTAssertEqual(
-            vsCode.assignment(for: 8)?.implementation,
-            "F17 → better-git-vscode.previous-scm-change"
-        )
-        XCTAssertEqual(
-            vsCode.assignment(for: 10)?.implementation,
-            "F18 → better-git-vscode.stage-current-file"
-        )
+    func testOneBaseProfileAppliesToEveryApplication() {
+        XCTAssertEqual(ScimitarNormalMapping.allProfiles, [.normal])
+        XCTAssertNil(ScimitarNormalMapping.normal.linkedApplicationPath)
     }
 
-    func testForwardIsNeverSpeciallyInterceptedAnywhere() {
-        // The old "smart" Back/Forward source-control interception is gone.
-        // Button 5 is plain Forward in every profile; the diff navigation lives
-        // on 7 and 8 instead, where it does not shadow ordinary navigation.
+    func testNormalProfileKeepsForwardAndBackAsItsBaseSemantics() {
+        // Karabiner owns the narrow VS Code override; this helper records the
+        // ordinary default-map semantics rather than a second app profile.
         for profile in ScimitarNormalMapping.allProfiles {
             XCTAssertEqual(profile.assignment(for: 5)?.action, "Forward")
+            XCTAssertEqual(profile.assignment(for: 8)?.action, "Back")
         }
     }
 
-    // MARK: - Interaction with multi-tap
+    // MARK: - Interaction with Modes and Keypad
 
-    func testTheMultiTapToggleDisplacesNoAppliedAction() {
+    func testCellTwelveOwnsTheUtilityModesEntry() {
         for profile in ScimitarNormalMapping.allProfiles {
             let toggle = profile.assignment(for: 12)
-            XCTAssertEqual(toggle?.action, "Multi-tap mode toggle")
+            XCTAssertEqual(toggle?.action, "Utility modes")
             XCTAssertEqual(
                 toggle?.implementation,
-                "no iCUE assignment; the helper listens for the raw CMKI_12 macro-key event",
-                "button 12 was chosen precisely because it costs nothing"
+                "Exact-device Karabiner opens the shared Agentic Mouse Modes lease; active cell 10 exits"
             )
         }
     }
 
-    func testTheToggleButtonMatchesTheDefaultConfiguration() {
-        XCTAssertEqual(AppConfiguration.default.input.toggleKey, 12)
-        XCTAssertEqual(MultiTapKeymap.classic.exitKey?.rawValue, 12)
+    func testTheLegacyInputToggleRemainsTwelveAndRuntimeExitIsCellTen() {
+        XCTAssertEqual(AppConfiguration.default.input.toggleKey, 10)
+        XCTAssertEqual(MultiTapKeymap.modesKeypad.exitKey?.rawValue, 10)
+        XCTAssertEqual(PhysicalCell.modePickerEntry.rawValue, 12)
+        XCTAssertEqual(PhysicalCell.modeExit.rawValue, 10)
+    }
+
+    func testModesKeypadUsesTenForExitElevenForShiftAndTwelveForSpaceReturn() {
+        XCTAssertEqual(MultiTapKeymap.modesKeypad[.k10]?.tapAction, .exitMode)
+        XCTAssertEqual(MultiTapKeymap.modesKeypad[.k11]?.caption, "SHIFT")
+        XCTAssertEqual(MultiTapKeymap.modesKeypad[.k11]?.tapAction, .shiftCycle)
+        XCTAssertNil(MultiTapKeymap.modesKeypad[.k11]?.holdAction)
+        XCTAssertEqual(MultiTapKeymap.modesKeypad[.k12]?.tapAction, .space)
+        XCTAssertEqual(MultiTapKeymap.modesKeypad[.k12]?.holdAction, .newline)
     }
 
     func testEveryAssignedButtonIsInsideTheInterceptedGrid() {
@@ -155,11 +161,12 @@ final class NormalMappingTests: XCTestCase {
         }
     }
 
-    func testWheelAndMainClicksAreDocumentedAsUntouched() {
+    func testWheelAndMainClicksRemainOutsideMultiTapInterception() {
         let joined = ScimitarNormalMapping.untouchedControls.joined(separator: " ").lowercased()
         for expected in ["left click", "right click", "wheel", "pointer movement"] {
             XCTAssertTrue(joined.contains(expected), "\(expected) must be documented as never intercepted")
         }
+        XCTAssertTrue(joined.contains("karabiner play/pause"))
     }
 
     // MARK: - Description
@@ -169,11 +176,11 @@ final class NormalMappingTests: XCTestCase {
         for assignment in ScimitarNormalMapping.normal.assignments {
             XCTAssertTrue(text.contains(assignment.action), "describe() dropped button \(assignment.button)")
         }
-        XCTAssertTrue(ScimitarNormalMapping.vsCode.describe().contains("/Applications/Visual Studio Code.app"))
+        XCTAssertFalse(text.contains("Linked to:"))
     }
 
     func testDescribeSortsByButtonNumber() {
-        let lines = ScimitarNormalMapping.vsCode.describe()
+        let lines = ScimitarNormalMapping.normal.describe()
             .split(separator: "\n")
             .filter { $0.hasPrefix("  ") }
         let numbers = lines.compactMap { Int($0.trimmingCharacters(in: .whitespaces).prefix(2).trimmingCharacters(in: .whitespaces)) }

@@ -1,0 +1,18 @@
+// Toggles the persistent top-level legend from Corsair physical cell 10 without leaking keypad input.
+{
+  "id": "toggle-default-map-hint-corsair",
+  "title": "Toggle Default mode legend (Corsair)",
+  "description": "Send one exact-device Corsair legend toggle to Agentic Mouse.",
+  "manipulator": {
+    "to": [{
+      "send_user_command": {
+        "payload": {
+          "command": "agentic_mouse_default_map_toggle",
+          "source": "corsair",
+          "physical_cell": 10
+        }
+      },
+      "repeat": false
+    }]
+  }
+}

@@ -27,39 +27,6 @@ public enum MouseZone: UInt32, CaseIterable, Codable, Sendable {
         }
     }
 
-    /// Where each Hue cluster lands.
-    ///
-    /// The thumb pad sits under the twelve buttons, so it carries the cosy
-    /// candle/sofa cluster; the logo faces up from the desk, so it carries the
-    /// two lusters above the desk.
-    public var hueCluster: HueCluster {
-        switch self {
-        case .side: return .candleAndSofa
-        case .logo: return .deskLusters
-        }
-    }
-}
-
-/// The two independent groups the four Living room lights are aggregated into.
-public enum HueCluster: String, CaseIterable, Codable, Sendable {
-    /// Candle + sofa lamp → `MouseSideLed`.
-    case candleAndSofa
-    /// The two lusters above the desk → `MouseLogoLed`.
-    case deskLusters
-
-    public var zone: MouseZone {
-        switch self {
-        case .candleAndSofa: return .side
-        case .deskLusters: return .logo
-        }
-    }
-
-    public var displayName: String {
-        switch self {
-        case .candleAndSofa: return "Candle + sofa"
-        case .deskLusters: return "Desk lusters"
-        }
-    }
 }
 
 /// A complete description of what the mouse should look like right now: one
@@ -117,20 +84,13 @@ public struct LightingFrame: Equatable, Sendable {
 ///
 ///   1. `alert`         — a problem the user must notice.
 ///   2. `modeIndicator` — multi-tap mode is active.
-///   3. `hueMirror`     — ordinary living-room mirroring.
-///   4. nothing         — the layer is released and iCUE takes the mouse back.
-///
-/// Disconnects are not a separate level. A Hue bridge that goes away simply
-/// stops publishing a `hueMirror` frame, so the mouse falls through to the
-/// released state — the same safe outcome as the feature being switched off.
+///   3. nothing         — the layer is released and iCUE takes the mouse back.
 public enum LightingSource: String, CaseIterable, Sendable {
-    case hueMirror
     case modeIndicator
     case alert
 
     public var priority: Int {
         switch self {
-        case .hueMirror: return 10
         case .modeIndicator: return 50
         case .alert: return 90
         }
@@ -195,8 +155,8 @@ public struct PulseStyle: Equatable, Sendable {
 ///
 /// While the mode is active it overrides **both** zones with a fixed, obviously
 /// artificial colour — the point is that a glance at the mouse tells you the
-/// side buttons are not doing their normal jobs. Hue keeps streaming underneath
-/// and the newest frame is restored the instant the mode exits.
+/// side buttons are not doing their normal jobs. Exiting releases the shared
+/// layer so ordinary iCUE lighting returns immediately.
 public struct ModeIndicatorStyle: Equatable, Sendable {
     /// The unmistakable "you are in multi-tap mode" colour.
     public var color: RGBColor

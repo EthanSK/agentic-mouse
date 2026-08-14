@@ -1,0 +1,15 @@
+// Emergency Corsair fallback: taps VoiceInk++ as soon as the neutral source key goes down.
+{
+  "id": "toggle-voiceink-speech-to-text-on-press",
+  "title": "Toggle VoiceInk++ speech-to-text on press",
+  "description": "Toggle VoiceInk++ on physical button press using its existing Control-Option-Shift shortcut.",
+  "manipulator": {
+    "to": [
+      {
+        "key_code": "left_shift",
+        "modifiers": ["left_control", "left_option"],
+        "repeat": false
+      }
+    ]
+  }
+}

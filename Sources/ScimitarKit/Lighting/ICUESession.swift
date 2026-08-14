@@ -77,6 +77,16 @@ public struct ICUESessionDetails: Equatable, Sendable {
     public let host: ICUEVersion
 }
 
+/// The iCUE SDK reports `CE_InvalidOperation` when `CorsairConnect` is called
+/// while its process-wide client is still connected *or connecting*. That can
+/// outlive our local callback state after a receiver/device-loss transition, so
+/// exactly this error gets one bounded `CorsairDisconnect` + reconnect attempt.
+public enum ICUEConnectRecoveryPolicy {
+    public static func shouldResetAndRetry(error: Int32) -> Bool {
+        error == Int32(SC_ICUE_INVALID_OPERATION.rawValue)
+    }
+}
+
 /// The two access levels this project is permitted to ask for.
 ///
 /// `CAL_ExclusiveLightingControl` (1) and
@@ -217,11 +227,32 @@ public final class ICUESession: @unchecked Sendable {
         guard isLibraryLoaded else { return .failure(.sdkUnavailable("SDK not loaded")) }
         guard !isConnected else { return .success(()) }
 
+        var error = beginVendorConnection()
+        if ICUEConnectRecoveryPolicy.shouldResetAndRetry(error: error) {
+            // A terminal callback previously cleared our local booleans, but
+            // iCUE can still retain its process-wide client in connecting state.
+            // Reset once, never loop here, then let the app's ordinary bounded
+            // backoff own any subsequent failure.
+            log.notice("CorsairConnect found a stale vendor session; resetting it once before retry")
+            resetVendorSession()
+            error = beginVendorConnection()
+        }
+
+        guard error == Int32(SC_ICUE_SUCCESS.rawValue) else {
+            retireSessionCallbackContext()
+            log.error("CorsairConnect failed with code \(error)")
+            return .failure(.writeFailed(error))
+        }
+        isConnected = true
+        return .success(())
+    }
+
+    private func beginVendorConnection() -> Int32 {
         sessionCallbackGeneration &+= 1
         let callbackContext = CallbackContext(session: self, generation: sessionCallbackGeneration)
         sessionCallbackContext = callbackContext
         let context = Unmanaged.passUnretained(callbackContext).toOpaque()
-        let error = sc_icue_connect({ context, event in
+        return sc_icue_connect({ context, event in
             guard let context, let event else { return }
             let callback = Unmanaged<CallbackContext>.fromOpaque(context).takeUnretainedValue()
             callback.session?.handleSessionState(
@@ -229,14 +260,13 @@ public final class ICUESession: @unchecked Sendable {
                 generation: callback.generation
             )
         }, context)
+    }
 
-        guard error == Int32(SC_ICUE_SUCCESS.rawValue) else {
-            sessionCallbackContext = nil
-            log.error("CorsairConnect failed with code \(error)")
-            return .failure(.writeFailed(error))
+    private func retireSessionCallbackContext() {
+        if let context = sessionCallbackContext {
+            retiredCallbackContexts.append(context)
         }
-        isConnected = true
-        return .success(())
+        sessionCallbackContext = nil
     }
 
     public func subscribeToEvents() -> Result<Void, LightingError> {
@@ -274,15 +304,35 @@ public final class ICUESession: @unchecked Sendable {
     }
 
     public func disconnect() {
-        unsubscribeFromEvents()
-        guard isConnected else { return }
+        guard isLibraryLoaded else {
+            isConnected = false
+            isSubscribed = false
+            state = .closed
+            return
+        }
+        resetVendorSession()
+    }
+
+    /// Clears both our callback generations and the SDK's process-wide client.
+    /// This deliberately calls `CorsairDisconnect` even when local state says
+    /// disconnected: that mismatch is precisely the stale-connect condition
+    /// this method exists to repair.
+    private func resetVendorSession() {
         sessionCallbackGeneration &+= 1
-        let oldContext = sessionCallbackContext
+        eventCallbackGeneration &+= 1
+        let oldSessionContext = sessionCallbackContext
+        let oldEventContext = eventCallbackContext
+        if isSubscribed {
+            _ = sc_icue_unsubscribe_from_events()
+        }
         _ = sc_icue_disconnect()
         isConnected = false
+        isSubscribed = false
         state = .closed
         sessionCallbackContext = nil
-        if let oldContext { retiredCallbackContexts.append(oldContext) }
+        eventCallbackContext = nil
+        if let oldSessionContext { retiredCallbackContexts.append(oldSessionContext) }
+        if let oldEventContext { retiredCallbackContexts.append(oldEventContext) }
     }
 
     public func sessionDetails() -> ICUESessionDetails? {
@@ -474,20 +524,11 @@ public final class ICUESession: @unchecked Sendable {
             case .closed, .timedOut, .connectionRefused, .connectionLost:
                 // The vendor session is terminal. Retire callback registrations
                 // before the app is told, so its reconnect attempt creates a
-                // genuinely new C session/subscription rather than hitting the
-                // local `isConnected`/`isSubscribed` guards.
-                self.isConnected = false
-                self.isSubscribed = false
-                self.sessionCallbackGeneration &+= 1
-                self.eventCallbackGeneration &+= 1
-                if let context = self.sessionCallbackContext {
-                    self.retiredCallbackContexts.append(context)
-                }
-                if let context = self.eventCallbackContext {
-                    self.retiredCallbackContexts.append(context)
-                }
-                self.sessionCallbackContext = nil
-                self.eventCallbackContext = nil
+                // genuinely new C session/subscription. A local-only reset is
+                // insufficient: iCUE otherwise leaves `CorsairConnect` stuck at
+                // CE_InvalidOperation (already connected/connecting).
+                self.resetVendorSession()
+                self.state = newState
             case .connecting, .connected:
                 break
             }

@@ -1,22 +1,30 @@
 # Agentic Mouse
 
-**Two mice. One muscle-memory map. Local macOS automation with no mystery
-profiles.**
+**Give two twelve-button mice one readable action vocabulary.**
 
 Agentic Mouse is an open, local-first control layer for a Corsair Scimitar
-Elite Wireless SE and a left-handed Razer Naga. It keeps the useful parts of a
-gaming mouse — reachable buttons, hardware profiles and lighting — while
-making them useful for writing, browsing, coding and talking to an agent.
+Elite Wireless SE and a left-handed Razer Naga. It keeps hardware configuration
+with each vendor route, while giving both mice one readable set of named macOS
+actions for writing, browsing, coding and talking to an agent.
 
 It started as Ethan's setup. The point of publishing it is not that everyone
 should copy Ethan's exact choices: it is that you should be able to see every
-choice, adopt the pieces you like, and keep both of your mice coherent.
+choice and adopt the pieces you like.
 
-> **Current status:** the bundled macOS helper is production-designed for the
-> Corsair Scimitar's iCUE SDK route. The Razer Naga Left-Handed Edition is
-> supported today as a documented Karabiner-Elements profile workflow; its
-> event map still needs one physical capture before we generate its final
-> profile. Nothing in this repository silently edits either vendor profile.
+**[Explore the interactive Agentic Mouse site](https://ethansk.github.io/agentic-mouse/)**
+or open the [full signal-path map](https://ethansk.github.io/agentic-mouse/mouse-map.html).
+
+> **Current status:** the bundled macOS helper supplies explicit Scimitar
+> runtime features. iCUE now stores a distinct modifier-free keypad transport
+> for every Corsair side cell, and the generated exact-device Karabiner adapter
+> is installed after a physical EventViewer sweep proved all twelve raw
+> transports; downstream semantic acceptance is still in progress. Wheel click
+> is now sourced as ordinary middle click and translated by exact-device
+> Karabiner rules into the shared Play/Pause consumer action. A separate
+> exact-Razer adapter is now installed after the returned mouse physically
+> produced F21/F22 and its ordered main-row side-grid namespace on macOS;
+> downstream semantic acceptance is still in progress. Exact-device base maps
+> apply globally, with approved VS Code overrides on physical cells 5/6/8.
 
 ## Ethan's map
 
@@ -26,40 +34,137 @@ These are the currently authoritative Corsair assignments:
 
 | Control | Normal behaviour | VS Code behaviour |
 |---|---|---|
-| Wheel press | Play / Pause | Play / Pause |
-| DPI button | Disabled | Disabled |
-| Button 4 | VoiceInk++ speech-to-text | VoiceInk++ speech-to-text |
-| Button 5 | Forward | Forward |
-| Button 6 | Next Track | Next Track |
-| Button 7 | Horizontal scroll left | Better Git: Next Change |
-| Button 8 | Back | Better Git: Previous Change |
-| Button 9 | Previous Track | Previous Track |
-| Button 10 | Horizontal scroll right | Better Git: Stage Current File |
-| Button 12 | Multi-tap entry / exit | Multi-tap entry / exit |
+| Wheel press | Play / Pause through Karabiner | Same global action |
+| DPI button | VoiceInk++ speech-to-text; DPI remains fixed | Same global action |
+| Button 1 | Horizontal scroll left | Same global action |
+| Button 2 | Hold-open Switch App through native Karabiner | Same global action |
+| Button 3 | Start / cancel selected-area Screenshot | Same global action |
+| Button 4 | Horizontal scroll right | Same global action |
+| Button 5 | Forward | Previous Change through F17 |
+| Button 6 | App shortcut; silent when unconfigured | One-press Stage + Next through F18 |
+| Button 7 | Enter | Enter; inside Modes, selects Keypad |
+| Button 8 | Back | Next Change through F13 |
+| Button 9 | Open Keys mode | Open Keys mode |
+| Button 10 | Toggle Default mode legend; universal Exit in modes | Same global action |
+| Button 11 | Open the current frontmost app mode | Same global action |
+| Button 12 | Open Utility modes | Open Utility modes |
 | DPI stages, including Sniper | 2,750 DPI | 2,750 DPI |
 
-Buttons 1–3 and 11 are deliberately left open while the layout settles. That
-is a feature: an empty button is better than a shortcut you constantly trigger
-by accident.
+Button 6 is the fail-closed app-specific wildcard and button 9 opens the shared Keys mode. Ethan physically accepted button 2's
+native Karabiner hold-open Switch App behavior on both mice on 10 August 2026.
 
-See [the two-mouse setup guide](docs/MICE.md) for the matching Razer approach,
-how to capture its real button events, and the safety boundaries around vendor
-software.
+VS Code has three exact-device overrides: physical cell 5 emits non-repeating F17
+for Better Git Previous Change, cell 6 emits non-repeating F18 for one-press
+Stage + Next, and cell 8 emits non-repeating F13 for Next Change. Matching
+exclusions keep Forward/Back and the silent wildcard base semantics everywhere
+else; every untouched control continues to inherit the base.
+
+On the Razer, the lower DPI button's proven `F22` transport now toggles
+VoiceInk++ through an exact-device Karabiner rule; the upper `F21` transport is
+unchanged. This extra control does not alter the mirrored twelve-cell grid.
+
+See [the mouse map guide](docs/MICE.md) for the exact ownership boundaries and
+the safety rules around iCUE, Agentic Mouse and optional downstream automation.
+
+## Locked-session security
+
+Custom mouse commands fail closed whenever the macOS user session is inactive
+or locked. The menu-bar app renews a three-second absolute-expiry unlocked
+lease once per second from documented AppKit session notifications. Every
+generated Karabiner command checks that lease at match time and again when an
+output actually fires; while the lease is inactive, an exact-device sink
+consumes the Corsair and Razer side-grid, DPI, and custom wheel transports so
+their neutral keys cannot reach the lock screen.
+
+Lock, fast-user-switch, screen sleep, app failure, or lease-write failure exits
+all modes, hides every legend, and cancels pending text and delayed commands.
+Unlock restores only the idle runtime baseline. It never restores a previous
+mode or HUD. Ordinary pointer motion, scrolling, and primary/secondary clicks
+remain standard macOS input.
 
 ## What the included helper does
 
-The macOS menu-bar app adds two *optional* Corsair-only behaviours:
+The macOS menu-bar app adds four optional runtime behaviours:
 
-- **Multi-tap typing.** Button 12 turns the twelve-key thumb grid into a
-  classic phone keypad. It uses buffered, focus-anchored text delivery: if the
+- **Persistent Default mode legend.** Press physical cell 10 (Corsair 10 or
+  mirrored Razer 12) once to toggle the actual current twelve-button map on every
+  connected display. It takes no runtime mode lease and does not alter the
+  normal mappings or lighting.
+  The same canonical cells render with Corsair numbers after a Corsair press
+  and Razer numbers after a Razer press, so the HUD matches the mouse in hand.
+  A second press from that same mouse hides only its copies. The other mouse
+  owns an independent legend, so left and right HUDs can coexist.
+  All map and mode HUDs draw the physical top row first and the desk-side
+  `1/4/7/10` row last, matching the mouse instead of flipping it vertically.
+
+- **Modes and app-specific controls.** Press physical cell 12 (Corsair 12 or
+  Razer 10) to open the all-display Utility mode HUD; physical cell 10
+  (Corsair 10 / Razer 12) exits Utility or any child mode. In the menu, cell 1 lowers display brightness, cell 2
+  raises it, cells 3/6 move one Space left/right, and cell 8 rewinds
+  the selected YouTube target by five seconds through the VoiceInk YouTube
+  Bridge without focusing Chrome. Cells 4/5 send Command-Minus / Command-Plus
+  to zoom the frontmost app, cell 7 selects Keypad, and cell 9 opens Keys.
+  Inside Keys, cell 12 returns to Utility without exiting the mode lease.
+  Top-level cell 11 opens the current frontmost app's mode and refreshes it as
+  focus changes. Utility cell 11 opens the separate manual selector for Codex,
+  Chrome, and VS Code and locks the chosen target. App children keep cell 12
+  available for a real app action and use universal cell 10 to exit. Codex mode currently provides
+  New Task, Pin/Unpin, Mute/Unmute voice microphone, Start Voice Mode, Steer
+  Queued Message, Enter, Start New Voice Chat, and Reasoning Effort Up/Down by sending Codex's own
+  configured shortcuts directly to the running Codex process without bringing
+  it to the front. Chrome cell 1 sends Command-W directly to the running Chrome
+  process to close its current window; unassigned Chrome and VS Code cards stay Spare.
+  Every mode has its own bold, saturated colour. If the Default mode legend was already open, it is restored
+  after exit; otherwise the mode HUD closes.
+  Active-mode legends stay visible until physical cell 10 exits the mode; no
+  separate in-mode Show/Hide control consumes an action cell. Related controls
+  share one internal fill colour (Brightness, Zoom, Spaces, and the four arrow
+  keys), while the mode colour stays on every card border. Default mode uses
+  neutral white borders.
+  Utility cards deliberately show only the action title and the small printed
+  button label for the source mouse; explanatory subtitles are omitted.
+
+  Keys mode sends native non-repeating arrows from physical cells 1/4/5/7,
+  with the Razer's left/right meanings mirrored for its left-handed layout.
+  Cell 6 copies, cell 3 pastes, cell 9 sends Next Track, cell 8 sends Space,
+  and cell 11 sends Backspace through the active exact-device Karabiner layer.
+  Enter stays on the top-level cell 7 instead of being duplicated here. Its optional cell-2 password action reads a device-local,
+  When-Unlocked Keychain item only after the unlocked-session and Accessibility
+  gates pass, then types directly without using the clipboard or plaintext
+  configuration.
+
+- **Cancellable selected-area Screenshot.** Outside modes, physical cell 3
+  (Corsair 3 / Razer 1) starts the native macOS selection crosshair. Press the
+  same physical cell again while that interaction is still active to cancel
+  it. Completing the capture or pressing Escape ends that exact session, so a
+  later press always starts a fresh screenshot.
+
+- **Runtime lighting and reusable mode HUD.** The accepted colour-validation
+  mode is retired from the live mouse menu, so it consumes no button slot.
+  Its proven transient Corsair and Razer lighting controllers remain the
+  internal foundation for real modes: both mice use the accepted white idle
+  baseline, future mode colours remain non-persistent, and the large reusable
+  legend can show each mode's actual twelve-button map on every display. Every
+  card uses the current mode colour for its border and keeps its action colour
+  as the fill, so the active mode stays visually coherent without erasing
+  individual action identity.
+
+- **Keypad typing.** Open Utility with cell 12, then select Keypad with cell 7.
+  Cell 1 cycles punctuation, cells 2–9 use the classic ABC-through-WXYZ phone
+  letters with digit holds, including DEF on cell 3. Cell 10 exits; cell 11
+  cycles `abc → Abc → ABC → 123 → abc`; cell 12 is Space with hold-for-Return.
+  The HUD wraps cell 1's complete punctuation cycle so every symbol remains visible. It uses
+  buffered, focus-anchored text delivery: if the
   target app or text field changes, it drops the pending character rather than
   risking typing into the wrong place.
-- **Read-only Hue mirroring.** Two groups of Philips Hue lights can colour the
-  Scimitar's two LED zones. The implementation only reads the bridge; it cannot
-  modify a light.
 
-The helper never writes an iCUE profile, changes DPI, changes a Hue light or
-replaces a normal button assignment. When it quits, iCUE takes the mouse back.
+The helper never writes an iCUE profile, changes DPI or replaces a normal
+button assignment. Corsair runtime lighting is a process-lifetime shared layer;
+when the app quits, iCUE takes the Corsair back. iCUE's recoverable software
+fallback is a dim amber Solid layer, while the running app owns idle white.
+The live Razer route permits transient `NOSTORE` commands only and restores
+Spectrum Cycling on true teardown. Generated Karabiner output is installed only
+after linting, complete-config backup, and preservation comparison.
 
 ## Quick start
 
@@ -81,35 +186,21 @@ The command-line companion is deliberately diagnostic-first:
 ```bash
 swift run agentic-mouse-doctor config
 swift run agentic-mouse-doctor icue
+swift run agentic-mouse-doctor razer   # exact-interface read-only validation
 swift run agentic-mouse-doctor mapping
 ```
 
 It reports configuration and simulated behaviour. It does not rewrite iCUE,
-Hue, macOS permissions or vendor firmware.
+macOS permissions or vendor firmware.
 
-## Shared Karabiner action sources
+## Configuration ownership
 
-Named semantic actions live one per file under `Karabiner/actions/`. Physical
-button positions are deliberately separate in `Karabiner/bindings/`, so the
-Corsair and Razer can share meanings while keeping exact device-scoped
-transports. Run `make karabiner` to regenerate the catalog and installable
-complex-modification artifact; generated JSON must not be edited by hand.
-
-See [the Karabiner source and binding guide](Karabiner/README.md) for the
-ownership boundary, generator workflow, and the later physical-binding step.
-
-## The two supported routes
-
-| Mouse | Practical macOS route | Why |
+| Layer | Owner | Why |
 |---|---|---|
-| Corsair Scimitar Elite Wireless SE | iCUE for its device profile; Agentic Mouse for optional SDK-only features | iCUE exposes the Scimitar's macro keys and two LED zones. |
-| Razer Naga Left-Handed Edition (RZ01-0341) | Karabiner-Elements, with its real events captured in Karabiner-EventViewer | Current Razer Synapse for Mac does not list this model, and Razer documents a Synapse/Karabiner conflict. |
-
-The Razer recommendation is deliberately conservative: do not install Synapse
-for this model just to chase a profile editor. Capture the Naga's events in
-Karabiner-EventViewer, map only the buttons you want, and keep the same shared
-actions as the Corsair where physical reach makes sense. The full procedure is
-in [docs/MICE.md](docs/MICE.md).
+| Corsair hardware, DPI, profiles and neutral transports | iCUE | These are device-profile and hardware capabilities. |
+| Razer hardware transports | Naga onboard profile | The commissioned profile survives without a supported Mac editor. |
+| Enabled exact-device mappings | Karabiner | It owns the live semantic mapping after each source event is proven. |
+| Semantic action sources, generator and optional runtime modes | Agentic Mouse | The repository makes the shared behavior readable and reproducible without silently installing it. |
 
 ## Multi-tap, without the unsafe bit
 
@@ -124,18 +215,23 @@ physical pad (front → back)       phone keypad
                                   * 0 #
 ```
 
-Tap 2–9 for letters, hold for digits, use 10 for Backspace/case, 11 for
-Space/Return, and 12 to enter or leave the mode. While multi-tap is on, all
-twelve side keys are held by the helper; button 4 will not accidentally start
-dictation while you are trying to type a `g`.
+Tap 1 for punctuation, tap 2–9 for letters, hold 1–9 for digits, use cell 10
+to exit, tap 11 to cycle case/number state, and use 12 for Space or hold 12 for
+Return. While Keypad is on, all
+twelve side keys are held by the helper; the normal scroll, navigation and media
+actions stay suspended until you leave the mode.
+
+Outside a runtime mode, physical cell 3 toggles selected-area Screenshot:
+Corsair printed 3 / Razer printed 1. Physical cell 10 toggles the persistent
+Default mode legend: Corsair printed 10 / Razer printed 12. While a runtime
+mode is active, cell 10 exits it and its legend remains visible until exit.
 
 ## Safety model
 
-- **No hidden profile edits.** Configure iCUE or Karabiner visibly; the helper
-  never writes vendor databases or private profile files.
-- **No secret repository.** Bridge keys, light IDs, device IDs and serials stay
-  out of Git. The supplied configuration is placeholders only.
-- **No light control.** Hue traffic is read-only by type, not just by policy.
+- **No hidden profile edits.** Configure iCUE visibly; the helper never writes
+  vendor databases or private profile files.
+- **No private device data.** Device IDs and serials stay out of Git. The
+  supplied configuration contains safe defaults only.
 - **Fail closed typing.** Password fields, unknown focus and missing
   Accessibility permission produce no text.
 - **No device assumption.** The iCUE path refuses to guess when several
@@ -146,10 +242,11 @@ dictation while you are trying to type a `g`.
 ```text
 Sources/
   CICUEBridge/              Runtime bridge to the proprietary iCUE SDK
-  ScimitarKit/              Injectable Corsair, Hue, input and multi-tap core
+  ScimitarKit/              Injectable Corsair, input and multi-tap core
   ScimitarUI/               Non-activating HUD and menu-bar UI
   AgenticMouseApp/          The Agentic Mouse app entry point
   ScimitarDoctor/           Read-only diagnostics and simulator
+Karabiner/                  Shared actions, exact-device adapters and generated output
 Config/config.example.json  Safe placeholders only
 docs/                       Setup, safety notes and the public project page
 ```
@@ -162,8 +259,10 @@ configuration path and documentation are **Agentic Mouse**.
 
 | Guide | What it is for |
 |---|---|
-| [Mice](docs/MICE.md) | Two-mouse setup, authoritative map and Razer workflow |
-| [Setup](docs/SETUP.md) | Build, iCUE SDK, optional Hue pairing and permissions |
+| [Mouse map](docs/MICE.md) | Scimitar mapping and configuration ownership |
+| [Karabiner actions](Karabiner/README.md) | Shared semantic sources, generated Corsair adapter and verification boundary |
+| [Musixmatch extension](docs/MUSIXMATCH-EXTENSION.md) | Exact-origin plan for whole-song Play/Pause from a free Corsair control |
+| [Setup](docs/SETUP.md) | Build, iCUE SDK and permissions |
 | [Architecture](docs/ARCHITECTURE.md) | Components and invariants |
 | [Limitations](docs/LIMITATIONS.md) | What is not claimed to work |
 | [Recovery](docs/RECOVERY.md) | Cleanly getting back to normal |
@@ -172,10 +271,10 @@ configuration path and documentation are **Agentic Mouse**.
 
 ## Contributing your own layout
 
-Fork it, document the physical mouse and macOS version, use an event viewer to
-prove the transport before remapping it, and keep the map legible. If a finding
-is durable, update the relevant guide in the same change — future you should
-not have to rediscover it by pressing buttons.
+Fork it, document the physical mouse and macOS version, prove every transport
+before adding downstream automation, and keep the map legible. If a finding is
+durable, update the relevant guide in the same change — future you should not
+have to rediscover it by pressing buttons.
 
 ## License
 

@@ -1,0 +1,14 @@
+// Sends one non-repeating native Return/Enter key press.
+{
+  "id": "press-enter",
+  "title": "Enter",
+  "description": "Presses the native Return/Enter key exactly once.",
+  "manipulator": {
+    "to": [
+      {
+        "key_code": "return_or_enter",
+        "repeat": false
+      }
+    ]
+  }
+}
