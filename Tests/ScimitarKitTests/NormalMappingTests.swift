@@ -27,10 +27,14 @@ final class NormalMappingTests: XCTestCase {
         )
     }
 
-    func testSwitchAppIsOnSideButtonTwo() {
-        let assignment = ScimitarNormalMapping.normal.assignment(for: 2)
-        XCTAssertEqual(assignment?.action, "Switch App")
-        XCTAssertEqual(assignment?.implementation, "Karabiner action: hold-open-app-switcher")
+    func testUtilityLegendIsCellTwelveSwitchAppIsElevenAndExitIsTen() {
+        XCTAssertEqual(ScimitarNormalMapping.normal.assignment(for: 12)?.action, "Utility modes / Legend toggle")
+        XCTAssertEqual(ScimitarNormalMapping.normal.assignment(for: 11)?.action, "Switch App")
+        XCTAssertEqual(ScimitarNormalMapping.normal.assignment(for: 10)?.action, "Spare / mode exit")
+        XCTAssertEqual(PhysicalCell.defaultMapToggle.printedSide(on: .corsair), 12)
+        XCTAssertEqual(PhysicalCell.defaultMapToggle.printedSide(on: .razer), 10)
+        XCTAssertEqual(PhysicalCell.switchApp.printedSide(on: .corsair), 11)
+        XCTAssertEqual(PhysicalCell.switchApp.printedSide(on: .razer), 11)
     }
 
     func testForwardAndBackAreFiveAndEight() {
@@ -38,7 +42,7 @@ final class NormalMappingTests: XCTestCase {
         XCTAssertEqual(ScimitarNormalMapping.normal.assignment(for: 8)?.action, "Back")
     }
 
-    func testSevenPressesEnterThreeTakesScreenshotsAndTenShowsTheLegend() {
+    func testSevenPressesEnterThreeTakesScreenshotsAndElevenSwitchesApps() {
         XCTAssertEqual(ScimitarNormalMapping.normal.assignment(for: 7)?.action, "Enter")
         XCTAssertEqual(
             ScimitarNormalMapping.normal.assignment(for: 7)?.implementation,
@@ -52,28 +56,28 @@ final class NormalMappingTests: XCTestCase {
             ScimitarNormalMapping.normal.assignment(for: 3)?.implementation,
             "Agentic Mouse toggles the native selected-area screenshot session"
         )
-        XCTAssertEqual(ScimitarNormalMapping.normal.assignment(for: 10)?.action, "Legend toggle")
+        XCTAssertEqual(ScimitarNormalMapping.normal.assignment(for: 11)?.action, "Switch App")
         XCTAssertEqual(
-            ScimitarNormalMapping.normal.assignment(for: 10)?.implementation,
-            "Agentic Mouse persistent Default mode legend toggle; active modes use the same cell to exit"
+            ScimitarNormalMapping.normal.assignment(for: 11)?.implementation,
+            "Karabiner action: hold-open-app-switcher outside runtime modes"
         )
     }
 
-    func testSixIsTheAppShortcutAndNineOpensKeysMode() {
-        XCTAssertEqual(ScimitarNormalMapping.normal.assignment(for: 6)?.action, "App shortcut")
+    func testSixOpensKeysAndNineIsTheAppShortcut() {
+        XCTAssertEqual(ScimitarNormalMapping.normal.assignment(for: 6)?.action, "Keys mode")
         XCTAssertEqual(
             ScimitarNormalMapping.normal.assignment(for: 6)?.implementation,
-            "Karabiner suppresses the neutral transport by default; VS Code emits F18 Stage + Next"
+            "Exact-device Karabiner opens the shared native arrow-key mode; active cell 10 exits"
         )
-        XCTAssertEqual(ScimitarNormalMapping.normal.assignment(for: 9)?.action, "Keys mode")
+        XCTAssertEqual(ScimitarNormalMapping.normal.assignment(for: 9)?.action, "App shortcut")
         XCTAssertEqual(
             ScimitarNormalMapping.normal.assignment(for: 9)?.implementation,
-            "Exact-device Karabiner opens the shared native arrow-key mode; active cell 10 exits"
+            "Karabiner suppresses the neutral transport by default; VS Code emits Stage + Next and supports the configured double-click action"
         )
     }
 
-    func testCellElevenOpensTheCurrentFrontmostAppModeDirectly() {
-        let assignment = ScimitarNormalMapping.normal.assignment(for: 11)
+    func testCellTwoOpensTheCurrentFrontmostAppModeDirectly() {
+        let assignment = ScimitarNormalMapping.normal.assignment(for: 2)
         XCTAssertEqual(assignment?.action, "App-specific mode")
         XCTAssertEqual(
             assignment?.implementation,
@@ -123,10 +127,10 @@ final class NormalMappingTests: XCTestCase {
     func testCellTwelveOwnsTheUtilityModesEntry() {
         for profile in ScimitarNormalMapping.allProfiles {
             let toggle = profile.assignment(for: 12)
-            XCTAssertEqual(toggle?.action, "Utility modes")
+            XCTAssertEqual(toggle?.action, "Utility modes / Legend toggle")
             XCTAssertEqual(
                 toggle?.implementation,
-                "Exact-device Karabiner opens the shared Agentic Mouse Modes lease; active cell 10 exits"
+                "One press opens Utility; a rapid second press toggles the persistent Default legend"
             )
         }
     }

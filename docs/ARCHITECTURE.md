@@ -47,13 +47,20 @@ current Corsair adapter generates twelve side-cell manipulators plus one wheel
 binding from iCUE's keypad and physical-pointing namespaces. The separate Razer
 adapter generates the same base shape from its onboard main-row and
 physical-pointing namespaces, plus its lower-DPI VoiceInk binding. Physical
-cells 5, 6, and 8 also generate exact-device VS Code overrides with matching base
-exclusions; every other control inherits its ordinary action. Cell 6's ordinary
+cells 5, 8, and 9 also generate exact-device VS Code overrides with matching base
+exclusions; every other control inherits its ordinary action. Cell 9's ordinary
 action is deliberately a silent sink until another app override is configured. Generation never installs or
 enables rules as a side effect, and linted output is not physical proof. The
 Razer output was installed only after the returned exact device and ordered
 transport sequence were physically captured; downstream semantic behavior is
 still a separate physical acceptance gate.
+
+The physical-cell crosswalk is the semantic contract. Naming a printed Corsair
+or Razer button identifies its canonical physical cell; it does not create a
+device-specific action. A rapid double press of canonical cell 12 toggles that
+source mouse's Default legend, while canonical cell 11 holds open Switch App.
+Cell 10 is blank outside modes and remains the universal active-mode Exit. Only explicit hardware or handedness behavior,
+such as the Razer Keys-mode horizontal gesture reversal, may diverge.
 
 ### Locked-session security boundary
 
@@ -239,19 +246,20 @@ layout — 75% of the earlier 940-point experiment — so it remains a readable
 on-demand reference without wasting display space.
 
 One `ModePickerCoordinator` per exact `MouseSource` is the authoritative layer
-above individual modes. Physical cell 12 (Corsair 12 / Razer 10) opens
-that mouse's Utility page and expiring exact-device lease. While it is alive,
+above individual modes. A single press of physical cell 12 (Corsair 12 / Razer 10)
+opens that mouse's Utility page and expiring exact-device lease after the bounded
+double-press window; a rapid double press toggles the independent Default legend. While it is alive,
 all twelve transports feed one ordered press/release stream, independent of
 ordinary frontmost-app conditions. Universal physical cell 10 exits any active
-mode and toggles the persistent Default legend outside modes. Cell 7 selects Keypad. Top-level
-cell 11 opens a live frontmost-app child that refreshes on workspace activation;
+mode and is blank outside modes. Cell 7 selects Keypad. Top-level
+cell 2 opens a live frontmost-app child that refreshes on workspace activation;
 Utility cell 11 opens the separate configured-app selector and locks the chosen
 target without activation. App children keep cell 12 available for real app
-actions and use universal cell 10 to exit. Utility cell 9 opens Keys mode and
-Keys cell 12 returns to Utility. Within Keys, Corsair physical cells 5/4/7/1
+actions and use universal cell 10 to exit. Top-level cell 6 and Utility cell 9
+open Keys mode. Within Keys, Corsair physical cells 5/4/7/1
 emit Up/Down/Right/Left; the left-handed Razer swaps the horizontal meanings
 of cells 1 and 7. Cell 6 emits Copy, cell 3 emits Paste, cell 9 emits Next Track,
-cell 8 emits Space, and cell 11 emits Backspace through non-repeating exact-device
+cell 8 emits Space, cell 11 emits Backspace, and cell 12 emits Escape through non-repeating exact-device
 Karabiner output. Enter remains available on top-level cell 7 and is not duplicated in Keys.
 Within Keypad, cell 1 owns the complete punctuation cycle, cells 2–9 use the
 classic phone letter groups with digit holds, cell 11 cycles the shift state,
@@ -266,18 +274,20 @@ presenters, and lighting callbacks, so their HUDs and modes may coexist. Colour 
 its lighting source remains only as internal regression infrastructure.
 
 The same `ModeHUDSnapshot` and non-activating presenter supports the persistent
-ordinary Default mode legend. Cell 10 toggles it with one exact-device command
-and no lease or lighting change. Each source owns an independent legend; hiding
+ordinary Default mode legend. A rapid double press of shared physical cell 12
+toggles each source's respective copy with one exact-device command and no lease or lighting
+change. Each source owns an independent legend; hiding
 one never retargets or closes the other. Mode entry suspends only that source's panel; exit restores it only
 if it was already visible. Outside modes, cell 3 starts or cancels one native
 selected-area screenshot interaction; it is not a universal in-mode legend
 control. Mode HUDs and Keypad panels appear on all connected
 displays, use a distinct accent per mode, keep the actual function prominent,
 and show only the initiating mouse's small printed button label under each function.
-Every card border repeats the current mode accent, while related action pairs or
-groups share one internal fill colour; selection strengthens that mode-coloured
-border instead of introducing a competing hue. Default mode uses white borders
-as the neutral baseline.
+Every ordinary card border repeats the current mode accent, while related action
+pairs or groups share one internal fill colour. A card that enters another mode
+uses a thicker border in the destination mode's own accent; selection remains
+stronger still. Default mode uses white borders for ordinary actions as the
+neutral baseline.
 
 The colour-proof coordinator defaults both its idle and absolute timeouts to
 zero, so the mode and HUD remain active until the entry cell explicitly exits.

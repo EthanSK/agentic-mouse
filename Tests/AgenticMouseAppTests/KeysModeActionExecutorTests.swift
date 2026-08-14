@@ -35,11 +35,12 @@ final class KeysModeActionExecutorTests: XCTestCase {
 
         XCTAssertEqual(
             events.map(\.0),
-            [126, 126, 125, 125, 123, 123, 124, 124, 49, 49, 51, 51]
+            [126, 126, 125, 125, 123, 123, 124, 124, 49, 49, 51, 51, 53, 53]
         )
         XCTAssertEqual(
             events.map(\.1),
             [
+                true, false,
                 true, false,
                 true, false,
                 true, false,

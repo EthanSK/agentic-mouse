@@ -49,27 +49,40 @@ KEYS_MODE_OUTPUT_BY_PHYSICAL_CELL = {
     8: {"key_code": "spacebar", "repeat": False},
     9: {"consumer_key_code": "scan_next_track", "repeat": False},
     11: {"key_code": "delete_or_backspace", "repeat": False},
+    12: {"key_code": "escape", "repeat": False},
 }
 RAZER_KEYS_MODE_OUTPUT_OVERRIDES = {
     1: {"key_code": "right_arrow", "repeat": False},
     7: {"key_code": "left_arrow", "repeat": False},
 }
+RAZER_UTILITY_MODE_OUTPUT_OVERRIDES = {
+    3: {
+        "key_code": "right_arrow",
+        "modifiers": ["left_control"],
+        "repeat": False,
+    },
+    6: {
+        "key_code": "left_arrow",
+        "modifiers": ["left_control"],
+        "repeat": False,
+    },
+}
 UTILITY_MODE_OUTPUT_BY_PHYSICAL_CELL = {
-    1: {"consumer_key_code": "display_brightness_decrement", "repeat": False},
-    2: {"consumer_key_code": "display_brightness_increment", "repeat": False},
+    1: {"consumer_key_code": "display_brightness_increment", "repeat": False},
+    2: {
+        "key_code": "equal_sign",
+        "modifiers": ["left_command", "left_shift"],
+        "repeat": False,
+    },
     3: {
         "key_code": "left_arrow",
         "modifiers": ["left_control"],
         "repeat": False,
     },
-    4: {
+    4: {"consumer_key_code": "display_brightness_decrement", "repeat": False},
+    5: {
         "key_code": "hyphen",
         "modifiers": ["left_command"],
-        "repeat": False,
-    },
-    5: {
-        "key_code": "equal_sign",
-        "modifiers": ["left_command", "left_shift"],
         "repeat": False,
     },
     6: {
@@ -560,7 +573,7 @@ def build_documents(
             sort_id = f"{binding['id']}:{index}"
             grouped[rule_name].append((sort_id, manipulator))
             proof_manipulator = copy.deepcopy(manipulator)
-            # Direct top-level entry through physical cells 9 or 11 needs the
+            # Direct top-level entry through physical cells 6 or 2 needs the
             # same fail-closed bootstrap as the cell-12 Utility entry. Without
             # it, a rapid second press can reach the ordinary base before the
             # app receives the command and writes its renewable lease.
@@ -862,7 +875,11 @@ def build_mode_picker_rule(
                 if source == "razer"
                 else None
             ) or KEYS_MODE_OUTPUT_BY_PHYSICAL_CELL.get(physical_cell)
-            native_utility_output = UTILITY_MODE_OUTPUT_BY_PHYSICAL_CELL.get(physical_cell)
+            native_utility_output = (
+                RAZER_UTILITY_MODE_OUTPUT_OVERRIDES.get(physical_cell)
+                if source == "razer"
+                else None
+            ) or UTILITY_MODE_OUTPUT_BY_PHYSICAL_CELL.get(physical_cell)
             if native_output is not None:
                 ordinary_conditions.append(
                     {
@@ -898,14 +915,6 @@ def build_mode_picker_rule(
                         "expression": f"{page_variable} == {MODE_PAGE_UTILITY}",
                     }
                 )
-            if physical_cell == 12:
-                for reserved_page in (MODE_PAGE_KEYS, MODE_PAGE_APP_SPECIFIC):
-                    ordinary_conditions.append(
-                        {
-                            "type": "expression_unless",
-                            "expression": f"{page_variable} == {reserved_page}",
-                        }
-                    )
             if physical_cell in APP_SELECTOR_TARGET_CELLS:
                 ordinary_conditions.append(
                     {
@@ -997,34 +1006,6 @@ def build_mode_picker_rule(
                     }
                 )
 
-            if physical_cell == 12:
-                utility_navigation_conditions = device_conditions(
-                    binding,
-                    source=source,
-                    active=True,
-                )
-                utility_navigation_conditions.append(
-                    {
-                        "type": "expression_if",
-                        "expression": f"{page_variable} == {MODE_PAGE_KEYS}",
-                    }
-                )
-                manipulators.append(
-                    {
-                        "type": "basic",
-                        "from": copy.deepcopy(binding["from"]),
-                        "to": [
-                            {
-                                "set_variable": {
-                                    "name": page_variable,
-                                    "value": MODE_PAGE_UTILITY,
-                                }
-                            },
-                            command_event("select", source, physical_cell, "press"),
-                        ],
-                        "conditions": utility_navigation_conditions,
-                    }
-                )
             if physical_cell == 7:
                 keypad_conditions = device_conditions(binding, source=source, active=True)
                 keypad_conditions.append(
@@ -1100,33 +1081,80 @@ def build_mode_picker_rule(
                     }
                 )
 
+    def default_legend_event(source: str) -> dict[str, Any]:
+        return {
+            "send_user_command": {
+                "payload": {
+                    "command": "agentic_mouse_default_map_toggle",
+                    "source": source,
+                    "physical_cell": entry_index + 1,
+                }
+            },
+            "repeat": False,
+        }
+
     for source in ("corsair", "razer"):
         variable = variables_by_source[source]
         page_variable = page_variables_by_source[source]
         binding = by_id[mode_picker["bindingsBySource"][source][entry_index]]
+        pending_variable = f"agentic_mouse_{source}_utility_or_legend_pending"
+        inactive_conditions = device_conditions(binding, source=source, active=False)
+
+        # A rapid second press chooses the persistent Default legend and clears
+        # the pending single press before Karabiner can open Utility.
         manipulators.append(
             {
                 "type": "basic",
                 "from": copy.deepcopy(binding["from"]),
                 "to": [
-                    {
-                        "set_variable": {
-                            "name": variable,
-                            "expression": (
-                                "system.now.milliseconds + "
-                                f'{mode_picker["bootstrapMilliseconds"]}'
-                            ),
-                        }
-                    },
-                    {
-                        "set_variable": {
-                            "name": page_variable,
-                            "value": MODE_PAGE_UTILITY,
-                        }
-                    },
-                    command_event("open", source, entry_index + 1),
+                    {"set_variable": {"name": pending_variable, "value": False}},
+                    default_legend_event(source),
                 ],
-                "conditions": device_conditions(binding, source=source, active=False),
+                "conditions": inactive_conditions
+                + [{"type": "variable_if", "name": pending_variable, "value": True}],
+            }
+        )
+
+        pending_condition = {
+            "type": "variable_if",
+            "name": pending_variable,
+            "value": True,
+        }
+        open_events = [
+            {
+                "set_variable": {
+                    "name": variable,
+                    "expression": (
+                        "system.now.milliseconds + "
+                        f'{mode_picker["bootstrapMilliseconds"]}'
+                    ),
+                },
+                "conditions": [copy.deepcopy(pending_condition)],
+            },
+            {
+                "set_variable": {
+                    "name": page_variable,
+                    "value": MODE_PAGE_UTILITY,
+                },
+                "conditions": [copy.deepcopy(pending_condition)],
+            },
+            {**command_event("open", source, entry_index + 1), "conditions": [copy.deepcopy(pending_condition)]},
+            {"set_variable": {"name": pending_variable, "value": False}},
+        ]
+        manipulators.append(
+            {
+                "type": "basic",
+                "from": copy.deepcopy(binding["from"]),
+                "to": [
+                    {"set_variable": {"name": pending_variable, "value": True}},
+                ],
+                "to_delayed_action": {
+                    "to_if_invoked": copy.deepcopy(open_events),
+                    "to_if_canceled": copy.deepcopy(open_events),
+                },
+                "parameters": {"basic.to_delayed_action_delay_milliseconds": 300},
+                "conditions": inactive_conditions
+                + [{"type": "variable_unless", "name": pending_variable, "value": True}],
             }
         )
 

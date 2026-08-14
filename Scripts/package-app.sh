@@ -22,6 +22,75 @@ APP_DIR="${BUILD_DIR}/${APP_NAME}.app"
 CONFIGURATION="${CONFIGURATION:-release}"
 CODE_SIGN_IDENTITY="${CODE_SIGN_IDENTITY:--}"
 INSTALL_CANDIDATE="${INSTALL_CANDIDATE:-0}"
+INFO_PLIST="${REPO_ROOT}/Resources/Info.plist"
+CURRENT_MARKETING_VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "${INFO_PLIST}")"
+CURRENT_BUILD_VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "${INFO_PLIST}")"
+REQUESTED_RELEASE_VERSION="${RELEASE_VERSION:-}"
+
+if [[ ! "${CURRENT_MARKETING_VERSION}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] \
+  || [[ ! "${CURRENT_BUILD_VERSION}" =~ ^[1-9][0-9]*$ ]]; then
+  printf '\033[31m error:\033[0m invalid app version metadata in %s.\n' "${INFO_PLIST}" >&2
+  exit 65
+fi
+
+version_is_greater() {
+  local candidate="$1"
+  local current="$2"
+  local candidate_major candidate_minor candidate_patch
+  local current_major current_minor current_patch
+  IFS=. read -r candidate_major candidate_minor candidate_patch <<< "${candidate}"
+  IFS=. read -r current_major current_minor current_patch <<< "${current}"
+  local candidate_parts=("${candidate_major}" "${candidate_minor}" "${candidate_patch}")
+  local current_parts=("${current_major}" "${current_minor}" "${current_patch}")
+  local index
+  for index in 0 1 2; do
+    if (( 10#${candidate_parts[$index]} > 10#${current_parts[$index]} )); then
+      return 0
+    fi
+    if (( 10#${candidate_parts[$index]} < 10#${current_parts[$index]} )); then
+      return 1
+    fi
+  done
+  return 1
+}
+
+IFS=. read -r CURRENT_MAJOR CURRENT_MINOR CURRENT_PATCH <<< "${CURRENT_MARKETING_VERSION}"
+DEFAULT_NEXT_MARKETING_VERSION="${CURRENT_MAJOR}.${CURRENT_MINOR}.$((10#${CURRENT_PATCH} + 1))"
+NEXT_INSTALL_MARKETING_VERSION="${REQUESTED_RELEASE_VERSION:-${DEFAULT_NEXT_MARKETING_VERSION}}"
+
+if [[ ! "${NEXT_INSTALL_MARKETING_VERSION}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+  printf '\033[31m error:\033[0m release version must use numeric major.minor.patch.\n' >&2
+  exit 65
+fi
+if ! version_is_greater "${NEXT_INSTALL_MARKETING_VERSION}" "${CURRENT_MARKETING_VERSION}"; then
+  printf '\033[31m error:\033[0m the next install version %s must be greater than the recorded version %s.\n' \
+    "${NEXT_INSTALL_MARKETING_VERSION}" "${CURRENT_MARKETING_VERSION}" >&2
+  exit 65
+fi
+
+PACKAGE_MARKETING_VERSION="${CURRENT_MARKETING_VERSION}"
+PACKAGE_BUILD_VERSION="${CURRENT_BUILD_VERSION}"
+if [[ "${INSTALL_CANDIDATE}" == "1" ]]; then
+  PACKAGE_MARKETING_VERSION="${NEXT_INSTALL_MARKETING_VERSION}"
+  PACKAGE_BUILD_VERSION="$((CURRENT_BUILD_VERSION + 1))"
+fi
+PACKAGE_VERSION_LABEL="v${PACKAGE_MARKETING_VERSION} (${PACKAGE_BUILD_VERSION})"
+
+case "${1:-}" in
+  --print-version)
+    printf 'v%s (%s)\n' "${CURRENT_MARKETING_VERSION}" "${CURRENT_BUILD_VERSION}"
+    exit 0
+    ;;
+  --print-next-install-version)
+    printf 'v%s (%s)\n' "${NEXT_INSTALL_MARKETING_VERSION}" "$((CURRENT_BUILD_VERSION + 1))"
+    exit 0
+    ;;
+  "") ;;
+  *)
+    printf 'usage: %s [--print-version|--print-next-install-version]\n' "$0" >&2
+    exit 64
+    ;;
+esac
 
 if [[ "${INSTALL_CANDIDATE}" == "1" && "${CODE_SIGN_IDENTITY}" == "-" ]]; then
   printf '\033[31m error:\033[0m INSTALL_CANDIDATE=1 requires a stable Developer ID identity; refusing an ad-hoc bundle that would invalidate Accessibility trust.\n' >&2
@@ -39,7 +108,7 @@ swift build --package-path "${REPO_ROOT}" -c "${CONFIGURATION}"
 
 BIN_PATH="$(swift build --package-path "${REPO_ROOT}" -c "${CONFIGURATION}" --show-bin-path)"
 
-log "Assembling ${APP_NAME}.app"
+log "Assembling ${APP_NAME}.app ${PACKAGE_VERSION_LABEL}"
 rm -rf "${APP_DIR}"
 mkdir -p "${APP_DIR}/Contents/MacOS"
 mkdir -p "${APP_DIR}/Contents/Resources"
@@ -47,7 +116,11 @@ mkdir -p "${APP_DIR}/Contents/Frameworks"
 
 cp "${BIN_PATH}/agentic-mouse" "${APP_DIR}/Contents/MacOS/${APP_NAME}"
 cp "${BIN_PATH}/agentic-mouse-doctor" "${APP_DIR}/Contents/MacOS/agentic-mouse-doctor"
-cp "${REPO_ROOT}/Resources/Info.plist" "${APP_DIR}/Contents/Info.plist"
+cp "${INFO_PLIST}" "${APP_DIR}/Contents/Info.plist"
+bash "${REPO_ROOT}/Scripts/update-app-version.sh" \
+  "${APP_DIR}/Contents/Info.plist" \
+  "${PACKAGE_MARKETING_VERSION}" \
+  "${PACKAGE_BUILD_VERSION}"
 
 # The app dlopen()s the SDK from Contents/Frameworks first, so no rpath or
 # install_name surgery is needed.
@@ -93,7 +166,24 @@ if ! codesign --verify --deep --strict "${APP_DIR}"; then
   exit 1
 fi
 
-log "Done: ${APP_DIR}"
+if [[ "${INSTALL_CANDIDATE}" == "1" ]]; then
+  # Record the exact successfully signed candidate only after all packaging and
+  # signature gates pass. A failed candidate never consumes either version.
+  LATEST_MARKETING_VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "${INFO_PLIST}")"
+  LATEST_BUILD_VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "${INFO_PLIST}")"
+  if [[ "${LATEST_MARKETING_VERSION}" != "${CURRENT_MARKETING_VERSION}" \
+    || "${LATEST_BUILD_VERSION}" != "${CURRENT_BUILD_VERSION}" ]]; then
+    printf '\033[31m error:\033[0m source version changed during packaging; refusing to advance it or approve this candidate.\n' >&2
+    exit 75
+  fi
+  bash "${REPO_ROOT}/Scripts/update-app-version.sh" \
+    "${INFO_PLIST}" \
+    "${PACKAGE_MARKETING_VERSION}" \
+    "${PACKAGE_BUILD_VERSION}"
+  log "Recorded signed candidate ${PACKAGE_VERSION_LABEL}"
+fi
+
+log "Done: ${APP_DIR} (${PACKAGE_VERSION_LABEL})"
 if [[ "${CODE_SIGN_IDENTITY}" == "-" ]]; then
   cat <<EOF
 

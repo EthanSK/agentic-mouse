@@ -6,14 +6,22 @@ import Foundation
 public struct ModeHUDLegendItem: Equatable, Hashable, Sendable {
     public let cell: PhysicalCell
     public let actionTitle: String
-    public let detail: String?
     public let accent: RGBColor
+    /// Set only when this card opens another mode or submenu. The destination
+    /// colour replaces the ordinary current-mode border and receives stronger
+    /// perimeter emphasis, while `accent` remains the card's action fill.
+    public let destinationModeAccent: RGBColor?
 
-    public init(cell: PhysicalCell, actionTitle: String, detail: String? = nil, accent: RGBColor) {
+    public init(
+        cell: PhysicalCell,
+        actionTitle: String,
+        accent: RGBColor,
+        destinationModeAccent: RGBColor? = nil
+    ) {
         self.cell = cell
         self.actionTitle = actionTitle
-        self.detail = detail
         self.accent = accent
+        self.destinationModeAccent = destinationModeAccent
     }
 
 }
@@ -22,31 +30,19 @@ public struct ModeHUDLegendItem: Equatable, Hashable, Sendable {
 ///
 /// This is deliberately presentation-only. Runtime lighting continues to use
 /// the mode's saturated identity colour, while the HUD can render that same
-/// identity as a neutral reference, a fully opaque control surface, or a
-/// softer app-specific pastel.
+/// identity as a neutral reference or a fully opaque control surface.
 public enum ModeHUDPresentationStyle: String, Equatable, Sendable {
     case neutral
     case boldOpaque
-    case pastel
 
     public var requiresOpaqueWindow: Bool { self != .neutral }
 
     public func displayAccent(_ color: RGBColor) -> RGBColor {
-        switch self {
-        case .neutral, .boldOpaque:
-            return color
-        case .pastel:
-            return color.blended(with: .white, amount: 0.58)
-        }
+        color
     }
 
     public func cardFill(_ color: RGBColor) -> RGBColor {
-        switch self {
-        case .neutral, .boldOpaque:
-            return color
-        case .pastel:
-            return color.blended(with: .white, amount: 0.68)
-        }
+        color
     }
 
     public func cardForeground(for fill: RGBColor) -> RGBColor {
@@ -59,9 +55,10 @@ public enum ModeHUDPresentationStyle: String, Equatable, Sendable {
 
 /// The two independent colour roles of one HUD card.
 ///
-/// The mode colour forms a consistent perimeter across the whole grid, while
-/// the action colour remains inside the card. This makes the active mode
-/// legible at a glance without discarding per-action distinctions.
+/// The mode colour forms the ordinary perimeter across the grid, while the
+/// action colour remains inside the card. Navigation cards deliberately use
+/// the destination mode's colour as a stronger perimeter so the next submenu
+/// is legible before it is opened.
 public struct ModeHUDCardColors: Equatable, Sendable {
     public let border: RGBColor
     public let fill: RGBColor
@@ -70,11 +67,33 @@ public struct ModeHUDCardColors: Equatable, Sendable {
     public init(
         modeAccent: RGBColor,
         actionAccent: RGBColor,
+        destinationModeAccent: RGBColor? = nil,
         presentationStyle: ModeHUDPresentationStyle = .neutral
     ) {
-        border = presentationStyle.displayAccent(modeAccent)
+        border = presentationStyle.displayAccent(destinationModeAccent ?? modeAccent)
         fill = presentationStyle.cardFill(actionAccent)
         foreground = presentationStyle.cardForeground(for: fill)
+    }
+}
+
+/// Border strength for an ordinary action, a mode-navigation card, or the
+/// currently selected action. Navigation remains visibly stronger than an
+/// ordinary card without competing with selection feedback.
+public struct ModeHUDCardBorderTreatment: Equatable, Sendable {
+    public let opacity: Double
+    public let lineWidth: Double
+
+    public init(isSelected: Bool, isModeNavigation: Bool) {
+        if isSelected {
+            opacity = 1
+            lineWidth = 3.75
+        } else if isModeNavigation {
+            opacity = 1
+            lineWidth = 3.0
+        } else {
+            opacity = 0.9
+            lineWidth = 2.25
+        }
     }
 }
 
@@ -87,11 +106,12 @@ public enum ModeHUDLayoutMetrics {
 
 /// Shared fill colours for semantically related HUD actions.
 ///
-/// A mode's accent remains the perimeter of every card. Inside that perimeter,
-/// controls that form one pair or directional group deliberately share one
-/// fill colour, while unrelated controls keep distinct fills. New modes should
-/// reuse an existing family or add one explicit family rather than choosing
-/// per-button colours independently.
+/// A mode's accent remains the ordinary card perimeter. A card that opens a
+/// different mode uses that destination mode's accent instead. Inside either
+/// perimeter, controls that form one pair or directional group deliberately
+/// share one fill colour, while unrelated controls keep distinct fills. New
+/// modes should reuse an existing family or add one explicit family rather
+/// than choosing per-button colours independently.
 public enum ModeHUDActionFamilyPalette {
     public static let horizontalScroll = RGBColor(red: 42, green: 201, blue: 224)
     public static let historyNavigation = RGBColor(red: 78, green: 151, blue: 255)
@@ -132,14 +152,33 @@ public enum ModeHUDCopy {
 public struct ModeHUDSelection: Equatable, Sendable {
     public let cell: PhysicalCell
     public let title: String
-    public let detail: String?
     public let accent: RGBColor
 
-    public init(cell: PhysicalCell, title: String, detail: String? = nil, accent: RGBColor) {
+    public init(cell: PhysicalCell, title: String, accent: RGBColor) {
         self.cell = cell
         self.title = title
-        self.detail = detail
         self.accent = accent
+    }
+}
+
+/// Short-lived, truthful action feedback rendered in the HUD footer.
+///
+/// `confirmed` means Agentic Mouse observed the destination application's own
+/// state change. `informational` only describes a dispatched command, and
+/// `notConfirmed` explicitly refuses to present an ambiguous result as success.
+public struct ModeHUDFeedback: Equatable, Sendable {
+    public enum Tone: Equatable, Sendable {
+        case confirmed
+        case informational
+        case notConfirmed
+    }
+
+    public let message: String
+    public let tone: Tone
+
+    public init(message: String, tone: Tone) {
+        self.message = message
+        self.tone = tone
     }
 }
 
@@ -196,6 +235,7 @@ public protocol ModeHUDPresenting: AnyObject {
     func update(_ snapshot: ModeHUDSnapshot)
     func hide()
     func flashProblem(_ message: String)
+    func flashFeedback(_ feedback: ModeHUDFeedback)
     var isVisible: Bool { get }
 }
 
@@ -205,6 +245,7 @@ public final class RecordingModeHUDPresenter: ModeHUDPresenting {
     public private(set) var hideCount = 0
     public private(set) var snapshots: [ModeHUDSnapshot] = []
     public private(set) var problems: [String] = []
+    public private(set) var feedback: [ModeHUDFeedback] = []
 
     public init() {}
 
@@ -223,4 +264,5 @@ public final class RecordingModeHUDPresenter: ModeHUDPresenting {
     }
 
     public func flashProblem(_ message: String) { problems.append(message) }
+    public func flashFeedback(_ item: ModeHUDFeedback) { feedback.append(item) }
 }

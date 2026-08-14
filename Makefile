@@ -1,7 +1,7 @@
 .DEFAULT_GOAL := help
 SHELL := /bin/bash
 
-.PHONY: help build release test test-extension test-karabiner test-verbose clean app doctor keymap mapping simulate karabiner check
+.PHONY: help build release test test-extension test-karabiner test-packaging test-verbose clean app doctor keymap mapping simulate karabiner check
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
@@ -18,6 +18,9 @@ test: ## Run the hardware-free test suite
 
 test-extension: ## Test the fail-closed Musixmatch Chrome extension
 	node --test extensions/musixmatch-playback/tests/*.test.mjs
+
+test-packaging: ## Test monotonic marketing/build versions for signed candidates
+	bash Tests/PackagingTests/test-app-version.sh
 
 karabiner: ## Generate the Karabiner adapter and action catalog
 	python3 Scripts/generate-karabiner.py
@@ -37,8 +40,9 @@ test-karabiner: ## Validate semantic action sources and generated Karabiner JSON
 test-verbose: ## Run tests with full output
 	swift test --verbose
 
-check: clean build test test-extension test-karabiner ## Clean build followed by the full test suite
+check: clean build test test-extension test-karabiner test-packaging ## Clean build followed by the full test suite
 	bash -n Scripts/package-app.sh
+	bash -n Scripts/update-app-version.sh
 	@echo "clean build + tests passed"
 
 clean: ## Remove build products

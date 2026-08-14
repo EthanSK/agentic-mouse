@@ -16,16 +16,16 @@ temporary lighting, but it does not write iCUE settings.
 | Top DPI button | iCUE F19 neutral transport → exact-device Karabiner VoiceInk++ on release; all DPI stages remain 2,750 |
 | Button 3 | Start / cancel selected-area Screenshot outside modes; mode-specific action inside modes |
 | Button 1 | Horizontal scroll left in every app |
-| Button 2 | Hold-open Switch App through native Karabiner |
+| Button 2 | Open the current frontmost app mode |
 | Button 4 | Horizontal scroll right in every app |
 | Button 5 | Forward; VS Code overrides it to Previous Change through F17 |
 | Button 7 | Enter; selects Keypad inside Modes |
 | Button 8 | Back; VS Code overrides it to Next Change through F13 |
-| Button 6 | App-specific wildcard; silent by default, VS Code Stage + Next through F18 |
-| Button 9 | Open Keys mode |
-| Button 10 | Legend toggle outside modes; universal Exit inside modes |
-| Button 11 | Open the current frontmost app mode |
-| Button 12 | Open Utility modes |
+| Button 6 | Open Keys mode |
+| Button 9 | App-specific wildcard; silent by default, VS Code single Stage + Next through F18 and rapid-double exact undo through F16 |
+| Button 10 | Blank outside modes; universal Exit inside modes |
+| Button 11 | Hold-open Switch App |
+| Button 12 | Single press: Utility; rapid double press: persistent Default legend |
 | Every DPI stage | 2,750 DPI |
 
 Ethan physically accepted the Corsair wheel's Karabiner-owned Play/Pause
@@ -33,11 +33,11 @@ behavior on 9 August 2026 after **Modify events** was enabled for its exact
 physical pointing interface. The equivalent Razer wheel remains separately
 unaccepted until that mouse is reconnected and tested.
 
-Button 6 is the fail-closed app-specific wildcard, while button 9 opens shared Keys mode.
+Button 9 is the fail-closed app-specific wildcard, while button 6 opens shared Keys mode.
 Inside Keys, cell 6 copies, cell 3 pastes, and cell 9 owns Next Track.
 Normal behavior
 stays normal unless a mode is deliberately entered or the three approved VS Code
-overrides apply to physical cells 5, 6, and 8.
+overrides apply to physical cells 5, 8, and 9.
 
 Switch App uses Karabiner's native output lifecycle. The action sends one
 self-contained Command-Tab first, then places a repeat-enabled bare left Command
@@ -47,16 +47,20 @@ accepted this hold-open behavior on the exact Corsair and Razer rules on
 permission.
 
 In VS Code only, physical cell 5 emits non-repeating F17 for Better Git Previous
-Change, physical cell 6 emits non-repeating F18 for one-press Stage + Next, and
-physical cell 8 emits non-repeating F13 for Next Change. Matching base
+Change, physical cell 9 uses a bounded F18 single press for Stage + Next and F16
+rapid double press for its exact undo, and physical cell 8 emits non-repeating
+F13 for Next Change. Matching base
 exclusions preserve Forward, Back, and a silent wildcard everywhere else; every
 untouched control continues to inherit the exact-device base.
 
 Physical cell 3 starts or cancels the selected-area Screenshot interaction:
 Corsair printed 3 and mirrored Razer printed 1. Runtime pages own it only while
 active: Space Left in Utility, Paste in Keys, DEF in Keypad, or Spare when
-the current app page has no assignment. Physical cell 10 toggles the persistent Default mode legend outside modes and remains
-the universal Exit inside modes: Corsair printed 10 / Razer printed 12.
+the current app page has no assignment. A rapid double press of shared physical
+cell 12 (Corsair printed 12 / Razer printed 10) toggles the Default legend outside
+modes, while a single press opens Utility. Canonical physical cell 11 owns Switch
+App outside modes. Cell 10 remains the universal Exit inside modes (Corsair
+printed 10 / Razer printed 12) and is blank outside modes.
 
 ### Musixmatch Pro continuous playback
 
@@ -73,7 +77,7 @@ The extension will accept only that trusted press and directly activate the
 real whole-song Play/Pause control on Musixmatch Pro; it will not synthesize
 `Tab` and it will not run on unrelated Chrome pages.
 
-Button 2 is only the current ergonomic proposal. Although it looked unassigned
+Any currently unassigned button is only a proposal. Although a control may look unassigned
 in the inspected iCUE view, it is not considered free until every relevant
 profile and its real EventViewer output have been checked. No Musixmatch mouse
 assignment is live until the free button, transport, exact semantic control,

@@ -45,44 +45,47 @@ rules or expiry gates.
 
 `action-catalog.json` proves which action definitions were discovered and is
 useful for review or future UI work. It is not installed into Karabiner. The
-base complex-modification file currently contains 67 manipulators across the
+base complex-modification file currently contains 69 manipulators across the
 locked-session sink, the two base rules, and the two VS Code overrides. The
-runtime artifact adds one 70-manipulator Modes layer for 137 total. Colour Proof
+runtime artifact adds one 72-manipulator Modes layer for 141 total. Colour Proof
 is no longer generated as a live rule. The two artifacts are alternatives, not
-files to enable together. Physical cells 5, 6, and 8 have app-specific
+files to enable together. Physical cells 5, 8, and 9 have app-specific
 duplicates; matching base exclusions preserve Forward/Back plus the silent
-cell-6 wildcard outside VS Code.
+cell-9 wildcard outside VS Code.
 
 ## Persistent default-map reference
 
-Each base adapter sends one non-repeating `agentic_mouse_default_map_toggle`
-command from canonical physical cell 10: Corsair `keypad_0` / printed 10 and
-Razer `equal_sign` / printed 12. This persistent HUD takes no mode lease and
+Both exact-device bases classify canonical physical cell 12
+(Corsair printed 12 / Razer printed 10): a single press sends the Utility entry
+after the bounded 300 ms window, while a rapid double press sends the source-specific
+`agentic_mouse_default_map_toggle` command. Canonical cell 11 owns the native
+hold-open Switch App action outside modes. Cell 10 is blank outside modes and
+remains universal Exit while its mode lease is active. This persistent HUD takes no mode lease and
 does not alter lighting. Each mouse owns an independent legend, so one mouse's
 press never retargets or closes the other mouse's panel. Physical cell 12
-remains suppressed in the ordinary base because the expiring Modes rule owns
-its inactive Utility entry; universal physical cell 10 owns active exit instead
-of the base legend command while that mouse's mode lease is active. Physical
+remains suppressed in the ordinary base because the runtime rule owns its
+inactive Utility/default-legend classifier; universal physical cell 10 owns active exit
+while that mouse's mode lease is active. Physical
 cell 3 sends a source-specific screenshot-toggle command outside modes.
 
 ## Expiring Modes system
 
-Physical cell 12 opens the shared Modes lease: Corsair printed 12 or Razer
-printed 10. While active, all twelve exact-device transports send ordered
+Physical cell 12 opens the shared Modes lease after its single-press window:
+Corsair printed 12 or Razer printed 10. While active, all twelve exact-device transports send ordered
 press/release `agentic_mouse_mode_picker` payloads, independent of frontmost-app
-base conditions. Cell 7 selects Keypad; top-level cell 11 opens the current
+base conditions. Cell 7 selects Keypad; top-level cell 2 opens the current
 frontmost app's mode, while Utility cell 11 opens the manual configured-app
 selector. Cell 10 exits from every page; app children keep cell 12 available
-for a real app action. Utility cell 9 opens Keys and Keys cell 12 returns to
-Utility. Utility uses cells 1/2 for brightness down/up, 3/6 for Space left/right,
-and 4/5 for zoom out/in. Keys uses cell 6 for Copy, cell 3 for Paste, cell 9
-for Next Track, cell 8 for Space, and cell 11 for Backspace. Its four arrows
+for a real app action. Top-level cell 6 and Utility cell 9 open Keys. Utility
+uses cells 1/4 for brightness up/down, 2/5 for zoom in/out, and 3/6 for Space
+left/right. Keys uses cell 6 for Copy, cell 3 for Paste, cell 9 for Next Track,
+cell 8 for Space, cell 11 for Backspace, and cell 12 for Escape. Its four arrows
 use cells 5/4/7/1 on Corsair, with horizontal meanings mirrored on the
 left-handed Razer. Active-mode legends remain visible until cell 10 exits;
 Keypad cell 1 cycles punctuation, cell 3 is the familiar DEF key, cell 11 cycles
 `abc → Abc → ABC → 123 → abc`, and cell 12 sends Space or hold-for-Return.
-Utility cards omit explanatory subtitles and retain only the action title plus
-the source-mouse button label.
+Every Default and runtime-mode card omits explanatory subtitles and retains
+only the action title plus the source-mouse button label.
 The ordinary base excludes the Modes lease on
 all twelve cells. Colour Proof is not generated or selectable. Each entry receives only a
 1.2-second bootstrap lease, so a missing receiver cannot leave a hidden latch

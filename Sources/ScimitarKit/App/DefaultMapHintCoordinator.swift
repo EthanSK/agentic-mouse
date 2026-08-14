@@ -1,8 +1,9 @@
 import Foundation
 
-/// Owns the persistent top-level button-map reference. Cell 10 toggles it. A
-/// runtime mode may suspend the panel and later restore it without losing the
-/// user's explicit open/closed choice.
+/// Owns one mouse's persistent top-level button-map reference. Shared physical
+/// physical cell 12 toggles each source's independent copy. A runtime mode
+/// may suspend the panel and later restore it without losing the user's
+/// explicit open/closed choice.
 public final class DefaultMapHintCoordinator {
     public private(set) var isShowingHint = false
     public private(set) var source: MouseSource?
@@ -49,7 +50,7 @@ public final class DefaultMapHintCoordinator {
             hideHint()
             log.info(
                 "default mode legend hidden by \(source.displayName) button "
-                    + "\(PhysicalCell.defaultMapToggle.printedSide(on: source)!)"
+                    + "\(DefaultMapHintCommand.triggerCell(for: source).printedSide(on: source)!)"
             )
         } else {
             showHint(source: source)
@@ -109,7 +110,7 @@ public final class DefaultMapHintCoordinator {
         }
         log.info(
             "default mode legend shown from \(source.displayName) button "
-                + "\(PhysicalCell.defaultMapToggle.printedSide(on: source)!)"
+                + "\(DefaultMapHintCommand.triggerCell(for: source).printedSide(on: source)!)"
         )
     }
 
@@ -131,6 +132,7 @@ public enum DefaultMapLegend {
     public static let accent = RGBColor.white
 
     public static let legend: [ModeHUDLegendItem] = legend(
+        source: .corsair,
         screenshotIsCapturing: false
     )
 
@@ -145,6 +147,7 @@ public enum DefaultMapLegend {
             source: source,
             selection: nil,
             legend: legend(
+                source: source,
                 screenshotIsCapturing: screenshotIsCapturing,
                 frontmostAppContext: frontmostAppContext
             ),
@@ -156,31 +159,49 @@ public enum DefaultMapLegend {
     }
 
     private static func legend(
+        source: MouseSource,
         screenshotIsCapturing: Bool,
         frontmostAppContext: FrontmostAppModeContext? = nil
     ) -> [ModeHUDLegendItem] {
         PhysicalCell.all.map { cell in
-            let assignment = ScimitarNormalMapping.normal.assignment(for: cell.rawValue)
+            let assignment = DefaultMouseMapping.assignment(for: cell, source: source)
             let title: String
-            switch cell {
-            case .defaultMapToggle:
+            if cell == DefaultMapHintCommand.triggerCell(for: source) {
                 title = ModeHUDCopy.legendToggleTitle
-            case .screenshotToggle:
+            } else if cell == .screenshotToggle {
                 title = ModeHUDCopy.screenshotActionTitle(isCapturing: screenshotIsCapturing)
-            case .appSpecificModeSelector:
+            } else if cell == .frontmostAppModeSelector {
                 title = frontmostAppContext?.definition.title ?? "App mode"
-            default:
+            } else {
                 title = assignment?.action ?? "Spare"
             }
             let itemAccent: RGBColor
-            if cell == .appSpecificModeSelector, let frontmostAppContext {
-                itemAccent = ModeHUDPresentationStyle.pastel.displayAccent(
-                    frontmostAppContext.definition.accent
+            let destinationModeAccent: RGBColor?
+            if cell == .frontmostAppModeSelector, let frontmostAppContext {
+                itemAccent = frontmostAppContext.definition.accent.blended(
+                    with: .white,
+                    amount: 0.58
                 )
+                destinationModeAccent = frontmostAppContext.definition.accent
             } else {
                 itemAccent = accent(for: title)
+                switch cell {
+                case .keysModeEntry:
+                    destinationModeAccent = ModePickerCoordinator.keysAccent
+                case .frontmostAppModeSelector:
+                    destinationModeAccent = AppSpecificMode.selectorAccent
+                case .modePickerEntry:
+                    destinationModeAccent = ModePickerCoordinator.accent
+                default:
+                    destinationModeAccent = nil
+                }
             }
-            return ModeHUDLegendItem(cell: cell, actionTitle: title, accent: itemAccent)
+            return ModeHUDLegendItem(
+                cell: cell,
+                actionTitle: title,
+                accent: itemAccent,
+                destinationModeAccent: destinationModeAccent
+            )
         }
     }
 

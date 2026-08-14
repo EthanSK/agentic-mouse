@@ -25,6 +25,15 @@ public enum ModeUtilityAction: Equatable, Sendable {
         }
     }
 
+    public func cell(for source: MouseSource) -> PhysicalCell {
+        guard source == .razer else { return cell }
+        switch self {
+        case .moveToSpaceLeft: return .desktopSpaceRight
+        case .moveToSpaceRight: return .desktopSpaceLeft
+        default: return cell
+        }
+    }
+
     public var actionTitle: String {
         switch self {
         case .increaseDisplayBrightness: return "Brightness Up"
@@ -52,16 +61,18 @@ public enum ModeUtilityAction: Equatable, Sendable {
         }
     }
 
-    public static func action(for cell: PhysicalCell) -> ModeUtilityAction? {
-        switch cell {
-        case .brightnessIncrease: return .increaseDisplayBrightness
-        case .brightnessDecrease: return .decreaseDisplayBrightness
-        case .youtubeBackFiveSeconds: return .rewindYouTubeFiveSeconds
-        case .applicationZoomIn: return .zoomIn
-        case .applicationZoomOut: return .zoomOut
-        case .desktopSpaceLeft: return .moveToSpaceLeft
-        case .desktopSpaceRight: return .moveToSpaceRight
-        default: return nil
-        }
+    public static func action(
+        for cell: PhysicalCell,
+        source: MouseSource = .corsair
+    ) -> ModeUtilityAction? {
+        [
+            .increaseDisplayBrightness,
+            .decreaseDisplayBrightness,
+            .rewindYouTubeFiveSeconds,
+            .zoomIn,
+            .zoomOut,
+            .moveToSpaceLeft,
+            .moveToSpaceRight,
+        ].first { $0.cell(for: source) == cell }
     }
 }

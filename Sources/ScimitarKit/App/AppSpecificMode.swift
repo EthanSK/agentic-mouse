@@ -35,7 +35,7 @@ public enum AppSpecificTarget: String, CaseIterable, Equatable, Sendable {
         switch self {
         case .codex: return CodexMode.accent
         case .chrome: return ChromeMode.accent
-        case .vsCode: return RGBColor(red: 0, green: 168, blue: 255)
+        case .vsCode: return VSCodeMode.accent
         }
     }
 
@@ -46,26 +46,7 @@ public enum AppSpecificTarget: String, CaseIterable, Equatable, Sendable {
         case .chrome:
             return ChromeMode.definition
         case .vsCode:
-            return AppSpecificModeDefinition(
-                title: "\(displayName) mode",
-                footerTitle: "\(displayName) mode",
-                accent: accent,
-                legend: PhysicalCell.all.map { cell in
-                    if cell == .modeExit {
-                        return ModeHUDLegendItem(
-                            cell: cell,
-                            actionTitle: "Exit \(displayName) mode",
-                            accent: accent
-                        )
-                    }
-                    return ModeHUDLegendItem(
-                        cell: cell,
-                        actionTitle: "Spare",
-                        detail: "No \(displayName) command assigned yet",
-                        accent: RGBColor(red: 96, green: 108, blue: 120)
-                    )
-                }
-            )
+            return VSCodeMode.definition
         }
     }
 
@@ -113,8 +94,8 @@ public enum AppSpecificMode {
                 return ModeHUDLegendItem(
                     cell: cell,
                     actionTitle: target.displayName,
-                    detail: "Open \(target.displayName) mode",
-                    accent: target.accent
+                    accent: target.accent,
+                    destinationModeAccent: target.accent
                 )
             }
             if cell == .modeExit {
@@ -127,7 +108,6 @@ public enum AppSpecificMode {
             return ModeHUDLegendItem(
                 cell: cell,
                 actionTitle: "Spare",
-                detail: "Available for another app",
                 accent: RGBColor(red: 96, green: 108, blue: 120)
             )
         }
@@ -170,7 +150,6 @@ public enum AppSpecificMode {
                 return ModeHUDLegendItem(
                     cell: cell,
                     actionTitle: "Spare",
-                    detail: "No \(name) command assigned yet",
                     accent: RGBColor(red: 118, green: 126, blue: 142)
                 )
             }

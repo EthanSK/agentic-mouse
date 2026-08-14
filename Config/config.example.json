@@ -92,10 +92,10 @@
   },
 
   "defaultMapHint": {
-    "_comment": "Cell 10 toggles the persistent Default mode legend (Corsair 10 / Razer 12); the same cell exits an active mode.",
+    "_comment": "Shared cell 2 toggles the persistent Default mode legend (Corsair 2 / Razer 2). Shared cell 10 holds Switch App outside modes and exits an active mode.",
     "enabled": true,
     "doubleClickInterval": 0.34,
-    "_comment_displayDuration": "0 keeps the legend visible until the same mouse's cell-3 toggle hides it.",
+    "_comment_displayDuration": "0 keeps the legend visible until the same mouse's cell-2 toggle hides it.",
     "displayDuration": 0
   },
 

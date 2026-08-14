@@ -11,6 +11,7 @@ import ScimitarUI
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private let logSink: LogSink
     private var log: Log
+    private var runtimeRetention = ApplicationRuntimeRetention()
 
     private var configuration: AppConfiguration = .default
     private var configurationWarnings: [String] = []
@@ -47,6 +48,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         )
         controller.onCapturingChange = { [weak self] _ in
             self?.defaultMapHintCoordinators.values.forEach { $0.refresh() }
+        }
+        controller.onCompletion = { [weak self] result in
+            switch result {
+            case .saved(let url):
+                self?.log.info("selected-area screenshot saved to \(url.path)")
+            case .cancelled:
+                self?.log.info("selected-area screenshot selection cancelled")
+            case .failed(let message):
+                self?.log.notice("selected-area screenshot failed: \(message)")
+            }
         }
         return controller
     }()
@@ -103,6 +114,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         startICUE()
         startMultiTap()
         startFocusMonitoring()
+        runtimeRetention.retain()
         log.info("Accessibility trusted: \(permission.isTrusted)")
         refreshStatus()
     }
@@ -747,7 +759,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 switch target {
                 case .codex:
                     guard let action = CodexModeAction.action(for: cell) else { return false }
-                    result = self.codexModeActionExecutor.perform(action)
+                    result = self.codexModeActionExecutor.perform(action) { [weak self] feedback in
+                        let hudFeedback: ModeHUDFeedback
+                        switch feedback {
+                        case .checking(let message), .sentUnverified(let message):
+                            hudFeedback = ModeHUDFeedback(message: message, tone: .informational)
+                        case .confirmed(let message):
+                            hudFeedback = ModeHUDFeedback(message: message, tone: .confirmed)
+                        case .notConfirmed(let message):
+                            hudFeedback = ModeHUDFeedback(message: message, tone: .notConfirmed)
+                        }
+                        self?.modeHUDPresenters[source]?.flashFeedback(hudFeedback)
+                    }
                 case .chrome:
                     guard ChromeModeAction.action(for: cell) == .closeCurrentWindow else {
                         return false
@@ -758,7 +781,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                         targetDisplayName: target.displayName
                     )
                 case .vsCode:
-                    return false
+                    guard let action = VSCodeModeAction.action(for: cell) else { return false }
+                    let shortcut: ApplicationShortcutDispatcher.Shortcut
+                    switch action {
+                    case .previousChange:
+                        shortcut = .init(keyCode: 64, flags: []) // F17
+                    case .nextChange:
+                        shortcut = .init(keyCode: 105, flags: []) // F13
+                    case .stageAndNext:
+                        shortcut = .init(keyCode: 79, flags: []) // F18
+                    case .toggleTerminal:
+                        shortcut = .init(keyCode: 38, flags: .maskCommand) // Command-J
+                    }
+                    result = self.applicationShortcutDispatcher.perform(
+                        shortcut,
+                        targetBundleIdentifier: target.bundleIdentifier,
+                        targetDisplayName: target.displayName
+                    )
                 }
                 switch result {
                 case .success: return true

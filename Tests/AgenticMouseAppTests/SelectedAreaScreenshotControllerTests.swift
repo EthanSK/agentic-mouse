@@ -61,6 +61,66 @@ final class SelectedAreaScreenshotControllerTests: XCTestCase {
         XCTAssertEqual(second.runCount, 1)
     }
 
+    func testCompletionReportsTheExactSavedFile() {
+        let process = RecordingScreenshotProcess()
+        let controller = SelectedAreaScreenshotController(
+            makeProcess: { process },
+            inputAllowed: { true }
+        )
+        let savedURL = URL(fileURLWithPath: "/tmp/example-screenshot.png")
+        var results: [InteractiveScreenshotResult] = []
+        controller.onCompletion = { results.append($0) }
+
+        XCTAssertEqual(controller.toggle(), .started)
+        process.complete(with: .saved(savedURL))
+        RunLoop.main.run(until: Date().addingTimeInterval(0.01))
+
+        XCTAssertEqual(results, [.saved(savedURL)])
+    }
+
+    func testNativeProcessUsesSelectedAreaCrosshairAndExplicitDestination() {
+        let destination = URL(fileURLWithPath: "/tmp/screenshot-output.png")
+        XCTAssertEqual(
+            NativeInteractiveScreenshotProcess.arguments(destinationURL: destination),
+            ["-i", "-s", "-t", "png", destination.path]
+        )
+    }
+
+    func testDestinationResolverExpandsConfiguredTildeAndAvoidsCollisions() throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        let screenshots = root.appendingPathComponent("Screenshots", isDirectory: true)
+        try FileManager.default.createDirectory(at: screenshots, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+
+        let fixedDate = Date(timeIntervalSince1970: 1_787_000_000)
+        let resolver = ScreenshotDestinationResolver(
+            configuredLocation: { "~/Screenshots" },
+            homeDirectory: root,
+            now: { fixedDate }
+        )
+        let first = resolver.nextURL()
+        XCTAssertEqual(first.deletingLastPathComponent(), screenshots)
+        XCTAssertTrue(first.lastPathComponent.hasSuffix(".png"))
+
+        try Data([1]).write(to: first)
+        let second = resolver.nextURL()
+        XCTAssertNotEqual(second, first)
+        XCTAssertTrue(second.lastPathComponent.hasSuffix("-2.png"))
+    }
+
+    func testNativeCompletionFailsWhenNoFileWasCreated() {
+        let destination = URL(fileURLWithPath: "/tmp/missing-\(UUID().uuidString).png")
+        XCTAssertEqual(
+            NativeInteractiveScreenshotProcess.result(
+                terminationStatus: 0,
+                destinationURL: destination,
+                errorText: ""
+            ),
+            .failed("screencapture exited with status 0 without creating \(destination.lastPathComponent)")
+        )
+    }
+
     func testLockedSessionFailsClosedWithoutCreatingAProcess() {
         var factoryCalls = 0
         let controller = SelectedAreaScreenshotController(
@@ -76,7 +136,7 @@ final class SelectedAreaScreenshotControllerTests: XCTestCase {
 @MainActor
 private final class RecordingScreenshotProcess: InteractiveScreenshotProcess {
     var isRunning = false
-    var onTermination: (() -> Void)?
+    var onTermination: ((InteractiveScreenshotResult) -> Void)?
     private(set) var runCount = 0
     private(set) var cancelCount = 0
 
@@ -88,11 +148,11 @@ private final class RecordingScreenshotProcess: InteractiveScreenshotProcess {
     func cancel() {
         cancelCount += 1
         isRunning = false
-        onTermination?()
+        onTermination?(.cancelled)
     }
 
-    func complete() {
+    func complete(with result: InteractiveScreenshotResult = .cancelled) {
         isRunning = false
-        onTermination?()
+        onTermination?(result)
     }
 }

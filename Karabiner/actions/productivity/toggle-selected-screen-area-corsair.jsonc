@@ -4,7 +4,8 @@
   "title": "Toggle selected screen area (Corsair)",
   "description": "Start a native selected-area screenshot, or cancel the still-running interaction on the next Corsair press.",
   "manipulator": {
-    "to": [{
+    "to": [{ "key_code": "vk_none" }],
+    "to_after_key_up": [{
       "send_user_command": {
         "payload": {
           "command": "agentic_mouse_selected_area_screenshot_toggle",

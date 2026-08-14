@@ -10,7 +10,7 @@
           "command": "agentic_mouse_mode_picker",
           "action": "openKeys",
           "source": "razer",
-          "physical_cell": 9,
+          "physical_cell": 6,
           "phase": "press"
         }
       },

@@ -122,8 +122,9 @@ class KarabinerGeneratorTests(unittest.TestCase):
             item for item in generated["rules"]
             if item["description"] == "Agentic Mouse — Modes (expiring, exact-device)"
         )
-        self.assertEqual(len(rule["manipulators"]), 70)
+        self.assertEqual(len(rule["manipulators"]), 72)
         actions = []
+        legend_toggles = []
         for manipulator in rule["manipulators"]:
             condition_types = {item["type"] for item in manipulator["conditions"]}
             self.assertIn("device_if", condition_types)
@@ -133,7 +134,23 @@ class KarabinerGeneratorTests(unittest.TestCase):
                 & condition_types,
                 "runtime Modes input must never inherit ordinary app-layer conditions",
             )
-            command = next(event for event in manipulator["to"] if "send_user_command" in event)
+            immediate_commands = [
+                event for event in manipulator.get("to", [])
+                if "send_user_command" in event
+            ]
+            if immediate_commands and immediate_commands[0]["send_user_command"]["payload"]["command"] == "agentic_mouse_default_map_toggle":
+                legend_toggles.append(
+                    immediate_commands[0]["send_user_command"]["payload"]
+                )
+                continue
+            if immediate_commands:
+                command = immediate_commands[0]
+            else:
+                command = next(
+                    event
+                    for event in manipulator["to_delayed_action"]["to_if_invoked"]
+                    if "send_user_command" in event
+                )
             payload = command["send_user_command"]["payload"]
             self.assertEqual(payload["command"], "agentic_mouse_mode_picker")
             self.assertEqual(payload["phase"], "press")
@@ -145,9 +162,13 @@ class KarabinerGeneratorTests(unittest.TestCase):
                 self.assertEqual(release["physical_cell"], payload["physical_cell"])
 
         self.assertEqual(actions[:2], ["close", "close"])
-        self.assertEqual(actions.count("select"), 36)
-        self.assertEqual(actions.count("selectNative"), 30)
+        self.assertEqual(actions.count("select"), 34)
+        self.assertEqual(actions.count("selectNative"), 32)
         self.assertEqual(actions[-2:], ["open", "open"])
+        self.assertEqual(
+            {(item["source"], item["physical_cell"]) for item in legend_toggles},
+            {("corsair", 12), ("razer", 12)},
+        )
 
         for source_name in ("corsair", "razer"):
             page_variable = picker["pageVariablesBySource"][source_name]
@@ -210,22 +231,18 @@ class KarabinerGeneratorTests(unittest.TestCase):
                 {"type": "expression_if", "expression": f"{page_variable} == 1"},
                 utility_to_keys["conditions"],
             )
-            keys_to_utility = next(
+            keys_escape = next(
                 item for item in source_manipulators
                 if any(
-                    event.get("set_variable", {}).get("name") == page_variable
-                    and event.get("set_variable", {}).get("value") == 1
-                    for event in item["to"]
-                )
-                and any(
                     event.get("send_user_command", {}).get("payload", {}).get("physical_cell")
                     == 12
                     for event in item["to"]
                 )
+                and any(event.get("key_code") == "escape" for event in item["to"])
             )
             self.assertIn(
                 {"type": "expression_if", "expression": f"{page_variable} == 2"},
-                keys_to_utility["conditions"],
+                keys_escape["conditions"],
             )
             for target_cell in (1, 4, 7):
                 target = next(
@@ -328,21 +345,21 @@ class KarabinerGeneratorTests(unittest.TestCase):
                 )
 
         native_utilities = {
-            1: {"consumer_key_code": "display_brightness_decrement", "repeat": False},
-            2: {"consumer_key_code": "display_brightness_increment", "repeat": False},
+            1: {"consumer_key_code": "display_brightness_increment", "repeat": False},
+            2: {
+                "key_code": "equal_sign",
+                "modifiers": ["left_command", "left_shift"],
+                "repeat": False,
+            },
             3: {
                 "key_code": "left_arrow",
                 "modifiers": ["left_control"],
                 "repeat": False,
             },
-            4: {
+            4: {"consumer_key_code": "display_brightness_decrement", "repeat": False},
+            5: {
                 "key_code": "hyphen",
                 "modifiers": ["left_command"],
-                "repeat": False,
-            },
-            5: {
-                "key_code": "equal_sign",
-                "modifiers": ["left_command", "left_shift"],
                 "repeat": False,
             },
             6: {
@@ -354,6 +371,11 @@ class KarabinerGeneratorTests(unittest.TestCase):
         for source_name in ("corsair", "razer"):
             page_variable = page_variables[source_name]
             for physical_cell, expected_output in native_utilities.items():
+                if source_name == "razer" and physical_cell in (3, 6):
+                    expected_output = {
+                        **expected_output,
+                        "key_code": "right_arrow" if physical_cell == 3 else "left_arrow",
+                    }
                 native = next(
                     manipulator
                     for manipulator in rule["manipulators"]
@@ -434,8 +456,8 @@ class KarabinerGeneratorTests(unittest.TestCase):
                 "one mouse's mode lease must not suppress the other mouse's base",
             )
             direct_entry_keys = {
-                "corsair": {"keypad_9", "keypad_hyphen"},
-                "razer": {"7", "hyphen"},
+                "corsair": {"keypad_2", "keypad_6"},
+                "razer": {"2", "4"},
             }[source_name]
             direct_entries = [
                 manipulator
@@ -474,7 +496,7 @@ class KarabinerGeneratorTests(unittest.TestCase):
                     "the ordinary artifact remains a source-only base without live mode gates",
                 )
 
-    def test_cell_three_toggles_screenshot_ten_toggles_legend_and_twelve_is_reserved_for_modes(self):
+    def test_default_controls_use_release_screenshot_and_final_switch_app_cell(self):
         ordinary = json.loads(
             (ROOT / "Karabiner/generated/agentic-mouse.json").read_text()
         )
@@ -483,20 +505,18 @@ class KarabinerGeneratorTests(unittest.TestCase):
                 "Agentic Mouse — Corsair base layer",
                 exact_corsair_keyboard_condition(),
                 "keypad_3",
-                "keypad_0",
-                "keypad_plus",
+                "keypad_hyphen",
                 "corsair",
             ),
             (
                 "Agentic Mouse — Razer base layer",
                 exact_test_device_condition(),
                 "1",
-                "equal_sign",
-                "0",
+                "hyphen",
                 "razer",
             ),
         )
-        for description, device, screenshot_key, map_key, modes_key, source in cases:
+        for description, device, screenshot_key, switch_key, source in cases:
             rule = next(item for item in ordinary["rules"] if item["description"] == description)
             screenshot_toggle = next(
                 item for item in rule["manipulators"]
@@ -504,32 +524,28 @@ class KarabinerGeneratorTests(unittest.TestCase):
                 and device in item.get("conditions", [])
             )
             self.assertEqual(
-                screenshot_toggle["to"][0]["send_user_command"]["payload"],
+                screenshot_toggle["to_after_key_up"][0]["send_user_command"]["payload"],
                 {
                     "command": "agentic_mouse_selected_area_screenshot_toggle",
                     "source": source,
                     "physical_cell": 3,
                 },
             )
-            map_toggle = next(
+            switch_app = next(
                 item for item in rule["manipulators"]
-                if item.get("from", {}).get("key_code") == map_key
+                if item.get("from", {}).get("key_code") == switch_key
                 and device in item.get("conditions", [])
             )
             self.assertEqual(
-                map_toggle["to"][0]["send_user_command"]["payload"],
-                {
-                    "command": "agentic_mouse_default_map_toggle",
-                    "source": source,
-                    "physical_cell": 10,
-                },
+                [
+                    {key: value for key, value in event.items() if key != "conditions"}
+                    for event in switch_app["to"]
+                ],
+                [
+                    {"key_code": "tab", "modifiers": ["left_command"], "repeat": False},
+                    {"key_code": "left_command", "repeat": True},
+                ],
             )
-            modes = next(
-                item for item in rule["manipulators"]
-                if item.get("from", {}).get("key_code") == modes_key
-                and device in item.get("conditions", [])
-            )
-            self.assertEqual(modes["to"][0]["key_code"], "vk_none")
 
     def test_voiceink_action_fires_only_after_source_key_up(self):
         action_path = ACTIONS / "productivity/toggle-voiceink-speech-to-text.jsonc"
@@ -652,16 +668,16 @@ class KarabinerGeneratorTests(unittest.TestCase):
         }
         expected_corsair_action_by_side = {
             1: "scroll-horizontally-left",
-            2: "hold-open-app-switcher",
+            2: "open-app-specific-mode-corsair",
             3: "toggle-selected-screen-area-corsair",
             4: "scroll-horizontally-right",
             5: "go-forward",
-            6: "suppress-neutral-transport",
+            6: "open-keys-mode-corsair",
             7: "press-enter",
             8: "go-back",
-            9: "open-keys-mode-corsair",
-            10: "toggle-default-map-hint-corsair",
-            11: "open-app-specific-mode-corsair",
+            9: "suppress-neutral-transport",
+            10: "suppress-neutral-transport",
+            11: "hold-open-app-switcher",
             12: "suppress-neutral-transport",
         }
         bindings_by_side = {
@@ -713,17 +729,17 @@ class KarabinerGeneratorTests(unittest.TestCase):
         }
         expected_razer_actions_by_side = {
             1: ["toggle-selected-screen-area-razer"],
-            2: ["hold-open-app-switcher"],
-            3: ["scroll-horizontally-left"],
-            4: ["suppress-neutral-transport"],
+            2: ["open-app-specific-mode-razer"],
+            3: ["scroll-horizontally-right"],
+            4: ["open-keys-mode-razer"],
             5: ["go-forward"],
-            6: ["scroll-horizontally-right"],
-            7: ["open-keys-mode-razer"],
+            6: ["scroll-horizontally-left"],
+            7: ["suppress-neutral-transport"],
             8: ["go-back"],
             9: ["press-enter"],
             10: ["suppress-neutral-transport"],
-            11: ["open-app-specific-mode-razer"],
-            12: ["toggle-default-map-hint-razer"],
+            11: ["hold-open-app-switcher"],
+            12: ["suppress-neutral-transport"],
         }
         expected_razer_device = exact_test_device_condition()
         for side, key_code in expected_razer_transport_by_side.items():
@@ -770,10 +786,10 @@ class KarabinerGeneratorTests(unittest.TestCase):
             base_exclusions,
             {
                 "corsair-side-05-forward",
-                "corsair-side-06-app-shortcut",
+                "corsair-side-09-app-shortcut",
                 "corsair-side-08-back",
                 "razer-side-05-forward",
-                "razer-side-04-app-shortcut",
+                "razer-side-07-app-shortcut",
                 "razer-side-08-back",
             },
         )
@@ -801,7 +817,7 @@ class KarabinerGeneratorTests(unittest.TestCase):
                 if any(
                     event.get("send_user_command", {}).get("payload", {}).get("command")
                     == "agentic_mouse_selected_area_screenshot_toggle"
-                    for event in manipulator.get("to", [])
+                    for event in manipulator.get("to_after_key_up", [])
                 ):
                     screenshots.append(manipulator)
 
@@ -892,26 +908,24 @@ class KarabinerGeneratorTests(unittest.TestCase):
             (
                 "Agentic Mouse — Corsair VS Code layer",
                 exact_corsair_keyboard_condition(),
-                {"keypad_5": ("f17", "f19"), "keypad_8": ("f13", "f18")},
-                "keypad_6",
+                {"keypad_5": ("f17", "f19"), "keypad_8": ("f13", "f18"), "keypad_9": ("f18", "f16")},
             ),
             (
                 "Agentic Mouse — Razer VS Code layer",
                 exact_test_device_condition(),
-                {"5": ("f17", "f19"), "8": ("f13", "f18")},
-                "4",
+                {"5": ("f17", "f19"), "8": ("f13", "f18"), "7": ("f18", "f16")},
             ),
         )
         all_variables = set()
-        for rule_name, device_condition, expected, stage_next_source in cases:
+        for rule_name, device_condition, expected in cases:
             rule = rules[rule_name]
-            self.assertEqual(len(rule["manipulators"]), 5)
+            self.assertEqual(len(rule["manipulators"]), 6)
             navigation_manipulators = [
                 manipulator
                 for manipulator in rule["manipulators"]
                 if manipulator["from"]["key_code"] in expected
             ]
-            self.assertEqual(len(navigation_manipulators), 4)
+            self.assertEqual(len(navigation_manipulators), 6)
             for manipulator in navigation_manipulators:
                 self.assertIn(device_condition, manipulator["conditions"])
                 self.assertIn(vscode_if_condition(), manipulator["conditions"])
@@ -934,25 +948,7 @@ class KarabinerGeneratorTests(unittest.TestCase):
                 else:
                     self.assertEqual(manipulator["to"][1]["key_code"], double_key)
                     self.assertIs(manipulator["to"][1]["repeat"], False)
-            stage_next = next(
-                manipulator
-                for manipulator in rule["manipulators"]
-                if manipulator["from"]["key_code"] == stage_next_source
-            )
-            self.assertIn(device_condition, stage_next["conditions"])
-            self.assertIn(vscode_if_condition(), stage_next["conditions"])
-            self.assertNotIn(vscode_unless_condition(), stage_next["conditions"])
-            self.assertEqual(stage_next["to"][0]["key_code"], "f18")
-            self.assertIs(stage_next["to"][0]["repeat"], False)
-            self.assertTrue(
-                any(
-                    condition["type"] == "expression_if"
-                    and "agentic_mouse_session_unlocked_expires_at"
-                    in condition["expression"]
-                    for condition in stage_next["to"][0]["conditions"]
-                )
-            )
-            self.assertEqual(len(all_variables), 2 if "Corsair" in rule_name else 4)
+            self.assertEqual(len(all_variables), 3 if "Corsair" in rule_name else 6)
 
         base_cases = (
             (
@@ -982,12 +978,12 @@ class KarabinerGeneratorTests(unittest.TestCase):
             (
                 "Agentic Mouse — Corsair base layer",
                 exact_corsair_keyboard_condition(),
-                "keypad_6",
+                "keypad_9",
             ),
             (
                 "Agentic Mouse — Razer base layer",
                 exact_test_device_condition(),
-                "4",
+                "7",
             ),
         )
         for rule_name, device_condition, source in wildcard_cases:

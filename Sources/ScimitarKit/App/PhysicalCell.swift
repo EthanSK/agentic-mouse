@@ -56,10 +56,13 @@ public struct PhysicalCell: RawRepresentable, Hashable, Codable, Sendable, Compa
     /// and visible labels pinned to this value in tests before any live install.
     public static let colorProofEntry = PhysicalCell(rawValue: 3)!
 
-    /// Ordinary top-level legend toggle. This intentionally shares the
-    /// universal active-mode exit position: Corsair printed 10 and the
-    /// mirrored left-handed Razer printed 12.
-    public static let defaultMapToggle = PhysicalCell(rawValue: 10)!
+    /// Shared ordinary top-level Utility / legend control. One press opens
+    /// Utility; a rapid second press toggles the persistent Default legend.
+    public static let defaultMapToggle = PhysicalCell(rawValue: 12)!
+
+    public static func defaultMapToggle(for source: MouseSource) -> PhysicalCell {
+        defaultMapToggle
+    }
 
     /// Ordinary top-level selected-area screenshot toggle. This is Corsair
     /// printed 3 and the mirrored left-handed Razer printed 1.
@@ -71,7 +74,7 @@ public struct PhysicalCell: RawRepresentable, Hashable, Codable, Sendable, Compa
 
     /// Universal exit for every active runtime mode.
     /// This is Corsair printed 10 and the mirrored Razer printed 12. Outside
-    /// a runtime mode, the same physical cell toggles the Default legend.
+    /// a runtime mode, the same physical cell is deliberately blank.
     public static let modeExit = PhysicalCell(rawValue: 10)!
 
     /// Historical Colour Proof-only HUD control retained for its isolated
@@ -82,10 +85,10 @@ public struct PhysicalCell: RawRepresentable, Hashable, Codable, Sendable, Compa
     /// Selects Keypad from the Modes menu.
     public static let keypadModeSelector = PhysicalCell(rawValue: 7)!
 
-    /// Adjusts the current macOS display brightness from Utility. The lower
-    /// numbered cell decreases and the next cell increases.
-    public static let brightnessDecrease = PhysicalCell(rawValue: 1)!
-    public static let brightnessIncrease = PhysicalCell(rawValue: 2)!
+    /// Adjusts the current macOS display brightness from Utility. The controls
+    /// form the left vertical pair: cell 1 increases and cell 4 decreases.
+    public static let brightnessIncrease = PhysicalCell(rawValue: 1)!
+    public static let brightnessDecrease = PhysicalCell(rawValue: 4)!
 
     /// Rewinds the selected YouTube target through the existing VoiceInk
     /// YouTube Bridge without bringing Chrome to the front.
@@ -93,20 +96,32 @@ public struct PhysicalCell: RawRepresentable, Hashable, Codable, Sendable, Compa
 
     /// Applies the standard macOS application zoom shortcuts to whichever app
     /// is frontmost when the Modes utility is pressed.
-    public static let applicationZoomOut = PhysicalCell(rawValue: 4)!
-    public static let applicationZoomIn = PhysicalCell(rawValue: 5)!
+    public static let applicationZoomIn = PhysicalCell(rawValue: 2)!
+    public static let applicationZoomOut = PhysicalCell(rawValue: 5)!
 
     /// Moves between adjacent macOS Spaces using the standard system
     /// Control-Left / Control-Right shortcuts.
     public static let desktopSpaceLeft = PhysicalCell(rawValue: 3)!
     public static let desktopSpaceRight = PhysicalCell(rawValue: 6)!
 
-    /// Opens the configured-app selector from Utility or the ordinary map.
+    /// Opens the configured-app selector from Utility.
     public static let appSpecificModeSelector = PhysicalCell(rawValue: 11)!
 
-    /// Opens the shared native arrow-key mode from the ordinary layer.
-    /// This is Corsair printed 9 and left-handed Razer printed 7.
+    /// Opens the current frontmost application's mode from the ordinary layer.
+    public static let frontmostAppModeSelector = PhysicalCell(rawValue: 2)!
+
+    /// Opens the shared native arrow-key mode from Utility.
     public static let keysModeSelector = PhysicalCell(rawValue: 9)!
+
+    /// Opens the shared native arrow-key mode directly from the ordinary layer.
+    public static let keysModeEntry = PhysicalCell(rawValue: 6)!
+
+    /// Ordinary app-specific wildcard. It is silent unless the current app has
+    /// an explicit override.
+    public static let appShortcut = PhysicalCell(rawValue: 9)!
+
+    /// Holds open the native macOS application switcher outside modes.
+    public static let switchApp = PhysicalCell(rawValue: 11)!
 
     public static func < (lhs: PhysicalCell, rhs: PhysicalCell) -> Bool {
         lhs.rawValue < rhs.rawValue

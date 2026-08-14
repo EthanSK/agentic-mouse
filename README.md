@@ -37,27 +37,26 @@ These are the currently authoritative Corsair assignments:
 | Wheel press | Play / Pause through Karabiner | Same global action |
 | DPI button | VoiceInk++ speech-to-text; DPI remains fixed | Same global action |
 | Button 1 | Horizontal scroll left | Same global action |
-| Button 2 | Hold-open Switch App through native Karabiner | Same global action |
+| Button 2 | Open the current frontmost app mode | Same global action |
 | Button 3 | Start / cancel selected-area Screenshot | Same global action |
 | Button 4 | Horizontal scroll right | Same global action |
 | Button 5 | Forward | Previous Change through F17 |
-| Button 6 | App shortcut; silent when unconfigured | One-press Stage + Next through F18 |
+| Button 6 | Open Keys mode | Same global action |
 | Button 7 | Enter | Enter; inside Modes, selects Keypad |
 | Button 8 | Back | Next Change through F13 |
-| Button 9 | Open Keys mode | Open Keys mode |
-| Button 10 | Toggle Default mode legend; universal Exit in modes | Same global action |
-| Button 11 | Open the current frontmost app mode | Same global action |
-| Button 12 | Open Utility modes | Open Utility modes |
+| Button 9 | App shortcut; silent when unconfigured | One-press Stage + Next through F18 |
+| Button 10 | Blank outside modes; universal Exit in modes | Same global action |
+| Button 11 | Hold-open Switch App | Same global action |
+| Button 12 | Single: Utility; rapid double: Default legend | Same global action |
 | DPI stages, including Sniper | 2,750 DPI | 2,750 DPI |
 
-Button 6 is the fail-closed app-specific wildcard and button 9 opens the shared Keys mode. Ethan physically accepted button 2's
-native Karabiner hold-open Switch App behavior on both mice on 10 August 2026.
+Button 9 is the fail-closed app-specific wildcard and button 6 opens the shared Keys mode. Switch App uses shared physical cell 11; cell 10 is blank outside modes and exits any active mode. On cell 12, one press opens Utility after the bounded click window and a rapid double press toggles that source mouse's independent Default legend. The native Switch App hold lifecycle is proven; the final relocated positions still need one final two-mouse acceptance press.
 
 VS Code has three exact-device overrides: physical cell 5 emits non-repeating F17
-for Better Git Previous Change, cell 6 emits non-repeating F18 for one-press
-Stage + Next, and cell 8 emits non-repeating F13 for Next Change. Matching
-exclusions keep Forward/Back and the silent wildcard base semantics everywhere
-else; every untouched control continues to inherit the base.
+for Better Git Previous Change, cell 8 emits non-repeating F13 for Next Change,
+and cell 9 emits non-repeating F18 for one-press Stage + Next. Matching exclusions
+keep Forward/Back and the silent wildcard base semantics everywhere else; every
+untouched control continues to inherit the base.
 
 On the Razer, the lower DPI button's proven `F22` transport now toggles
 VoiceInk++ through an exact-device Karabiner rule; the upper `F21` transport is
@@ -86,26 +85,26 @@ remain standard macOS input.
 
 The macOS menu-bar app adds four optional runtime behaviours:
 
-- **Persistent Default mode legend.** Press physical cell 10 (Corsair 10 or
-  mirrored Razer 12) once to toggle the actual current twelve-button map on every
+- **Persistent Default mode legend.** Rapidly double-press physical cell 12
+  (Corsair 12 or Razer 10) to toggle the actual current twelve-button map on every
   connected display. It takes no runtime mode lease and does not alter the
   normal mappings or lighting.
   The same canonical cells render with Corsair numbers after a Corsair press
   and Razer numbers after a Razer press, so the HUD matches the mouse in hand.
-  A second press from that same mouse hides only its copies. The other mouse
+  A second rapid double press from that same mouse hides only its copies. The other mouse
   owns an independent legend, so left and right HUDs can coexist.
   All map and mode HUDs draw the physical top row first and the desk-side
   `1/4/7/10` row last, matching the mouse instead of flipping it vertically.
 
 - **Modes and app-specific controls.** Press physical cell 12 (Corsair 12 or
-  Razer 10) to open the all-display Utility mode HUD; physical cell 10
-  (Corsair 10 / Razer 12) exits Utility or any child mode. In the menu, cell 1 lowers display brightness, cell 2
-  raises it, cells 3/6 move one Space left/right, and cell 8 rewinds
+  Razer 10) once to open the all-display Utility mode HUD after the bounded
+  double-press window; physical cell 10
+  (Corsair 10 / Razer 12) exits Utility or any child mode. In the menu, cell 1 raises display brightness, cell 2
+  zooms in, cells 3/6 move one Space left/right, and cell 8 rewinds
   the selected YouTube target by five seconds through the VoiceInk YouTube
-  Bridge without focusing Chrome. Cells 4/5 send Command-Minus / Command-Plus
-  to zoom the frontmost app, cell 7 selects Keypad, and cell 9 opens Keys.
-  Inside Keys, cell 12 returns to Utility without exiting the mode lease.
-  Top-level cell 11 opens the current frontmost app's mode and refreshes it as
+  Bridge without focusing Chrome. Cell 4 lowers display brightness and cell 5
+  zooms out; cell 7 selects Keypad, and cell 9 opens Keys.
+  Top-level cell 2 opens the current frontmost app's mode and refreshes it as
   focus changes. Utility cell 11 opens the separate manual selector for Codex,
   Chrome, and VS Code and locks the chosen target. App children keep cell 12
   available for a real app action and use universal cell 10 to exit. Codex mode currently provides
@@ -113,21 +112,24 @@ The macOS menu-bar app adds four optional runtime behaviours:
   Queued Message, Enter, Start New Voice Chat, and Reasoning Effort Up/Down by sending Codex's own
   configured shortcuts directly to the running Codex process without bringing
   it to the front. Chrome cell 1 sends Command-W directly to the running Chrome
-  process to close its current window; unassigned Chrome and VS Code cards stay Spare.
+  process to close its current window. VS Code cell 4 toggles its integrated
+  terminal; its Better Git actions remain on cells 5, 8, and 9. Every genuinely
+  unassigned app card stays Spare.
   Every mode has its own bold, saturated colour. If the Default mode legend was already open, it is restored
   after exit; otherwise the mode HUD closes.
   Active-mode legends stay visible until physical cell 10 exits the mode; no
   separate in-mode Show/Hide control consumes an action cell. Related controls
   share one internal fill colour (Brightness, Zoom, Spaces, and the four arrow
-  keys), while the mode colour stays on every card border. Default mode uses
-  neutral white borders.
+  keys). Ordinary cards keep the current mode's border; cards that open another
+  mode use a thicker border in that destination mode's colour. Default mode
+  uses neutral white borders for ordinary actions.
   Utility cards deliberately show only the action title and the small printed
   button label for the source mouse; explanatory subtitles are omitted.
 
   Keys mode sends native non-repeating arrows from physical cells 1/4/5/7,
   with the Razer's left/right meanings mirrored for its left-handed layout.
   Cell 6 copies, cell 3 pastes, cell 9 sends Next Track, cell 8 sends Space,
-  and cell 11 sends Backspace through the active exact-device Karabiner layer.
+  cell 11 sends Backspace, and cell 12 sends Escape through the active exact-device Karabiner layer.
   Enter stays on the top-level cell 7 instead of being duplicated here. Its optional cell-2 password action reads a device-local,
   When-Unlocked Keychain item only after the unlocked-session and Accessibility
   gates pass, then types directly without using the clipboard or plaintext
@@ -137,7 +139,9 @@ The macOS menu-bar app adds four optional runtime behaviours:
   (Corsair 3 / Razer 1) starts the native macOS selection crosshair. Press the
   same physical cell again while that interaction is still active to cancel
   it. Completing the capture or pressing Escape ends that exact session, so a
-  later press always starts a fresh screenshot.
+  later press always starts a fresh screenshot. Agentic Mouse passes an explicit
+  collision-safe path in the configured macOS Screenshots folder, so a completed
+  capture must exist as a non-empty PNG instead of silently ending up only on the clipboard.
 
 - **Runtime lighting and reusable mode HUD.** The accepted colour-validation
   mode is retired from the live mouse menu, so it consumes no button slot.
@@ -145,9 +149,9 @@ The macOS menu-bar app adds four optional runtime behaviours:
   internal foundation for real modes: both mice use the accepted white idle
   baseline, future mode colours remain non-persistent, and the large reusable
   legend can show each mode's actual twelve-button map on every display. Every
-  card uses the current mode colour for its border and keeps its action colour
-  as the fill, so the active mode stays visually coherent without erasing
-  individual action identity.
+  ordinary card uses the current mode colour for its border and keeps its action
+  colour as the fill. Mode-entry cards use a stronger destination-coloured
+  border, so navigation is obvious without erasing individual action identity.
 
 - **Keypad typing.** Open Utility with cell 12, then select Keypad with cell 7.
   Cell 1 cycles punctuation, cells 2–9 use the classic ABC-through-WXYZ phone
@@ -221,10 +225,12 @@ Return. While Keypad is on, all
 twelve side keys are held by the helper; the normal scroll, navigation and media
 actions stay suspended until you leave the mode.
 
-Outside a runtime mode, physical cell 3 toggles selected-area Screenshot:
-Corsair printed 3 / Razer printed 1. Physical cell 10 toggles the persistent
-Default mode legend: Corsair printed 10 / Razer printed 12. While a runtime
-mode is active, cell 10 exits it and its legend remains visible until exit.
+Outside a runtime mode, physical cell 3 starts or cancels selected-area Screenshot:
+Corsair printed 3 / Razer printed 1. The persistent Default legend uses shared
+physical cell 12 (Corsair 12 / Razer 10) as a rapid double press; a single press
+opens Utility. Shared physical cell 11 owns Switch App. Cell 10 (Corsair 10 /
+Razer 12) is blank outside modes and exits an active mode; its legend remains
+visible until exit.
 
 ## Safety model
 

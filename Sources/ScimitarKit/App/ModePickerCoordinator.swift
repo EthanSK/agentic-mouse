@@ -134,7 +134,7 @@ public final class ModePickerCoordinator {
         activate(source: source, page: .modes, definition: nil)
     }
 
-    /// Opens the current frontmost app directly from top-level physical cell 11.
+    /// Opens the current frontmost app directly from top-level physical cell 2.
     /// The HUD follows later app activations until the user opens the manual selector.
     public func enterAppSpecific(source: MouseSource) {
         guard !isActive else { return }
@@ -157,7 +157,7 @@ public final class ModePickerCoordinator {
         followsFrontmostApp = false
     }
 
-    /// Opens the shared arrow-key child directly from top-level physical cell 9.
+    /// Opens the shared arrow-key child directly from top-level physical cell 6.
     /// Physical cell 10 exits it.
     public func enterKeys(source: MouseSource) {
         guard !isActive else { return }
@@ -260,7 +260,7 @@ public final class ModePickerCoordinator {
             if cell == .keysModeSelector {
                 navigate(to: .keys)
                 log.info("Keys mode opened from Utility on \(source.displayName)")
-            } else if let action = ModeUtilityAction.action(for: cell) {
+            } else if let action = ModeUtilityAction.action(for: cell, source: source) {
                 if !nativeOutputHandled {
                     guard onUtilityAction?(source, action) == true else {
                         hud.flashProblem("\(action.actionTitle) could not be performed")
@@ -296,11 +296,6 @@ public final class ModePickerCoordinator {
             }
         case .keys:
             guard phase == .press else { return }
-            if cell == .modePickerEntry {
-                navigate(to: .modes)
-                log.info("Utility modes opened from Keys on \(source.displayName)")
-                return
-            }
             guard let action = KeysModeAction.action(for: cell, source: source) else { return }
             if !nativeOutputHandled {
                 guard onKeysInput?(source, action) == true else {
@@ -365,7 +360,7 @@ public final class ModePickerCoordinator {
         let item: ModeHUDLegendItem?
         switch page {
         case .modes:
-            item = Self.modesLegend.first { $0.cell == cell }
+            item = Self.modesLegend(for: source ?? .corsair).first { $0.cell == cell }
         case .appSelector:
             item = AppSpecificMode.selectorDefinition.legend.first { $0.cell == cell }
         case .appSpecific:
@@ -379,7 +374,6 @@ public final class ModePickerCoordinator {
         lastSelection = ModeHUDSelection(
             cell: item.cell,
             title: item.actionTitle,
-            detail: item.detail,
             accent: item.accent
         )
         lightingTargets = onAppearanceChange?(activeAccent, item.accent) ?? []
@@ -418,7 +412,7 @@ public final class ModePickerCoordinator {
                 lightingTargets: lightingTargets,
                 footerTitle: definition.footerTitle,
                 footerHint: nil,
-                presentationStyle: .pastel,
+                presentationStyle: .boldOpaque,
                 showsOnAllDisplays: true
             )
         }
@@ -442,7 +436,7 @@ public final class ModePickerCoordinator {
             modeTitle: "Utility modes",
             source: source ?? .corsair,
             selection: lastSelection,
-            legend: Self.modesLegend,
+            legend: Self.modesLegend(for: source ?? .corsair),
             accent: Self.accent,
             lightingTargets: lightingTargets,
             footerTitle: "Utility modes",
@@ -458,7 +452,6 @@ public final class ModePickerCoordinator {
                 return ModeHUDLegendItem(
                     cell: cell,
                     actionTitle: action.actionTitle,
-                    detail: "Native keyboard key",
                     accent: action.hudAccent
                 )
             }
@@ -469,18 +462,9 @@ public final class ModePickerCoordinator {
                     accent: keysAccent
                 )
             }
-            if cell == .modePickerEntry {
-                return ModeHUDLegendItem(
-                    cell: cell,
-                    actionTitle: "Utility modes",
-                    detail: "Open the Utility page",
-                    accent: accent
-                )
-            }
             return ModeHUDLegendItem(
                 cell: cell,
                 actionTitle: "Spare",
-                detail: "Available for another key",
                 accent: RGBColor(red: 110, green: 116, blue: 132)
             )
         }
@@ -488,8 +472,9 @@ public final class ModePickerCoordinator {
 
     public static let keysLegend = keysLegend(for: .corsair)
 
-    public static let modesLegend: [ModeHUDLegendItem] = PhysicalCell.all.map { cell in
-        if let action = ModeUtilityAction.action(for: cell) {
+    public static func modesLegend(for source: MouseSource) -> [ModeHUDLegendItem] {
+        PhysicalCell.all.map { cell in
+        if let action = ModeUtilityAction.action(for: cell, source: source) {
             return ModeHUDLegendItem(
                 cell: cell,
                 actionTitle: action.actionTitle,
@@ -501,19 +486,22 @@ public final class ModePickerCoordinator {
             return ModeHUDLegendItem(
                 cell: cell,
                 actionTitle: "Keypad",
-                accent: keypadAccent
+                accent: keypadAccent,
+                destinationModeAccent: keypadAccent
             )
         case .appSpecificModeSelector:
             return ModeHUDLegendItem(
                 cell: cell,
                 actionTitle: "Choose App Specific",
-                accent: appSpecificAccent
+                accent: appSpecificAccent,
+                destinationModeAccent: appSpecificAccent
             )
         case .keysModeSelector:
             return ModeHUDLegendItem(
                 cell: cell,
                 actionTitle: "Keys mode",
-                accent: keysAccent
+                accent: keysAccent,
+                destinationModeAccent: keysAccent
             )
         case .modeExit:
             return ModeHUDLegendItem(
@@ -528,5 +516,8 @@ public final class ModePickerCoordinator {
                 accent: RGBColor(red: 110, green: 116, blue: 132)
             )
         }
+        }
     }
+
+    public static let modesLegend = modesLegend(for: .corsair)
 }

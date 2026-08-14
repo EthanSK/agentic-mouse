@@ -1,0 +1,37 @@
+// In Visual Studio Code, single-click stages and advances; rapid double-click exactly undoes that transaction.
+{
+  "id": "vscode-stage-next-or-undo",
+  "title": "VS Code: stage and advance, or undo",
+  "description": "Single-click emits F18 for Better Git Stage + Next; double-click emits F16 for its fail-closed exact undo.",
+  "manipulators": [
+    {
+      "conditions": [
+        { "type": "variable_if", "name": "$binding_variable", "value": true },
+        { "type": "frontmost_application_if", "bundle_identifiers": ["^com\\.microsoft\\.VSCode(?:Insiders)?$"] }
+      ],
+      "to": [
+        { "set_variable": { "name": "$binding_variable", "value": false } },
+        { "key_code": "f16", "repeat": false }
+      ]
+    },
+    {
+      "conditions": [
+        { "type": "frontmost_application_if", "bundle_identifiers": ["^com\\.microsoft\\.VSCode(?:Insiders)?$"] }
+      ],
+      "parameters": { "basic.to_delayed_action_delay_milliseconds": 300 },
+      "to": [
+        { "set_variable": { "name": "$binding_variable", "value": true } }
+      ],
+      "to_delayed_action": {
+        "to_if_canceled": [
+          { "key_code": "f18", "repeat": false, "conditions": [{ "type": "variable_if", "name": "$binding_variable", "value": true }] },
+          { "set_variable": { "name": "$binding_variable", "value": false } }
+        ],
+        "to_if_invoked": [
+          { "key_code": "f18", "repeat": false, "conditions": [{ "type": "variable_if", "name": "$binding_variable", "value": true }] },
+          { "set_variable": { "name": "$binding_variable", "value": false } }
+        ]
+      }
+    }
+  ]
+}

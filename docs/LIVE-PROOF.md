@@ -23,7 +23,7 @@ The hardware-free suite covers the state machines and their safety boundaries:
 | Lighting lifecycle | multi-tap mode indicator; normal iCUE lighting returns on release |
 | Device selection | no match or several matches fails closed |
 | Privacy | device identifiers are redacted |
-| Reference map | wheel Play/Pause, top DPI VoiceInk++, 1/4 horizontal scroll, 2 Switch App, 3 Screenshot/cancel, 5/8 Forward/Back outside VS Code and Previous/Next Change inside it, 6 silent app wildcard or VS Code Stage + Next, 7 Enter, 9 Keys mode with Copy on 6, Paste on 3 and Next Track on 9, 10 Legend toggle or active-mode Exit, 11 app-specific mode and 12 Utility modes |
+| Reference map | wheel Play/Pause, top DPI VoiceInk++, 1/4 horizontal scroll, 2 Legend toggle, 3 Screenshot/cancel, 5/8 Forward/Back outside VS Code and Previous/Next Change inside it, 6 silent app wildcard or VS Code Stage + Next, 7 Enter, 9 Keys mode with Copy on 6, Paste on 3 and Next Track on 9, 10 Switch App or active-mode Exit, 11 app-specific mode and 12 Utility modes |
 
 ## What needs a real Corsair mouse
 
@@ -51,9 +51,10 @@ iCUE database or profile file behind the app's back.
    11 must advance `abc → Abc → ABC → 123 → abc`, cell 12 must type Space (hold
    Return), and universal physical cell 10 must exit on both Corsair and Razer
    without a separate in-mode legend toggle. Confirm Utility cards have no
-   explanatory subtitle beneath their action title.
-7. Enter Keys with physical cell 9 and prove Copy on physical cell 6, Paste on
-   cell 3, Space on cell 8, Next Track on cell 9, and one Backspace on cell 11,
+   explanatory subtitle beneath any action title.
+7. Enter Keys with physical cell 6 and prove Copy on physical cell 6, Paste on
+   cell 3, Space on cell 8, Next Track on cell 9, one Backspace on cell 11, and
+   Escape on cell 12,
    with no repeat or raw transport leakage. Prove Corsair cells 5/4/7/1 are
    Up/Down/Right/Left while the Razer mirrors the horizontal gestures, then use
    physical cell 10 to exit and restore the ordinary map.

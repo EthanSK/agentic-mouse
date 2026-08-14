@@ -37,7 +37,6 @@ public enum ColorProofPalette {
         ModeHUDLegendItem(
             cell: swatch.cell,
             actionTitle: "Solid \(swatch.name)",
-            detail: swatch.color.hexString,
             accent: swatch.color
         )
     }

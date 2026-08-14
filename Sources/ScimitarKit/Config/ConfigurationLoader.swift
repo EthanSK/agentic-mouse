@@ -250,7 +250,7 @@ public enum ConfigurationLoader {
 
         lines.append("Default button map")
         lines.append("  enabled:            \(configuration.defaultMapHint.enabled)")
-        lines.append("  toggle:             physical cell \(PhysicalCell.defaultMapToggle.rawValue)")
+        lines.append("  shared toggle:      physical cell \(PhysicalCell.defaultMapToggle.rawValue)")
         let mapDuration = configuration.defaultMapHint.displayDuration == 0
             ? "until toggled"
             : "\(configuration.defaultMapHint.displayDuration)s"

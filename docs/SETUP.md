@@ -88,8 +88,10 @@ it on only if EventViewer proves that it is required. Reopen each assignment
 after saving it. The selected NumKeyboard target must still be present before
 you generate or install a downstream rule.
 
-Button 12 remains the Agentic Mouse Utility modes toggle through the exact-device
-Karabiner user-command route. Karabiner consumes its neutral keypad transport so
+Button 12 remains the Agentic Mouse Utility / Default-legend classifier through
+the exact-device Karabiner user-command route: single press opens Utility after
+the bounded click window; rapid double press toggles the source mouse's legend.
+Karabiner consumes its neutral keypad transport so
 the key does not leak into the frontmost application while the runtime owner
 handles it. The older SDK raw macro-key route remains source-only diagnostics.
 
@@ -110,13 +112,19 @@ The things worth confirming:
 - the **DPI Toggle button** emits the named iCUE F19 transport, and Karabiner
   triggers VoiceInk++ on release without changing DPI;
 - **5** = Forward, **8** = Back;
-- **3** = start/cancel Screenshot and **11** opens the current frontmost app mode;
-- **7** = Enter, **10** = Legend toggle, and **12** = Utility modes;
-- **6** = app-specific wildcard (silent by default; VS Code Stage + Next) and **9** opens shared Keys mode, where **6** = Copy, **3** = Paste, and **9** = Next Track;
-- while any runtime mode is active, **10** exits it (outside modes **10** toggles the Default legend);
+- **2** opens the current frontmost app mode, **3** starts/cancels Screenshot,
+  **6** opens Keys, and **7** = Enter;
+- **9** is the app-specific wildcard (silent by default; VS Code single press
+  Stage + Next and rapid double press exact undo), **10** is blank outside
+  modes, **11** holds open Switch App, and **12** opens Utility on a single
+  press or toggles the persistent Default legend on a rapid double press;
+- while any runtime mode is active, **10** exits it;
+- inside Keys, **6** = Copy, **3** = Paste, **9** = Next Track, **8** = Space,
+  **11** = Backspace, and **12** = Escape;
 - every visible DPI stage, Sniper included, reads **2,750**;
-- the generated Karabiner map gives **5**, **6**, and **8** matching base exclusions
-  plus exact-device VS Code overrides: F17 Previous Change, F18 Stage + Next, and F13 Next Change;
+- the generated Karabiner map gives **5**, **8**, and **9** matching base exclusions
+  plus exact-device VS Code overrides: F17 Previous Change, F13 Next Change,
+  and the bounded F18 single / F16 rapid-double Stage + Next / exact-undo pair;
 - every other physical cell inherits the same base action in VS Code;
 - the wheel click on each mouse arrives as ordinary `pointing_button: button3`
   from its exact pointing interface and becomes `play_or_pause` in Karabiner;
@@ -157,6 +165,18 @@ stable signing identity and keep the bundle id and installation path stable:
 
 ```bash
 make install-candidate
+```
+
+Every successfully signed local install candidate advances both version
+identifiers exactly once after the package and signature checks pass. By
+default it increments the patch component of `CFBundleShortVersionString` and
+increments `CFBundleVersion`, for example `v1.0.0 (6)` becomes `v1.0.1 (7)`.
+The legend footer shows both values. A failed candidate and ordinary `make app`
+development build consume neither value. For a named major or minor release,
+set a higher version on the same guarded path:
+
+```bash
+RELEASE_VERSION=1.1.0 make install-candidate
 ```
 
 Grant Accessibility once to that signed `/Applications/AgenticMouse.app`.

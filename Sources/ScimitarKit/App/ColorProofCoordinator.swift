@@ -285,7 +285,6 @@ public final class ColorProofCoordinator {
             selection: ModeHUDSelection(
                 cell: swatch.cell,
                 title: swatch.name,
-                detail: swatch.color.hexString,
                 accent: swatch.color
             ),
             legend: ColorProofPalette.legend,

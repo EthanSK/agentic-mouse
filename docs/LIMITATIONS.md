@@ -62,8 +62,10 @@ and brightness judgment against the Corsair.
 
 **The accepted live Modes entry is physical cell 12.** That is Corsair printed
 12 and Razer printed 10. Universal physical cell 10 (Corsair printed 10 /
-Razer printed 12) exits the menu and every child mode; outside modes it toggles
-the persistent Default legend. Physical cell 3 starts or cancels Screenshot
+Razer printed 12) exits the menu and every child mode; outside modes it is blank.
+Shared physical cell 11 owns Switch App. A rapid double press of physical cell 12
+toggles each source mouse's own Default legend, while a single press opens Utility.
+Physical cell 3 starts or cancels Screenshot
 outside modes; active-mode legends remain visible until cell 10 exits the mode.
 There is no idle or absolute timeout while Agentic Mouse is healthy; the short
 Karabiner lease fails closed after process failure. Exact-device mode ingress
@@ -145,11 +147,11 @@ iCUE's database files.
 
 **Normal-mode assignments are not managed by this helper.** iCUE owns the
 Corsair neutral keypad transports, while one exact-device Karabiner base maps
-them globally: 1 = horizontal scroll left, 2 = Switch App, 3 = Screenshot,
+them globally: 1 = horizontal scroll left, 2 = Legend toggle, 3 = Screenshot,
 4 = horizontal scroll right, 5 = Forward, 6 = app-specific wildcard, 7 = Enter, 8 = Back,
-9 = Keys mode, 10 = Legend toggle, 11 = app-specific mode and 12 = Utility
+9 = Keys mode, 10 = Switch App, 11 = app-specific mode and 12 = Utility
 modes. Physical cell 3 starts a native selected-area Screenshot outside modes.
-Physical cell 10 exits the active mode instead of toggling the Default legend;
+Physical cell 10 exits the active mode instead of opening Switch App;
 there is no separate in-mode legend toggle. Wheel
 click also stays a
 neutral middle-click source and becomes Play/Pause in Karabiner. Every visible

@@ -23,6 +23,7 @@ final class CodexModeActionExecutor {
         _ delay: TimeInterval,
         _ action: @escaping @Sendable @MainActor () -> Void
     ) -> Void
+    typealias FeedbackHandler = @MainActor (CodexActionFeedback) -> Void
 
     static let hyper: CGEventFlags = [
         .maskCommand, .maskControl, .maskAlternate, .maskShift,
@@ -43,14 +44,12 @@ final class CodexModeActionExecutor {
         keyCode: 35,
         flags: [.maskCommand, .maskAlternate]
     )
-    static let startVoiceShortcut = Shortcut(
-        keyCode: 9,
-        flags: [.maskControl, .maskShift]
-    )
+    static let startVoiceShortcut = Shortcut(keyCode: 64, flags: hyper) // F17
     static let submitShortcut = Shortcut(keyCode: 36, flags: [])
 
     private let shortcutDispatcher: ApplicationShortcutDispatcher
     private let scheduleDelayedAction: DelayedActionScheduler
+    private let pinChangeVerifier: CodexPinChangeVerifier
 
     init(
         targetProcessResolver: @escaping TargetProcessResolver = {
@@ -63,6 +62,7 @@ final class CodexModeActionExecutor {
         postEvent: EventPoster? = nil,
         accessibilityTrusted: @escaping AccessibilityTrustProvider = AXIsProcessTrusted,
         inputAllowed: @escaping InputAllowedProvider = { true },
+        pinChangeVerifier: CodexPinChangeVerifier? = nil,
         scheduleDelayedAction: @escaping DelayedActionScheduler = { delay, action in
             DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: action)
         }
@@ -73,25 +73,37 @@ final class CodexModeActionExecutor {
             accessibilityTrusted: accessibilityTrusted,
             inputAllowed: inputAllowed
         )
+        self.pinChangeVerifier = pinChangeVerifier ?? CodexPinChangeVerifier()
         self.scheduleDelayedAction = scheduleDelayedAction
     }
 
-    func perform(_ action: CodexModeAction) -> Result<Void, ActionError> {
+    func perform(
+        _ action: CodexModeAction,
+        feedback: FeedbackHandler? = nil
+    ) -> Result<Void, ActionError> {
+        let rapidPinRetoggle = action == .togglePin && pinChangeVerifier.isVerificationPending
+        if rapidPinRetoggle {
+            pinChangeVerifier.cancelPendingVerification()
+        }
+        let pinStateBeforeDispatch = action == .togglePin
+            ? pinChangeVerifier.captureBeforeDispatch()
+            : nil
+        let result: Result<Void, ActionError>
         switch action {
         case .newTask:
-            return postShortcut(Self.newTaskShortcut)
+            result = postShortcut(Self.newTaskShortcut)
         case .togglePin:
-            return postShortcut(Self.togglePinShortcut)
+            result = postShortcut(Self.togglePinShortcut)
         case .toggleMicrophoneMute:
-            return postShortcut(Self.microphoneShortcut)
+            result = postShortcut(Self.microphoneShortcut)
         case .toggleVoiceMode:
-            return postShortcut(Self.startVoiceShortcut)
+            result = postShortcut(Self.startVoiceShortcut)
         case .steerQueuedMessage:
             // Ethan's follow-up mode is Queue. Codex documents
             // Command-Shift-Return as the one-message inverse: Steer.
-            return postShortcut(Self.steerShortcut)
+            result = postShortcut(Self.steerShortcut)
         case .pressEnter:
-            return postShortcut(Self.submitShortcut)
+            result = postShortcut(Self.submitShortcut)
         case .startNewVoiceChat:
             guard case .success = postShortcut(Self.newTaskShortcut) else {
                 return .failure(ActionError(description: "Could not create a new Codex task"))
@@ -101,12 +113,30 @@ final class CodexModeActionExecutor {
             scheduleDelayedAction(0.75) { [weak self] in
                 _ = self?.postShortcut(Self.startVoiceShortcut)
             }
-            return .success(())
+            result = .success(())
         case .increaseReasoningEffort:
-            return postShortcut(Self.increaseReasoningEffortShortcut)
+            result = postShortcut(Self.increaseReasoningEffortShortcut)
         case .decreaseReasoningEffort:
-            return postShortcut(Self.decreaseReasoningEffortShortcut)
+            result = postShortcut(Self.decreaseReasoningEffortShortcut)
         }
+
+        guard case .success = result, let feedback else { return result }
+        if action == .togglePin {
+            if rapidPinRetoggle {
+                feedback(.sentUnverified("Rapid pin toggle sent — confirmation cancelled"))
+                return result
+            }
+            guard let pinStateBeforeDispatch else {
+                feedback(.sentUnverified("Pin shortcut sent — confirmation unavailable"))
+                return result
+            }
+            feedback(.checking("Pin change sent — checking Codex state"))
+            pinChangeVerifier.verify(from: pinStateBeforeDispatch, completion: feedback)
+        } else {
+            pinChangeVerifier.cancelPendingVerification()
+            feedback(.sentUnverified("\(action.title) sent — result not exposed by Codex"))
+        }
+        return result
     }
 
     private func postShortcut(_ shortcut: Shortcut) -> Result<Void, ActionError> {

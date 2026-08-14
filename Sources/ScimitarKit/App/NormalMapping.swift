@@ -69,8 +69,8 @@ public struct ScimitarNormalMapping: Equatable, Sendable {
             ),
             Assignment(
                 button: 2,
-                action: "Switch App",
-                implementation: "Karabiner action: hold-open-app-switcher"
+                action: "App-specific mode",
+                implementation: "Exact-device Karabiner opens the current frontmost app mode; active cell 10 exits"
             ),
             Assignment(
                 button: 3,
@@ -85,8 +85,8 @@ public struct ScimitarNormalMapping: Equatable, Sendable {
             Assignment(button: 5, action: "Forward"),
             Assignment(
                 button: 6,
-                action: "App shortcut",
-                implementation: "Karabiner suppresses the neutral transport by default; VS Code emits F18 Stage + Next"
+                action: "Keys mode",
+                implementation: "Exact-device Karabiner opens the shared native arrow-key mode; active cell 10 exits"
             ),
             Assignment(
                 button: 7,
@@ -96,23 +96,23 @@ public struct ScimitarNormalMapping: Equatable, Sendable {
             Assignment(button: 8, action: "Back"),
             Assignment(
                 button: 9,
-                action: "Keys mode",
-                implementation: "Exact-device Karabiner opens the shared native arrow-key mode; active cell 10 exits"
+                action: "App shortcut",
+                implementation: "Karabiner suppresses the neutral transport by default; VS Code emits Stage + Next and supports the configured double-click action"
             ),
             Assignment(
                 button: 10,
-                action: "Legend toggle",
-                implementation: "Agentic Mouse persistent Default mode legend toggle; active modes use the same cell to exit"
+                action: "Spare / mode exit",
+                implementation: "Consumed outside runtime modes; universal Exit while a mode is active"
             ),
             Assignment(
                 button: 11,
-                action: "App-specific mode",
-                implementation: "Exact-device Karabiner opens the current frontmost app mode; active cell 10 exits"
+                action: "Switch App",
+                implementation: "Karabiner action: hold-open-app-switcher outside runtime modes"
             ),
             Assignment(
                 button: 12,
-                action: "Utility modes",
-                implementation: "Exact-device Karabiner opens the shared Agentic Mouse Modes lease; active cell 10 exits"
+                action: "Utility modes / Legend toggle",
+                implementation: "One press opens Utility; a rapid second press toggles the persistent Default legend"
             )
         ]
     )
@@ -148,5 +148,35 @@ public struct ScimitarNormalMapping: Equatable, Sendable {
             lines.append(String(format: "  %2d  %@%@", assignment.button, assignment.action, detail))
         }
         return lines.joined(separator: "\n")
+    }
+}
+
+/// Projects the ordinary top-level meaning for the exact mouse that owns the
+/// input. Printed labels and transports differ, but semantics are canonical
+/// physical cells unless a separately documented hardware exception applies.
+public enum DefaultMouseMapping {
+    public static func assignment(
+        for cell: PhysicalCell,
+        source: MouseSource
+    ) -> ScimitarNormalMapping.Assignment? {
+        guard let assignment = ScimitarNormalMapping.normal.assignment(for: cell.rawValue) else {
+            return nil
+        }
+        guard source == .razer else { return assignment }
+        if cell.rawValue == 1 {
+            return .init(
+                button: assignment.button,
+                action: "Horizontal scroll right",
+                implementation: "Left-handed Razer horizontal-scroll exception"
+            )
+        }
+        if cell.rawValue == 4 {
+            return .init(
+                button: assignment.button,
+                action: "Horizontal scroll left",
+                implementation: "Left-handed Razer horizontal-scroll exception"
+            )
+        }
+        return assignment
     }
 }

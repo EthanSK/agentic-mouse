@@ -90,6 +90,7 @@ struct KeysModeActionExecutor {
             preconditionFailure("handled before native key-code selection")
         case .insertSpace: keyCode = 49
         case .pressBackspace: keyCode = 51
+        case .escape: keyCode = 53
         case .pasteStoredPassword:
             preconditionFailure("handled before native key-code selection")
         }

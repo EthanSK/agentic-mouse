@@ -1,5 +1,73 @@
 # Learnings
 
+## 2026-08-14 — A shared single/double control needs one bounded classifier
+
+- Physical cell 12 has two intentional top-level meanings on both mice: one press opens Utility, while a rapid second press toggles only that source mouse's persistent Default legend. Dispatching Utility immediately makes the second press land inside a mode; treating every first press as a legend action makes the common single press unusable.
+- Consume the exact-device source event, start one 300 ms source-keyed classifier on the first press, and dispatch Utility only when that window expires without a second press. A qualifying second press cancels the pending Utility action and toggles the independent legend instead. Clear pending state on lock, sleep, reload, or shutdown.
+- The same bounded-action pattern drives the VS Code wildcard: physical cell 9 sends F18 Stage + Next after the window, while a rapid double sends F16. Better Git owns the exact fail-closed undo and refuses if the Git index changed after the captured Stage + Next transaction.
+
+## 2026-08-14 — A local install needs a new visible version, not only a new build
+
+- Advancing only `CFBundleVersion` left successive local Agentic Mouse installs visibly named `1.0.0`, with the distinguishing number relegated to parentheses. Ethan needs the primary version itself to identify each installed iteration.
+- For every successfully signed local install candidate, increment the patch component of `CFBundleShortVersionString` and the positive-integer `CFBundleVersion` together. Permit an explicit named major/minor version only when it is greater than the recorded marketing version.
+- Record both values only after packaging and signature verification succeed. Failed candidates and ad-hoc development builds consume neither value, and the next guarded candidate must be rejected if its marketing version is equal to or below the recorded one.
+
+## 2026-08-14 — A mode card needs an action name, not implementation prose
+
+- Ethan rejected Codex and other mode cards that repeated implementation details such as `Codex custom shortcut`, `Native keyboard key`, shortcut chords, or explanations of a Spare. The HUD is a glanceable mouse legend, not developer documentation.
+- Keep every Default and runtime-mode card to exactly two visible text roles: the concise action name and the small printed-button label for the invoking mouse. Put genuine failures and observable action results in the existing banner/footer instead of adding a third text layer.
+- Remove the reusable `detail` field from `ModeHUDLegendItem` and `ModeHUDSelection` rather than merely hiding it in SwiftUI. This makes explanatory card subtext impossible to reintroduce accidentally when new modes are added.
+
+## 2026-08-14 — A printed mouse button names a shared physical cell, not a semantic fork
+
+- When Ethan says `Razer 12`, `Corsair 10`, or another printed mouse button, treat the device name as the way to locate the canonical physical cell through `PhysicalCell.crosswalk`. It does not authorize a different action on that mouse merely because Ethan happened to be holding or describing that device.
+- The regression was exact: a late Razer-worded request was implemented as a Razer-only ordinary-map exception, splitting Default cells between the two devices. The corrected invariant is shared semantic behavior after crosswalk normalization: physical cell 2 opens the frontmost app mode, cell 3 is Screenshot, cell 6 is Keys, cell 9 is the app wildcard, cell 10 is blank outside modes and Exit inside modes, cell 11 is Switch App, and cell 12 is the Utility-single / Default-legend-double classifier.
+- Require explicit wording and a concrete hardware, handedness, transport, or presentation reason before introducing a device-specific semantic exception. Keep legitimate source differences—printed-number crosswalks, neutral HID transports, independent HUD corners, Razer left-handed grid presentation, DPI transport, and lighting calibration—without letting them split the logical action map.
+- Pin the invariant in source and generator tests for both exact-device adapters. Whenever one mouse binding changes, compare the corresponding canonical cell on the other mouse before packaging or installing.
+
+## 2026-08-14 — A login item is not a keepalive policy
+
+- `SMAppService.mainApp` launches Agentic Mouse at login, but it does not restart the process after AppKit terminates it. The app can therefore remain absent for the rest of the session even though the login-item status is enabled.
+- A menu-bar-only runtime with no ordinary windows can be marked eligible for Transparent Application Lifecycle automatic termination. The physical failure was exact: AppKit logged `_kLSApplicationWouldBeTerminatedByTALKey=1`, the app died abnormally when the screen locked at 05:22:25, and no crash report was produced.
+- Take the permanent `disableAutomaticTermination` opt-out during `applicationDidFinishLaunching`, after AppKit has completed the no-window launch transition. A hardware-free LaunchServices probe compared real menu-bar agents and proved the timing boundary. A second probe then proved that `AXIsProcessTrusted()` can republish `_kLSApplicationWouldBeTerminatedByTALKey=1` five seconds later even when either the documented opt-out counter or an `.automaticTerminationDisabled` activity is already held; that private LaunchServices field is therefore not a counter readback and must not be used as the acceptance oracle. Keep the lock path fail closed by clearing the three-second Karabiner lease and ephemeral modes; locking must suspend commands, not remove the process that will restore them after authentication. Physical lock/unlock remains the decisive end-to-end acceptance.
+
+## 2026-08-14 — Give native selected-area screenshots an explicit file contract
+
+- `screencapture -i -p` shows Apple's native interaction but `-p` delegates the target and destination to opaque Screenshot preferences, explicitly ignores any path argument, and provides no proof that a file was created. A user can complete the selection while Agentic Mouse silently records only that the child process ended.
+- Keep Apple's native selected-area crosshair with `screencapture -i -s`, resolve the user's configured `com.apple.screencapture` location, expand `~`, verify the directory is writable, and pass one collision-safe PNG path explicitly. Fall back to Desktop only when the configured directory is unavailable.
+- Treat process exit as success only when that exact output file exists and is non-empty. Preserve Escape/second-press cancellation as a distinct result and log a real failure instead of redirecting every diagnostic to `/dev/null`.
+
+## 2026-08-14 — Keep app identity inside the established HUD, and version every signed candidate
+
+- Ethan physically rejected the separate app-specific pastel panel treatment. App-specific pages must reuse the accepted bold opaque Utility/Keys panel; express the active app through its saturated accent, destination outline, and card fills rather than a second full-background gradient system.
+- A HUD version label is useful only when it identifies the exact running bundle. Read `CFBundleShortVersionString` and `CFBundleVersion` from `Bundle.main` and show both in the compact footer; never hard-code a source version in SwiftUI.
+- Advance the positive-integer bundle build only after a signed install candidate completes package and signature verification. Failed candidates and ad-hoc development builds do not consume numbers. Persist the resulting source plist value so later screenshots and bug reports can name one exact build.
+
+## 2026-08-14 — Distinguish Codex command delivery from confirmed Codex state
+
+- A successful `CGEvent.postToPid` proves only that Agentic Mouse delivered a shortcut to the Codex process. It does not prove that Codex accepted the command, changed the intended task, or completed the action. HUD copy must call this `sent`, never `successful` or `confirmed`.
+- The installed Codex `0.147.0-alpha.6.5` app-server schema does not expose `isPinned` or an `isPinned` metadata update even though newer public protocol documentation does. Its `thread/list` parser silently accepts and ignores an `isPinned` filter, so a successful response is not pin evidence on this build.
+- Codex desktop does persist the actual sidebar set in `~/.codex/.codex-global-state.json` under `pinned-thread-ids`. Read that file only; never mutate it. Capture the set before dispatch, poll after dispatch, and reserve green confirmation for exactly one added ID (`Pinned`) or exactly one removed ID (`Unpinned`). Treat no change, parse failure, more than one changed ID, and rapid repeated toggles as unavailable, ambiguous, or not confirmed.
+- Give every other Codex action explicit informational footer feedback (`sent — result not exposed by Codex`) until it has an equally authoritative observable state. This makes future per-action verification additive without turning keyboard delivery into fake success.
+
+## 2026-08-14 — Make the public story cinematic without hijacking scroll
+
+- Agentic Mouse is not best explained as a generic two-device abstraction. Lead with Ethan's concrete idea: `The setup for the agentic future`, show the exact left-hand Razer and right-hand Corsair immediately, then reveal visible modes, security, and the physical desk as the page progresses.
+- Build the takeover as a tall document section with one `position: sticky` viewport and scroll-derived CSS transforms. Keep native scrolling, links, keyboard navigation, and the reduced-motion static fallback intact; never trap the wheel or synthesize scroll steps for visual drama.
+- Treat remote manufacturer product imagery as attributed reference material, keep the official source URLs visible in the page, and verify every asset still returns the expected image MIME type before publication. Use Ethan's public GitHub portrait only for the intentionally personal setup story; never infer or publish private order details, addresses, serials, or email content.
+- Responsive acceptance must include the narrow personal-Chrome window, not only the desktop composition. Oversized display type that looks deliberate on a wide hero can clip a single word on mobile even when `overflow-x` hides the failure.
+
+## 2026-08-14 — Advertise mode destinations with their own stronger outline
+
+- A submenu card is both an action and a navigation preview. Give ordinary actions the current mode's perimeter, but mark every card that opens another mode with a thicker, fully opaque border in the destination mode's own accent. Keep the internal fill tied to the action family so navigation emphasis does not erase function grouping.
+- Encode the destination accent in `ModeHUDLegendItem`, not in title matching or view-specific cell checks. Default, Utility, Keys, the manual app selector, and future nested modes can then share one renderer rule without duplicating physical mappings.
+- Keep selection stronger than an unselected navigation card. Exit is not a submenu preview and retains the current mode border; the Default map keeps neutral white borders only for ordinary actions.
+
+## 2026-08-14 — Rotate paired Utility controls by canonical physical cell
+
+- The accepted Utility geometry is a pair of vertical control families, not two horizontal rows: physical cell 1 is Brightness Up, cell 4 is Brightness Down, cell 2 is Zoom In, and cell 5 is Zoom Out. Through the left-handed Razer crosswalk these are printed 3/6 for brightness and 2/5 for zoom; Corsair prints the canonical 1/4 and 2/5 directly.
+- Keep this as one shared semantic mapping. Change the `PhysicalCell` aliases, HUD legend, generated exact-device native outputs, public map, and generator tests together; never patch one mouse's printed numbers independently.
+
 ## 2026-08-14 — Project Keys by source and bind only real Codex commands
 
 - Canonical physical cells are the transport vocabulary, but a left-handed mouse can need a source-specific presentation meaning. Keep Corsair cells 1/7 as Left/Right and project the Razer cells 1/7 as Right/Left so the physical horizontal gestures mirror correctly; pin both the generated output and the source-specific HUD labels without renumbering either device.
@@ -12,7 +80,7 @@
 ## 2026-08-14 — Keep app wildcards silent and move rare media into Keys
 
 - A top-level app-specific wildcard must fail closed when the frontmost app has no configured meaning. Keep one exact-device base manipulator that consumes the neutral transport under the matching application exclusion, then add only narrow application overrides. Do not let the Corsair keypad or Razer main-row source key leak as text.
-- Physical cell 6 is now the wildcard on both mice: Corsair printed 6 / Razer printed 4. VS Code alone emits one non-repeating F18 Stage + Next action; every other app receives no output until its own explicit override exists.
+- Physical cell 9 is now the wildcard on both mice: Corsair printed 9 / Razer printed 7. VS Code alone emits bounded non-repeating F18 Stage + Next on a single press and F16 exact undo on a rapid double; every other app receives no output until its own explicit override exists. Physical cell 6 opens Keys directly.
 - Rare Next Track moved to Keys physical cell 9, where the generated exact-device route emits one non-repeating `scan_next_track` consumer event and Agentic Mouse updates only the HUD/lighting state. Screenshot copy deliberately reads `Screenshot` while idle and `Cancel screenshot` only while the owned capture is running.
 
 ## 2026-08-14 — Give every HUD card an internal horizontal inset
@@ -43,7 +111,7 @@
 - A separate fill colour for every directional or paired control makes one semantic family look like unrelated actions. Give each related family one explicit fill: Brightness Down/Up, Zoom Out/In, Space Left/Right, and all four arrow keys. Keep Enter, Space, Backspace, password paste, and other unrelated controls individually identifiable. The current mode's saturated accent remains the common card border.
 - The Default mode is the neutral baseline, so use white for every Default card perimeter while preserving action-family fills inside. Do not reuse a blue runtime accent for the baseline map.
 
-- An in-mode Show/Hide Legend card spends a scarce action cell on hiding the reference needed to use the mode. Keep active-mode legends visible until universal physical cell 10 exits; restore Keypad cell 3 to `DEF`, and render cell 3 as `Spare` on child pages that have no real action there. The persistent Default legend remains independently toggleable through physical cell 10 outside modes.
+- An in-mode Show/Hide Legend card spends a scarce action cell on hiding the reference needed to use the mode. Keep active-mode legends visible until universal physical cell 10 exits; restore Keypad cell 3 to `DEF`, and render cell 3 as `Spare` on child pages that have no real action there. The persistent Default legend remains independently toggleable through a rapid double press on physical cell 12 outside modes.
 
 ## 2026-08-13 — Name known-state toggles by their next action
 
@@ -75,17 +143,19 @@
 
 - Keypad preflight must accept its request while the source coordinator is still on Utility; the coordinator can switch to `.keypad` only after the dedicated Keypad stack accepts entry. Requiring `.keypad` before entry creates a self-refusing transition that always flashes “Keypad mode could not start.” If entry fails after Karabiner has selected the Keypad page, deactivate the mode lease instead of leaving app and page-variable state split.
 - Model submenu navigation as a per-mouse path. Push a new destination, but trim back to an existing ancestor rather than creating Utility → Keys → Utility cycles. Keep the Karabiner page-variable update immediately before the matching user command so the generated rule and app coordinator change pages atomically.
-- Ethan's accepted Utility positions are canonical cells 1/2 Brightness Down/Up, 3/6 Space Left/Right, 4/5 Zoom Out/In, 7 Keypad, 8 YouTube −5 sec, 9 Keys, 11 manual app selector, and 10 universal exit. Keys cell 12 returns to Utility. Utility cell 3 is therefore not a legend toggle.
+- Ethan's accepted Utility positions are canonical cells 1/4 Brightness Up/Down, 2/5 Zoom In/Out, 3/6 Space Left/Right, 7 Keypad, 8 YouTube −5 sec, 9 Keys, 11 manual app selector, and 10 universal exit. Keys cell 12 returns to Utility. Utility cell 3 is therefore not a legend toggle.
 
-## 2026-08-13 — Share cell 10 between the Default legend and active-mode exit
+## 2026-08-13 — Historical cell-10 Default legend design
 
-- Ethan's final shared-map decision keeps Switch App on physical cell 2, moves selected-area Screenshot to physical cell 3, and moves the persistent Default legend to physical cell 10. The two exact mice still crosswalk by canonical cell: Screenshot is Corsair 3 / Razer 1, while Legend or active Exit is Corsair 10 / Razer 12.
-- Context, not click counting, makes cell 10 coherent. With no mode lease it sends the source-specific Default legend toggle; with that mouse's mode lease active, the higher-priority Modes rule consumes the same transport as universal Exit. If a Default legend was visible before mode entry, exit restores it and the next cell-10 press hides it naturally.
-- Screenshot needs a real lifecycle to support the same-button cancel request. Start `/usr/sbin/screencapture -i -p` as one owned child process, clear ownership on normal completion or Escape, and terminate only that still-running child on the next screenshot command, lock, sleep, reload, or shutdown. Do not emulate the lifecycle with a timer, synthetic Escape, or a global process kill.
+**Status:** Superseded by the shared semantic contract at the top of this file. Both mice now use cell 2 for frontmost app mode, cell 10 as blank / active Exit, cell 11 for Switch App, and cell 12 for Utility single / Default legend double.
+
+- At this historical stage, Switch App was on physical cell 2, selected-area Screenshot was on physical cell 3, and the persistent Default legend was on physical cell 10.
+- The context-gated cell-10 mechanism remains useful history, but it no longer describes the live ordinary action: the higher-priority Modes rule still owns cell 10 as Exit while active, and the base leaves cell 10 blank. Switch App now lives on physical cell 11.
+- Screenshot needs a real lifecycle to support the same-button cancel request. Start `/usr/sbin/screencapture -i -s <explicit-output-path>` as one owned child process, clear ownership on a verified saved file or Escape, and terminate only that still-running child on the next screenshot command, lock, sleep, reload, or shutdown. Do not delegate saving through `-p`, emulate the lifecycle with a timer or synthetic Escape, or issue a global process kill.
 
 ## 2026-08-13 — Separate live frontmost-app mode from manual background targeting
 
-- Ethan needs two app-specific journeys: top-level physical cell 11 follows the current frontmost application and refreshes as focus changes, while Utility cell 11 opens a lower-priority configured-app selector whose chosen target stays locked without activation.
+- Ethan needs two app-specific journeys: top-level physical cell 2 follows the current frontmost application and refreshes as focus changes, while Utility cell 11 opens a lower-priority configured-app selector whose chosen target stays locked without activation.
 - Use one generic bounded `CGEvent.postToPid` shortcut dispatcher selected by bundle identifier. App-specific code supplies only the shortcut meaning: Chrome cell 1 is Command-W, while Codex uses its own commands. This avoids one executor per app without pretending that all apps interpret the same shortcut identically.
 - Preserve every existing Codex keyboard shortcut. Reasoning Effort Up/Down are the narrow exception because Codex exposes configurable commands with no existing binding; add dedicated Hyper-F18/F19 bindings without replacing Pin, New Task, Voice, Submit, or the existing Hyper-F20 microphone route. Block all dispatch while the unlocked-session boundary is absent.
 - Treat mode identity as a saturated visual state, not a pastel hint: distinct full-channel RGB mode accents drive temporary mouse lighting, and HUD cards use visibly stronger accent fills and borders. Keep unsupported app pages honest and leave ambiguous or conflicting button ideas in the outstanding ledger instead of assigning them by guess.
@@ -124,25 +194,25 @@
 
 - Agentic Mouse synthetic arrows can fail with an Accessibility warning even when exact-device mode ingress and the HUD are healthy. Emit Keys-mode arrows directly from the generated Karabiner rule, keep each output non-repeating, and send a separate `selectNative` command only for HUD and lighting state. The installed app must not try to synthesize the same arrow again.
 - A runtime page change and its Karabiner page variable must be one transition. Set the per-source page variable before the matching `send_user_command`; otherwise a selector, child, or exit press can fall through to another page or the ordinary base.
-- Ethan's accepted journey uses dedicated entries but one universal exit: Utility 12, Keypad 7, App-specific 11, and Keys 9 enter their pages; active physical cell 10 exits every page. Active-mode legends remain visible until exit, app-specific children retain cell 12 for a real app action, and Keypad uses cell 3 for DEF plus cell 12 for Space/hold-Return because cell 10 is reserved for Exit.
-- Keep both app-specific journeys distinct. Top-level cell 11 follows the current frontmost process; Utility cell 11 shows an explicit Codex/Chrome/VS Code selector and locks the chosen target without activation. For Codex, use its built-in process-targeted keyboard shortcuts without adding user-level overrides. Unsupported Chrome/VS Code cards remain visibly Spare until they own a tested command.
+- Ethan's accepted journey uses dedicated entries but one universal exit: Utility 12, Keypad 7, frontmost App-specific 2, and Keys 6 enter their pages; active physical cell 10 exits every page. Active-mode legends remain visible until exit, app-specific children retain cell 12 for a real app action, and Keypad uses cell 3 for DEF plus cell 12 for Space/hold-Return because cell 10 is reserved for Exit.
+- Keep both app-specific journeys distinct. Top-level cell 2 follows the current frontmost process; Utility cell 11 shows an explicit Codex/Chrome/VS Code selector and locks the chosen target without activation. For Codex, preserve every normal shortcut and add only missing configurable commands as non-conflicting user bindings. Unsupported Chrome/VS Code cards remain visibly Spare until they own a tested command.
 
 ## 2026-08-13 — Split runtime ownership by mouse and fail closed before synthetic keys
 
 - One shared mode coordinator, HUD presenter, and Karabiner lease made the two exact devices interfere: entering a Corsair mode also gated the Razer base, and a Razer legend press could retarget the Corsair HUD. Give each `MouseSource` its own coordinator, all-display presenter, lighting callback, and expiring variable. A wrong-source command must be ignored rather than changing ownership.
 - A visible Accessibility toggle does not prove the running build is trusted. The enabled TCC row can still carry an old rollback build's exact CDHash; `CGEvent.post` then silently discards Arrow, Zoom, Space, and Brightness events. Every native executor must check `AXIsProcessTrusted()` before claiming success, use a `.hidSystemState` event source, and surface failure through the HUD. Install the final Developer-ID build before granting the exact `/Applications/AgenticMouse.app` so a later replacement does not invalidate the grant again.
-- Physical cell 3 is Screenshot outside modes, Space Left in Utility, DEF in Keypad, and Spare on child pages without another action. It is not an in-mode legend toggle. The accepted conflicts moved YouTube rewind to cell 8 and Codex microphone mute to cell 8; universal cell 10 exits every mode and closes its HUD.
+- Physical cell 3 is Screenshot outside modes, Space Left in Utility, DEF in Keypad, and Spare on child pages without another action. It is not an in-mode legend toggle. The accepted conflicts moved YouTube rewind to cell 8 and Codex microphone mute to cell 1; universal cell 10 exits every mode and closes its HUD.
 - Direct cell-9 Keys and cell-11 app-specific entry require the same short Karabiner bootstrap lease as cell-12 Utility entry. Prepend the source-specific `set_variable` before `send_user_command`, then let the app acknowledge and renew it; otherwise a rapid second press can leak through the ordinary map.
 - Lighting can be source-specific without pretending each side button is an LED zone. Scimitar exposes logo plus whole thumb grid; Naga exposes wheel, logo, plus whole thumb grid. Use the mode colour on logo/wheel and the last-action accent on the grid, with a proven uniform fallback when a distinct Naga frame is rejected.
 
 ## 2026-08-13 — Keep top-level media and Keys mode distinct across every layer
 
-- The accepted shared map uses physical cell 6 for Next Track and physical cell 9 for direct Keys-mode entry. Preserve the exact-device crosswalk: Corsair printed 6/9 and Razer printed 4/7. Do not restore the older cell-9 Next Track assignment from historical records.
+- The accepted shared map uses physical cell 6 for direct Keys-mode entry and physical cell 9 for the app wildcard. Next Track lives inside Keys on physical cell 9. Preserve the exact-device crosswalk: Corsair printed 6/9 and Razer printed 4/7.
 - Keys mode owns one orange, all-display legend and only four bounded native arrow actions: cells 5/4/7/1 are Up/Down/Right/Left. Universal cell 10 exits it and immediately restores the ordinary map.
 - Utility mode may still use cells 6/9 for Space Left/Right because those bindings are scoped to its active lease. Keep top-level and child-mode semantics explicit in generated tests instead of inferring a conflict from matching physical cells.
 - A visible card is not acceptance by itself. Pin the generated exact-device ingress, coordinator route, native key down/up executor, distinct Default-legend accent, installed command receiver, all-display HUD lifecycle and both exit paths separately; reserve physical arrow acceptance for the real mice.
 
-**Status:** Superseded on 14 August 2026. Physical cell 6 is now the fail-closed app wildcard, and Next Track moved to Keys physical cell 9 alongside the expanded Copy/Paste/Space/Backspace page.
+**Status:** Current as of 14 August 2026. Physical cell 6 enters Keys, physical cell 9 is the fail-closed app wildcard outside modes, and Next Track lives on Keys physical cell 9 alongside Copy, Paste, Space, Backspace, and Escape.
 
 ## 2026-08-12 — Verify every HUD card against a real action boundary
 
@@ -169,7 +239,7 @@
 - Canonical physical cell 11 directly opens app-specific mode from the ordinary layer. This historical configured-selector-only design is superseded again by the 2026-08-13 dual journey at the top of this file: top-level cell 11 follows the frontmost app, while Utility cell 11 retains manual selection. Universal cell 10 exits, and child cell 12 returns to manual app selection.
 - Keep source attribution and presentation separate from the shared semantic cells. Tests must pin same-source hide, cross-source retarget, direct app-specific entry/exit, all-display presentation, and the absence of a live Colour Proof rule.
 
-**Status:** Historical cell-3 contract only. The accepted map now uses cell 3 for Screenshot outside modes and cell 10 for the independent source-specific Default legend toggle or universal active-mode Exit, as recorded in the newer learning above.
+**Status:** Historical cell-3 contract only. The accepted map now uses cell 3 for Screenshot outside modes, cell 12 for each source's independent Default legend on rapid double, cell 11 for Switch App, and cell 10 for universal active-mode Exit, as recorded in the newer learning above.
 
 ## 2026-08-12 — Repackage from the already-audited embedded iCUE SDK path
 
@@ -199,7 +269,7 @@
 **Root cause:** The presenter reused the right-handed Corsair column order for both devices, and the coordinator treated a different-source press as a request to switch the visible legend rather than as the same global toggle.
 **Fix:** Keep canonical physical-cell semantics unchanged, reverse every visual row only for the Razer, and make any valid cell-10 legend press hide all visible panels regardless of source. The next press reopens the legend for the exact mouse that sent it. Apply the same source projection to the Keypad HUD.
 **Guard:** Pin both source row orders and the cross-source hide/reopen sequence in tests. Presentation mirroring must never renumber bindings, and a visible global legend must have one unambiguous toggle-off action from either mouse.
-**Status:** Superseded again by Ethan's final source-aware contract at the top of this file: cell 10 is the trigger or active-mode Exit, and each mouse owns an independent legend that the other mouse cannot close or retarget.
+**Status:** Superseded again by Ethan's final source-aware contract at the top of this file: cell 12 rapid-double toggles the source-specific Default legend, cell 11 is Switch App, cell 10 is blank / active Exit, and each mouse owns an independent legend that the other mouse cannot close or retarget.
 ---
 
 ---
@@ -237,7 +307,7 @@
 **Fix:** Make cell 3 a persistent one-click Default mode legend toggle; make cell 12 the universal Utility modes entry/exit; select Keypad on cell 7 and frontmost-app mode on cell 11; use cell 7 as ordinary Enter outside modes; preserve all twelve exact-device press/release phases while a mode is active; and strip frontmost-app conditions from the runtime ingress while retaining exact device conditions. Restore a previously open Default mode legend after exit, give every mode a distinct colour, show all HUDs on every display, and put one small printed button label for only the active source mouse under the prominent function text.
 **Guard:** Runtime mode generation may inherit hardware identity only, never ordinary app-layer conditions. Every new mode must define a distinct colour, a same-as-entry exit, concrete live actions, an all-display HUD, and tests for source crosswalk plus prior-HUD restoration. Do not re-add Colour Proof as a live rule or slot.
 
-**Status:** Historical hierarchy only. The accepted map now uses cell 3 for Screenshot, cell 10 for the persistent Default legend or universal active-mode Exit, and cell 12 for Utility entry; active modes do not reserve an independent legend-toggle cell.
+**Status:** Historical hierarchy only. The accepted map now uses cell 3 for Screenshot, cell 11 for Switch App, cell 10 as blank / universal active-mode Exit, and cell 12 for Utility single / persistent Default-legend double; active modes do not reserve an independent legend-toggle cell.
 ---
 
 ---
@@ -348,7 +418,7 @@
 **Root cause:** Layout metrics and double-click classification were tied to the first passive reminder instead of being reusable mode infrastructure. Active mode updates also assumed that a live mode always meant a visible HUD.
 **Fix:** Double the reusable HUD's panel, type, spacing, cells, strokes and status metrics. Extract `ReservedModeHUDGesture`, key it by mouse source, and reserve physical cell 12 (Corsair 12 / Razer 10) for single-action-or-double-toggle classification. Colour Proof keeps its single-click Rose action, toggles the legend without changing colour or lease state on double-click, and shows the large legend on every connected display.
 **Guard:** Every future `ModeHUDLegend` mode must reuse the same physical cell and source-keyed classifier, preserve its single-click action after the bounded decision window, keep hidden HUD state independent from active mode/lighting state, and cancel pending input on exit. Pin same-source, cross-source, single-click, hidden-update and all-display behavior in tests; never let a double-click select the reserved cell twice or let two mice form one gesture.
-**Status:** Historical prototype only. The accepted product contract now uses one-click cell 3 for the Default legend and cell 12 as the universal Utility modes entry/exit; no double-click classifier owns either action.
+**Status:** Historical prototype only. The accepted product contract now uses the bounded cell-12 classifier: single press opens Utility and rapid double toggles that source's persistent Default legend; universal cell 10 exits active modes.
 ---
 
 ---
@@ -367,7 +437,7 @@
 **Root cause:** Gesture lifetime and display placement were hard-coded as toast behavior. The reusable snapshot did not express whether a presentation belonged on one target display or all displays, and the presenter had no display-change reconciliation.
 **Fix:** Treat a second valid top-left double-click as the explicit hide action and use zero `displayDuration` for persistent presentation. Add `ModeHUDSnapshot.showsOnAllDisplays`; for the Default map, maintain one shared-model, non-activating `HUDPanel` per `NSScreen`, and reconcile panels when macOS reports changed screen parameters. At this stage runtime modes retained their configured target display; Ethan later broadened every reusable mode legend to all displays, as recorded in the newer learning above. The installed build showed three correctly placed panels for three connected displays for more than 40 seconds, then removed all three on the next double-click.
 **Guard:** Pin persistent, second-double-click, cross-mouse hide, legacy positive auto-hide, and all-display snapshot behavior in tests. Preserve a separate panel/hosting view per display, keep every panel click-through and non-activating, and remove stale panels after display changes. Only broaden runtime modes when Ethan asks; he later did, so the newer universal mode-HUD rule above is authoritative.
-**Status:** Historical gesture contract only. The all-display presenter remains valid, but the current Default toggle is one press on cell 10 and each source owns an independent legend; active modes remain visible until that same cell exits.
+**Status:** Historical gesture contract only. The all-display presenter remains valid, but the current Default toggle is a rapid double press on cell 12 and each source owns an independent legend; active modes remain visible until cell 10 exits.
 ---
 
 ---
@@ -583,4 +653,3 @@
 **Root cause:** `package-app.sh` always ad-hoc signed the bundle. Its designated requirement was the build-specific CDHash, so every rebuilt executable was a new TCC identity even though the bundle id and `/Applications/AgenticMouse.app` path stayed unchanged.
 **Fix:** Let packaging accept `CODE_SIGN_IDENTITY` and use Ethan's stable Developer ID identity for every installed build. Keep the portable default ad-hoc only for uninstalled development artifacts. Grant the stable signed app once through System Settings.
 **Guard:** Before any installed replacement, verify the certificate-backed designated requirement and use the same identity, bundle id, and path. Packaging must fail closed when signing or signature verification fails; a warning followed by a usable-looking bundle can otherwise reinstall the exact regression. Never reset TCC, edit its database, use `sfltool`, or install an ad-hoc build over the trusted app.
----

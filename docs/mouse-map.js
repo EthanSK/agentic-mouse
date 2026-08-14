@@ -36,15 +36,15 @@ const PAIRS = [
     id: "c1", corsair: 1, razer: 3, row: 3, col: 1,
     action: "Horizontal scroll left", short: "Scroll ←", description: "Scroll the current surface horizontally to the left.",
     signal: "scroll", output: "mouse_key horizontal_wheel −64", status: "CONFIGURED · NATIVE WHEEL OUTPUT",
+    razerAction: {
+      action: "Horizontal scroll right", short: "Scroll →", description: "Mirror the horizontal gesture for the left-handed Razer.",
+      signal: "scroll", output: "mouse_key horizontal_wheel +64", status: "CONFIGURED · LEFT-HANDED MIRROR",
+    },
   },
   {
     id: "c2", corsair: 2, razer: 2, row: 2, col: 1,
-    action: "Switch App", short: "⌘ Tab", description: "Hold to open the macOS App Switcher; release to choose the highlighted app.",
-    signal: "keyboard", output: "native Karabiner ⌘-Tab + held ⌘", status: "PHYSICALLY ACCEPTED · BOTH MICE",
-    razerAction: {
-      action: "Legend toggle", short: "Legend", description: "Toggle the persistent Razer Default legend outside modes.",
-      signal: "runtime", output: "Agentic Mouse Razer legend toggle", status: "INSTALLED · PHYSICAL ACCEPTANCE PENDING",
-    },
+    action: "Current app mode", short: "App mode", description: "Open the mode for the current frontmost application and follow later app changes.",
+    signal: "runtime", output: "Agentic Mouse current-app mode", status: "IMPLEMENTED · PHYSICAL ACCEPTANCE PENDING",
   },
   {
     id: "c3", corsair: 3, razer: 1, row: 1, col: 1,
@@ -55,6 +55,10 @@ const PAIRS = [
     id: "c4", corsair: 4, razer: 6, row: 3, col: 2,
     action: "Horizontal scroll right", short: "Scroll →", description: "Scroll the current surface horizontally to the right.",
     signal: "scroll", output: "mouse_key horizontal_wheel +64", status: "CONFIGURED · NATIVE WHEEL OUTPUT",
+    razerAction: {
+      action: "Horizontal scroll left", short: "Scroll ←", description: "Mirror the horizontal gesture for the left-handed Razer.",
+      signal: "scroll", output: "mouse_key horizontal_wheel −64", status: "CONFIGURED · LEFT-HANDED MIRROR",
+    },
   },
   {
     id: "c5", corsair: 5, razer: 5, row: 2, col: 2,
@@ -67,12 +71,8 @@ const PAIRS = [
   },
   {
     id: "c6", corsair: 6, razer: 4, row: 1, col: 2,
-    action: "App shortcut", short: "App shortcut", description: "Run the configured shortcut for the frontmost app; stay silent when that app has no override.",
-    signal: "keyboard", output: "vk_none outside configured apps", status: "CONFIGURED · FAIL-CLOSED BASE",
-    vscodeAction: {
-      action: "Stage + next", short: "Stage + next", description: "Stage the current changed file and advance through Better Git with one press.",
-      signal: "keyboard", output: "F18 · repeat false", status: "CONFIGURED · PHYSICAL ACCEPTANCE PENDING",
-    },
+    action: "Keys mode", short: "Keys", description: "Open the shared native keys mode; active cell 10 exits.",
+    signal: "runtime", output: "Agentic Mouse Keys mode", status: "IMPLEMENTED · PHYSICAL ACCEPTANCE PENDING",
   },
   {
     id: "c7", corsair: 7, razer: 9, row: 3, col: 3,
@@ -90,27 +90,27 @@ const PAIRS = [
   },
   {
     id: "c9", corsair: 9, razer: 7, row: 1, col: 3,
-    action: "Keys mode", short: "Keys", description: "Open the shared native arrow-key mode; active cell 10 exits.",
-    signal: "runtime", output: "Agentic Mouse Keys mode", status: "IMPLEMENTED · PHYSICAL ACCEPTANCE PENDING",
-  },
-  {
-    id: "c10", corsair: 10, razer: 12, row: 3, col: 4,
-    action: "Legend toggle", short: "Legend", description: "Toggle the persistent Default legend outside modes; exit the current mode while one is active.",
-    signal: "runtime", output: "Agentic Mouse legend toggle / universal mode exit", status: "INSTALLED · PHYSICAL ACCEPTANCE PENDING",
-    razerAction: {
-      action: "Switch App", short: "⌘ Tab", description: "Hold to open the macOS App Switcher outside modes; the same button exits while a Razer mode is active.",
-      signal: "keyboard", output: "native Karabiner ⌘-Tab + held ⌘ / active-mode Exit", status: "INSTALLED · PHYSICAL ACCEPTANCE PENDING",
+    action: "App shortcut", short: "App shortcut", description: "Run the configured shortcut for the frontmost app; stay silent when that app has no override.",
+    signal: "keyboard", output: "vk_none outside configured apps", status: "CONFIGURED · FAIL-CLOSED BASE",
+    vscodeAction: {
+      action: "Stage + next / Undo", short: "Stage · Undo", description: "Single press stages and advances; a rapid double press asks Better Git to undo that exact transaction.",
+      signal: "keyboard", output: "single F18 · double F16 · repeat false", status: "IMPLEMENTED · PHYSICAL ACCEPTANCE PENDING",
     },
   },
   {
+    id: "c10", corsair: 10, razer: 12, row: 3, col: 4,
+    action: "Blank / Exit", short: "Exit in modes", description: "Stay blank outside modes; exit the current mode while one is active.",
+    signal: "runtime", output: "vk_none outside modes / active-mode Exit", status: "IMPLEMENTED · PHYSICAL ACCEPTANCE PENDING",
+  },
+  {
     id: "c11", corsair: 11, razer: 11, row: 2, col: 4,
-    action: "App-specific mode", short: "App mode", description: "Open the current frontmost app mode; Utility cell 11 opens the manual selector and active cell 10 exits.",
-    signal: "runtime", output: "Agentic Mouse app-specific mode", status: "LIVE · CODEX MODE AVAILABLE",
+    action: "Switch App", short: "⌘ Tab", description: "Hold to open the macOS App Switcher; release to choose the highlighted app.",
+    signal: "keyboard", output: "native Karabiner ⌘-Tab + held ⌘", status: "PHYSICALLY ACCEPTED · RELOCATED POSITION PENDING",
   },
   {
     id: "c12", corsair: 12, razer: 10, row: 1, col: 4,
-    action: "Utility modes", short: "Modes", description: "Open the shared utility-mode menu; active cell 10 exits from any page.",
-    signal: "runtime", output: "Agentic Mouse expiring Modes lease", status: "LIVE · UNIVERSAL MODE ENTRY AND EXIT",
+    action: "Utility / Legend", short: "Utility · Legend", description: "Single press opens Utility after the click window; a rapid double press toggles this mouse's persistent Default legend.",
+    signal: "runtime", output: "Agentic Mouse Utility classifier / Default legend toggle", status: "IMPLEMENTED · PHYSICAL ACCEPTANCE PENDING",
   },
 ];
 

@@ -3,15 +3,21 @@ import XCTest
 @testable import ScimitarKit
 
 final class DefaultMapHintCommandTests: XCTestCase {
-    func testDecoderAcceptsOnlyCellTenAndTheToggleNamespace() throws {
-        let valid = Data(
-            #"{"command":"agentic_mouse_default_map_toggle","source":"razer","physical_cell":10}"#.utf8
+    func testDecoderAcceptsOnlyTheSourceSpecificToggleCellAndNamespace() throws {
+        let corsair = Data(
+            #"{"command":"agentic_mouse_default_map_toggle","source":"corsair","physical_cell":12}"#.utf8
         )
-        XCTAssertEqual(try DefaultMapHintCommand.decode(valid), DefaultMapHintCommand(source: .razer))
+        XCTAssertEqual(try DefaultMapHintCommand.decode(corsair), DefaultMapHintCommand(source: .corsair))
+        let razer = Data(
+            #"{"command":"agentic_mouse_default_map_toggle","source":"razer","physical_cell":12}"#.utf8
+        )
+        XCTAssertEqual(try DefaultMapHintCommand.decode(razer), DefaultMapHintCommand(source: .razer))
 
         for payload in [
             #"{"command":"another_command","source":"razer","physical_cell":10}"#,
-            #"{"command":"agentic_mouse_default_map_toggle","source":"razer","physical_cell":12}"#,
+            #"{"command":"agentic_mouse_default_map_toggle","source":"razer","physical_cell":10}"#,
+            #"{"command":"agentic_mouse_default_map_toggle","source":"razer","physical_cell":2}"#,
+            #"{"command":"agentic_mouse_default_map_toggle","source":"corsair","physical_cell":10}"#,
             #"{"command":"agentic_mouse_default_map_toggle","source":"unknown","physical_cell":3}"#,
         ] {
             XCTAssertThrowsError(try DefaultMapHintCommand.decode(Data(payload.utf8)))
@@ -22,12 +28,15 @@ final class DefaultMapHintCommandTests: XCTestCase {
         XCTAssertEqual(DefaultMapLegend.legend.map(\.cell), PhysicalCell.all)
         XCTAssertEqual(DefaultMapLegend.legend[0].actionTitle, "Horizontal scroll left")
         XCTAssertEqual(DefaultMapLegend.legend[2].actionTitle, "Screenshot")
-        XCTAssertEqual(DefaultMapLegend.legend[5].actionTitle, "App shortcut")
-        XCTAssertEqual(DefaultMapLegend.legend[8].actionTitle, "Keys mode")
-        XCTAssertEqual(DefaultMapLegend.legend[8].accent, ModePickerCoordinator.keysAccent)
-        XCTAssertEqual(DefaultMapLegend.legend[9].actionTitle, "Legend toggle")
-        XCTAssertEqual(DefaultMapLegend.legend[10].actionTitle, "App mode")
-        XCTAssertEqual(DefaultMapLegend.legend[11].actionTitle, "Utility modes")
+        XCTAssertEqual(DefaultMapLegend.legend[5].actionTitle, "Keys mode")
+        XCTAssertEqual(DefaultMapLegend.legend[5].accent, ModePickerCoordinator.keysAccent)
+        XCTAssertEqual(DefaultMapLegend.legend[5].destinationModeAccent, ModePickerCoordinator.keysAccent)
+        XCTAssertEqual(DefaultMapLegend.legend[1].actionTitle, "App mode")
+        XCTAssertEqual(DefaultMapLegend.legend[1].destinationModeAccent, AppSpecificMode.selectorAccent)
+        XCTAssertEqual(DefaultMapLegend.legend[8].actionTitle, "App shortcut")
+        XCTAssertEqual(DefaultMapLegend.legend[10].actionTitle, "Switch App")
+        XCTAssertEqual(DefaultMapLegend.legend[11].actionTitle, "Legend toggle")
+        XCTAssertEqual(DefaultMapLegend.legend[11].destinationModeAccent, ModePickerCoordinator.accent)
         XCTAssertEqual(DefaultMapLegend.accent, .white)
         XCTAssertEqual(DefaultMapLegend.legend[0].accent, DefaultMapLegend.legend[3].accent)
         XCTAssertEqual(DefaultMapLegend.legend[4].accent, DefaultMapLegend.legend[7].accent)
@@ -38,7 +47,8 @@ final class DefaultMapHintCommandTests: XCTestCase {
         XCTAssertNil(snapshot.footerHint)
         XCTAssertTrue(snapshot.showsOnAllDisplays)
         XCTAssertEqual(snapshot.accent, .white)
-        XCTAssertEqual(snapshot.legend[9].actionTitle, "Legend toggle")
+        XCTAssertEqual(snapshot.legend[11].actionTitle, "Legend toggle")
+        XCTAssertEqual(snapshot.legend[10].actionTitle, "Switch App")
         XCTAssertEqual(snapshot.legend[2].actionTitle, "Screenshot")
         XCTAssertEqual(snapshot.presentationStyle, .neutral)
 
@@ -47,8 +57,9 @@ final class DefaultMapHintCommandTests: XCTestCase {
             screenshotIsCapturing: true
         )
         XCTAssertEqual(capturingSnapshot.legend[2].actionTitle, "Cancel screenshot")
-        XCTAssertEqual(PhysicalCell.defaultMapToggle.printedSide(on: .corsair), 10)
-        XCTAssertEqual(PhysicalCell.defaultMapToggle.printedSide(on: .razer), 12)
+        XCTAssertEqual(PhysicalCell.defaultMapToggle.printedSide(on: .corsair), 12)
+        XCTAssertEqual(PhysicalCell.defaultMapToggle(for: .corsair).printedSide(on: .corsair), 12)
+        XCTAssertEqual(PhysicalCell.defaultMapToggle(for: .razer).printedSide(on: .razer), 10)
         XCTAssertEqual(PhysicalCell.screenshotToggle.printedSide(on: .corsair), 3)
         XCTAssertEqual(PhysicalCell.screenshotToggle.printedSide(on: .razer), 1)
         XCTAssertEqual(PhysicalCell.modePickerEntry.printedSide(on: .corsair), 12)
@@ -56,6 +67,8 @@ final class DefaultMapHintCommandTests: XCTestCase {
 
         let razerSnapshot = DefaultMapLegend.snapshot(source: .razer)
         XCTAssertEqual(razerSnapshot.source, .razer)
+        XCTAssertEqual(razerSnapshot.legend[11].actionTitle, "Legend toggle")
+        XCTAssertEqual(razerSnapshot.legend[10].actionTitle, "Switch App")
         XCTAssertEqual(ModeHUDCopy.referenceHeader(for: razerSnapshot.source), "RAZER BUTTON MAP")
     }
 
@@ -103,12 +116,12 @@ final class DefaultMapHintCoordinatorTests: XCTestCase {
         coordinator = makeCoordinator()
     }
 
-    func testSameMouseCellTenPressTogglesThePersistentMap() {
+    func testSameMouseLegendPressTogglesThePersistentMap() {
         coordinator.handleToggle(source: .corsair)
         XCTAssertTrue(coordinator.isShowingHint)
         XCTAssertEqual(coordinator.source, .corsair)
         XCTAssertTrue(hud.isVisible)
-        XCTAssertEqual(hud.snapshots.last?.legend[9].actionTitle, "Legend toggle")
+        XCTAssertEqual(hud.snapshots.last?.legend[11].actionTitle, "Legend toggle")
 
         dismissScheduler.fire()
         XCTAssertTrue(coordinator.isShowingHint, "duration zero stays visible indefinitely")
@@ -139,11 +152,12 @@ final class DefaultMapHintCoordinatorTests: XCTestCase {
         )
         coordinator.handleToggle(source: .corsair)
 
-        XCTAssertEqual(hud.snapshots.last?.legend[10].actionTitle, "Chrome mode")
+        XCTAssertEqual(hud.snapshots.last?.legend[1].actionTitle, "Chrome mode")
         XCTAssertEqual(
-            hud.snapshots.last?.legend[10].accent,
-            ModeHUDPresentationStyle.pastel.displayAccent(ChromeMode.accent)
+            hud.snapshots.last?.legend[1].accent,
+            ChromeMode.accent.blended(with: .white, amount: 0.58)
         )
+        XCTAssertEqual(hud.snapshots.last?.legend[1].destinationModeAccent, ChromeMode.accent)
 
         frontmostAppContext = FrontmostAppModeContext(
             target: .vsCode,
@@ -152,7 +166,7 @@ final class DefaultMapHintCoordinatorTests: XCTestCase {
         )
         coordinator.refresh()
 
-        XCTAssertEqual(hud.snapshots.last?.legend[10].actionTitle, "VS Code mode")
+        XCTAssertEqual(hud.snapshots.last?.legend[1].actionTitle, "VS Code mode")
         XCTAssertTrue(coordinator.isShowingHint)
     }
 

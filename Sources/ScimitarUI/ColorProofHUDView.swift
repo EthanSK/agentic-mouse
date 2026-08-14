@@ -13,7 +13,9 @@ final class ModeHUDViewModel: ObservableObject {
     @Published var footerTitle = ""
     @Published var footerHint: String?
     @Published var problem: String?
+    @Published var feedback: ModeHUDFeedback?
     @Published var presentationStyle: ModeHUDPresentationStyle = .neutral
+    let appVersion = AgenticMouseVersion.displayString()
 
     init(source: MouseSource) {
         self.source = source
@@ -75,7 +77,12 @@ struct ModeHUDView: View {
             let cardColors = ModeHUDCardColors(
                 modeAccent: model.accent,
                 actionAccent: item.accent,
+                destinationModeAccent: item.destinationModeAccent,
                 presentationStyle: model.presentationStyle
+            )
+            let borderTreatment = ModeHUDCardBorderTreatment(
+                isSelected: selected,
+                isModeNavigation: item.destinationModeAccent != nil
             )
             let fillColor = Color(cardColors.fill)
             let borderColor = Color(cardColors.border)
@@ -86,11 +93,6 @@ struct ModeHUDView: View {
                     .lineLimit(2)
                     .multilineTextAlignment(.center)
                     .foregroundStyle(foregroundColor)
-                if let detail = item.detail {
-                    Text(detail)
-                        .font(.system(size: 13.5, weight: .medium, design: .monospaced))
-                        .foregroundStyle(foregroundColor.opacity(0.72))
-                }
                 Text(item.cell.displayLabel(on: model.source).uppercased())
                     .font(.system(size: 10.5, weight: .medium, design: .monospaced))
                     .foregroundStyle(foregroundColor.opacity(0.58))
@@ -104,8 +106,8 @@ struct ModeHUDView: View {
                     .overlay(
                         RoundedRectangle(cornerRadius: 12, style: .continuous)
                             .strokeBorder(
-                                borderColor.opacity(selected ? 1 : 0.9),
-                                lineWidth: selected ? 3.5 : 2.25
+                                borderColor.opacity(borderTreatment.opacity),
+                                lineWidth: borderTreatment.lineWidth
                             )
                     )
             )
@@ -114,15 +116,37 @@ struct ModeHUDView: View {
 
     private var footer: some View {
         HStack(spacing: 9) {
-            Text(model.modeTitle.uppercased())
-                .font(.system(size: 13.5, weight: .bold, design: .rounded))
-                .foregroundStyle(displayAccent)
+            if let feedback = model.feedback {
+                Circle()
+                    .fill(feedbackColor(feedback.tone))
+                    .frame(width: 8, height: 8)
+                Text(feedback.message.uppercased())
+                    .font(.system(size: 12.5, weight: .bold, design: .rounded))
+                    .foregroundStyle(feedbackColor(feedback.tone))
+                    .lineLimit(1)
+            } else {
+                Text(model.modeTitle.uppercased())
+                    .font(.system(size: 13.5, weight: .bold, design: .rounded))
+                    .foregroundStyle(displayAccent)
+            }
 
             Spacer()
 
-            Text(model.source.displayName.uppercased())
+            Text("\(model.source.displayName.uppercased())  ·  \(model.appVersion.uppercased())")
                 .font(.system(size: 12, weight: .semibold, design: .monospaced))
                 .foregroundStyle(.secondary)
+                .lineLimit(1)
+        }
+    }
+
+    private func feedbackColor(_ tone: ModeHUDFeedback.Tone) -> Color {
+        switch tone {
+        case .confirmed:
+            return Color(red: 0.25, green: 0.95, blue: 0.55)
+        case .informational:
+            return Color(red: 0.36, green: 0.78, blue: 1.0)
+        case .notConfirmed:
+            return Color(red: 1.0, green: 0.68, blue: 0.22)
         }
     }
 
@@ -151,18 +175,6 @@ struct ModeHUDView: View {
                     .clipShape(shape)
                 )
                 .overlay(shape.strokeBorder(displayAccent, lineWidth: 3))
-        case .pastel:
-            shape
-                .fill(Color(red: 0.055, green: 0.064, blue: 0.09))
-                .overlay(
-                    LinearGradient(
-                        colors: [displayAccent.opacity(0.38), displayAccent.opacity(0.08)],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                    .clipShape(shape)
-                )
-                .overlay(shape.strokeBorder(displayAccent, lineWidth: 2.5))
         }
     }
 
@@ -170,7 +182,7 @@ struct ModeHUDView: View {
         switch model.presentationStyle {
         case .neutral:
             return color.opacity(selected ? 0.58 : 0.24)
-        case .boldOpaque, .pastel:
+        case .boldOpaque:
             return color
         }
     }

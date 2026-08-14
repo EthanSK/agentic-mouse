@@ -20,6 +20,7 @@ public final class AppKitModeHUDPresenter: NSObject, ModeHUDPresenting {
     private let source: MouseSource
     private let configuration: AppConfiguration.HUDConfiguration
     private var problemDismissWorkItem: DispatchWorkItem?
+    private var feedbackDismissWorkItem: DispatchWorkItem?
     private var delayedScreenReconcileWorkItem: DispatchWorkItem?
     private var displayScope: DisplayScope = .target
     private var panelOpacity: CGFloat
@@ -67,8 +68,10 @@ public final class AppKitModeHUDPresenter: NSObject, ModeHUDPresenting {
 
     public func hide() {
         problemDismissWorkItem?.cancel()
+        feedbackDismissWorkItem?.cancel()
         delayedScreenReconcileWorkItem?.cancel()
         model.isActive = false
+        model.feedback = nil
         panels.values.forEach { $0.panel.orderOut(nil) }
         displayScope = .target
     }
@@ -86,6 +89,22 @@ public final class AppKitModeHUDPresenter: NSObject, ModeHUDPresenting {
             }
         }
         problemDismissWorkItem = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + 4, execute: work)
+    }
+
+    public func flashFeedback(_ feedback: ModeHUDFeedback) {
+        model.feedback = feedback
+        reconcilePanels(show: true)
+
+        feedbackDismissWorkItem?.cancel()
+        let work = DispatchWorkItem { [weak self] in
+            guard let self else { return }
+            self.model.feedback = nil
+            if !self.model.isActive {
+                self.panels.values.forEach { $0.panel.orderOut(nil) }
+            }
+        }
+        feedbackDismissWorkItem = work
         DispatchQueue.main.asyncAfter(deadline: .now() + 4, execute: work)
     }
 

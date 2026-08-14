@@ -15,12 +15,6 @@ public enum ChromeModeAction: String, CaseIterable, Equatable, Sendable {
         }
     }
 
-    public var detail: String {
-        switch self {
-        case .closeCurrentWindow: return "Chrome Command-W"
-        }
-    }
-
     public static func action(for cell: PhysicalCell) -> ChromeModeAction? {
         allCases.first { $0.cell == cell }
     }
@@ -38,7 +32,6 @@ public enum ChromeMode {
                 return ModeHUDLegendItem(
                     cell: cell,
                     actionTitle: action.title,
-                    detail: action.detail,
                     accent: RGBColor(red: 66, green: 133, blue: 244)
                 )
             }
@@ -48,7 +41,6 @@ public enum ChromeMode {
             return ModeHUDLegendItem(
                 cell: cell,
                 actionTitle: "Spare",
-                detail: "Available for another Chrome action",
                 accent: RGBColor(red: 118, green: 126, blue: 142)
             )
         }

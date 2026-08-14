@@ -28,11 +28,11 @@ final class ModePickerTests: XCTestCase {
         XCTAssertEqual(coordinator.page, .modes)
         XCTAssertEqual(hud.snapshots.last?.modeTitle, "Utility modes")
         XCTAssertEqual(ModePickerCoordinator.modesLegend.count, 12)
-        XCTAssertEqual(ModePickerCoordinator.modesLegend[0].actionTitle, "Brightness Down")
-        XCTAssertEqual(ModePickerCoordinator.modesLegend[1].actionTitle, "Brightness Up")
+        XCTAssertEqual(ModePickerCoordinator.modesLegend[0].actionTitle, "Brightness Up")
+        XCTAssertEqual(ModePickerCoordinator.modesLegend[1].actionTitle, "Zoom In")
         XCTAssertEqual(ModePickerCoordinator.modesLegend[2].actionTitle, "Space Left")
-        XCTAssertEqual(ModePickerCoordinator.modesLegend[3].actionTitle, "Zoom Out")
-        XCTAssertEqual(ModePickerCoordinator.modesLegend[4].actionTitle, "Zoom In")
+        XCTAssertEqual(ModePickerCoordinator.modesLegend[3].actionTitle, "Brightness Down")
+        XCTAssertEqual(ModePickerCoordinator.modesLegend[4].actionTitle, "Zoom Out")
         XCTAssertEqual(ModePickerCoordinator.modesLegend[5].actionTitle, "Space Right")
         XCTAssertEqual(ModePickerCoordinator.modesLegend[6].actionTitle, "Keypad")
         XCTAssertEqual(ModePickerCoordinator.modesLegend[7].actionTitle, "YouTube −5 sec")
@@ -41,15 +41,26 @@ final class ModePickerTests: XCTestCase {
         XCTAssertEqual(ModePickerCoordinator.modesLegend[9].actionTitle, "Exit Utility modes")
         XCTAssertEqual(ModePickerCoordinator.modesLegend[11].actionTitle, "Spare")
         XCTAssertFalse(ModePickerCoordinator.modesLegend.contains { $0.actionTitle == "Colour Proof" })
-        XCTAssertEqual(ModePickerCoordinator.modesLegend[0].accent, ModePickerCoordinator.modesLegend[1].accent)
+        XCTAssertEqual(ModePickerCoordinator.modesLegend[0].accent, ModePickerCoordinator.modesLegend[3].accent)
         XCTAssertEqual(ModePickerCoordinator.modesLegend[2].accent, ModePickerCoordinator.modesLegend[5].accent)
-        XCTAssertEqual(ModePickerCoordinator.modesLegend[3].accent, ModePickerCoordinator.modesLegend[4].accent)
+        XCTAssertEqual(ModePickerCoordinator.modesLegend[1].accent, ModePickerCoordinator.modesLegend[4].accent)
+        XCTAssertNotEqual(ModePickerCoordinator.modesLegend[0].accent, ModePickerCoordinator.modesLegend[1].accent)
         XCTAssertNotEqual(ModePickerCoordinator.modesLegend[0].accent, ModePickerCoordinator.modesLegend[2].accent)
-        XCTAssertNotEqual(ModePickerCoordinator.modesLegend[2].accent, ModePickerCoordinator.modesLegend[3].accent)
-        XCTAssertTrue(ModePickerCoordinator.modesLegend.allSatisfy { $0.detail == nil })
         XCTAssertEqual(hud.snapshots.last?.source, .razer)
         XCTAssertTrue(hud.snapshots.last?.showsOnAllDisplays == true)
         XCTAssertEqual(hud.snapshots.last?.presentationStyle, .boldOpaque)
+    }
+
+    func testUtilityQuartetUsesTheRequestedRotatedPhysicalCells() {
+        XCTAssertEqual(ModeUtilityAction.action(for: PhysicalCell(rawValue: 1)!), .increaseDisplayBrightness)
+        XCTAssertEqual(ModeUtilityAction.action(for: PhysicalCell(rawValue: 2)!), .zoomIn)
+        XCTAssertEqual(ModeUtilityAction.action(for: PhysicalCell(rawValue: 4)!), .decreaseDisplayBrightness)
+        XCTAssertEqual(ModeUtilityAction.action(for: PhysicalCell(rawValue: 5)!), .zoomOut)
+
+        XCTAssertEqual(PhysicalCell(rawValue: 1)!.printedSide(on: .razer), 3)
+        XCTAssertEqual(PhysicalCell(rawValue: 2)!.printedSide(on: .razer), 2)
+        XCTAssertEqual(PhysicalCell(rawValue: 4)!.printedSide(on: .razer), 6)
+        XCTAssertEqual(PhysicalCell(rawValue: 5)!.printedSide(on: .razer), 5)
     }
 
     func testUtilityCellsRunOnlyOnPress() {
@@ -83,8 +94,8 @@ final class ModePickerTests: XCTestCase {
                 .rewindYouTubeFiveSeconds,
                 .zoomIn,
                 .zoomOut,
-                .moveToSpaceLeft,
                 .moveToSpaceRight,
+                .moveToSpaceLeft,
             ]
         )
         XCTAssertEqual(coordinator.page, .modes)
@@ -156,10 +167,10 @@ final class ModePickerTests: XCTestCase {
         XCTAssertEqual(hud.snapshots.last?.modeTitle, "Codex mode")
         XCTAssertEqual(hud.snapshots.last?.accent, CodexMode.accent)
         XCTAssertEqual(selected.map(\.0), [.codex])
-        XCTAssertEqual(selected.map { $0.1.rawValue }, [2])
+        XCTAssertEqual(selected.map { $0.1.rawValue }, [9])
     }
 
-    func testTopLevelCellElevenFollowsTheFrontmostAppAndCellTenExits() {
+    func testTopLevelCellTwoFollowsTheFrontmostAppAndCellTenExits() {
         let lease = RecordingModePickerLease()
         let hud = RecordingModeHUDPresenter()
         let coordinator = makeCoordinator(lease: lease, hud: hud)
@@ -172,14 +183,14 @@ final class ModePickerTests: XCTestCase {
         }
 
         coordinator.handle(
-            .init(action: .openAppSpecific, source: .razer, physicalCell: .appSpecificModeSelector)
+            .init(action: .openAppSpecific, source: .razer, physicalCell: .frontmostAppModeSelector)
         )
 
         XCTAssertTrue(coordinator.isActive)
         XCTAssertEqual(coordinator.page, .appSpecific)
         XCTAssertEqual(coordinator.appSpecificTarget, .chrome)
         XCTAssertEqual(hud.snapshots.last?.modeTitle, "Chrome mode")
-        XCTAssertEqual(hud.snapshots.last?.presentationStyle, .pastel)
+        XCTAssertEqual(hud.snapshots.last?.presentationStyle, .boldOpaque)
 
         coordinator.handle(
             .init(action: .select, source: .razer, physicalCell: .modeExit)
@@ -190,13 +201,13 @@ final class ModePickerTests: XCTestCase {
         XCTAssertEqual(lease.deactivateCount, 1)
     }
 
-    func testTopLevelCellNineOpensKeysModeAndCellTenExits() {
+    func testTopLevelCellSixOpensKeysModeAndCellTenExits() {
         let lease = RecordingModePickerLease()
         let hud = RecordingModeHUDPresenter()
         let coordinator = makeCoordinator(lease: lease, hud: hud)
 
         coordinator.handle(
-            .init(action: .openKeys, source: .razer, physicalCell: .keysModeSelector)
+            .init(action: .openKeys, source: .razer, physicalCell: .keysModeEntry)
         )
 
         XCTAssertTrue(coordinator.isActive)
@@ -233,7 +244,7 @@ final class ModePickerTests: XCTestCase {
             )
         }
 
-        XCTAssertEqual(actions.map(\.0), Array(repeating: .corsair, count: 10))
+        XCTAssertEqual(actions.map(\.0), Array(repeating: .corsair, count: 11))
         XCTAssertEqual(
             actions.map(\.1),
             [
@@ -247,6 +258,7 @@ final class ModePickerTests: XCTestCase {
                 .insertSpace,
                 .pressBackspace,
                 .pasteStoredPassword,
+                .escape,
             ]
         )
         XCTAssertEqual(KeysModeAction.arrowUp.cell.rawValue, 5)
@@ -259,6 +271,7 @@ final class ModePickerTests: XCTestCase {
         XCTAssertEqual(KeysModeAction.insertSpace.cell.rawValue, 8)
         XCTAssertEqual(KeysModeAction.pressBackspace.cell.rawValue, 11)
         XCTAssertEqual(KeysModeAction.pasteStoredPassword.cell.rawValue, 2)
+        XCTAssertEqual(KeysModeAction.escape.cell.rawValue, 12)
         XCTAssertEqual(ModePickerCoordinator.keysLegend[9].actionTitle, "Exit Keys mode")
         XCTAssertEqual(ModePickerCoordinator.keysLegend[5].actionTitle, "Copy")
         XCTAssertEqual(ModePickerCoordinator.keysLegend[7].actionTitle, "Space")
@@ -266,7 +279,7 @@ final class ModePickerTests: XCTestCase {
         XCTAssertEqual(ModePickerCoordinator.keysLegend[2].actionTitle, "Paste")
         XCTAssertEqual(ModePickerCoordinator.keysLegend[8].actionTitle, "Next Track")
         XCTAssertEqual(ModePickerCoordinator.keysLegend[10].actionTitle, "Backspace")
-        XCTAssertEqual(ModePickerCoordinator.keysLegend[11].actionTitle, "Utility modes")
+        XCTAssertEqual(ModePickerCoordinator.keysLegend[11].actionTitle, "Escape")
         let arrowAccents = [
             KeysModeAction.arrowUp,
             .arrowDown,
@@ -303,6 +316,53 @@ final class ModePickerTests: XCTestCase {
         XCTAssertEqual(colors.foreground, .white)
     }
 
+    func testModeNavigationUsesDestinationColourAndStrongerBorder() {
+        let currentMode = ScimitarKit.RGBColor(red: 255, green: 92, blue: 0)
+        let destinationMode = ScimitarKit.RGBColor(red: 164, green: 48, blue: 255)
+        let action = ScimitarKit.RGBColor(red: 82, green: 138, blue: 255)
+        let colors = ModeHUDCardColors(
+            modeAccent: currentMode,
+            actionAccent: action,
+            destinationModeAccent: destinationMode
+        )
+        let ordinary = ModeHUDCardBorderTreatment(isSelected: false, isModeNavigation: false)
+        let navigation = ModeHUDCardBorderTreatment(isSelected: false, isModeNavigation: true)
+        let selected = ModeHUDCardBorderTreatment(isSelected: true, isModeNavigation: true)
+
+        XCTAssertEqual(colors.border, destinationMode)
+        XCTAssertEqual(colors.fill, action)
+        XCTAssertGreaterThan(navigation.lineWidth, ordinary.lineWidth)
+        XCTAssertGreaterThan(selected.lineWidth, navigation.lineWidth)
+        XCTAssertGreaterThan(navigation.opacity, ordinary.opacity)
+    }
+
+    func testEveryCurrentModeEntryAdvertisesItsDestinationAccent() {
+        XCTAssertEqual(
+            ModePickerCoordinator.modesLegend[PhysicalCell.keypadModeSelector.rawValue - 1]
+                .destinationModeAccent,
+            ModePickerCoordinator.keypadAccent
+        )
+        XCTAssertEqual(
+            ModePickerCoordinator.modesLegend[PhysicalCell.keysModeSelector.rawValue - 1]
+                .destinationModeAccent,
+            ModePickerCoordinator.keysAccent
+        )
+        XCTAssertEqual(
+            ModePickerCoordinator.modesLegend[PhysicalCell.appSpecificModeSelector.rawValue - 1]
+                .destinationModeAccent,
+            ModePickerCoordinator.appSpecificAccent
+        )
+        XCTAssertTrue(
+            ModePickerCoordinator.modesLegend
+                .filter { ![.keypadModeSelector, .keysModeSelector, .appSpecificModeSelector].contains($0.cell) }
+                .allSatisfy { $0.destinationModeAccent == nil }
+        )
+        for target in AppSpecificTarget.allCases {
+            let item = AppSpecificMode.selectorDefinition.legend.first { $0.cell == target.selectorCell }
+            XCTAssertEqual(item?.destinationModeAccent, target.accent)
+        }
+    }
+
     func testBoldCardsStayOpaqueAndChooseReadableForeground() {
         let bright = ScimitarKit.RGBColor(red: 255, green: 220, blue: 30)
         let dark = ScimitarKit.RGBColor(red: 30, green: 55, blue: 120)
@@ -323,21 +383,19 @@ final class ModePickerTests: XCTestCase {
         XCTAssertEqual(darkColors.fill, dark)
         XCTAssertEqual(darkColors.foreground, .white)
         XCTAssertTrue(ModeHUDPresentationStyle.boldOpaque.requiresOpaqueWindow)
-        XCTAssertTrue(ModeHUDPresentationStyle.pastel.requiresOpaqueWindow)
         XCTAssertFalse(ModeHUDPresentationStyle.neutral.requiresOpaqueWindow)
     }
 
-    func testAppPastelStyleSoftensOnlyTheHUDColours() {
+    func testAppModeUsesTheSameBoldOpaqueTreatmentAsOtherModes() {
         let saturated = ChromeMode.accent
         let colors = ModeHUDCardColors(
             modeAccent: saturated,
             actionAccent: saturated,
-            presentationStyle: .pastel
+            presentationStyle: .boldOpaque
         )
 
-        XCTAssertNotEqual(colors.border, saturated)
-        XCTAssertNotEqual(colors.fill, saturated)
-        XCTAssertGreaterThan(colors.fill.relativeLuminance, saturated.relativeLuminance)
+        XCTAssertEqual(colors.border, saturated)
+        XCTAssertEqual(colors.fill, saturated)
         XCTAssertEqual(ChromeMode.definition.accent, saturated, "hardware identity stays saturated")
     }
 
@@ -408,7 +466,7 @@ final class ModePickerTests: XCTestCase {
         XCTAssertEqual(coordinator.appSpecificTarget, .chrome)
         XCTAssertEqual(hud.snapshots.last?.modeTitle, "Chrome mode")
         XCTAssertEqual(hud.snapshots.last?.accent, ChromeMode.accent)
-        XCTAssertEqual(hud.snapshots.last?.presentationStyle, .pastel)
+        XCTAssertEqual(hud.snapshots.last?.presentationStyle, .boldOpaque)
     }
 
     func testUnknownAppIdentityColourIsStableAndBundleSpecific() {
@@ -562,14 +620,14 @@ final class ModePickerTests: XCTestCase {
     }
 
     func testCodexModePinsTheRequestedActionsWithCellTenExitAndNoAppChoiceCard() {
-        XCTAssertEqual(CodexModeAction.newTask.cell.rawValue, 1)
-        XCTAssertEqual(CodexModeAction.togglePin.cell.rawValue, 2)
-        XCTAssertEqual(CodexModeAction.toggleMicrophoneMute.cell.rawValue, 8)
+        XCTAssertEqual(CodexModeAction.newTask.cell.rawValue, 8)
+        XCTAssertEqual(CodexModeAction.togglePin.cell.rawValue, 9)
+        XCTAssertEqual(CodexModeAction.toggleMicrophoneMute.cell.rawValue, 1)
         XCTAssertEqual(CodexModeAction.toggleVoiceMode.cell.rawValue, 4)
         XCTAssertEqual(CodexModeAction.toggleVoiceMode.title, "Start voice mode")
-        XCTAssertEqual(CodexModeAction.steerQueuedMessage.cell.rawValue, 5)
+        XCTAssertEqual(CodexModeAction.steerQueuedMessage.cell.rawValue, 7)
         XCTAssertEqual(CodexModeAction.pressEnter.cell.rawValue, 6)
-        XCTAssertEqual(CodexModeAction.startNewVoiceChat.cell.rawValue, 7)
+        XCTAssertEqual(CodexModeAction.startNewVoiceChat.cell.rawValue, 5)
         XCTAssertEqual(CodexModeAction.increaseReasoningEffort.cell.rawValue, 12)
         XCTAssertEqual(CodexModeAction.decreaseReasoningEffort.cell.rawValue, 11)
         XCTAssertEqual(CodexModeAction.action(for: .modePickerEntry), .increaseReasoningEffort)
@@ -617,11 +675,13 @@ final class ModePickerTests: XCTestCase {
         }
     }
 
-    func testUtilityAndKeysNavigateWithoutGrowingACycle() {
+    func testKeysCellTwelveIsEscapeRatherThanUtilityNavigation() {
         let hud = RecordingModeHUDPresenter()
         let coordinator = makeCoordinator(hud: hud)
 
         coordinator.enter(source: .corsair)
+        var keysActions: [KeysModeAction] = []
+        coordinator.onKeysInput = { _, action in keysActions.append(action); return true }
         coordinator.handle(.init(
             action: .select,
             source: .corsair,
@@ -638,9 +698,10 @@ final class ModePickerTests: XCTestCase {
             physicalCell: .modePickerEntry
         ))
 
-        XCTAssertEqual(coordinator.page, .modes)
-        XCTAssertEqual(coordinator.navigationPath, [.modes])
-        XCTAssertEqual(hud.snapshots.last?.modeTitle, "Utility modes")
+        XCTAssertEqual(coordinator.page, .keys)
+        XCTAssertEqual(coordinator.navigationPath, [.modes, .keys])
+        XCTAssertEqual(hud.snapshots.last?.modeTitle, "Keys mode")
+        XCTAssertEqual(keysActions, [.escape])
     }
 
     func testKeypadFailureExitsInsteadOfLeavingTheKarabinerPageDesynchronized() {

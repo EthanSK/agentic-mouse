@@ -13,13 +13,13 @@ public enum CodexModeAction: String, CaseIterable, Equatable, Sendable {
 
     public var cell: PhysicalCell {
         switch self {
-        case .newTask: return PhysicalCell(rawValue: 1)!
-        case .togglePin: return PhysicalCell(rawValue: 2)!
-        case .toggleMicrophoneMute: return PhysicalCell(rawValue: 8)!
+        case .newTask: return PhysicalCell(rawValue: 8)!
+        case .togglePin: return PhysicalCell(rawValue: 9)!
+        case .toggleMicrophoneMute: return PhysicalCell(rawValue: 1)!
         case .toggleVoiceMode: return PhysicalCell(rawValue: 4)!
-        case .steerQueuedMessage: return PhysicalCell(rawValue: 5)!
+        case .steerQueuedMessage: return PhysicalCell(rawValue: 7)!
         case .pressEnter: return PhysicalCell(rawValue: 6)!
-        case .startNewVoiceChat: return PhysicalCell(rawValue: 7)!
+        case .startNewVoiceChat: return PhysicalCell(rawValue: 5)!
         case .increaseReasoningEffort: return PhysicalCell(rawValue: 12)!
         case .decreaseReasoningEffort: return PhysicalCell(rawValue: 11)!
         }
@@ -36,20 +36,6 @@ public enum CodexModeAction: String, CaseIterable, Equatable, Sendable {
         case .startNewVoiceChat: return "New voice chat"
         case .increaseReasoningEffort: return "Reasoning effort up"
         case .decreaseReasoningEffort: return "Reasoning effort down"
-        }
-    }
-
-    public var detail: String {
-        switch self {
-        case .newTask: return "Codex custom shortcut"
-        case .togglePin: return "Codex custom shortcut"
-        case .toggleMicrophoneMute: return "Current voice microphone"
-        case .toggleVoiceMode: return "Codex built-in voice shortcut"
-        case .steerQueuedMessage: return "Codex Command-Shift-Return"
-        case .pressEnter: return "Codex Submit command"
-        case .startNewVoiceChat: return "New task, then Codex voice mode"
-        case .increaseReasoningEffort: return "Codex configured shortcut"
-        case .decreaseReasoningEffort: return "Codex configured shortcut"
         }
     }
 
@@ -86,7 +72,6 @@ public enum CodexMode {
                 return ModeHUDLegendItem(
                     cell: cell,
                     actionTitle: action.title,
-                    detail: action.detail,
                     accent: action.hudAccent
                 )
             }
@@ -96,7 +81,6 @@ public enum CodexMode {
             return ModeHUDLegendItem(
                 cell: cell,
                 actionTitle: "Spare",
-                detail: "Available for another Codex action",
                 accent: RGBColor(red: 96, green: 108, blue: 120)
             )
         }
