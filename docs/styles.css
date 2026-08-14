@@ -111,6 +111,7 @@ nav a:hover { color: var(--mint); }
 .left-shell > * { transform: scaleX(-1); }
 .mouse-wheel { position: absolute; top: 32px; left: calc(50% - 11px); width: 22px; height: 50px; border: 4px solid #0b0f17; border-radius: 12px; background: repeating-linear-gradient(#56617c 0 3px,#232a3d 3px 6px); }
 .thumb-grid { position: absolute; bottom: 49px; left: 50%; width: min(86%, 350px); display: grid; grid-template-columns: repeat(4, 1fr); gap: 7px; transform: translateX(-50%); }
+.left-shell .thumb-grid { transform: translateX(-50%) scaleX(-1); }
 .mouse-cell { position: relative; min-width: 0; aspect-ratio: 1.08; border: 1px solid #46516d; border-radius: 10px; background: #20283a; cursor: pointer; overflow: hidden; box-shadow: inset 0 -4px rgba(0,0,0,.25); }
 .mouse-cell:hover { border-color: var(--paper); }
 .mouse-cell.is-selected { border-color: var(--mint); background: linear-gradient(145deg, rgba(0,218,184,.5), rgba(164,48,255,.45)); box-shadow: 0 0 0 2px var(--carbon), 0 0 0 4px var(--mint), inset 0 -4px rgba(0,0,0,.25); }

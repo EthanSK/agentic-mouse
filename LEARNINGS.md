@@ -6,6 +6,7 @@
 - Keys is a compact native-action page, not a duplicate of the Default map. Keep Enter on top-level cell 7; use Keys cell 6 for Command-C Copy, cell 3 for Command-V Paste, cell 9 for Next Track, cell 8 for Space, and cell 11 for Backspace. Keep every generated event exact-device, non-repeating, and gated by the unlocked-session lease.
 - Inspect the running Codex build's command registry before assigning a Codex card. `openSideChat` opens the current task as a side task, while “open this queued message in side chat” currently exists only as a queued-row menu action and has no registered configurable command. Never bind the former as a false substitute for the latter; keep the requested action outstanding until Codex exposes a command or shortcut.
 - Use command truth in visible copy. Codex registers `composer.startVoiceMode`, so the mouse card is `Start voice mode`; do not call it a toggle or imply that the same command stops an active voice session. `Start new voice chat` is a two-step action: create an empty task, wait for its composer to mount, then send that same built-in voice command.
+- A CSS mirror used for left-handed device geometry also mirrors descendant text. Keep the Razer shell mirrored, but cancel that transform on the explicitly ordered thumb grid so printed numbers and action labels stay readable; the source-specific `DISPLAY_ORDER` remains the semantic authority.
 
 ## 2026-08-14 — Keep app wildcards silent and move rare media into Keys
 
