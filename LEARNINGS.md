@@ -7,6 +7,7 @@
 - Inspect the running Codex build's command registry before assigning a Codex card. `openSideChat` opens the current task as a side task, while “open this queued message in side chat” currently exists only as a queued-row menu action and has no registered configurable command. Never bind the former as a false substitute for the latter; keep the requested action outstanding until Codex exposes a command or shortcut.
 - Use command truth in visible copy. Codex registers `composer.startVoiceMode`, so the mouse card is `Start voice mode`; do not call it a toggle or imply that the same command stops an active voice session. `Start new voice chat` is a two-step action: create an empty task, wait for its composer to mount, then send that same built-in voice command.
 - A CSS mirror used for left-handed device geometry also mirrors descendant text. Keep the Razer shell mirrored, but cancel that transform on the explicitly ordered thumb grid so printed numbers and action labels stay readable; the source-specific `DISPLAY_ORDER` remains the semantic authority.
+- GitHub Pages serves static assets with a browser-cache lifetime. Version the public homepage's stylesheet and script URLs whenever the launch bundle changes, then verify the deployed page in the same personal Chrome profile that loaded the prior asset so visual acceptance cannot accidentally pass against stale CSS.
 
 ## 2026-08-14 — Keep app wildcards silent and move rare media into Keys
 
