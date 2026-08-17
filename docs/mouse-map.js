@@ -34,17 +34,13 @@ const SIGNALS = {
 const PAIRS = [
   {
     id: "c1", corsair: 1, razer: 3, row: 3, col: 1,
-    action: "Horizontal scroll left", short: "Scroll ←", description: "Scroll the current surface horizontally to the left.",
-    signal: "scroll", output: "mouse_key horizontal_wheel −64", status: "CONFIGURED · NATIVE WHEEL OUTPUT",
-    razerAction: {
-      action: "Horizontal scroll right", short: "Scroll →", description: "Mirror the horizontal gesture for the left-handed Razer.",
-      signal: "scroll", output: "mouse_key horizontal_wheel +64", status: "CONFIGURED · LEFT-HANDED MIRROR",
-    },
+    action: "Spaces + Wheel", short: "Spaces", description: "Hold the cell and ratchet once per macOS Space.",
+    signal: "runtime", output: "Agentic Mouse held-wheel chord", status: "IMPLEMENTED · PHYSICAL ACCEPTANCE PENDING",
   },
   {
     id: "c2", corsair: 2, razer: 2, row: 2, col: 1,
-    action: "Keys mode", short: "Keys", description: "Open the shared native keys mode; active cell 10 exits.",
-    signal: "runtime", output: "Agentic Mouse Keys mode", status: "IMPLEMENTED · PHYSICAL ACCEPTANCE PENDING",
+    action: "Current app mode", short: "App mode", description: "Open the mode for the current frontmost application and follow later app changes.",
+    signal: "runtime", output: "Agentic Mouse current-app mode", status: "IMPLEMENTED · PHYSICAL ACCEPTANCE PENDING",
   },
   {
     id: "c3", corsair: 3, razer: 1, row: 1, col: 1,
@@ -53,12 +49,8 @@ const PAIRS = [
   },
   {
     id: "c4", corsair: 4, razer: 6, row: 3, col: 2,
-    action: "Horizontal scroll right", short: "Scroll →", description: "Scroll the current surface horizontally to the right.",
-    signal: "scroll", output: "mouse_key horizontal_wheel +64", status: "CONFIGURED · NATIVE WHEEL OUTPUT",
-    razerAction: {
-      action: "Horizontal scroll left", short: "Scroll ←", description: "Mirror the horizontal gesture for the left-handed Razer.",
-      signal: "scroll", output: "mouse_key horizontal_wheel −64", status: "CONFIGURED · LEFT-HANDED MIRROR",
-    },
+    action: "Horizontal Scroll + Wheel", short: "Horizontal", description: "Hold the cell and ratchet the wheel: up moves right, down moves left.",
+    signal: "runtime", output: "Agentic Mouse held-wheel chord", status: "INSTALLED · PHYSICAL ACCEPTANCE PENDING",
   },
   {
     id: "c5", corsair: 5, razer: 5, row: 2, col: 2,
@@ -71,8 +63,8 @@ const PAIRS = [
   },
   {
     id: "c6", corsair: 6, razer: 4, row: 1, col: 2,
-    action: "Current app mode", short: "App mode", description: "Open the mode for the current frontmost application and follow later app changes.",
-    signal: "runtime", output: "Agentic Mouse current-app mode", status: "IMPLEMENTED · PHYSICAL ACCEPTANCE PENDING",
+    action: "Intelligence on demand", short: "Codex window", description: "Open Codex's global hotkey window from any app.",
+    signal: "keyboard", output: "Option-Space · repeat false", status: "INSTALLED · PHYSICAL ACCEPTANCE PENDING",
   },
   {
     id: "c7", corsair: 7, razer: 9, row: 3, col: 3,
@@ -90,17 +82,13 @@ const PAIRS = [
   },
   {
     id: "c9", corsair: 9, razer: 7, row: 1, col: 3,
-    action: "App shortcut", short: "App shortcut", description: "Run the configured shortcut for the frontmost app; stay silent when that app has no override.",
-    signal: "keyboard", output: "vk_none outside configured apps", status: "CONFIGURED · FAIL-CLOSED BASE",
-    vscodeAction: {
-      action: "Stage + next / Undo", short: "Stage · Undo", description: "Single press stages and advances; a rapid double press asks Better Git to undo that exact transaction.",
-      signal: "keyboard", output: "single F18 · double F16 · repeat false", status: "IMPLEMENTED · PHYSICAL ACCEPTANCE PENDING",
-    },
+    action: "Keys mode", short: "Keys", description: "Open the shared native keys mode; active cell 10 exits.",
+    signal: "runtime", output: "Agentic Mouse Keys mode", status: "IMPLEMENTED · PHYSICAL ACCEPTANCE PENDING",
   },
   {
     id: "c10", corsair: 10, razer: 12, row: 3, col: 4,
-    action: "Blank / Exit", short: "Exit in modes", description: "Stay blank outside modes; exit the current mode while one is active.",
-    signal: "runtime", output: "vk_none outside modes / active-mode Exit", status: "IMPLEMENTED · PHYSICAL ACCEPTANCE PENDING",
+    action: "Legend / Exit", short: "Legend · Exit", description: "Toggle this mouse's Default legend outside modes; exit the current mode while one is active.",
+    signal: "runtime", output: "Default legend toggle / active-mode Exit", status: "IMPLEMENTED · PHYSICAL ACCEPTANCE PENDING",
   },
   {
     id: "c11", corsair: 11, razer: 11, row: 2, col: 4,
@@ -109,8 +97,8 @@ const PAIRS = [
   },
   {
     id: "c12", corsair: 12, razer: 10, row: 1, col: 4,
-    action: "Utility / Legend", short: "Utility · Legend", description: "Single press opens Utility after the click window; a rapid double press toggles this mouse's persistent Default legend.",
-    signal: "runtime", output: "Agentic Mouse Utility classifier / Default legend toggle", status: "IMPLEMENTED · PHYSICAL ACCEPTANCE PENDING",
+    action: "Utility", short: "Utility", description: "Open Utility immediately.",
+    signal: "runtime", output: "Agentic Mouse Utility entry", status: "IMPLEMENTED · PHYSICAL ACCEPTANCE PENDING",
   },
 ];
 
@@ -132,12 +120,12 @@ const EXTRAS = {
   },
   "razer-f21": {
     title: "Razer upper DPI", position: "Above F22", corsairRaw: "—", razerRaw: "F21",
-    action: "Unchanged transport", description: "Preserved from the Razer onboard profile; Agentic Mouse does not remap it.", signal: "keyboard",
-    output: "F21 · no Agentic Mouse rule", status: "PRESERVED · RAZER HARDWARE TRANSPORT",
+    action: "VoiceInk++", description: "Toggle the same speech-to-text role on physical release.", signal: "keyboard",
+    output: "F21 release → ⌃⌥⇧ · VoiceInk++ shortcut", status: "EXACT-DEVICE RULE INSTALLED · PHYSICAL ACCEPTANCE PENDING",
   },
   "razer-f22": {
     title: "Razer lower DPI", position: "Below the wheel", corsairRaw: "Corsair uses F19", razerRaw: "F22",
-    action: "VoiceInk++", description: "Toggle the same speech-to-text role on physical release.", signal: "keyboard",
+    action: "VoiceInk++", description: "Toggle the same speech-to-text role on physical release; a near-simultaneous F21 release is coalesced by VoiceInk++.", signal: "keyboard",
     output: "F22 release → ⌃⌥⇧ · VoiceInk++ shortcut", status: "EXACT-DEVICE RULE INSTALLED · PHYSICAL ACCEPTANCE PENDING",
   },
 };
@@ -409,8 +397,8 @@ function setLayer(layer) {
 
 function updateLayerNote() {
   elements.layerNote.innerHTML = state.layer === "vscode"
-    ? "<strong>VS Code preview.</strong> Physical cell 5 emits Previous Change through F17, cell 9 emits Stage + Next through F18, and cell 8 emits Next Change through F13; every other cell inherits its normal base action."
-    : "<strong>Normal preview.</strong> Physical cell 5 remains Forward, cell 9 stays silent until an app shortcut is configured, and cell 8 remains Back outside VS Code.";
+    ? "<strong>VS Code preview.</strong> Physical cell 5 emits Previous Change through F17 and cell 8 emits Next Change through F13; every other cell inherits its normal base action."
+    : "<strong>Normal preview.</strong> Physical cell 5 remains Forward, cell 8 remains Back, and cell 6 opens Codex's intelligence-on-demand window with Option-Space.";
 }
 
 function setKeyDevice(device) {
