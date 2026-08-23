@@ -113,6 +113,11 @@ nav a:hover { color: var(--cyan); }
 .segmented button:hover { border-color: var(--cyan); color: var(--chalk); }
 .segmented button.is-active { border-color: var(--agent); background: var(--agent); color: white; }
 .segmented.compact button.is-active { border-color: var(--corsair); background: var(--corsair); color: var(--ink); }
+
+.compatibility-note,
+.launch-reality { max-width: 900px; margin: 28px auto 0; color: var(--chalk-dim); line-height: 1.65; }
+.compatibility-note b,
+.launch-reality b { color: var(--chalk); }
 .control-deck { display: grid; grid-template-columns: minmax(270px, 1fr) minmax(220px, .58fr) minmax(270px, 1fr); gap: 24px; align-items: center; min-height: 630px; padding-top: 42px; }
 .device { min-width: 0; transition: opacity .24s ease, transform .24s ease; }
 .control-deck[data-device-view="razer"] .device-corsair, .control-deck[data-device-view="corsair"] .device-razer { opacity: .08; pointer-events: none; transform: scale(.96); }
@@ -230,6 +235,11 @@ footer a { text-underline-offset: 3px; }
 
 .reveal { opacity: 0; transform: translateY(24px); transition: opacity .75s ease, transform .75s cubic-bezier(.2,.7,.2,1); }
 .reveal.is-visible { opacity: 1; transform: none; }
+
+.ethan-section > *,
+.section-intro > *,
+.mode-section > *,
+.setup-heading > * { min-width: 0; }
 
 @media (max-width: 1100px) {
   .future-copy { padding-right: 11vw; padding-left: 11vw; }

@@ -90,16 +90,17 @@ button outputs. Specifically you lose, until you switch profiles back:
 
 | Button | Normal action |
 |---|---|
-| 1 | horizontal scroll left (repeating) |
-| 2 | Keys mode |
-| 4 | horizontal scroll right (repeating) |
+| 1 | Spaces + Wheel chord |
+| 2 | Current frontmost-app mode |
+| 4 | Horizontal Scroll + Wheel chord |
 | 5 | Forward |
-| 6 | Current frontmost-app mode |
+| 6 | Intelligence on demand (Option-Space) |
+| 7 | Enter |
 | 8 | Back |
-| 9 | App-specific wildcard (silent outside configured apps) |
+| 9 | Keys mode |
 
-VS Code additionally overrides physical cell 5 to Better Git Previous Change,
-cell 9 to one-press Stage + Next, and cell 8 to Next Change; those app-scoped actions are also unavailable while
+VS Code additionally overrides physical cell 5 to Better Git Previous Change
+and cell 8 to Next Change; those app-scoped actions are also unavailable while
 the fallback profile replaces the neutral transports.
 
 The separate DPI VoiceInk++ control remains available. The primary route keeps

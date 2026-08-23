@@ -2,17 +2,12 @@ const SIGNALS = {
   pointing: {
     glyph: "●",
     name: "Native pointing button",
-    description: "The same event a five-button mouse sends. Apps cannot tell it came from a rule.",
+    description: "Behaves like an ordinary five-button mouse's Back/Forward event in normal apps.",
   },
   media: {
     glyph: "◎",
     name: "Native media key",
     description: "The system-level media key, so it reaches whichever app is playing.",
-  },
-  scroll: {
-    glyph: "⇉",
-    name: "Native scroll",
-    description: "A real scroll event from Karabiner's virtual pointing device. The speed curve is Karabiner's, not the mouse's.",
   },
   keyboard: {
     glyph: "□",
@@ -34,7 +29,7 @@ const SIGNALS = {
 const PAIRS = [
   {
     id: "c1", corsair: 1, razer: 3, row: 3, col: 1,
-    action: "Spaces + Wheel", short: "Spaces", description: "Hold the cell and ratchet once per macOS Space.",
+    action: "Spaces + Wheel", short: "Spaces", description: "Hold the cell; the first wheel sign moves one Space, then release to re-arm.",
     signal: "runtime", output: "Agentic Mouse held-wheel chord", status: "IMPLEMENTED · PHYSICAL ACCEPTANCE PENDING",
   },
   {
@@ -45,20 +40,20 @@ const PAIRS = [
   {
     id: "c3", corsair: 3, razer: 1, row: 1, col: 1,
     action: "Screenshot", short: "Screenshot", description: "Start the native selected-area screenshot crosshair; press again while it is active to cancel.",
-    signal: "runtime", output: "Agentic Mouse native screenshot session toggle", status: "INSTALLED · PHYSICAL ACCEPTANCE PENDING",
+    signal: "runtime", output: "native Shift-Command-4 interaction", status: "PHYSICALLY REPORTED WORKING · EXACT SOURCE NOT RECORDED",
   },
   {
     id: "c4", corsair: 4, razer: 6, row: 3, col: 2,
     action: "Horizontal Scroll + Wheel", short: "Horizontal", description: "Hold the cell and ratchet the wheel: up moves right, down moves left.",
-    signal: "runtime", output: "Agentic Mouse held-wheel chord", status: "INSTALLED · PHYSICAL ACCEPTANCE PENDING",
+    signal: "runtime", output: "Agentic Mouse native horizontal-scroll chord", status: "PHYSICALLY REPORTED WORKING · EXACT SOURCE NOT RECORDED",
   },
   {
     id: "c5", corsair: 5, razer: 5, row: 2, col: 2,
     action: "Forward", short: "Forward", description: "Go forward one page or step.",
     signal: "pointing", output: "pointing_button button5", status: "CONFIGURED · NATIVE POINTER OUTPUT",
     vscodeAction: {
-      action: "Previous change", short: "Previous", description: "Move to the previous source-control change through Better Git.",
-      signal: "keyboard", output: "F17 · repeat false", status: "CONFIGURED · PHYSICAL ACCEPTANCE PENDING",
+      action: "Previous / Stage + Previous ×2", short: "Previous", description: "Single sends F17 Previous Change; rapid double sends F19 Stage + Previous.",
+      signal: "keyboard", output: "F17 single · F19 double · repeat false", status: "PHYSICALLY ACCEPTED · BOTH EXACT MICE",
     },
   },
   {
@@ -76,19 +71,19 @@ const PAIRS = [
     action: "Back", short: "Back", description: "Go back one page or step.",
     signal: "pointing", output: "pointing_button button4", status: "CONFIGURED · NATIVE POINTER OUTPUT",
     vscodeAction: {
-      action: "Next change", short: "Next", description: "Move to the next source-control change through Better Git.",
-      signal: "keyboard", output: "F13 · repeat false", status: "CONFIGURED · PHYSICAL ACCEPTANCE PENDING",
+      action: "Next / Stage + Next ×2", short: "Next", description: "Single sends F13 Next Change; rapid double sends F18 Stage + Next.",
+      signal: "keyboard", output: "F13 single · F18 double · repeat false", status: "PHYSICALLY ACCEPTED · BOTH EXACT MICE",
     },
   },
   {
     id: "c9", corsair: 9, razer: 7, row: 1, col: 3,
     action: "Keys mode", short: "Keys", description: "Open the shared native keys mode; active cell 10 exits.",
-    signal: "runtime", output: "Agentic Mouse Keys mode", status: "IMPLEMENTED · PHYSICAL ACCEPTANCE PENDING",
+    signal: "runtime", output: "Agentic Mouse Keys mode", status: "PHYSICALLY REPORTED WORKING · EXACT SOURCE MATRIX OPEN",
   },
   {
     id: "c10", corsair: 10, razer: 12, row: 3, col: 4,
     action: "Legend / Exit", short: "Legend · Exit", description: "Toggle this mouse's Default legend outside modes; exit the current mode while one is active.",
-    signal: "runtime", output: "Default legend toggle / active-mode Exit", status: "IMPLEMENTED · PHYSICAL ACCEPTANCE PENDING",
+    signal: "runtime", output: "Default legend toggle / active-mode Exit", status: "PHYSICALLY ACCEPTED · INDEPENDENT PER MOUSE",
   },
   {
     id: "c11", corsair: 11, razer: 11, row: 2, col: 4,
@@ -98,7 +93,7 @@ const PAIRS = [
   {
     id: "c12", corsair: 12, razer: 10, row: 1, col: 4,
     action: "Utility", short: "Utility", description: "Open Utility immediately.",
-    signal: "runtime", output: "Agentic Mouse Utility entry", status: "IMPLEMENTED · PHYSICAL ACCEPTANCE PENDING",
+    signal: "runtime", output: "Agentic Mouse Utility entry", status: "PHYSICALLY REPORTED WORKING · EXACT SOURCE MATRIX OPEN",
   },
 ];
 
@@ -125,7 +120,7 @@ const EXTRAS = {
   },
   "razer-f22": {
     title: "Razer lower DPI", position: "Below the wheel", corsairRaw: "Corsair uses F19", razerRaw: "F22",
-    action: "VoiceInk++", description: "Toggle the same speech-to-text role on physical release; a near-simultaneous F21 release is coalesced by VoiceInk++.", signal: "keyboard",
+    action: "VoiceInk++", description: "Toggle the same speech-to-text role on physical release; VoiceInk++ discards only a second complete Primary chord inside 90 ms.", signal: "keyboard",
     output: "F22 release → ⌃⌥⇧ · VoiceInk++ shortcut", status: "EXACT-DEVICE RULE INSTALLED · PHYSICAL ACCEPTANCE PENDING",
   },
 };
@@ -397,7 +392,7 @@ function setLayer(layer) {
 
 function updateLayerNote() {
   elements.layerNote.innerHTML = state.layer === "vscode"
-    ? "<strong>VS Code preview.</strong> Physical cell 5 emits Previous Change through F17 and cell 8 emits Next Change through F13; every other cell inherits its normal base action."
+    ? "<strong>VS Code base preview.</strong> Cells 5 and 8 add accepted single/double Better Git gestures; every other cell inherits Default. The deliberately entered VS Code mode has its own larger map in the main deck."
     : "<strong>Normal preview.</strong> Physical cell 5 remains Forward, cell 8 remains Back, and cell 6 opens Codex's intelligence-on-demand window with Option-Space.";
 }
 

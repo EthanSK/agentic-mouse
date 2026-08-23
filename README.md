@@ -24,7 +24,13 @@ or open the [full signal-path map](https://ethansk.github.io/agentic-mouse/mouse
 > exact-Razer adapter is now installed after the returned mouse physically
 > produced F21/F22 and its ordered main-row side-grid namespace on macOS;
 > downstream semantic acceptance is still in progress. Exact-device base maps
-> apply globally, with approved VS Code overrides on physical cells 5/6/8.
+> apply globally, with approved VS Code base overrides on physical cells 5 and
+> 8 only. The public site was last audited against Ethan's installed, locally
+> signed Agentic Mouse 1.0.110 (116) on 23 August 2026. This repository does not
+> currently publish a signed or notarized binary release. The 1.0.110 map is a
+> snapshot of Ethan's installed personal build; some corresponding implementation
+> work is still in an active local worktree and has not yet landed on public
+> `main`, so a fresh clone is not presently identical to that installed build.
 
 ## Ethan's map
 
@@ -36,31 +42,56 @@ These are the currently authoritative Corsair assignments:
 |---|---|---|
 | Wheel press | Play / Pause through Karabiner | Same global action |
 | DPI button | VoiceInk++ speech-to-text; DPI remains fixed | Same global action |
-| Button 1 | Horizontal scroll left | Same global action |
-| Button 2 | Open Keys mode | Same global action |
+| Button 1 | Hold + wheel for macOS Spaces | Same global action |
+| Button 2 | Open the current frontmost app mode | Same global action |
 | Button 3 | Start / cancel selected-area Screenshot | Same global action |
-| Button 4 | Horizontal scroll right | Same global action |
+| Button 4 | Hold + wheel for horizontal scrolling | Same global action |
 | Button 5 | Forward | Previous Change through F17 |
-| Button 6 | Open the current frontmost app mode | Same global action |
-| Button 7 | Enter | Enter; inside Modes, selects Keypad |
+| Button 6 | Intelligence on demand (Codex Option-Space) | Same global action |
+| Button 7 | Enter | Enter |
 | Button 8 | Back | Next Change through F13 |
-| Button 9 | App shortcut; silent when unconfigured | One-press Stage + Next through F18 |
-| Button 10 | Blank outside modes; universal Exit in modes | Same global action |
+| Button 9 | Open Keys mode | Same global action |
+| Button 10 | Toggle this mouse's Default legend; universal Exit in modes | Same global action |
 | Button 11 | Hold-open Switch App | Same global action |
-| Button 12 | Single: Utility; rapid double: Default legend | Same global action |
+| Button 12 | Open Utility immediately | Same global action |
 | DPI stages, including Sniper | 2,750 DPI | 2,750 DPI |
 
-Button 9 is the fail-closed app-specific wildcard and button 2 opens the shared Keys mode. Switch App uses shared physical cell 11; cell 10 is blank outside modes and exits any active mode. On cell 12, one press opens Utility after the bounded click window and a rapid double press toggles that source mouse's independent Default legend. The native Switch App hold lifecycle is proven; the final relocated positions still need one final two-mouse acceptance press.
+Hold physical cell 1 and ratchet the wheel to move at most one macOS Space per
+hold; the first accepted wheel sign chooses right or left, and release re-arms
+the next move. Hold cell 4 for per-ratchet native horizontal scrolling. Button 6 opens Codex's global
+intelligence-on-demand window, button 2 opens the current frontmost app mode,
+and button 9 opens shared Keys mode. On the left-handed Razer, intelligence on demand is printed 4, Keys is printed
+7, and Enter is printed 9. Switch App uses shared physical cell 11. Cell 10 toggles that
+source mouse's independent Default legend outside modes and exits any active
+mode. Cell 12 opens Utility immediately.
 
-VS Code has three exact-device overrides: physical cell 5 emits non-repeating F17
+While a Spaces wheel chord is active, the source mouse's legend briefly shows
+the raw wheel sample, routing verdict, exact Control-Fn-Arrow post, and whether
+macOS reported an active-Space change. The trace is rate-limited and does not
+change the persistent legend toggle or the action itself.
+
+VS Code has two exact-device overrides: physical cell 5 emits non-repeating F17
 for Better Git Previous Change, cell 8 emits non-repeating F13 for Next Change,
-and cell 9 emits non-repeating F18 for one-press Stage + Next. Matching exclusions
-keep Forward/Back and the silent wildcard base semantics everywhere else; every
-untouched control continues to inherit the base.
+while top-level cell 6 remains the global Option-Space action. Inside the
+explicitly entered VS Code child, cell 9 uses one 300 ms gesture: a single sends
+Stage + Next and a rapid double sends exact Undo Stage. Hold cell 6 and ratchet
+down for the configured Back cursor-history shortcut or up for Forward. Matching
+exclusions keep Forward/Back base semantics everywhere else; every untouched
+control continues to inherit the base.
 
-On the Razer, the lower DPI button's proven `F22` transport now toggles
-VoiceInk++ through an exact-device Karabiner rule; the upper `F21` transport is
-unchanged. This extra control does not alter the mirrored twelve-cell grid.
+F16 is only the neutral transport. Better Git v1.2.53+ records the latest exact
+Git-index transition, so Undo also covers staging performed through VS Code's
+keyboard or Source Control UI, another mouse control, or `git add`. It restores
+only the recorded index state and refuses after an unexpected index or `HEAD`
+change; Agentic Mouse never guesses which staged files to remove.
+
+On the Razer, both proven DPI transports—upper `F21` and lower `F22`—toggle
+VoiceInk++ on physical release through exact-device Karabiner rules. Both emit
+the same primary shortcut. VoiceInk++ discards only a second complete Primary
+chord arriving within 90 ms, before its gesture classifier, so a
+near-simultaneous two-button release becomes one activation without removing
+deliberate double or triple gestures. These extra controls
+do not alter the mirrored twelve-cell grid.
 
 See [the mouse map guide](docs/MICE.md) for the exact ownership boundaries and
 the safety rules around iCUE, Agentic Mouse and optional downstream automation.
@@ -69,7 +100,10 @@ the safety rules around iCUE, Agentic Mouse and optional downstream automation.
 
 Custom mouse commands fail closed whenever the macOS user session is inactive
 or locked. The menu-bar app renews a three-second absolute-expiry unlocked
-lease once per second from documented AppKit session notifications. Every
+lease once per second from documented AppKit session and application-activation
+notifications. Loginwindow activation clears it immediately; launch, display
+wake, and leaving loginwindow require positive global input while a normal app
+is frontmost before the lease can return. Every
 generated Karabiner command checks that lease at match time and again when an
 output actually fires; while the lease is inactive, an exact-device sink
 consumes the Corsair and Razer side-grid, DPI, and custom wheel transports so
@@ -81,56 +115,146 @@ Unlock restores only the idle runtime baseline. It never restores a previous
 mode or HUD. Ordinary pointer motion, scrolling, and primary/secondary clicks
 remain standard macOS input.
 
+## Self-recovery
+
+The installed app registers a signed, nested macOS login-item supervisor. If
+Agentic Mouse unexpectedly disappears during an unlocked login session, the
+helper relaunches the exact containing app in the background with bounded
+backoff and crash-loop protection. A per-user instance lock prevents duplicate
+runtimes. While the app remains alive, it also repairs a lost Karabiner command
+socket, retries an unavailable wheel tap or transient session lease, and runs
+the same device/lighting recovery after display wake and system wake.
+
+The supervisor defers recovery while loginwindow or the screensaver owns the
+session. A recovered process begins fail closed and waits for positive unlocked
+input, so self-recovery never restores a pre-lock command lease, mode, or HUD.
+
+This uses `SMAppService.loginItem` and `NSWorkspace`; it does not install a
+LaunchAgent or write private service state. Menu-bar **Quit Agentic Mouse**
+unregisters the supervisor before terminating, so an intentional Quit remains
+intentional. Opening the app again re-enables recovery.
+
 ## What the included helper does
 
-The macOS menu-bar app adds four optional runtime behaviours:
+The macOS menu-bar app adds several optional runtime behaviours:
 
-- **Persistent Default mode legend.** Rapidly double-press physical cell 12
-  (Corsair 12 or Razer 10) to toggle the actual current twelve-button map on every
+- **Persistent Default mode legend.** Press physical cell 10
+  (Corsair 10 or Razer 12) to toggle the actual current twelve-button map on every
   connected display. It takes no runtime mode lease and does not alter the
   normal mappings or lighting.
   The same canonical cells render with Corsair numbers after a Corsair press
   and Razer numbers after a Razer press, so the HUD matches the mouse in hand.
-  A second rapid double press from that same mouse hides only its copies. The other mouse
+  A second press from that same mouse hides only its copies. The other mouse
   owns an independent legend, so left and right HUDs can coexist.
   All map and mode HUDs draw the physical top row first and the desk-side
   `1/4/7/10` row last, matching the mouse instead of flipping it vertically.
 
 - **Modes and app-specific controls.** Press physical cell 12 (Corsair 12 or
-  Razer 10) once to open the all-display Utility mode HUD after the bounded
-  double-press window; physical cell 10
-  (Corsair 10 / Razer 12) exits Utility or any child mode. In the menu, cell 1 raises display brightness, cell 2
-  zooms in, cells 3/6 move one Space left/right, and cell 8 rewinds
-  the selected YouTube target by five seconds through the VoiceInk YouTube
-  Bridge without focusing Chrome. Cell 4 lowers display brightness and cell 5
-  zooms out; cell 7 selects Keypad, and cell 9 opens Keys.
-  Top-level cell 6 opens the current frontmost app's mode and refreshes it as
+  Razer 10) to open the all-display Utility mode HUD immediately; physical cell 10
+  (Corsair 10 / Razer 12) exits Utility or any child mode. Hold Utility cell 1
+  and ratchet the wheel for Brightness or cell 2 for Zoom. Hold top-level cell 1
+  for Spaces: wheel up means decrease / zoom out / Space right and wheel down
+  means increase / zoom in / Space left. Utility and other wheel families act
+  once per accepted ratchet; Spaces acts only on the first sign of each cell-1
+  hold and consumes later ratchets until release. Ordinary scrolling and
+  phase-bearing trackpad gestures pass through. Space steps use this Mac's
+  configured Control-Fn-Left/Right shortcuts. In Utility,
+  hold cell 3 and ratchet up for Paste or down for Copy; hold cell 4 and ratchet
+  up for Mission Control or down for Show Desktop; hold cell 5 and ratchet down
+  once for native App Exposé (Application Windows; wheel-up is ignored);
+  hold cell 6 and ratchet up for Magnet Left or down for Magnet Right. Each Magnet detent sends the
+  complete physical Control-Option-Arrow shortcut lifecycle, including the
+  native arrow-key flags, so Magnet remains the placement and display owner. Cell
+  7 types the optional device-local Keychain password. Cell 8
+  rewinds the selected YouTube target by five seconds through the
+  VoiceInk YouTube Bridge without focusing Chrome. Utility cell 9 opens Keys,
+  and Utility cell 12 opens the nested Extra Utilities page. Extra Utilities
+  cell 1 manually restores Stay's saved `Agentic Mouse Layout v1` through its
+  reserved Control-Option-Shift-Command-A hotkey; it never runs automatically. Universal cell 10 exits
+  Extra Utilities directly back to the ordinary top-level map.
+  Top-level cell 2 opens the current frontmost app's mode and refreshes it as
   focus changes. Utility cell 11 opens the separate manual selector for Codex,
-  Chrome, and VS Code and locks the chosen target. App children keep cell 12
-  available for a real app action and use universal cell 10 to exit. Codex mode currently provides
-  New Task, Pin/Unpin, Mute/Unmute voice microphone, Start Voice Mode, Steer
-  Queued Message, Enter, Start New Voice Chat, and Reasoning Effort Up/Down by sending Codex's own
-  configured shortcuts directly to the running Codex process without bringing
-  it to the front. Chrome cell 1 sends Command-W directly to the running Chrome
-  process to close its current window. VS Code cell 4 toggles its integrated
-  terminal; its Better Git actions remain on cells 5, 8, and 9. Every genuinely
-  unassigned app card stays Spare.
+  Terminal, Claude, Chrome, iTerm, Spotify, VS Code, Notion, OBS, Telegram, and
+  Safari and locks the chosen target. Automatic mode also recognizes Firefox,
+  Opera, Restream Chat++, Preview, Mail, iCUE, Karabiner-Elements, System
+  Settings, Finder, Karabiner-EventViewer, and iPhone Mirroring. iPhone
+  Mirroring cell 1 (Corsair 1 / Razer 3) opens macOS Notification Center with
+  Apple's Fn-N shortcut, which is where mirrored iPhone alerts appear; the app
+  does not expose an iPhone-style notification pull-down. App children keep cell 12
+  available for a real app action and use either their matching entry cell 2
+  or universal cell 10 to exit. The parent Choose App selector still uses cell
+  2 for Terminal and exits only through cell 10. VS Code,
+  Terminal, and iTerm use that cell for one layout-aware, app-targeted Ctrl-C interrupt. Top-level
+  cell 9 and Utility cell 9 open Keys. Codex mode currently provides
+  Steer Queued Message via Codex's built-in Command-Return on cell 1
+  (Corsair 1 / Razer 3), duplicate app Exit on shared cell 2, Pin/Unpin on
+  shared cell 3 (Corsair 3 / Razer 1), Voice Mode on cell 4, Mute/Unmute Voice
+  Mic on cell 6 (Corsair 6 / Razer 4), and Enter on shared cell 7
+  (Corsair 7 / Razer 9). Open in Side Chat is cell 9 (Corsair 9 / Razer 7), New
+  Chat is cell 5, and Edit Queued Message is cell 8. Cell 11 owns Chat History +
+  Wheel (up next, down previous); cell 12 owns Reasoning Effort + Wheel (up
+  increase, down decrease). Voice Mode and Edit Queued Message retain red repair
+  markers because their latest physical reports are still failed; their
+  presence in the map is not a success claim. The redundant broken New Voice Chat card is
+  retired; Voice Mode keeps the same direct realtime-voice command. Voice
+  actions require ChatGPT frontmost and invoke its existing Control-Shift-V
+  `realtimeVoice` shortcut through macOS System Events. Open in Side
+  Chat uses Codex's built-in Command-Option-S app accelerator for the current task
+  through the same supported keyboard-automation route. These foreground-only controls fail
+  closed for a background Codex instead of sending a global chord to
+  another app. Other keyboard-backed actions send Codex's
+  own configured shortcuts directly to its running process without bringing it
+  to the front. Steer uses Codex's built-in Command-Return shortcut; Edit alone
+  presses the exact action on Codex's real queued-message row because no
+  keyboard shortcut edits an already queued item. The row is validated through
+  its exact visible Steer, Delete, and Actions
+  control cluster because Chromium omits its wrapper groups from the macOS
+  Accessibility hierarchy.
+  Both report dispatch as unverified unless Codex exposes a later observable state. Chrome cell 1 sends Command-W directly to the running Chrome
+  process to close its current tab, while cell 8 sends Shift-Command-W to close its current window. Chrome cell 3 sends Chrome's native Command-Option-I shortcut to
+  open DevTools. Holding Chrome cell 7 sets the bridge-selected, currently playing
+  YouTube video to 2× and release restores that video's exact prior rate; a short renewed browser lease
+  restores it automatically if release is lost. Chrome cell 4 controls tabs with the wheel without
+  focusing Chrome. Chrome cell 5 opens a new tab and cell 6 reloads the current tab. Chrome mode
+  does not duplicate the Default map's Forward/Back controls. VS Code cell 1 closes the current editor
+  tab, cell 7 opens the Command Palette, cell 4 toggles its integrated terminal,
+  cell 11 goes to the selected symbol's definition with F12, and cell 12
+  interrupts it. Better Git gestures use cells 5, 8, and 9; cell 6 owns Cursor
+  History + Wheel. Those child-page
+  controls reuse the same 300 ms single/double gestures as the ordinary VS Code
+  layer rather than a second immediate-only shortcut map. Spotify and Notion
+  have full starter grids for playback/library navigation and page/tab/search
+  work respectively. OBS, Claude, Telegram, Safari, Firefox, Opera, Restream
+  Chat++, Preview, Mail, Finder, Terminal, and iTerm likewise expose a useful
+  starter grid sourced from their installed menus or official shortcuts. Small
+  maintenance apps remain deliberately sparse where they expose only a few
+  safe commands. Every genuinely unassigned app card stays Spare. Newly
+  populated starter grids remain reviewable defaults rather than physically
+  accepted personal preferences until Ethan tests them. The Chrome 2× transport
+  and fail-safe lease are proven, but physical speed/restore acceptance on a
+  playing video remains open.
   Every mode has its own bold, saturated colour. If the Default mode legend was already open, it is restored
   after exit; otherwise the mode HUD closes.
   Active-mode legends stay visible until physical cell 10 exits the mode; no
   separate in-mode Show/Hide control consumes an action cell. Related controls
-  share one internal fill colour (Brightness, Zoom, Spaces, and the four arrow
-  keys). Ordinary cards keep the current mode's border; cards that open another
-  mode use a thicker border in that destination mode's colour. Default mode
-  uses neutral white borders for ordinary actions.
+  share one calmer opaque internal fill colour (Brightness, Zoom, and the four
+  arrow keys). Ordinary cards keep the current mode's full-strength border;
+  cards that open another mode use that destination mode's fully saturated
+  fill and thicker border. Default mode uses neutral white borders for ordinary
+  actions.
   Utility cards deliberately show only the action title and the small printed
   button label for the source mouse; explanatory subtitles are omitted.
+  A slot that names a concrete app uses that real installed app icon as its
+  own blurred edge-to-edge background. The top-level current-app slot prefers
+  the running app's exact bundle path; each named `Choose app` slot resolves
+  its configured bundle identifier. The rest of the panel and every child
+  page remain unchanged.
 
   Keys mode sends native non-repeating arrows from physical cells 1/4/5/7,
   with the Razer's left/right meanings mirrored for its left-handed layout.
-  Cell 6 copies, cell 3 pastes, cell 9 sends Next Track, cell 8 sends Space,
-  cell 11 sends Backspace, and cell 12 sends Escape through the active exact-device Karabiner layer.
-  Enter stays on the top-level cell 7 instead of being duplicated here. Its optional cell-2 password action reads a device-local,
+  Cell 3 sends Undo as Command-Z, cell 6 enters Keypad, cell 9 sends Next Track, cell 8 sends Space,
+  cell 11 sends Backspace, and cell 12 sends Enter through the active exact-device Karabiner layer.
+  Cell 2 is spare. Utility cell 7 reads the optional device-local,
   When-Unlocked Keychain item only after the unlocked-session and Accessibility
   gates pass, then types directly without using the clipboard or plaintext
   configuration.
@@ -139,9 +263,11 @@ The macOS menu-bar app adds four optional runtime behaviours:
   (Corsair 3 / Razer 1) starts the native macOS selection crosshair. Press the
   same physical cell again while that interaction is still active to cancel
   it. Completing the capture or pressing Escape ends that exact session, so a
-  later press always starts a fresh screenshot. Agentic Mouse passes an explicit
-  collision-safe path in the configured macOS Screenshots folder, so a completed
-  capture must exist as a non-empty PNG instead of silently ending up only on the clipboard.
+  later press always starts a fresh screenshot. The first press emits the exact
+  native Shift-Command-4 key cycle, so macOS owns the configured save
+  destination, capture sound and floating thumbnail. A short-lived
+  mouse-up/Escape monitor tracks only the interaction Agentic Mouse started; a
+  second press sends Escape to cancel it.
 
 - **Runtime lighting and reusable mode HUD.** The accepted colour-validation
   mode is retired from the live mouse menu, so it consumes no button slot.
@@ -149,18 +275,27 @@ The macOS menu-bar app adds four optional runtime behaviours:
   internal foundation for real modes: both mice use the accepted white idle
   baseline, future mode colours remain non-persistent, and the large reusable
   legend can show each mode's actual twelve-button map on every display. Every
-  ordinary card uses the current mode colour for its border and keeps its action
-  colour as the fill. Mode-entry cards use a stronger destination-coloured
-  border, so navigation is obvious without erasing individual action identity.
+  ordinary card uses the current mode colour for its border and a deliberately
+  calmer opaque version of its action-family colour as the fill. Mode-entry
+  cards use the destination mode's exact saturated colour for both fill and
+  stronger border, so modes remain the strongest controls in the hierarchy.
+  Only cards that name a concrete app add a dynamic blurred installed-app icon
+  behind their white label. They never embed artwork in the repository, alter
+  the whole panel, or replace the accepted child-page action cards.
 
-- **Keypad typing.** Open Utility with cell 12, then select Keypad with cell 7.
+- **Keypad typing.** Open Keys with cell 9, then select Keypad with cell 6.
   Cell 1 cycles punctuation, cells 2–9 use the classic ABC-through-WXYZ phone
   letters with digit holds, including DEF on cell 3. Cell 10 exits; cell 11
-  cycles `abc → Abc → ABC → 123 → abc`; cell 12 is Space with hold-for-Return.
-  The HUD wraps cell 1's complete punctuation cycle so every symbol remains visible. It uses
-  buffered, focus-anchored text delivery: if the
-  target app or text field changes, it drops the pending character rather than
-  risking typing into the wrong place.
+  inserts Space; cell 12 taps Backspace and holds Return. The large HUD labels
+  are the real 1–12 numbers printed on the source mouse, with Razer 1 at its
+  physical top-right position rather than a fictional `* / 0 / #` row.
+  The HUD wraps cell 1's complete punctuation cycle so every symbol remains
+  visible. Committed characters are inserted directly as process-targeted
+  UTF-16 Core Graphics events. Keypad never reads a field value, never touches
+  the pasteboard and never synthesizes Command-V. Exact editable AX fields stay
+  field-anchored; editors that hide their AX focus fall back to the unchanged
+  frontmost app. Backspace and Return remain process-targeted native key events;
+  an app switch drops pending text rather than risking delivery elsewhere.
 
 The helper never writes an iCUE profile, changes DPI or replaces a normal
 button assignment. Corsair runtime lighting is a process-lifetime shared layer;
@@ -208,29 +343,28 @@ macOS permissions or vendor firmware.
 
 ## Multi-tap, without the unsafe bit
 
-The Scimitar's 4 × 3 grid becomes a phone keypad when the mode is active:
+The Scimitar's 4 × 3 grid keeps its physical 1–12 identity while the first nine
+buttons use familiar phone letter groups:
 
 ```text
-physical pad (front → back)       phone keypad
+physical pad (front → back)       letter groups
 
 1  4  7  10                        1 2 3
 2  5  8  11                        4 5 6
 3  6  9  12                        7 8 9
-                                  * 0 #
 ```
 
 Tap 1 for punctuation, tap 2–9 for letters, hold 1–9 for digits, use cell 10
-to exit, tap 11 to cycle case/number state, and use 12 for Space or hold 12 for
-Return. While Keypad is on, all
+to exit, tap 11 for Space, and tap 12 for Backspace or hold 12 for Return.
+While Keypad is on, all
 twelve side keys are held by the helper; the normal scroll, navigation and media
 actions stay suspended until you leave the mode.
 
 Outside a runtime mode, physical cell 3 starts or cancels selected-area Screenshot:
-Corsair printed 3 / Razer printed 1. The persistent Default legend uses shared
-physical cell 12 (Corsair 12 / Razer 10) as a rapid double press; a single press
-opens Utility. Shared physical cell 11 owns Switch App. Cell 10 (Corsair 10 /
-Razer 12) is blank outside modes and exits an active mode; its legend remains
-visible until exit.
+Corsair printed 3 / Razer printed 1. Shared physical cell 10 (Corsair 10 /
+Razer 12) toggles that mouse's persistent Default legend and exits an active
+mode. Shared physical cell 11 owns Switch App. Cell 12 (Corsair 12 / Razer 10)
+opens Utility immediately.
 
 ## Safety model
 
@@ -238,8 +372,10 @@ visible until exit.
   vendor databases or private profile files.
 - **No private device data.** Device IDs and serials stay out of Git. The
   supplied configuration contains safe defaults only.
-- **Fail closed typing.** Password fields, unknown focus and missing
-  Accessibility permission produce no text.
+- **Bounded typing.** Keypad never reads a field value or the pasteboard.
+  Unknown focus, a changed target, and missing Accessibility permission produce
+  no text; secure fields accept the same direct process-targeted key events as
+  other editable fields.
 - **No device assumption.** The iCUE path refuses to guess when several
   Scimitars match.
 

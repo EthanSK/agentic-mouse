@@ -10,26 +10,60 @@
                                               └───────────┬────────────┘
                                                           │ shared layer
                                                           ▼
-  Scimitar ──CorsairKeyEvent──▶┌──────────────────────┐   ICUELightingController
-                               │ ICUEMacroKeyTransport│        (exact device)
-                               └──────────┬───────────┘
-                                          │ PhysicalInputEvent
-                                          ▼
-                             ┌────────────────────────┐
-                             │  MultiTapCoordinator   │───▶ HUDPresenting
-                             │  (mode transaction)    │
-                             └───────────┬────────────┘
-                                         │
-                    ┌────────────────────┼────────────────────┐
-                    ▼                    ▼                    ▼
-            MultiTapEngine      TextTargetResolving      TextOutput
-            (pure)              (AX: pid + element)      (postToPid)
+ Corsair keypad keys ─┐
+                     ├─▶ exact-device Karabiner ─▶ send_user_command socket
+ Razer key transports ┘                                  │
+                                                        ▼
+                                            ┌────────────────────────┐
+ same-source wheel tap ────────────────────▶│ ModePickerCoordinator  │──▶ HUDPresenting
+                                            │ + MultiTapCoordinator   │
+                                            └───────────┬────────────┘
+                                                        │
+                                   ┌────────────────────┼────────────────────┐
+                                   ▼                    ▼                    ▼
+                           Native shortcuts     TextTargetResolving      TextOutput
+                                                (AX: pid + element)      (postToPid)
 ```
 
 The state machines, lighting pipeline, transports, and coordinator logic in
 `ScimitarKit` are injectable. Its macOS target-discovery adapters use AppKit's
 `NSWorkspace`/`NSRunningApplication`; `ScimitarUI` contains the drawing and
 non-activating panel implementation. The pure multi-tap engine is AppKit-free.
+
+### Runtime lifecycle and recovery
+
+The signed outer app contains a second signed app at
+`Contents/Library/LoginItems/AgenticMouseSupervisor.app`. The main app registers
+that nested helper through `SMAppService.loginItem`; no LaunchAgent or private
+service plist is installed. The helper is an `LSUIElement` process with no UI.
+Every two seconds it checks for the exact outer bundle identifier and uses
+`NSWorkspace.OpenConfiguration` to relaunch that same containing app without
+activation, recent-item insertion, a new application instance, or running-app
+substitution.
+
+Relaunches use 2/5/10/30/60-second backoff, stop for five minutes after five
+attempts inside two minutes, and reset after one minute of stable runtime. The
+main app takes a `flock`-based per-user instance lock before AppKit startup or
+the unlocked-session lease, so two login routes cannot both own device state or
+unlink each other's command socket. Explicit menu-bar Quit first unregisters
+the supervisor; failure to disarm recovery cancels termination.
+
+The main process also performs bounded self-repair while it remains alive. A
+two-second health monitor restores a missing or replaced Karabiner command
+socket and retries wheel-event-tap creation. Transient lease-tool failures retry
+only while the documented workspace session remains active. System wake and
+display wake share one coalesced recovery path, which refreshes mode state,
+focus monitoring, device enumeration, and idle lighting without restoring any
+pre-sleep mode or HUD.
+
+The supervisor does not relaunch while loginwindow or the macOS screensaver
+owns the session. After any supervised launch, display wake, or transition away
+from loginwindow, the main app remains fail closed until a public global event
+monitor receives real user input while a normal app is frontmost. Loginwindow
+activation itself clears the lease immediately through the public
+`NSWorkspace.didActivateApplicationNotification`. This positive-proof gate is
+retried by the same two-second health monitor if event-monitor creation is
+temporarily unavailable.
 
 The shared Karabiner source/build path is deliberately independent of the app
 runtime:
@@ -46,10 +80,10 @@ the exact-device source event only after a physical position is approved. The
 current Corsair adapter generates twelve side-cell manipulators plus one wheel
 binding from iCUE's keypad and physical-pointing namespaces. The separate Razer
 adapter generates the same base shape from its onboard main-row and
-physical-pointing namespaces, plus its lower-DPI VoiceInk binding. Physical
-cells 5, 8, and 9 also generate exact-device VS Code overrides with matching base
-exclusions; every other control inherits its ordinary action. Cell 9's ordinary
-action is deliberately a silent sink until another app override is configured. Generation never installs or
+physical-pointing namespaces, plus its two DPI VoiceInk bindings. Physical
+cells 5 and 8 also generate exact-device VS Code overrides with matching base
+exclusions. Cell 6 remains the global Option-Space action in every app, cell 9
+opens Keys, and every other control inherits its ordinary action. Generation never installs or
 enables rules as a side effect, and linted output is not physical proof. The
 Razer output was installed only after the returned exact device and ordered
 transport sequence were physically captured; downstream semantic behavior is
@@ -57,19 +91,23 @@ still a separate physical acceptance gate.
 
 The physical-cell crosswalk is the semantic contract. Naming a printed Corsair
 or Razer button identifies its canonical physical cell; it does not create a
-device-specific action. A rapid double press of canonical cell 12 toggles that
-source mouse's Default legend, while canonical cell 11 holds open Switch App.
-Cell 10 is blank outside modes and remains the universal active-mode Exit. Only explicit hardware or handedness behavior,
-such as the Razer Keys-mode horizontal gesture reversal, may diverge.
+device-specific action. One press of canonical cell 10 toggles that source
+mouse's Default legend outside modes and exits its active mode, while canonical
+cell 11 holds open Switch App and cell 12 opens Utility immediately. Only explicit hardware or handedness behavior
+may diverge. The left-handed Razer mirrors every horizontal directional family:
+printed 6/3 scroll Left/Right, and its Keys arrows plus top-level Spaces navigation
+reverse their corresponding horizontal meanings. Corsair retains its own
+right-handed directions.
 
 ### Locked-session security boundary
 
 `SessionSecurityController` starts fail closed during
 `applicationWillFinishLaunching`, observes AppKit's documented workspace-session
-and sleep notifications, and renews
+sleep/wake, and application-activation notifications, and renews
 `agentic_mouse_session_unlocked_expires_at` for three seconds once per second
-only while the session is active. A failed write locks the runtime instead of
-assuming that the previous value remains trustworthy.
+only while the session is active and unlocked input has been positively proved.
+A failed write or proof-monitor failure locks the runtime instead of assuming
+that the previous value remains trustworthy.
 
 The generator applies two independent controls:
 
@@ -89,7 +127,11 @@ commands. Unlock starts a fresh idle session; no ephemeral state is restored.
 
 ## Design decisions, and why
 
-### The input route is raw macro keys, not synthesised mouse buttons
+### Historical source-only experiment: iCUE exclusive macro-key input
+
+The live input route is the exact-device Karabiner `send_user_command` path
+shown above. The older iCUE macro-key transport remains in source as diagnostic
+and rollback evidence; it is not the installed runtime input owner.
 
 The audited Scimitar reports `CDPI_MacroKeyArray` = `CMKI_1 … CMKI_12`. Every
 side button therefore arrives as a `CorsairKeyEvent` carrying the originating
@@ -117,7 +159,7 @@ The SDK defines four levels:
 |-------|---------|-----------|
 | 0 `CAL_Shared` | default | yes, always, for lighting |
 | 1 `CAL_ExclusiveLightingControl` | exclusive lighting | **never** |
-| 2 `CAL_ExclusiveKeyEventsListening` | *exclusive key events, shared lighting* | while the mode is active |
+| 2 `CAL_ExclusiveKeyEventsListening` | *exclusive key events, shared lighting* | source-only experiment; not live |
 | 3 both | exclusive everything | **never** |
 
 Level 2 does not touch lighting — the SDK documents it as "exclusive key
@@ -126,7 +168,7 @@ on exclusive *lighting* control, and levels 1 and 3 are unreachable: the C
 bridge rejects those raw values before the SDK is called
 (`SC_ICUE_ACCESS_LEVEL_FORBIDDEN`), and the Swift enum has no case for them.
 
-### Mode entry is a transaction
+### Historical iCUE mode entry was a transaction
 
 `MultiTapCoordinator.enter()` and `ICUEMacroKeyTransport.beginInterception()`
 form one all-or-nothing operation:
@@ -245,49 +287,115 @@ making RGB the only state signal. The shared view uses the accepted 705-point
 layout — 75% of the earlier 940-point experiment — so it remains a readable
 on-demand reference without wasting display space.
 
+`ModeHUDLegendItem.appBackdrop` carries presentation identity for one card,
+never artwork for a page. On the Default legend, `AppDelegate` supplies the
+frontmost app's exact running bundle path plus its identifier to the current-app
+slot. Named targets in `Choose app` carry their canonical configured bundle
+identifiers directly. `ScimitarUI` resolves the real installed icon with
+`NSWorkspace`, caches it by that stable identity, and renders an enlarged,
+blurred, edge-to-edge copy inside only that card behind its white label. The
+outer `NSGlassEffectView`, child app page, selector spares, and all unrelated
+cards remain unchanged. Icon bytes are never copied into the mode domain,
+config, or repository.
+
 One `ModePickerCoordinator` per exact `MouseSource` is the authoritative layer
 above individual modes. A single press of physical cell 12 (Corsair 12 / Razer 10)
-opens that mouse's Utility page and expiring exact-device lease after the bounded
-double-press window; a rapid double press toggles the independent Default legend. While it is alive,
+opens that mouse's Utility page and expiring exact-device lease immediately. While it is alive,
 all twelve transports feed one ordered press/release stream, independent of
 ordinary frontmost-app conditions. Universal physical cell 10 exits any active
-mode and is blank outside modes. Cell 7 selects Keypad. Top-level
-cell 6 opens a live frontmost-app child that refreshes on workspace activation;
+mode and toggles that source mouse's independent Default legend outside modes.
+Keys cell 6 selects Keypad. Outside modes,
+cell 6 emits the global Option-Space intelligence-on-demand action. Top-level
+cell 2 opens a live frontmost-app child that refreshes on workspace activation;
 Utility cell 11 opens the separate configured-app selector and locks the chosen
 target without activation. App children keep cell 12 available for real app
-actions and use universal cell 10 to exit. Top-level cell 2 and Utility cell 9
+actions and use either their matching entry cell 2 or universal cell 10 to
+exit. The parent selector still uses cell 2 for Terminal. Top-level cell 9 and Utility cell 9
 open Keys mode. Within Keys, Corsair physical cells 5/4/7/1
 emit Up/Down/Right/Left; the left-handed Razer swaps the horizontal meanings
-of cells 1 and 7. Cell 6 emits Copy, cell 3 emits Paste, cell 9 emits Next Track,
-cell 8 emits Space, cell 11 emits Backspace, and cell 12 emits Escape through non-repeating exact-device
-Karabiner output. Enter remains available on top-level cell 7 and is not duplicated in Keys.
+of cells 1 and 7. Cell 3 emits Undo as Command-Z, cell 6 enters Keypad, cell 9 emits Next Track,
+cell 8 emits Space, cell 11 emits Backspace, and cell 12 emits Enter through non-repeating exact-device
+Karabiner output. Cell 2 is spare; the optional Keychain password moved to Utility cell 7.
 Within Keypad, cell 1 owns the complete punctuation cycle, cells 2–9 use the
-classic phone letter groups with digit holds, cell 11 cycles the shift state,
-and cell 12 sends Space or hold-for-Return. The HUD wraps long cycles rather
-than clipping the punctuation preview.
+classic phone letter groups with digit holds, cell 11 sends Space, and cell 12
+taps Backspace or holds Return. The HUD wraps long cycles rather than clipping
+the punctuation preview and renders the actual source-mouse numbers 1–12, so
+the left-handed Razer grid places printed 1 at its physical top-right position.
+
+Keypad resolves an exact focused Accessibility element when the frontmost app
+exposes one. Chromium/custom editors that accept normal keyboard input but hide
+`AXFocusedUIElement` use an application-scoped fallback tied to the unchanged
+frontmost PID. Character commits use direct process-targeted UTF-16 Core
+Graphics events. Keypad never reads a field value, never touches the pasteboard
+and never synthesizes Command-V. Backspace and Return remain process-targeted
+native key events. Secure editable fields accept the same direct input; unknown
+focus and app changes still fail closed.
 The coordinator keeps a cycle-free navigation path per mouse, reusing an
 existing ancestor rather than stacking duplicate pages. Utility assigns cell 3
-to Space Left, Keypad restores its familiar DEF key, and pages without a real
+to the Copy / Paste wheel chord, cell 4 to the Mission Control / Show Desktop
+wheel chord, cell 5 to a down-only, one-action-per-hold native App Exposé chord, cell 6
+to the Magnet Left / Right wheel chord, cell 7 to Paste Password, and uses cell
+12 to enter the nested Extra Utilities page. Extra Utilities maps cell 1 to one
+manual hardware-like Control-Option-Shift-Command-A lifecycle, which invokes Stay's verified global restore
+hotkey for `Agentic Mouse Layout v1`; no automatic restore, AppleScript, or Stay
+UI automation exists in Agentic Mouse. Universal cell 10 exits the nested page
+and the active mode. The shared app-specific registry recognizes Ethan's measured
+high-use desktop set. `StandardAppMode` owns data-driven starter pages
+for Spotify, OBS, Claude, Notion, Telegram, Safari, Firefox, Opera, Restream
+Chat++, Preview, Mail, Finder, System Settings, iCUE, and the Karabiner apps.
+Spotify layers one stateful control onto that shared definition: hold canonical
+cell 7 and ratchet up/down to send Command-Up/Command-Down directly to the
+running Spotify process, while cell 8 remains Spare. The chord is shared by
+automatic and manually selected Spotify journeys, debounces duplicate raw
+events, and releases back to ordinary scrolling without activating Spotify.
+Codex, Chrome, VS Code, Terminal, iTerm, and iPhone Mirroring retain dedicated action types where
+they require gestures, verification, press/release state, or app-specific
+dispatch. iPhone Mirroring is automatic-only: exact bundle ID
+`com.apple.ScreenContinuity` maps child cell 1 to one frontmost-only,
+unlocked-session, Accessibility-trusted Fn-N hardware cycle for macOS
+Notification Center. No mirrored-screen swipe or UI automation is involved.
+Both automatic and manual journeys resolve the same
+`AppSpecificTarget.definition`; only their focus lifetime differs. VS Code,
+Terminal, and iTerm expose one app-targeted Ctrl-C interrupt on child cell 12
+through the generic bounded PID-targeted shortcut dispatcher. The dispatcher
+resolves semantic C from the active keyboard layout at invocation time; it does
+not assume physical QWERTY-C, which is Control-J/newline under Ethan's Dvorak
+layout.
+Keypad restores its familiar DEF key, and pages without a real
 cell-3 action render it as Spare. Active-mode legends remain visible until
 universal cell 10 exits. The Corsair and Razer use distinct variables,
 presenters, and lighting callbacks, so their HUDs and modes may coexist. Colour Proof is neither generated nor selectable;
 its lighting source remains only as internal regression infrastructure.
 
 The same `ModeHUDSnapshot` and non-activating presenter supports the persistent
-ordinary Default mode legend. A rapid double press of shared physical cell 12
+ordinary Default mode legend. A single press of shared physical cell 10
 toggles each source's respective copy with one exact-device command and no lease or lighting
 change. Each source owns an independent legend; hiding
 one never retargets or closes the other. Mode entry suspends only that source's panel; exit restores it only
 if it was already visible. Outside modes, cell 3 starts or cancels one native
 selected-area screenshot interaction; it is not a universal in-mode legend
-control. Mode HUDs and Keypad panels appear on all connected
-displays, use a distinct accent per mode, keep the actual function prominent,
-and show only the initiating mouse's small printed button label under each function.
-Every ordinary card border repeats the current mode accent, while related action
-pairs or groups share one internal fill colour. A card that enters another mode
-uses a thicker border in the destination mode's own accent; selection remains
-stronger still. Default mode uses white borders for ordinary actions as the
-neutral baseline.
+control. Mode HUDs and Keypad panels appear on all connected displays, use a
+distinct accent per mode, keep the actual function prominent, and show only the
+initiating mouse's small printed button label under each function. Every
+ordinary card border repeats the current mode accent, while related action
+pairs or groups share one calmer opaque internal fill colour. A card that
+enters another mode uses that destination mode's fully saturated fill and a
+thicker border; selection remains stronger still. Default mode uses white
+borders for ordinary actions as the neutral baseline.
+
+Two-way wheel chords deliberately split responsibility at the supported API
+boundary. Exact-device Karabiner press/release commands arm one source-specific
+control, because Quartz wheel events do not expose device identity. An
+Accessibility-trusted `CGEvent` tap then consumes phase-free vertical wheel
+events while exactly one chord is armed. Horizontal, Utility, Chrome Tabs, and
+Magnet act once per accepted event regardless of delta magnitude. Top-level
+Spaces uses a stricter one-action hold latch: the first accepted sign posts one
+Space step and every later event is consumed until physical release re-arms it.
+Continuous trackpad scrolling and every wheel event outside a chord pass
+through; simultaneous Corsair and Razer chords are consumed without guessing.
+Lock, sleep, device loss, lease failure, and shutdown clear the state.
+Horizontal output is a native Quartz horizontal line scroll; top-level Spaces
+and Utility brightness/zoom reuse their existing bounded executors.
 
 The colour-proof coordinator defaults both its idle and absolute timeouts to
 zero, so the mode and HUD remain active until the entry cell explicitly exits.

@@ -1,89 +1,207 @@
+const SPARE = ["Spare", "No action is assigned to this cell in this mode."];
+
 const CELLS = [
-  {
-    id: 1, corsair: 1, razer: 3,
-    default: ["Spaces + Wheel", "Hold and ratchet once per macOS Space."],
-    vscode: ["Spaces + Wheel", "Inherited from the global Default layer."],
-    keys: ["Left Arrow", "Emit one native, non-repeating Left Arrow."],
-    utility: ["Brightness + Wheel", "Hold and ratchet once per brightness step."],
-  },
-  {
-    id: 2, corsair: 2, razer: 2,
-    default: ["Current app mode", "Open a live mode named and coloured for the frontmost app."],
-    vscode: ["VS Code mode", "Open the live VS Code-specific mode."],
-    keys: ["Spare", "Available for another native key."],
-    utility: ["Zoom + Wheel", "Hold and ratchet once per zoom step."],
-  },
-  {
-    id: 3, corsair: 3, razer: 1,
-    default: ["Screenshot", "Start or cancel the native selected-area screenshot session."],
-    vscode: ["Screenshot", "The same global selected-area screenshot action."],
-    keys: ["Spare", "Available for another native key."],
-    utility: ["Copy", "Send the standard Command-C shortcut."],
-  },
-  {
-    id: 4, corsair: 4, razer: 6,
-    default: ["Horizontal Scroll + Wheel", "Hold and ratchet the wheel: up moves right, down moves left."],
-    vscode: ["Horizontal Scroll + Wheel", "Inherited from the global Default layer."],
-    keys: ["Down Arrow", "Emit one native, non-repeating Down Arrow."],
-    utility: ["Spare", "Available for another utility."],
-  },
-  {
-    id: 5, corsair: 5, razer: 5,
-    default: ["Forward", "Go forward one page or navigation step."],
-    vscode: ["Previous Change", "Move to the previous Better Git change through F17."],
-    keys: ["Up Arrow", "Emit one native, non-repeating Up Arrow."],
-    utility: ["Spare", "Available for another utility."],
-  },
-  {
-    id: 6, corsair: 6, razer: 4,
-    default: ["Intelligence on demand", "Open Codex's global hotkey window with Option-Space."],
-    vscode: ["Intelligence on demand", "Inherited from the global Default layer."],
-    keys: ["Keypad", "Open classic phone-keypad text entry."],
-    utility: ["Paste", "Send the standard Command-V shortcut."],
-  },
-  {
-    id: 7, corsair: 7, razer: 9,
-    default: ["Enter", "Insert exactly one native Return in the frontmost app."],
-    vscode: ["Enter", "Inherited from the global Default layer."],
-    keys: ["Right Arrow", "Emit one native, non-repeating Right Arrow."],
-    utility: ["Paste password", "Read the local When-Unlocked Keychain item and type it without the clipboard."],
-  },
-  {
-    id: 8, corsair: 8, razer: 8,
-    default: ["Back", "Go back one page or navigation step."],
-    vscode: ["Next Change", "Move to the next Better Git change through F13."],
-    keys: ["Space", "Emit one native Space key."],
-    utility: ["YouTube −5 sec", "Rewind the selected YouTube target without focusing Chrome."],
-  },
-  {
-    id: 9, corsair: 9, razer: 7,
-    default: ["Keys mode", "Open the shared native-key mode."],
-    vscode: ["Keys mode", "The same global Keys mode entry."],
-    keys: ["Next Track", "Emit the native system Next Track media key."],
-    utility: ["Keys mode", "Move directly into the shared Keys page."],
-  },
-  {
-    id: 10, corsair: 10, razer: 12,
-    default: ["Legend toggle", "Show or hide this mouse's persistent Default legend."],
-    vscode: ["Legend toggle", "Show or hide this mouse's persistent Default legend."],
-    keys: ["Exit Keys mode", "Clear the expiring mode lease and restore Default."],
-    utility: ["Exit Utility modes", "Clear the expiring mode lease and restore Default."],
-  },
-  {
-    id: 11, corsair: 11, razer: 11,
-    default: ["Switch App", "Hold to keep the macOS App Switcher open; release to choose."],
-    vscode: ["Switch App", "The same global hold-open App Switcher action."],
-    keys: ["Backspace", "Emit one native Delete/Backspace key."],
-    utility: ["Choose app", "Open the manual Codex, Chrome and VS Code selector."],
-  },
-  {
-    id: 12, corsair: 12, razer: 10,
-    default: ["Utility modes", "Open the shared system-utility menu."],
-    vscode: ["Utility modes", "The same global Utility entry."],
-    keys: ["Escape", "Emit one native Escape key."],
-    utility: ["Spare", "Available for another utility."],
-  },
+  { id: 1, corsair: 1, razer: 3 },
+  { id: 2, corsair: 2, razer: 2 },
+  { id: 3, corsair: 3, razer: 1 },
+  { id: 4, corsair: 4, razer: 6 },
+  { id: 5, corsair: 5, razer: 5 },
+  { id: 6, corsair: 6, razer: 4 },
+  { id: 7, corsair: 7, razer: 9 },
+  { id: 8, corsair: 8, razer: 8 },
+  { id: 9, corsair: 9, razer: 7 },
+  { id: 10, corsair: 10, razer: 12 },
+  { id: 11, corsair: 11, razer: 11 },
+  { id: 12, corsair: 12, razer: 10 },
 ];
+
+const LAYERS = {
+  default: {
+    label: "Default",
+    actions: [
+      ["Spaces + Wheel", "Hold; the first wheel-up moves right and wheel-down moves left, then release to re-arm."],
+      ["Current app mode", "Open a live mode named and coloured for the frontmost app."],
+      ["Screenshot", "Start or cancel macOS's native Shift-Command-4 interaction."],
+      ["Horizontal Scroll + Wheel", "Hold and ratchet: up scrolls right, down scrolls left."],
+      ["Forward", "Go forward one page or navigation step."],
+      ["Intelligence on demand", "Open Codex's global Option-Space window."],
+      ["Enter", "Insert one native Return in the frontmost app."],
+      ["Back", "Go back one page or navigation step."],
+      ["Keys mode", "Open the shared native-key mode."],
+      ["Legend toggle", "Show or hide this mouse's independent Default legend."],
+      ["Switch App", "Hold to keep the macOS App Switcher open; release to choose."],
+      ["Utility mode", "Open the shared Utility page immediately."],
+    ],
+  },
+  vscodeBase: {
+    label: "VS Code base",
+    actions: [
+      ["Spaces + Wheel", "Inherited from Default."],
+      ["Current app mode", "Open the VS Code child when VS Code is frontmost."],
+      ["Screenshot", "Inherited from Default."],
+      ["Horizontal Scroll + Wheel", "Inherited from Default."],
+      ["Previous Change / Stage + Previous ×2", "Single press sends Better Git Previous Change; rapid double stages and moves previous."],
+      ["Intelligence on demand", "Inherited from Default."],
+      ["Enter", "Inherited from Default."],
+      ["Next Change / Stage + Next ×2", "Single press sends Better Git Next Change; rapid double stages and moves next."],
+      ["Keys mode", "Inherited from Default."],
+      ["Legend toggle", "Inherited from Default."],
+      ["Switch App", "Inherited from Default."],
+      ["Utility mode", "Inherited from Default."],
+    ],
+  },
+  utility: {
+    label: "Utility",
+    actions: [
+      ["Brightness + Wheel", "Hold and ratchet: up decreases, down increases."],
+      ["Zoom + Wheel", "Hold and ratchet: up zooms out, down zooms in."],
+      ["Copy / Paste + Wheel", "Hold and ratchet: up pastes, down copies."],
+      ["Mission / Desktop + Wheel", "Hold and ratchet: up opens Mission Control, down shows the desktop."],
+      ["App Exposé + Wheel", "Hold and ratchet down once for native App Exposé; wheel up is consumed."],
+      ["Magnet + Wheel", "Hold and ratchet: up sends Magnet Left, down sends Magnet Right."],
+      ["PP", "Private action."],
+      ["YouTube −5 sec", "Rewind the selected YouTube target without focusing Chrome."],
+      ["Keys mode", "Move directly into the shared Keys page."],
+      ["Exit Utility mode", "Clear the mode lease and return to Default."],
+      ["Choose app", "Open the eleven-app manual selector."],
+      ["Extra Utilities", "Open the nested page containing manual window-layout restore."],
+    ],
+  },
+  keys: {
+    label: "Keys",
+    actions: [
+      ["Left Arrow", "Emit one native, non-repeating Left Arrow."],
+      SPARE,
+      ["Undo", "Emit Command-Z in the frontmost app."],
+      ["Down Arrow", "Emit one native, non-repeating Down Arrow."],
+      ["Up Arrow", "Emit one native, non-repeating Up Arrow."],
+      ["Keypad", "Open classic phone-keypad text entry."],
+      ["Right Arrow", "Emit one native, non-repeating Right Arrow."],
+      ["Space", "Emit one native Space key."],
+      ["Next Track", "Emit the native system Next Track media key."],
+      ["Exit Keys mode", "Clear the mode lease and return to Default."],
+      ["Backspace", "Emit one native Delete/Backspace key."],
+      ["Enter", "Emit one native, non-repeating Return."],
+    ],
+    sourceOverrides: {
+      razer: {
+        1: ["Right Arrow", "Mirrored for the left-handed Razer's physical layout."],
+        7: ["Left Arrow", "Mirrored for the left-handed Razer's physical layout."],
+      },
+    },
+  },
+  keypad: {
+    label: "Keypad",
+    actions: [
+      ["Punctuation / Hold 1", "Cycle the visible punctuation set; hold for 1."],
+      ["ABC / Hold 2", "Classic phone letters; hold for 2."],
+      ["DEF / Hold 3", "Classic phone letters; hold for 3."],
+      ["GHI / Hold 4", "Classic phone letters; hold for 4."],
+      ["JKL / Hold 5", "Classic phone letters; hold for 5."],
+      ["MNO / Hold 6", "Classic phone letters; hold for 6."],
+      ["PQRS / Hold 7", "Classic phone letters; hold for 7."],
+      ["TUV / Hold 8", "Classic phone letters; hold for 8."],
+      ["WXYZ / Hold 9", "Classic phone letters; hold for 9."],
+      ["Exit Keypad", "Leave Keypad and return to Default."],
+      ["Space", "Insert a space."],
+      ["Backspace / Hold Return", "Tap Backspace; hold to send Return."],
+    ],
+  },
+  extra: {
+    label: "Extra Utilities",
+    actions: [
+      ["Organize Windows", "Request one manual restore of the saved Stay layout."],
+      SPARE, SPARE, SPARE, SPARE, SPARE, SPARE, SPARE, SPARE,
+      ["Exit Extra Utilities", "Return directly to Default."],
+      SPARE, SPARE,
+    ],
+  },
+  chooseApp: {
+    label: "Choose app",
+    actions: [
+      ["Codex", "Lock the app-specific page to Codex without activating it."],
+      ["Terminal", "Lock the app-specific page to Terminal."],
+      ["Claude", "Lock the app-specific page to Claude."],
+      ["Chrome", "Lock the app-specific page to Chrome."],
+      ["iTerm", "Lock the app-specific page to iTerm."],
+      ["Spotify", "Lock the app-specific page to Spotify."],
+      ["VS Code", "Lock the app-specific page to VS Code."],
+      ["Notion", "Lock the app-specific page to Notion."],
+      ["OBS", "Lock the app-specific page to OBS."],
+      ["Exit Choose app", "Return directly to Default."],
+      ["Telegram", "Lock the app-specific page to Telegram."],
+      ["Safari", "Lock the app-specific page to Safari."],
+    ],
+  },
+  codex: {
+    label: "Codex",
+    actions: [
+      ["Steer queued message", "Send Codex's built-in Command-Return shortcut; dispatch is not confirmation."],
+      ["Exit Codex mode", "Return directly to Default."],
+      ["Pin / unpin", "Send the configured Codex pin shortcut."],
+      ["Voice mode ❌", "Known broken in the latest physical report; the route remains under repair."],
+      ["New chat", "Send the configured Codex New Chat action."],
+      ["Mute / unmute voice mic", "Toggle the mic only during an active Codex Voice Mode session."],
+      ["Enter", "Emit one native Return."],
+      ["Edit queued message ❌", "Known broken in the latest physical report; no successful action is claimed."],
+      ["Open side chat", "Use Codex's Command-Option-S action while Codex is frontmost."],
+      ["Exit Codex mode", "Return directly to Default."],
+      ["Chat History + Wheel", "Hold and ratchet: up moves to the next chat, down to the previous chat."],
+      ["Reasoning Effort + Wheel", "Hold and ratchet: up increases effort, down decreases it."],
+    ],
+  },
+  chrome: {
+    label: "Chrome",
+    actions: [
+      ["Close current tab", "Send Command-W to the running Chrome process."],
+      ["Exit Chrome mode", "Return directly to Default."],
+      ["Open DevTools", "Send Chrome's Command-Option-I shortcut."],
+      ["Tabs + Wheel", "Hold and ratchet: up moves to the next tab, down to the previous tab."],
+      ["New tab", "Send Command-T to Chrome."],
+      ["Reload current tab", "Send Command-R to Chrome."],
+      ["Hold 2× speed", "Hold for 2× on the selected playing YouTube video; double-click locks/unlocks 2×."],
+      ["Close current window", "Send Shift-Command-W to Chrome."],
+      ["Address / Search", "Focus Chrome's address/search field."],
+      ["Exit Chrome mode", "Return directly to Default."],
+      ["Reopen tab", "Reopen the most recently closed tab."],
+      ["Find page", "Open Chrome's Find interface."],
+    ],
+  },
+  vscodeMode: {
+    label: "VS Code mode",
+    actions: [
+      ["Close tab", "Close the current editor tab."],
+      ["Exit VS Code mode", "Return directly to Default."],
+      ["Find", "Open VS Code's Find interface."],
+      ["Toggle Terminal", "Toggle the integrated terminal."],
+      ["Previous Change / Stage + Previous ×2", "Single goes previous; rapid double stages and goes previous."],
+      ["Cursor History + Wheel", "Hold and ratchet: up goes forward, down goes back."],
+      ["Command Palette", "Open the VS Code Command Palette."],
+      ["Next Change / Stage + Next ×2", "Single goes next; rapid double stages and goes next."],
+      ["Stage + Next / Undo Stage ×2", "Single stages and advances; rapid double undoes the exact last stage."],
+      ["Exit VS Code mode", "Return directly to Default."],
+      ["Go to Definition", "Send F12 to VS Code."],
+      ["Interrupt terminal", "Send one app-targeted Control-C cycle."],
+    ],
+  },
+  spotify: {
+    label: "Spotify",
+    actions: [
+      ["Search", "Open Spotify Search."],
+      ["Exit Spotify mode", "Return directly to Default."],
+      ["Previous track", "Move to the previous track."],
+      ["Next track", "Move to the next track."],
+      ["Seek backward", "Seek backward in the current track."],
+      ["Seek forward", "Seek forward in the current track."],
+      ["Volume + Wheel", "Hold and ratchet: up raises Spotify volume, down lowers it."],
+      SPARE,
+      ["Shuffle", "Toggle Shuffle."],
+      ["Exit Spotify mode", "Return directly to Default."],
+      ["Repeat", "Toggle Repeat."],
+      ["Queue", "Open the queue."],
+    ],
+  },
+};
 
 const DISPLAY_ORDER = {
   corsair: [3, 6, 9, 12, 2, 5, 8, 11, 1, 4, 7, 10],
@@ -105,11 +223,8 @@ const elements = {
 };
 
 function actionFor(cell, device = state.selectedDevice) {
-  if (state.layer === "keys" && device === "razer") {
-    if (cell.id === 1) return ["Right Arrow", "Emit one native, non-repeating Right Arrow."];
-    if (cell.id === 7) return ["Left Arrow", "Emit one native, non-repeating Left Arrow."];
-  }
-  return cell[state.layer] || cell.default;
+  const layer = LAYERS[state.layer] || LAYERS.default;
+  return layer.sourceOverrides?.[device]?.[cell.id] || layer.actions[cell.id - 1] || SPARE;
 }
 
 function renderGrid(device) {
@@ -148,9 +263,15 @@ function render() {
   elements.address.textContent = `PHYSICAL CELL ${cell.id}`;
   elements.action.textContent = action[0];
   elements.detail.textContent = action[1];
-  elements.layer.textContent = state.layer.toUpperCase();
+  elements.layer.textContent = (LAYERS[state.layer]?.label || state.layer).toUpperCase();
   elements.crosswalk.textContent = `C${cell.corsair} ↔ R${cell.razer}`;
-  elements.deepLink.href = `./mouse-map.html${state.layer === "vscode" ? "?layer=vscode" : ""}#c${cell.id}`;
+  const baseLayer = state.layer === "default" || state.layer === "vscodeBase";
+  elements.deepLink.href = baseLayer
+    ? `./mouse-map.html${state.layer === "vscodeBase" ? "?layer=vscode" : ""}#c${cell.id}`
+    : "https://github.com/EthanSK/agentic-mouse#what-the-included-helper-does";
+  elements.deepLink.innerHTML = baseLayer
+    ? "Open the transport map <span aria-hidden=\"true\">→</span>"
+    : "Read the current-map notes <span aria-hidden=\"true\">↗</span>";
   elements.deck.dataset.deviceView = state.deviceView;
 }
 

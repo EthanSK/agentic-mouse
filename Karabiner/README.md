@@ -45,45 +45,59 @@ rules or expiry gates.
 
 `action-catalog.json` proves which action definitions were discovered and is
 useful for review or future UI work. It is not installed into Karabiner. The
-base complex-modification file currently contains 69 manipulators across the
+base complex-modification file currently contains 66 manipulators across the
 locked-session sink, the two base rules, and the two VS Code overrides. The
-runtime artifact adds one 72-manipulator Modes layer for 141 total. Colour Proof
+runtime artifact adds one 58-manipulator Modes layer for 124 total. Colour Proof
 is no longer generated as a live rule. The two artifacts are alternatives, not
-files to enable together. Physical cells 5, 8, and 9 have app-specific
-duplicates; matching base exclusions preserve Forward/Back plus the silent
-cell-9 wildcard outside VS Code.
+files to enable together. Physical cells 5 and 8 have app-specific duplicates;
+matching base exclusions preserve Forward/Back outside VS Code. Cell 6 is always
+the global non-repeating Option-Space intelligence-on-demand action outside
+runtime modes.
 
 ## Persistent default-map reference
 
-Both exact-device bases classify canonical physical cell 12
-(Corsair printed 12 / Razer printed 10): a single press sends the Utility entry
-after the bounded 300 ms window, while a rapid double press sends the source-specific
-`agentic_mouse_default_map_toggle` command. Canonical cell 11 owns the native
-hold-open Switch App action outside modes. Cell 10 is blank outside modes and
-remains universal Exit while its mode lease is active. This persistent HUD takes no mode lease and
+Both exact-device bases give canonical physical cell 10
+(Corsair printed 10 / Razer printed 12) one source-specific
+`agentic_mouse_default_map_toggle` command outside modes. Canonical cell 11 owns
+the native hold-open Switch App action outside modes. Cell 10 becomes universal
+Exit while its mode lease is active. This persistent HUD takes no mode lease and
 does not alter lighting. Each mouse owns an independent legend, so one mouse's
 press never retargets or closes the other mouse's panel. Physical cell 12
-remains suppressed in the ordinary base because the runtime rule owns its
-inactive Utility/default-legend classifier; universal physical cell 10 owns active exit
-while that mouse's mode lease is active. Physical
+remains suppressed in the ordinary base because the runtime rule opens Utility
+immediately; universal physical cell 10 owns active exit while that mouse's mode
+lease is active. Physical
 cell 3 sends a source-specific screenshot-toggle command outside modes.
 
 ## Expiring Modes system
 
-Physical cell 12 opens the shared Modes lease after its single-press window:
+Physical cell 12 opens the shared Modes lease immediately:
 Corsair printed 12 or Razer printed 10. While active, all twelve exact-device transports send ordered
 press/release `agentic_mouse_mode_picker` payloads, independent of frontmost-app
-base conditions. Cell 7 selects Keypad; top-level cell 6 opens the current
+base conditions. Keys cell 6 selects Keypad; top-level cell 2 opens the current
 frontmost app's mode, while Utility cell 11 opens the manual configured-app
-selector. Cell 10 exits from every page; app children keep cell 12 available
-for a real app action. Top-level cell 2 and Utility cell 9 open Keys. Utility
-uses cells 1/4 for brightness up/down, 2/5 for zoom in/out, and 3/6 for Space
-left/right. Keys uses cell 6 for Copy, cell 3 for Paste, cell 9 for Next Track,
-cell 8 for Space, cell 11 for Backspace, and cell 12 for Escape. Its four arrows
+selector. Cell 10 exits from every page; app children also use their matching
+entry cell 2 as Exit, while the parent selector keeps cell 2 for Terminal. App
+children keep cell 12 available for a real app action. VS Code, Terminal, and iTerm use it for one app-targeted
+Ctrl-C interrupt, while Utility uses it to open Extra Utilities. Top-level cell 9 and Utility cell 9 open Keys. Utility
+uses held wheel chords on cell 1 for Brightness and cell 2 for Zoom. Top-level
+cell 1 owns Spaces directly. Utility cell 3 holds Copy / Paste + Wheel, cell 4
+holds Mission Control / Show Desktop + Wheel, cell 5 holds App Exposé + Wheel,
+and cell 6 holds Magnet + Wheel. Wheel up means decrease / zoom out / Paste /
+Mission Control / Magnet Left / Space right; wheel down means
+increase / zoom in / Copy / Show Desktop / App Exposé / Magnet Right /
+Space left. Cell 7 types the optional
+device-local Keychain password.
+Agentic Mouse lets only the first accepted Space ratchet in each physical hold
+choose this Mac's exact Control-Fn-Left/Right shortcut after the wheel callback
+returns; later ratchets stay consumed until release. A temporary,
+rate-limited legend footer exposes the raw wheel fields, routing verdict,
+keyboard post, and observed Space-change notification during diagnosis.
+Keys uses cell 3 for Undo as Command-Z, cell 6 for Keypad, cell 9 for Next Track,
+cell 8 for Space, cell 11 for Backspace, and cell 12 for Enter; cell 2 is spare. Its four arrows
 use cells 5/4/7/1 on Corsair, with horizontal meanings mirrored on the
 left-handed Razer. Active-mode legends remain visible until cell 10 exits;
-Keypad cell 1 cycles punctuation, cell 3 is the familiar DEF key, cell 11 cycles
-`abc → Abc → ABC → 123 → abc`, and cell 12 sends Space or hold-for-Return.
+Keypad cell 1 cycles punctuation, cell 3 is the familiar DEF key, cell 11 sends
+Space, and cell 12 taps Backspace or holds Return.
 Every Default and runtime-mode card omits explanatory subtitles and retains
 only the action title plus the source-mouse button label.
 The ordinary base excludes the Modes lease on
@@ -121,9 +135,12 @@ The Razer onboard profile supplies main-row `1`–`9`, `0`, `hyphen`, and
 not printed numbers: `C3↔R1`, `C2↔R2`, `C1↔R3`; `C6↔R4`, `C5↔R5`, `C4↔R6`;
 `C9↔R7`, `C8↔R8`, `C7↔R9`; `C12↔R10`, `C11↔R11`, `C10↔R12`. Keep private
 serials out of Git and recapture the exact device before installing the Razer
-rules on a Mac. The Corsair top DPI transport `F19` and the separately captured
-Razer lower DPI transport `F22` both toggle VoiceInk++ on physical release;
-Razer `F21` remains unchanged.
+rules on a Mac. The Corsair top DPI transport `F19` and both separately captured
+Razer DPI transports (`F21` up and `F22` down) toggle VoiceInk++ on physical
+release. Both Razer routes emit the same primary shortcut. VoiceInk++ discards
+only a second complete Primary chord arriving within 90 ms, before its gesture
+classifier, so a paired release becomes one activation without suppressing
+deliberate double or triple gestures.
 
 The two wheel bindings consume ordinary `pointing_button: button3` from each
 mouse's exact pointing interface and inline the same `play-pause-current-media`

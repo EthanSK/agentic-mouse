@@ -10,6 +10,9 @@ system setting.
 - Xcode command line tools (Swift 5.10+)
 - iCUE 5.x installed and running
 
+macOS 26 uses the native `NSGlassEffectView` legend background. Earlier
+supported macOS versions fall back to `NSVisualEffectView`.
+
 ## 1. Build and verify
 
 ```bash
@@ -88,9 +91,9 @@ it on only if EventViewer proves that it is required. Reopen each assignment
 after saving it. The selected NumKeyboard target must still be present before
 you generate or install a downstream rule.
 
-Button 12 remains the Agentic Mouse Utility / Default-legend classifier through
-the exact-device Karabiner user-command route: single press opens Utility after
-the bounded click window; rapid double press toggles the source mouse's legend.
+Button 12 remains the Agentic Mouse Utility entry through the exact-device
+Karabiner user-command route and opens it immediately. Button 10 toggles the
+source mouse's Default legend outside modes and exits its active mode.
 Karabiner consumes its neutral keypad transport so
 the key does not leak into the frontmost application while the runtime owner
 handles it. The older SDK raw macro-key route remains source-only diagnostics.
@@ -108,23 +111,30 @@ remain separate evidence classes.
 
 The things worth confirming:
 
-- side buttons **1** and **4** are the horizontal-scroll pair, left then right;
+- hold side button **1** and ratchet the wheel for at most one macOS Space per
+  hold; the first sign chooses right or left and release re-arms the next move;
+  hold side button **4** for per-ratchet horizontal scroll; wheel up moves right
+  and wheel down moves left for both controls;
 - the **DPI Toggle button** emits the named iCUE F19 transport, and Karabiner
   triggers VoiceInk++ on release without changing DPI;
 - **5** = Forward, **8** = Back;
-- **2** opens Keys, **3** starts/cancels Screenshot,
-  **6** opens the current frontmost app mode, and **7** = Enter;
-- **9** is the app-specific wildcard (silent by default; VS Code single press
-  Stage + Next and rapid double press exact undo), **10** is blank outside
-  modes, **11** holds open Switch App, and **12** opens Utility on a single
-  press or toggles the persistent Default legend on a rapid double press;
+- **2** opens the current frontmost app mode, **3** starts/cancels Screenshot,
+  **6** opens Codex's intelligence-on-demand window with Option-Space, and **7** = Enter;
+- **9** opens Keys; cell 6 keeps the same global action in VS Code;
+  **10** toggles the Default
+  legend outside modes, **11** holds open Switch App, and **12** opens Utility;
 - while any runtime mode is active, **10** exits it;
-- inside Keys, **6** = Copy, **3** = Paste, **9** = Next Track, **8** = Space,
-  **11** = Backspace, and **12** = Escape;
+- inside Keys, **3** = Undo, **6** = Keypad, **9** = Next Track, **8** = Space,
+  **11** = Backspace, and **12** = Enter; **2** is spare;
+- inside Utility, hold **3** and ratchet the wheel for Paste/Copy, hold **4**
+  for Mission Control/Show Desktop, hold **5** and ratchet down for App Exposé,
+  hold **6** for Magnet Left/Right, and **7** types the optional device-local
+  Keychain password; **12** opens Extra Utilities;
+- inside VS Code, Terminal, or iTerm app-specific mode, **12** resolves semantic
+  C from the active keyboard layout and sends Ctrl-C to that app;
 - every visible DPI stage, Sniper included, reads **2,750**;
-- the generated Karabiner map gives **5**, **8**, and **9** matching base exclusions
-  plus exact-device VS Code overrides: F17 Previous Change, F13 Next Change,
-  and the bounded F18 single / F16 rapid-double Stage + Next / exact-undo pair;
+- the generated Karabiner map gives **5** and **8** matching base exclusions
+  plus exact-device VS Code overrides: F17 Previous Change and F13 Next Change;
 - every other physical cell inherits the same base action in VS Code;
 - the wheel click on each mouse arrives as ordinary `pointing_button: button3`
   from its exact pointing interface and becomes `play_or_pause` in Karabiner;
@@ -215,17 +225,27 @@ prints the resolved configuration, fully redacted, with warnings.
 ## 8. Use it
 
 1. Click into a text field.
-2. Press side button **12**. The mouse turns magenta and pulses; the reference
-   card appears.
-3. Type. Watch the card for which tap you are on.
-4. Press **12** again.
+2. Press physical cell **9** (Corsair 9 / Razer 7) to open Keys, then physical
+   cell **6** (Corsair 6 / Razer 4) to enter Keypad. The Keypad-colour reference
+   card appears on every display.
+3. Tap the letter groups. Hold cells 1–9 for digits.
+4. Press physical cell **10** (Corsair 10 / Razer 12) to exit.
 
 If entry is refused, the card says why for a few seconds and the mouse does not
 change colour at all.
 
 ## Running at login
 
-The installed menu-bar app registers itself with macOS using `SMAppService`.
-It does not install a separate LaunchAgent. If macOS reports that approval is
-required, enable **Agentic Mouse** under **System Settings → General → Login
-Items**; the menu-bar status reports that state.
+The installed menu-bar app registers its signed nested **Agentic Mouse Runtime
+Supervisor** with macOS using `SMAppService.loginItem`. The helper starts at
+login, remains non-activating, and relaunches the main app in the background if
+its process unexpectedly disappears. It does not install a LaunchAgent, edit a
+private service database, or activate Agentic Mouse in front of another app.
+
+The menu-bar status reports **Self-recovery: enabled** when registration is
+live. If macOS reports that approval is required, enable **Agentic Mouse
+Runtime Supervisor** under **System Settings → General → Login Items &
+Extensions**. Use Agentic Mouse's own **Quit Agentic Mouse** menu item for an
+intentional stop; it unregisters the supervisor before terminating so Quit does
+not immediately relaunch the app. Opening Agentic Mouse again re-enables
+self-recovery.

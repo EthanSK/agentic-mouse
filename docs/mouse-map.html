@@ -9,8 +9,8 @@
     />
     <meta name="theme-color" content="#0b0e1c" />
     <title>Physical Mouse Map — Agentic Mouse</title>
-    <link rel="stylesheet" href="./mouse-map.css?v=20260817a" />
-    <script src="./mouse-map.js?v=20260817a" defer></script>
+    <link rel="stylesheet" href="./mouse-map.css?v=20260823a" />
+    <script src="./mouse-map.js?v=20260823a" defer></script>
   </head>
   <body>
     <a class="skip-link" href="#mapping-board">Skip to the mouse map</a>
@@ -18,14 +18,14 @@
     <header class="map-rail">
       <a class="rail-brand" href="./" aria-label="Back to Agentic Mouse">
         <span class="brand-pads" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
-        <span><strong>AGENTIC MOUSE</strong><small>PHYSICAL MAP</small></span>
+        <span><strong>AGENTIC MOUSE</strong><small>DEFAULT TRANSPORT MAP</small></span>
       </a>
 
       <div class="layer-control" aria-label="Application layer">
         <span class="control-label">LAYER</span>
         <div class="dip-switch" role="radiogroup" aria-label="Choose mapping layer">
           <button class="layer-button is-active" type="button" role="radio" aria-checked="true" data-layer="normal">Normal</button>
-          <button class="layer-button" type="button" role="radio" aria-checked="false" data-layer="vscode">VS Code</button>
+          <button class="layer-button" type="button" role="radio" aria-checked="false" data-layer="vscode">VS Code base</button>
         </div>
       </div>
 
@@ -63,7 +63,6 @@
       <ul class="signal-legend compact" aria-label="Signal types">
         <li><i class="signal-dot pointing">●</i> Native pointer</li>
         <li><i class="signal-dot media">◎</i> Native media</li>
-        <li><i class="signal-dot scroll">⇉</i> Native scroll</li>
         <li><i class="signal-dot keyboard">□</i> Keystroke</li>
         <li><i class="signal-dot consumed">×</i> Consumed</li>
         <li><i class="signal-dot runtime">◆</i> Runtime mode</li>
@@ -75,13 +74,12 @@
         <p class="designator"><span class="status-led" aria-hidden="true"></span> TWO DEVICES / ONE PHYSICAL VOCABULARY</p>
         <h1 id="page-title">Same reach.<br /><em>Same action.</em></h1>
         <p class="intro-copy">
-          The numbers disagree because the mice are mirrored. The positions do not. Pick any side button to see its partner,
-          raw transport and the exact event it sends.
+          The numbers disagree because the mice are mirrored. The positions do not. Pick any side button to inspect the installed Default transport and its VS Code base override. Runtime pages live in the main interactive deck.
         </p>
         <div class="truth-strip" aria-label="Current mapping facts">
           <span><b>Back / Forward</b> are native mouse buttons</span>
           <span><b>Media</b> uses system consumer keys</span>
-          <span><b>Scroll</b> is a native wheel event</span>
+          <span><b>Runtime chords</b> are owned by Agentic Mouse</span>
         </div>
       </section>
 
@@ -93,7 +91,7 @@
         </div>
 
         <p class="layer-note" id="layer-note">
-          <strong>Normal preview.</strong> One unfiltered Karabiner base applies everywhere, including VS Code.
+          <strong>Default preview.</strong> The ordinary base applies everywhere except the two explicit VS Code overrides on cells 5 and 8.
         </p>
 
         <div class="device-stage" id="device-stage">
@@ -110,7 +108,7 @@
                 <p class="device-side">LEFT-HAND / ONBOARD TRANSPORTS</p>
                 <h2 id="razer-title">Razer Naga</h2>
               </div>
-              <span class="device-state"><i></i> LIVE RULES</span>
+              <span class="device-state"><i></i> INSTALLED RULES</span>
             </header>
 
             <div class="mouse-assembly razer-assembly">
@@ -160,7 +158,7 @@
                 <p class="device-side">RIGHT-HAND / ICUE TRANSPORTS</p>
                 <h2 id="corsair-title">Corsair Scimitar</h2>
               </div>
-              <span class="device-state"><i></i> LIVE RULES</span>
+              <span class="device-state"><i></i> INSTALLED RULES</span>
             </header>
 
             <div class="mouse-assembly corsair-assembly">
@@ -213,21 +211,20 @@
               <strong id="alternate-name">Previous change</strong>
               <small id="alternate-output">F17 → Better Git command</small>
             </div>
-            <span class="acceptance-status" id="acceptance-status">CONFIGURED · PHYSICAL ACCEPTANCE PENDING</span>
+            <span class="acceptance-status" id="acceptance-status">CONFIGURED · SEE PER-CONTROL EVIDENCE</span>
           </div>
 
           <div class="detail-signal" id="detail-signal" data-signal="pointing">
             <p class="detail-kicker">OUTPUT TYPE</p>
             <div class="signal-heading"><i id="signal-glyph">●</i><h3 id="signal-name">Native pointing button</h3></div>
             <code id="signal-code">pointing_button button4</code>
-            <p id="signal-description">The same event a five-button mouse sends. Apps cannot tell it came from a rule.</p>
+            <p id="signal-description">Behaves like an ordinary five-button mouse's Back/Forward event in normal apps.</p>
           </div>
         </section>
 
         <ul class="signal-legend board-legend" aria-label="Signal type legend">
           <li><i class="signal-dot pointing">●</i> Native pointer</li>
           <li><i class="signal-dot media">◎</i> Native media</li>
-          <li><i class="signal-dot scroll">⇉</i> Native scroll</li>
           <li><i class="signal-dot keyboard">□</i> Keystroke</li>
           <li><i class="signal-dot consumed">×</i> Consumed</li>
           <li><i class="signal-dot runtime">◆</i> Runtime mode</li>
@@ -242,7 +239,7 @@
         <ol>
           <li><span>01</span><strong>The mouse emits a harmless raw key.</strong><p>Corsair uses keypad keys; Razer uses its onboard number-row keys.</p></li>
           <li><span>02</span><strong>Karabiner checks the exact device.</strong><p>Your real keyboard and numpad are not part of these rules.</p></li>
-          <li><span>03</span><strong>The shared action emits the right event.</strong><p>Back and Forward become native mouse buttons; media and scrolling use their native event families.</p></li>
+          <li><span>03</span><strong>The shared action emits the right event.</strong><p>Back and Forward become native mouse buttons; media uses a consumer key; held-wheel controls are routed by Agentic Mouse.</p></li>
         </ol>
       </section>
     </main>

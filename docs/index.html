@@ -22,8 +22,8 @@
     <link rel="preconnect" href="https://avatars.githubusercontent.com" />
     <link rel="icon" href="./agentic-mouse-mark.svg" type="image/svg+xml" />
     <link rel="manifest" href="./site.webmanifest" />
-    <link rel="stylesheet" href="./styles.css?v=20260817a" />
-    <script src="./script.js?v=20260817a" defer></script>
+    <link rel="stylesheet" href="./styles.css?v=20260823a" />
+    <script src="./script.js?v=20260823a" defer></script>
     <title>Agentic Mouse — the setup for the agentic future</title>
   </head>
   <body>
@@ -90,12 +90,12 @@
             <div class="future-scene" data-future-scene="2" aria-hidden="true">
               <p class="scene-index">02 / VISIBLE STATE</p>
               <h2>THE MOUSE TELLS ME WHAT MODE IT'S IN.</h2>
-              <p>Bold lighting on the hardware. A floating legend on every display. No wondering what button seven does today.</p>
+              <p>Mode colour across each mouse's available lighting zones. A floating legend on every display. No pretending there are twelve separately addressable button LEDs.</p>
             </div>
             <div class="future-scene" data-future-scene="3" aria-hidden="true">
               <p class="scene-index">03 / FAIL CLOSED</p>
               <h2>AND WHEN THE MAC LOCKS, IT ALL SHUTS UP.</h2>
-              <p>No mouse macros on the lock screen. No stale mode after wake. If Agentic Mouse is uncertain, it does nothing.</p>
+              <p>The runtime clears modes and suppresses custom commands until it receives positive unlocked input. The final two-mouse physical lock-screen matrix remains an open acceptance gate.</p>
             </div>
           </div>
 
@@ -132,16 +132,23 @@
           <p class="kicker"><span></span> PRESS THE VIRTUAL BUTTONS</p>
           <h2 id="deck-title">THIS IS WHAT MY THUMBS ACTUALLY DO.</h2>
           <p>
-            Pick a layer and click around. The page uses the real Corsair and Razer numbering—including the left-handed Razer exceptions—so it matches the mouse in your hand.
+            Pick a current layer and click around. The page uses the real Corsair and Razer numbering—including the left-handed Razer exceptions—so it matches the mouse in your hand. This deck was audited against Ethan's installed Agentic Mouse 1.0.110 (116) on 23 August 2026; a red cross is an unresolved physical failure, not decoration.
           </p>
         </div>
 
         <div class="deck-toolbar reveal">
           <div class="segmented" role="radiogroup" aria-label="Choose action layer">
             <button type="button" role="radio" aria-checked="true" class="is-active" data-layer="default">Default</button>
-            <button type="button" role="radio" aria-checked="false" data-layer="vscode">VS Code</button>
-            <button type="button" role="radio" aria-checked="false" data-layer="keys">Keys</button>
+            <button type="button" role="radio" aria-checked="false" data-layer="vscodeBase">VS Code base</button>
             <button type="button" role="radio" aria-checked="false" data-layer="utility">Utility</button>
+            <button type="button" role="radio" aria-checked="false" data-layer="keys">Keys</button>
+            <button type="button" role="radio" aria-checked="false" data-layer="keypad">Keypad</button>
+            <button type="button" role="radio" aria-checked="false" data-layer="extra">Extra Utilities</button>
+            <button type="button" role="radio" aria-checked="false" data-layer="chooseApp">Choose app</button>
+            <button type="button" role="radio" aria-checked="false" data-layer="codex">Codex</button>
+            <button type="button" role="radio" aria-checked="false" data-layer="chrome">Chrome</button>
+            <button type="button" role="radio" aria-checked="false" data-layer="vscodeMode">VS Code mode</button>
+            <button type="button" role="radio" aria-checked="false" data-layer="spotify">Spotify</button>
           </div>
           <div class="segmented compact" role="radiogroup" aria-label="Choose device view">
             <button type="button" role="radio" aria-checked="true" class="is-active" data-device-view="both">Both</button>
@@ -184,11 +191,11 @@
           <p class="kicker"><span></span> MODES THAT EXPLAIN THEMSELVES</p>
           <h2 id="mode-title">THE COLOUR ISN'T DECORATION. IT'S STATE.</h2>
           <p>
-            Keys is orange. Utility is violet. App modes follow the app. The hardware lights up, the floating legend appears on every display and the buttons say what they do. Strong colours, because subtle mode state is useless.
+            Keys is orange. Utility is violet. App modes follow the app. The available hardware lighting zones change together, the floating legend appears on every display and the buttons say what they do. Strong colours, because subtle mode state is useless.
           </p>
         </div>
         <div class="mode-swatches reveal" role="group" aria-label="Agentic Mouse mode colour system">
-          <div class="mode-swatch utility"><span>UTILITY</span><b>Brightness · Zoom · Spaces</b></div>
+          <div class="mode-swatch utility"><span>UTILITY</span><b>Brightness · Zoom · Magnet</b></div>
           <div class="mode-swatch keys"><span>KEYS</span><b>Arrows · Keypad · Space · Enter</b></div>
           <div class="mode-swatch app"><span>CODEX MODE</span><b>Pin · Voice · Steer · Effort</b></div>
         </div>
@@ -264,18 +271,19 @@
           <h2 id="architecture-title">EVERY LAYER HAS ONE JOB.</h2>
         </div>
         <ol class="architecture-flow reveal">
-          <li><span>HARDWARE</span><b>The mice send neutral keys</b><p>iCUE and the Razer onboard profile expose distinct, exact-device controls without owning the final action.</p></li>
+          <li><span>HARDWARE</span><b>The mice send neutral keys</b><p>iCUE exposes distinct Corsair keypad transports; the Razer's exact interface exposes its commissioned key transports. Neither owns the final action.</p></li>
           <li><span>MAPPING</span><b>Karabiner emits native input</b><p>Each mouse has its own guarded route to normal macOS keys, media controls and shortcuts.</p></li>
-          <li><span>RUNTIME</span><b>Agentic Mouse owns state</b><p>The signed menu-bar app runs modes, independent HUDs, lighting and focus-aware app shortcuts.</p></li>
-          <li><span>SECURITY</span><b>Unlocked or nothing</b><p>A short expiring lease kills every custom command on lock, sleep, crash or uncertain state.</p></li>
+          <li><span>RUNTIME</span><b>Agentic Mouse owns state</b><p>Ethan's locally signed menu-bar app runs modes, independent HUDs, lighting and focus-aware app shortcuts.</p></li>
+          <li><span>SECURITY</span><b>Unlocked or nothing</b><p>A short expiring lease gates custom commands and fails closed on lock, sleep, crash or uncertain state.</p></li>
         </ol>
+        <p class="compatibility-note reveal"><b>Compatibility reality:</b> Corsair's public SDK does not document macOS support, and Razer's standard LampArray path did not control this mouse. Ethan's setup uses an audited Corsair framework build and a physically accepted, unofficial Razer vendor-report lighting route. This is an open personal build, not vendor-supported software.</p>
       </section>
 
       <section class="safety-section" aria-labelledby="safety-title">
         <p class="kicker"><span></span> THE PART I REFUSED TO FAKE</p>
         <h2 id="safety-title">IF IT ISN'T SAFE, IT DOESN'T FIRE.</h2>
         <div class="safety-grid">
-          <p><b>LOCKED SESSION</b><span>Every custom side-grid, DPI and runtime command is consumed.</span></p>
+          <p><b>LOCKED SESSION</b><span>The generated rules and runtime consume custom side-grid, DPI and mode commands unless the session is positively unlocked. Automated coverage is complete; final physical lock-screen acceptance is still open.</span></p>
           <p><b>UNCERTAIN FOCUS</b><span>Text actions fail closed instead of guessing where to type.</span></p>
           <p><b>APP FAILURE</b><span>Short leases expire and restore the ordinary map automatically.</span></p>
         </div>
@@ -284,14 +292,15 @@
       <section class="launch-section">
         <p class="kicker"><span></span> STEAL THE GOOD BITS</p>
         <h2>BUILD YOUR OWN AGENTIC SETUP.</h2>
-        <p>You probably do not own my exact desk, my exact two mice or my exact tolerance for twelve-button grids. Fine. The source shows every layer so you can take what is useful.</p>
+        <p>You probably do not own my exact desk, my exact two mice or my exact tolerance for twelve-button grids. Fine. The repository explains the architecture and build path so you can take the useful parts. It does not currently publish a signed or notarized binary release. The map above documents Ethan's installed personal build; some corresponding implementation work is still local and has not landed on public <code>main</code>, so a fresh clone is not presently identical to that build.</p>
         <pre><code>git clone https://github.com/EthanSK/agentic-mouse.git
 cd agentic-mouse
 make check
-make app</code></pre>
+make app  # development-only ad-hoc bundle; see docs/SETUP.md</code></pre>
+        <p class="launch-reality">The proprietary iCUE SDK is not bundled. The audited build path currently expects Corsair's 4.0.84 framework. Hardware mappings, Accessibility approval and physical acceptance remain specific setup work—not a one-click installer.</p>
         <div class="hero-actions">
           <a class="button button-primary" href="https://github.com/EthanSK/agentic-mouse">Open the repository <span aria-hidden="true">↗</span></a>
-          <a class="button button-ghost light" href="./mouse-map.html">Open the full mouse map <span aria-hidden="true">→</span></a>
+          <a class="button button-ghost light" href="./mouse-map.html">Open the Default transport map <span aria-hidden="true">→</span></a>
         </div>
       </section>
     </main>

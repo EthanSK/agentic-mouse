@@ -2,17 +2,28 @@
 
 ## The one-line answer
 
-**Quit Agentic Mouse.** Everything this helper does is process-lifetime
-scoped. Quitting, killing, or crashing it all end the same way: iCUE observes
-the SDK client disappear, restores the device to shared access, discards the
-shared lighting layer, and your normal iCUE profile takes over. There is no
-persisted state and nothing to undo by hand.
+**Use the menu-bar app's Quit command for an intentional stop.** It first
+unregisters the signed runtime supervisor, then terminates Agentic Mouse. An
+unexpected process exit is different: the supervisor relaunches the exact
+containing app in the background with bounded backoff, while a single-instance
+lock prevents duplicate runtime ownership.
 
-```bash
-killall AgenticMouse
-```
+The supervisor pauses for five minutes after five relaunch attempts inside two
+minutes, so a broken build cannot spin forever. A runtime that remains healthy
+for one minute resets that history. Agentic Mouse also repairs recoverable
+in-process failures without a process restart: it rebinds a missing or replaced
+Karabiner command socket, retries an unavailable wheel event tap, retries a
+transient unlocked-session lease write, and refreshes the device/lighting path
+after either system or display wake.
 
-Nothing needs repairing after that.
+Recovery is deliberately dormant while loginwindow or the screensaver owns the
+session. A relaunched or waking runtime remains locked until macOS delivers
+positive user input while a normal app is frontmost. It never restores the
+pre-lock command lease, mode, HUD, pending text, or queued synthetic action.
+
+Everything that controls the mice remains process-lifetime scoped. While the
+runtime is absent, iCUE restores shared device access and the saved fallback
+lighting. No mode, HUD, pending text, or synthetic input survives a restart.
 
 ### Custom buttons do nothing after unlocking
 
@@ -63,14 +74,8 @@ Entry that fails changes no lighting, HUD, or ordinary mapping.
 
 ### The mouse is stuck on a strange colour
 
-Quit the app. If the colour persists, it is iCUE's own lighting, not this
-helper's.
-
-To confirm the helper is not involved:
-
-```bash
-killall AgenticMouse
-```
+Use the menu-bar Quit command. If the colour persists after Agentic Mouse and
+its supervisor have stopped, it is iCUE's own lighting, not this helper's.
 
 The helper writes only to a *shared* layer at priority 130 and clears it with
 alpha 0 on exit. It never requests exclusive lighting control, so it cannot
@@ -110,7 +115,9 @@ lighting.
 The reference card explains it:
 
 - *"Accessibility permission is not granted"* — grant it, relaunch.
-- *"The focused field is a secure/password field"* — by design.
+- Secure/password fields accept the same direct process-targeted keyboard input
+  as other editable fields. Keypad never reads their value or touches the
+  pasteboard.
 - *"The focused element does not accept text"* — click into a real text field.
 - *"Could not determine what has keyboard focus"* — the app exposes no usable
   Accessibility element.
@@ -123,8 +130,9 @@ cancelled rather than risk typing it somewhere unintended. Retype it.
 
 ### Wrong letters appear
 
-Check the case indicator on the card. In `123` mode every key types its digit.
-Hold button 10 to cycle back to `abc`.
+Keypad starts with one initial capital and then returns to lowercase. Hold
+buttons 1–9 for their digits. Cell 11 is Space; cell 12 is Backspace or hold
+Return. If another result appears, exit with cell 10 and re-enter Keypad.
 
 ### The HUD stole focus / moved my cursor
 
@@ -140,10 +148,18 @@ happened over.
 
 ## Full reset
 
+First choose **Quit Agentic Mouse** from its menu bar item. That supported path
+disarms self-recovery before the process exits. Then remove configuration and
+the installed app if that is truly intended:
+
 ```bash
-killall AgenticMouse                            # stop the helper
 rm -rf ~/.config/agentic-mouse                  # forget the configuration
 ```
+
+If the menu item is unavailable, disable **Agentic Mouse Runtime Supervisor**
+under System Settings → General → Login Items & Extensions before stopping the
+process. Do not use `killall AgenticMouse` as an intentional stop: an enabled
+supervisor correctly treats that as an unexpected exit and relaunches it.
 
 Then remove the app bundle. To also revoke the permission: System Settings →
 Privacy & Security → Accessibility → remove Agentic Mouse.

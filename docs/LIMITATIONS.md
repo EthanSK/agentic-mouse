@@ -8,9 +8,11 @@ otherwise.
 Current ordinary and mode input uses exact-device Karabiner transports, not the
 older iCUE exclusive-key interception experiment. The remaining gates are:
 
-1. **DPI release timing on the current saved transports.** Corsair F19 and Razer
-   F22 are installed as release actions, but the latest configuration still
-   needs one physical down/up capture and one VoiceInk activation on each mouse.
+1. **DPI release timing on the current saved transports.** Corsair F19 and both
+   Razer transports, F21 and F22, are installed as release actions. The latest
+   configuration still needs one physical down/up capture and one VoiceInk
+   activation from each control, plus one simultaneous two-button release to
+   prove VoiceInk++ coalesces it into a single activation.
 
 2. **Typing into real applications.** `postToPid` + `keyboardSetUnicodeString`
    is the standard layout-independent approach, but individual apps vary. Known
@@ -56,15 +58,16 @@ colour and is not assumed to persist onboard.
 
 **The exact Razer vendor route is live and physically accepted.** Agentic Mouse
 uses the acknowledged `NOSTORE` custom-frame path for PID `008d`, returns to
-50%-scaled cool idle white `(124,129,130)` outside modes, and keeps mode/alert
+the explicitly calibrated cool idle-white output `(124,129,130)` outside modes,
+and keeps mode/alert
 colours independent. The remaining gate is only Ethan's final side-by-side hue
 and brightness judgment against the Corsair.
 
 **The accepted live Modes entry is physical cell 12.** That is Corsair printed
 12 and Razer printed 10. Universal physical cell 10 (Corsair printed 10 /
-Razer printed 12) exits the menu and every child mode; outside modes it is blank.
-Shared physical cell 11 owns Switch App. A rapid double press of physical cell 12
-toggles each source mouse's own Default legend, while a single press opens Utility.
+Razer printed 12) exits the menu and every child mode; outside modes one press
+toggles that source mouse's own Default legend. Shared physical cell 11 owns
+Switch App. Physical cell 12 opens Utility immediately.
 Physical cell 3 starts or cancels Screenshot
 outside modes; active-mode legends remain visible until cell 10 exits the mode.
 There is no idle or absolute timeout while Agentic Mouse is healthy; the short
@@ -86,16 +89,21 @@ a commit is landing.
 
 **A target change detected during final delivery ends the mode.** The configured
 `cancelPending` policy normally keeps multi-tap active after a field change.
-If the final `TextOutput` recheck catches that move after delivery has begun,
-the coordinator exits instead: ending the transaction is safer than continuing
-after a possibly partial command batch.
+Exact AX editors stay field-anchored. An editor that hides its AX focus uses the
+unchanged frontmost app as the strongest available anchor, so a field change
+inside that one app cannot be distinguished; an app switch still cancels. If
+the final `TextOutput` recheck catches a detectable move after delivery has
+begun, the coordinator exits instead: ending the transaction is safer than
+continuing after a possibly partial command batch.
 
 **Some apps expose no usable AX element.** Canvas-based editors, some Electron
 builds and some Java apps report focus that fails the editable test. The mode
 fails closed: the HUD says the target will not accept text, and nothing is
 typed. It is a refusal, not a silent failure.
 
-**Secure fields are never typed into.** By design, with no override.
+**Secure editable fields accept direct key input.** Keypad treats them like
+other editable fields while never reading their value or touching the
+pasteboard. Unknown or non-editable focus still fails closed.
 
 **The event-tap fallback cannot identify the device.** If you opt into
 `cgEventTap`, a matching button on any mouse looks the same. Documented in
@@ -139,7 +147,10 @@ multi-tap mode, the mode exits.
 
 **Nothing is installed by the build.** `make app` writes to `build/` and stops.
 When the packaged app is launched from its installed location, it registers
-itself as a native macOS login item. It does not install a LaunchAgent.
+its signed nested runtime supervisor through `SMAppService.loginItem`. The
+helper starts at login and relaunches an unexpectedly absent main process with
+bounded backoff. It does not install a LaunchAgent, and menu-bar Quit unregisters
+it before the app terminates.
 
 **iCUE profiles are never edited.** The helper reads device properties and
 writes shared-layer colours. It does not modify a profile, and it never touches
@@ -147,10 +158,11 @@ iCUE's database files.
 
 **Normal-mode assignments are not managed by this helper.** iCUE owns the
 Corsair neutral keypad transports, while one exact-device Karabiner base maps
-them globally: 1 = horizontal scroll left, 2 = Keys mode, 3 = Screenshot,
-4 = horizontal scroll right, 5 = Forward, 6 = current frontmost-app mode, 7 = Enter, 8 = Back,
-9 = app-specific wildcard, 10 = blank outside modes / universal Exit,
-11 = Switch App and 12 = Utility-single / Default-legend-double.
+them globally: hold 1 + ratcheted wheel = macOS Spaces, 2 = current
+frontmost-app mode, 3 = Screenshot, hold 4 + ratcheted wheel = horizontal
+scroll, 5 = Forward, 6 = Codex intelligence on demand through Option-Space, 7 = Enter, 8 = Back,
+9 = Keys mode, 10 = Default legend outside modes / universal Exit,
+11 = Switch App and 12 = Utility.
 Physical cell 3 starts a native selected-area Screenshot outside modes.
 Physical cell 10 exits the active mode;
 there is no separate in-mode legend toggle. Wheel
@@ -161,11 +173,23 @@ neutral transport and exact-device Karabiner triggers VoiceInk++ on release.
 The helper prints this table (`agentic-mouse-doctor mapping`) so it can be
 checked, but it never writes either live configuration.
 
+**Wheel chords require Agentic Mouse and Accessibility trust.** Karabiner can
+arm a chord from an exact mouse button, but it cannot use wheel movement as a
+basic manipulator input. Agentic Mouse therefore captures phase-free Quartz
+wheel events only while one exact-device chord is held; Karabiner VirtualHID
+may mark an ordinary ratchet as continuous, so the phase fields—not that marker
+alone—separate a ratchet from a gesture. Quartz does not attach
+a device identity to that event: if one mouse's chord is held and a different
+ratcheted mouse is scrolled, the held chord still owns the step. Phased trackpad
+scrolling is excluded, two simultaneous chords fail closed, and every
+chord is cleared on lock, sleep, device loss, lease failure, or app shutdown.
+
 **App overrides are Karabiner's business, not the helper's.** The helper suspends
 all twelve buttons while multi-tap is active and releases them on exit. In VS
-Code, Karabiner maps physical cell 5 to non-repeating F17 Previous Change,
-cell 9 to non-repeating F18 Stage + Next, and cell 8 to non-repeating F13 Next
-Change. Matching exclusions preserve Forward/Back plus a silent wildcard base
-everywhere else without duplicating other controls. In Keys, cell 6 copies,
-cell 3 pastes, and cell 9 emits Next Track; the Razer swaps the horizontal-arrow
+Code, Karabiner maps physical cell 5 to non-repeating F17 Previous Change and
+cell 8 to non-repeating F13 Next Change. Top-level cell 6 remains the global
+non-repeating Option-Space action. Matching exclusions preserve Forward/Back
+everywhere else without duplicating other controls. Top-level cell 2 opens the
+frontmost app's mode and top-level cell 9 opens Keys. In Keys, cell 3 emits
+Undo as Command-Z, cell 6 enters Keypad, and cell 9 emits Next Track; the Razer swaps the horizontal-arrow
 meanings of physical cells 1 and 7 for its left-handed layout.
