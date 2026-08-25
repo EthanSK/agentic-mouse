@@ -15,6 +15,10 @@ final class VSCodeCommandBridgeTests: XCTestCase {
             VSCodeCommandBridge.url(for: .cursorHistoryForward)?.absoluteString,
             "vscode://ethansk.agentic-mouse-vscode-bridge/cursor-history/forward"
         )
+        XCTAssertEqual(
+            VSCodeCommandBridge.url(for: .toggleTerminal)?.absoluteString,
+            "vscode://ethansk.agentic-mouse-vscode-bridge/terminal/toggle"
+        )
     }
 
     func testOpensBackThroughTheRunningFrontmostVSCodeWithoutActivationRequest() {
@@ -91,6 +95,13 @@ final class VSCodeCommandBridgeTests: XCTestCase {
             return XCTFail("background VS Code must reject Cursor History")
         }
         XCTAssertEqual(error.description, "VS Code must be frontmost for Cursor History")
+
+        var terminalResult: Result<Void, VSCodeCommandBridge.BridgeError>?
+        bridge.perform(.toggleTerminal) { terminalResult = $0 }
+        guard case .failure(let terminalError) = terminalResult else {
+            return XCTFail("background VS Code must reject Toggle Terminal")
+        }
+        XCTAssertEqual(terminalError.description, "VS Code must be frontmost for Toggle Terminal")
     }
 
     func testReportsMissingVSCodeAndWorkspaceOpenFailuresHonestly() {

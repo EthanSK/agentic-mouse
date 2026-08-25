@@ -1267,6 +1267,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         _ command: VSCodeModeCommand,
         source: MouseSource
     ) {
+        if command == .toggleTerminal {
+            vsCodeCommandBridge.perform(.toggleTerminal) { [weak self] result in
+                guard case .failure(let error) = result else { return }
+                self?.modeHUDPresenters[source]?.flashProblem(error.description)
+            }
+            return
+        }
+
         guard let shortcut = VSCodeModeShortcutResolver.shortcut(for: command) else {
             modeHUDPresenters[source]?.flashProblem(
                 "Could not resolve Interrupt terminal for the current keyboard layout"

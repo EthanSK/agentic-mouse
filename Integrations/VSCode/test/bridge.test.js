@@ -37,6 +37,9 @@ test('accepts only the exact extension authority and allow-listed paths', () => 
   assert.equal(routeForUri(uri('/cursor-history/back', { authority: 'other.extension' })), null);
   assert.equal(routeForUri(uri('/cursor-history/back', { scheme: 'https' })), null);
   assert.equal(routeForUri(uri('/command/workbench.action.closeWindow')), null);
+  assert.deepEqual(routeForUri(uri('/terminal/toggle')), {
+    kind: 'terminalToggle',
+  });
 });
 
 test('health activates the bridge without executing an editor command', async () => {
@@ -53,6 +56,18 @@ test('executes VS Code Back and Forward through the command API', async () => {
   assert.deepEqual(h.commands, [
     'workbench.action.navigateBack',
     'workbench.action.navigateForward',
+  ]);
+});
+
+test('starts the Terminal alternator with Hide, then alternates Show and Hide', async () => {
+  const h = harness(true);
+  assert.equal(await handleUri(h.vscode, h.channel, uri('/terminal/toggle')), true);
+  assert.equal(await handleUri(h.vscode, h.channel, uri('/terminal/toggle')), true);
+  assert.equal(await handleUri(h.vscode, h.channel, uri('/terminal/toggle')), true);
+  assert.deepEqual(h.commands, [
+    'workbench.action.closePanel',
+    'workbench.action.terminal.focus',
+    'workbench.action.closePanel',
   ]);
 });
 

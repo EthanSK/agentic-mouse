@@ -11,6 +11,16 @@ final class VSCodeCommandBridge {
     enum Action: String, Equatable {
         case cursorHistoryBack = "cursor-history/back"
         case cursorHistoryForward = "cursor-history/forward"
+        case toggleTerminal = "terminal/toggle"
+
+        var displayName: String {
+            switch self {
+            case .cursorHistoryBack, .cursorHistoryForward:
+                return "Cursor History"
+            case .toggleTerminal:
+                return "Toggle Terminal"
+            }
+        }
     }
 
     struct BridgeError: Error, CustomStringConvertible, Equatable {
@@ -64,7 +74,7 @@ final class VSCodeCommandBridge {
         }
         guard target.isActive else {
             completion(.failure(BridgeError(
-                description: "VS Code must be frontmost for Cursor History"
+                description: "VS Code must be frontmost for \(action.displayName)"
             )))
             return
         }

@@ -450,7 +450,7 @@ enum VSCodeModeShortcutResolver {
         case .undoLastStageAndAdvance:
             return .init(keyCode: 106, flags: []) // F16
         case .toggleTerminal:
-            return .init(keyCode: 50, flags: .maskControl) // Control-`
+            return nil // The VS Code bridge owns the Hide-first Terminal alternator.
         case .commandPalette:
             return .init(keyCode: 35, flags: [.maskCommand, .maskShift]) // Command-Shift-P
         case .goToDefinition:

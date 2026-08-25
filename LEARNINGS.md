@@ -1,5 +1,17 @@
 # Learnings
 
+## 2026-08-25 — Start VS Code Terminal toggling with Hide
+
+**Trigger:** Ethan reported that VS Code mode's Toggle Terminal control needed two presses before it began hiding and showing the integrated Terminal as expected.
+
+**Finding:** VS Code's built-in Control-` toggle is focus-sensitive. When the Terminal is already visible but the editor has focus, the first toggle focuses the Terminal instead of hiding it, so the first physical mouse press appears to repeat Show and the second finally hides it.
+
+**Fix:** Route the same shared VS Code cell 4 through the existing allow-listed VS Code Bridge. Start each extension-host session with the explicit `workbench.action.closePanel` Hide command, then alternate with `workbench.action.terminal.focus` Show and repeat. Keep one bridge-owned sequence shared by both mice and every automatic/manual VS Code-mode journey. (Codex task: 01a039f7-873c-7c30-b3dc-af8a6724ace5)
+
+**Guard:** Do not restore Control-`, Command-J, synthetic keyboard delivery, user-keybinding edits, or separate per-mouse Terminal state. Accept only the exact `/terminal/toggle` URI while VS Code is frontmost; the first accepted press must Hide, the second must Show, and the third must Hide again.
+
+**Verification:** The focused Swift and Node suites proved no keyboard fallback, the exact new URI, frontmost-only routing, and Hide → Show → Hide ordering. The complete clean gate passed 647 Swift tests, six Musixmatch tests, six VS Code bridge tests, 17 Karabiner generator tests, both Karabiner lints, packaging/version contracts, and shell syntax. Bridge v0.1.1 was installed and its `bridge.js` hash matched source. Developer-ID-signed Agentic Mouse v1.0.130 (build 136) passed strict verification and briefly ran with its stable Accessibility grant, exact command socket, supervisor, config, Karabiner rules, and iCUE framework preserved. The existing VS Code extension host had been running since before the update and rejected the new URI, while the live VS Code window had active working-tree and debugger/watchdog state; do not restart or reload that editor blindly. Agentic Mouse v1.0.129 (build 135) was restored so Toggle Terminal remains usable until Ethan safely reloads VS Code, after which v1.0.130 still needs its final live install and one physical Hide-then-Show acceptance.
+
 ## 2026-08-25 — Reattach HUD panels to the current macOS Spaces
 
 **Trigger:** Ethan still could not see the Default legend after Accessibility and CGWindow inspection reported three Agentic Mouse panels and direct per-window captures showed fully rendered v1.0.128 content.

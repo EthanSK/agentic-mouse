@@ -247,14 +247,8 @@ final class ApplicationShortcutDispatcherTests: XCTestCase {
         XCTAssertEqual(postCount, 0)
     }
 
-    func testVSCodeTerminalUsesTheDedicatedControlGraveToggle() throws {
-        let shortcut = try XCTUnwrap(
-            VSCodeModeShortcutResolver.shortcut(for: .toggleTerminal)
-        )
-
-        XCTAssertEqual(shortcut.keyCode, 50)
-        XCTAssertEqual(shortcut.flags, .maskControl)
-        XCTAssertNotEqual(shortcut, .init(keyCode: 38, flags: .maskCommand))
+    func testVSCodeTerminalHasNoFocusSensitiveKeyboardFallback() {
+        XCTAssertNil(VSCodeModeShortcutResolver.shortcut(for: .toggleTerminal))
     }
 
     func testVSCodeCloseTabUsesCommandW() {
