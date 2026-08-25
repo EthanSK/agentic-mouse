@@ -155,12 +155,12 @@ public enum WheelChordControl: String, Codable, CaseIterable, Sendable {
 
     public func utilityAction(for direction: WheelChordDirection) -> ModeUtilityAction? {
         switch (self, direction) {
-        // Ethan's physical ratchet reads more naturally with the opposite
-        // semantic polarity from Quartz's conventional vertical sign.
+        // Each family keeps its explicitly chosen physical polarity; Zoom
+        // follows the standard computer convention of wheel up in, down out.
         case (.brightness, .up): return .decreaseDisplayBrightness
         case (.brightness, .down): return .increaseDisplayBrightness
-        case (.zoom, .up): return .zoomOut
-        case (.zoom, .down): return .zoomIn
+        case (.zoom, .up): return .zoomIn
+        case (.zoom, .down): return .zoomOut
         case (.clipboard, .up): return .paste
         case (.clipboard, .down): return .copy
         case (.systemOverview, .up): return .missionControl

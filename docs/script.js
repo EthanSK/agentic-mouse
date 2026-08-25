@@ -54,7 +54,7 @@ const LAYERS = {
     label: "Utility",
     actions: [
       ["Brightness + Wheel", "Hold and ratchet: up decreases, down increases."],
-      ["Zoom + Wheel", "Hold and ratchet: up zooms out, down zooms in."],
+      ["Zoom + Wheel", "Hold and ratchet: up zooms in, down zooms out."],
       ["Spaces + Wheel", "Hold; the first wheel-up moves right and wheel-down moves left, then release to re-arm."],
       ["Mission / Desktop + Wheel", "Hold and ratchet: up opens Mission Control, down shows the desktop."],
       ["App Exposé + Wheel", "Hold and ratchet down once for native App Exposé; wheel up is consumed."],

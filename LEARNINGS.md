@@ -2189,3 +2189,12 @@ remains evidence for why the earlier `-p` and explicit-child variants failed.
 **Fix:** Return a completed release record, mark every armed source after any nonzero vertical wheel input, and rewind five seconds only when the released control is YouTube Scrub and that record is still wheel-free. Keep accepted wheel ratchets on the existing ±5-second VoiceInk route.
 **Guard:** Duplicate presses must not reset the wheel-seen latch. Filtered, phased, ambiguous, and failed wheel paths must suppress the release click, while stale releases, lock, sleep, reload, source clear, and teardown must never emit a rewind.
 ---
+
+---
+**Date:** 2026-08-25
+**Trigger:** Ethan reported that Utility Zoom ran opposite the standard computer wheel convention.
+**Symptom:** Physical wheel up zoomed out and wheel down zoomed in.
+**Root cause:** Zoom inherited the earlier shared physical-polarity choice even though zoom direction should follow the conventional wheel metaphor.
+**Fix:** Map physical wheel up to Zoom In and wheel down to Zoom Out on both mice.
+**Guard:** Keep the change local to Zoom. Never flip Brightness, Spaces, Horizontal Scroll, Clipboard, YouTube, or another wheel family with it, and pin Zoom independently in resolver and HUD-feedback tests.
+---

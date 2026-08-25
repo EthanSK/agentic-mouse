@@ -602,8 +602,8 @@ final class WheelChordTests: XCTestCase {
     func testWheelDirectionsResolveEveryTwoWayUtilityFamily() {
         XCTAssertEqual(WheelChordControl.brightness.utilityAction(for: .up), .decreaseDisplayBrightness)
         XCTAssertEqual(WheelChordControl.brightness.utilityAction(for: .down), .increaseDisplayBrightness)
-        XCTAssertEqual(WheelChordControl.zoom.utilityAction(for: .up), .zoomOut)
-        XCTAssertEqual(WheelChordControl.zoom.utilityAction(for: .down), .zoomIn)
+        XCTAssertEqual(WheelChordControl.zoom.utilityAction(for: .up), .zoomIn)
+        XCTAssertEqual(WheelChordControl.zoom.utilityAction(for: .down), .zoomOut)
         XCTAssertEqual(WheelChordControl.clipboard.utilityAction(for: .up), .paste)
         XCTAssertEqual(WheelChordControl.clipboard.utilityAction(for: .down), .copy)
         XCTAssertEqual(WheelChordControl.systemOverview.utilityAction(for: .up), .missionControl)
@@ -674,8 +674,8 @@ final class WheelChordTests: XCTestCase {
             (.youtubeScrub, .down, "YouTube +5 sec"),
             (.brightness, .up, "Brightness Down"),
             (.brightness, .down, "Brightness Up"),
-            (.zoom, .up, "Zoom Out"),
-            (.zoom, .down, "Zoom In"),
+            (.zoom, .up, "Zoom In"),
+            (.zoom, .down, "Zoom Out"),
             (.clipboard, .up, "Paste"),
             (.clipboard, .down, "Copy"),
             (.systemOverview, .up, "Mission Control"),

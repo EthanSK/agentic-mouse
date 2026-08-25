@@ -159,7 +159,7 @@ The macOS menu-bar app adds several optional runtime behaviours:
   (Corsair 10 / Razer 12) exits Utility or any child mode. Hold Utility cell 1
   and ratchet the wheel for Brightness or cell 2 for Zoom. Hold top-level cell 4
   for Copy / Paste, or Utility cell 3 for Spaces: wheel up means decrease / zoom
-  out / Paste / Space right and wheel down means increase / zoom in / Copy /
+  in / Paste / Space right and wheel down means increase / zoom out / Copy /
   Space left. Utility and other wheel families act once per accepted ratchet;
   Spaces acts only on the first sign of each cell-3 hold and consumes later
   ratchets until release. Ordinary scrolling and

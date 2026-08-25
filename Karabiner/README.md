@@ -85,9 +85,9 @@ uses held wheel chords on cell 1 for Brightness and cell 2 for Zoom. Top-level
 cell 4 owns Copy / Paste directly, while top-level cell 1 owns Horizontal Scroll. Utility cell 3 holds Spaces + Wheel, cell 4
 holds Mission Control / Show Desktop + Wheel, cell 5 holds App Exposé + Wheel,
 and cell 6 holds Magnet + Wheel. Utility cell 8 opens Intelligence on Demand
-with one hardware-shaped Option-Space lifecycle. Wheel up means decrease / zoom out / Paste /
+with one hardware-shaped Option-Space lifecycle. Wheel up means decrease / zoom in / Paste /
 Mission Control / Magnet Left / Space right; wheel down means
-increase / zoom in / Copy / Show Desktop / App Exposé / Magnet Right /
+increase / zoom out / Copy / Show Desktop / App Exposé / Magnet Right /
 Space left. Cell 7 types the optional
 device-local Keychain password.
 Agentic Mouse lets only the first accepted Space ratchet in each physical hold
