@@ -242,21 +242,20 @@ public struct MultiTapKeymap: Equatable, Sendable {
 
     /// The shared Modes-menu keypad. Cells 1...9 keep the familiar phone
     /// punctuation/letter layout and digit holds. Universal runtime exit cell
-    /// 10 leaves the text engine, cell 11 cycles the phone-style input state,
-    /// and cell 12 provides the two essential separators (Space / Return).
+    /// 10 leaves the text engine, cell 11 inserts Space, and cell 12 taps
+    /// Backspace or holds Return.
     public static let modesKeypad: MultiTapKeymap = {
         var map = classic
         map = map.withSpec(KeySpec(tapAction: .exitMode, caption: "EXIT"), for: .k10)
         map = map.withSpec(
-            KeySpec(tapAction: .shiftCycle, caption: "SHIFT"),
+            KeySpec(tapAction: .space, caption: "SPACE"),
             for: .k11
         )
         map = map.withSpec(
             KeySpec(
-                numericCharacter: "0",
-                tapAction: .space,
+                tapAction: .backspace,
                 holdAction: .newline,
-                caption: "SPACE",
+                caption: "BACKSPACE",
                 holdCaption: "hold ⏎"
             ),
             for: .k12

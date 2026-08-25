@@ -133,6 +133,14 @@ public final class RazerVendorLightingController {
         }
     }
 
+    /// Drops a stale handle after physical removal. Spectrum cannot be
+    /// restored to an absent device, so reconnect recovery starts a fresh
+    /// custom session instead of treating removal as a normal app teardown.
+    public func handleDeviceLost() {
+        hasAppliedRuntimeColor = false
+        transport.close()
+    }
+
     private func sendAcknowledged(_ request: [UInt8]) throws {
         for attempt in 0..<5 {
             let response = try RazerVendorResponse.parse(

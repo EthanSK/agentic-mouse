@@ -42,7 +42,11 @@ struct DisplayBrightnessActionExecutor {
             keyType = Int32(NX_KEYTYPE_BRIGHTNESS_UP)
         case .decreaseDisplayBrightness:
             keyType = Int32(NX_KEYTYPE_BRIGHTNESS_DOWN)
-        case .rewindYouTubeFiveSeconds, .zoomIn, .zoomOut, .moveToSpaceLeft, .moveToSpaceRight:
+        case .rewindYouTubeFiveSeconds, .openIntelligenceOnDemand,
+             .zoomIn, .zoomOut, .moveToSpaceLeft, .moveToSpaceRight,
+             .copy, .paste, .showDesktop, .missionControl, .pasteStoredPassword,
+             .moveWindowLeftWithMagnet, .moveWindowRightWithMagnet,
+             .showApplicationWindows, .organizeWindows, .quitApp:
             preconditionFailure("This action is owned by ModeUtilityActionExecutor")
         }
 

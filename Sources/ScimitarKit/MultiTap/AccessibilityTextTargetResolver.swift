@@ -5,12 +5,17 @@ import Foundation
 
 /// Resolves the live typing destination through the Accessibility API.
 ///
-/// It answers three questions on every call, and any of them going wrong means
-/// "refuse", never "guess":
+/// It answers three questions on every call:
 ///
 ///   1. Which application is frontmost?     → `processIdentifier`
-///   2. Which element inside it has focus?  → `elementIdentity`
-///   3. Will that element accept text?      → editable, and not secure
+///   2. Which element inside it has focus?  → exact identity when exposed
+///   3. Will that element accept text?      → editable, including secure fields
+///
+/// Some standard inputs, including Spotify's Chromium-backed search field, do
+/// not expose `AXFocusedUIElement` even while ordinary keyboard input works.
+/// In that case the resolver falls back to the unchanged frontmost application
+/// rather than declaring that no focus exists. Delivery still revalidates the
+/// PID at every irreversible boundary and never crosses into another app.
 ///
 /// The identity token tracks the actual focused `AXUIElement` using Core
 /// Foundation equality. It never reads the field's contents, title, placeholder
@@ -29,11 +34,6 @@ public final class AccessibilityTextTargetResolver: TextTargetResolving {
         "AXComboBox",
         // Electron editors normally expose AXTextArea or a settable AXValue.
         // A generic AXWebArea alone is not proof that the page is editable.
-    ]
-
-    /// Secure input roles. Never typed into, under any configuration.
-    private static let secureRoles: Set<String> = [
-        "AXSecureTextField"
     ]
 
     private var lastFocusedElement: AXUIElement?
@@ -66,25 +66,33 @@ public final class AccessibilityTextTargetResolver: TextTargetResolving {
         let pid = application.processIdentifier
         let appElement = AXUIElementCreateApplication(pid)
 
+        let fallback = TextTarget(
+            processIdentifier: pid,
+            elementIdentity: "frontmost:\(pid)",
+            redactedApplication: "app:" + Redaction.tag(application.bundleIdentifier ?? "\(pid)"),
+            anchor: .frontmostApplication
+        )
+
         guard let focused = copyElement(from: appElement, attribute: kAXFocusedUIElementAttribute) else {
-            return .refused(.unknown)
+            return .ready(fallback)
         }
 
         let role = copyString(from: focused, attribute: kAXRoleAttribute) ?? ""
         let subrole = copyString(from: focused, attribute: kAXSubroleAttribute) ?? ""
 
-        if Self.secureRoles.contains(role) || Self.secureRoles.contains(subrole) {
-            return .refused(.secureField)
-        }
-
         // `AXValue` being settable is the most reliable "you can type here"
-        // signal across AppKit, Catalyst, Electron and web content.
+        // signal across AppKit, Catalyst, Electron and web content. Secure text
+        // fields are ordinary editable keyboard targets: the resolver never
+        // reads their value and the output path sends process-targeted key
+        // events, so refusing them would only break expected mouse typing.
         let isSettable = isAttributeSettable(focused, attribute: kAXValueAttribute)
-        let hasEditableRole = Self.editableRoles.contains(role) || Self.editableRoles.contains(subrole)
+        let hasEditableRole = Self.acceptsTextEntry(
+            role: role,
+            subrole: subrole,
+            isValueSettable: isSettable
+        )
 
-        guard isSettable || hasEditableRole else {
-            return .refused(.notEditable)
-        }
+        guard hasEditableRole else { return .ready(fallback) }
 
         let identity = elementIdentity(for: focused, processIdentifier: pid)
         let target = TextTarget(
@@ -93,6 +101,14 @@ public final class AccessibilityTextTargetResolver: TextTargetResolving {
             redactedApplication: "app:" + Redaction.tag(application.bundleIdentifier ?? "\(pid)")
         )
         return .ready(target)
+    }
+
+    static func acceptsTextEntry(
+        role: String,
+        subrole: String,
+        isValueSettable: Bool
+    ) -> Bool {
+        isValueSettable || editableRoles.contains(role) || editableRoles.contains(subrole)
     }
 
     // MARK: - Identity

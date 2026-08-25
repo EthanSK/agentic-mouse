@@ -1,4 +1,4 @@
-// Toggles the persistent top-level legend from shared physical cell 12 (Razer printed 10).
+// Toggles the persistent top-level legend from shared physical cell 10 (Razer printed 12).
 {
   "id": "toggle-default-map-hint-razer",
   "title": "Toggle Default mode legend (Razer)",
@@ -9,7 +9,7 @@
         "payload": {
           "command": "agentic_mouse_default_map_toggle",
           "source": "razer",
-          "physical_cell": 12
+          "physical_cell": 10
         }
       },
       "repeat": false

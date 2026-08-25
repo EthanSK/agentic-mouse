@@ -114,6 +114,13 @@
     "_comment_toggleKey": "Universal physical cell 10 exits every runtime mode; entry is owned by each dedicated Karabiner mode trigger.",
     "toggleKey": 10,
 
+    "_comment_horizontalScrollLinesPerRatchet": [
+      "Horizontal line-wheel units emitted for each accepted physical ratchet.",
+      "The supported range is 1...12; 4 is the normal-fast default.",
+      "This changes movement magnitude without weakening duplicate-ratchet filtering."
+    ],
+    "horizontalScrollLinesPerRatchet": 4,
+
     "_comment_fallbackBindings": [
       "Only used when transport is cgEventTap. Maps each grid key name (k1..k12)",
       "to whatever CGEvent the button produces under your iCUE profile, e.g.",

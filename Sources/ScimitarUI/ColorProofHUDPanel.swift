@@ -27,10 +27,14 @@ public final class AppKitModeHUDPresenter: NSObject, ModeHUDPresenting {
 
     public init(
         source: MouseSource,
-        configuration: AppConfiguration.HUDConfiguration = .init()
+        configuration: AppConfiguration.HUDConfiguration = .init(),
+        appIconProvider: WorkspaceModeHUDAppIconProvider = .init()
     ) {
         self.source = source
-        self.model = ModeHUDViewModel(source: source)
+        self.model = ModeHUDViewModel(
+            source: source,
+            appIconProvider: appIconProvider
+        )
         self.configuration = configuration
         self.panelOpacity = CGFloat(configuration.opacity)
         super.init()

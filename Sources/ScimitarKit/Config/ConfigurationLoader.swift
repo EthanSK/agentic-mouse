@@ -165,6 +165,16 @@ public enum ConfigurationLoader {
             )
             result.input.toggleKey = defaults.input.toggleKey
         }
+        if !AppConfiguration.InputConfiguration.horizontalScrollLinesPerRatchetRange.contains(
+            result.input.horizontalScrollLinesPerRatchet
+        ) {
+            replace(
+                "input.horizontalScrollLinesPerRatchet",
+                "must be between 1 and 12"
+            )
+            result.input.horizontalScrollLinesPerRatchet =
+                defaults.input.horizontalScrollLinesPerRatchet
+        }
         if result.input.transport == .cgEventTap, result.input.fallbackLogicalBindings == nil {
             warnings.append(
                 "input.fallbackBindings must map each of k1...k12 to a unique CGEvent binding; "
@@ -260,6 +270,9 @@ public enum ConfigurationLoader {
         lines.append("  transport:          \(configuration.input.transport.rawValue)")
         lines.append("  grid macro keys:    \(configuration.input.gridMacroKeys)")
         lines.append("  toggle key:         \(configuration.input.toggleKey)")
+        lines.append(
+            "  horizontal scroll:  \(configuration.input.horizontalScrollLinesPerRatchet) lines/ratchet"
+        )
 
         return lines.joined(separator: "\n")
     }

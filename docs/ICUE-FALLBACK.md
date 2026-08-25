@@ -90,11 +90,11 @@ button outputs. Specifically you lose, until you switch profiles back:
 
 | Button | Normal action |
 |---|---|
-| 1 | Spaces + Wheel chord |
+| 1 | Horizontal Scroll + Wheel chord |
 | 2 | Current frontmost-app mode |
-| 4 | Horizontal Scroll + Wheel chord |
+| 4 | Copy / Paste + Wheel chord |
 | 5 | Forward |
-| 6 | Intelligence on demand (Option-Space) |
+| 6 | YouTube Scrub + Wheel through the VoiceInk bridge |
 | 7 | Enter |
 | 8 | Back |
 | 9 | Keys mode |

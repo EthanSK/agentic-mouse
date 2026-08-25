@@ -73,11 +73,14 @@ final class TextTargetAnchoringTests: XCTestCase {
 
     // MARK: - Fail-closed targets
 
-    func testASecureFieldRefusesToAcceptAnything() {
-        let outcome = engine.press(.k2, at: 0, target: .refused(.secureField))
-        XCTAssertTrue(outcome.textCommands.isEmpty)
-        XCTAssertNil(engine.state.pendingCharacter)
-        XCTAssertEqual(engine.state.targetRefusal, .secureField)
+    func testSecureTextFieldIsAcceptedAsAnExactEditableTarget() {
+        XCTAssertTrue(
+            AccessibilityTextTargetResolver.acceptsTextEntry(
+                role: "AXTextField",
+                subrole: "AXSecureTextField",
+                isValueSettable: false
+            )
+        )
     }
 
     func testANonEditableTargetRefusesToAcceptAnything() {
@@ -86,13 +89,13 @@ final class TextTargetAnchoringTests: XCTestCase {
         XCTAssertNil(engine.state.pendingCharacter)
     }
 
-    func testFocusMovingIntoASecureFieldCancelsPendingText() {
+    func testFocusMovingIntoARefusedTargetCancelsPendingText() {
         _ = engine.press(.k2, at: 0, target: .ready(fieldA))
-        let outcome = engine.tick(at: 0.1, target: .refused(.secureField))
+        let outcome = engine.tick(at: 0.1, target: .refused(.notEditable))
 
         XCTAssertTrue(outcome.textCommands.isEmpty)
         XCTAssertNil(engine.state.pendingCharacter)
-        XCTAssertEqual(engine.state.lastCancellation, .targetRefused(.secureField))
+        XCTAssertEqual(engine.state.lastCancellation, .targetRefused(.notEditable))
     }
 
     func testMissingAccessibilityPermissionRefusesEverything() {

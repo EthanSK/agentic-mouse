@@ -1,0 +1,30 @@
+// Arms the shared Horizontal Scroll wheel chord for the exact Razer source lifetime.
+{
+  "id": "hold-horizontal-scroll-wheel-razer",
+  "title": "Hold Horizontal Scroll + Wheel (Razer)",
+  "description": "Tell Agentic Mouse that Razer physical cell 1 is held until its exact source key releases.",
+  "manipulator": {
+    "to": [{
+      "send_user_command": {
+        "payload": {
+          "command": "agentic_mouse_wheel_chord",
+          "control": "horizontalScroll",
+          "source": "razer",
+          "phase": "press"
+        }
+      },
+      "repeat": false
+    }],
+    "to_after_key_up": [{
+      "send_user_command": {
+        "payload": {
+          "command": "agentic_mouse_wheel_chord",
+          "control": "horizontalScroll",
+          "source": "razer",
+          "phase": "release"
+        }
+      },
+      "repeat": false
+    }]
+  }
+}

@@ -41,7 +41,9 @@ Karabiner cannot reference action fragments across files. The checked-in
 `generated/agentic-mouse.json` is valid Karabiner complex-modification JSON.
 Runtime modes are deliberately generated into a separate, complete replacement
 file so ordinary base-map work cannot accidentally install partial mode-entry
-rules or expiry gates.
+rules or expiry gates. The live installer accepts only the complete runtime
+artifact and rejects the five-rule base export because installing it would
+leave mode entry available without the active-mode routing and Exit rule.
 
 `action-catalog.json` proves which action definitions were discovered and is
 useful for review or future UI work. It is not installed into Karabiner. The
@@ -50,9 +52,9 @@ locked-session sink, the two base rules, and the two VS Code overrides. The
 runtime artifact adds one 58-manipulator Modes layer for 124 total. Colour Proof
 is no longer generated as a live rule. The two artifacts are alternatives, not
 files to enable together. Physical cells 5 and 8 have app-specific duplicates;
-matching base exclusions preserve Forward/Back outside VS Code. Cell 6 is always
-the global non-repeating Option-Space intelligence-on-demand action outside
-runtime modes.
+matching base exclusions preserve Forward/Back outside VS Code. Cell 6 always
+holds the source-specific YouTube scrub wheel chord outside runtime modes; Agentic
+Mouse then asks the VoiceInk bridge to seek backward without focusing Chrome.
 
 ## Persistent default-map reference
 
@@ -80,9 +82,10 @@ entry cell 2 as Exit, while the parent selector keeps cell 2 for Terminal. App
 children keep cell 12 available for a real app action. VS Code, Terminal, and iTerm use it for one app-targeted
 Ctrl-C interrupt, while Utility uses it to open Extra Utilities. Top-level cell 9 and Utility cell 9 open Keys. Utility
 uses held wheel chords on cell 1 for Brightness and cell 2 for Zoom. Top-level
-cell 1 owns Spaces directly. Utility cell 3 holds Copy / Paste + Wheel, cell 4
+cell 4 owns Copy / Paste directly, while top-level cell 1 owns Horizontal Scroll. Utility cell 3 holds Spaces + Wheel, cell 4
 holds Mission Control / Show Desktop + Wheel, cell 5 holds App Exposé + Wheel,
-and cell 6 holds Magnet + Wheel. Wheel up means decrease / zoom out / Paste /
+and cell 6 holds Magnet + Wheel. Utility cell 8 opens Intelligence on Demand
+with one hardware-shaped Option-Space lifecycle. Wheel up means decrease / zoom out / Paste /
 Mission Control / Magnet Left / Space right; wheel down means
 increase / zoom in / Copy / Show Desktop / App Exposé / Magnet Right /
 Space left. Cell 7 types the optional

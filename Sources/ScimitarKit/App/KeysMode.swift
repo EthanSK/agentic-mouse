@@ -10,13 +10,11 @@ public enum KeysModeAction: CaseIterable, Equatable, Sendable {
     case arrowDown
     case arrowLeft
     case arrowRight
-    case copy
-    case paste
+    case undo
     case nextTrack
     case insertSpace
     case pressBackspace
-    case pasteStoredPassword
-    case escape
+    case pressEnter
 
     public var cell: PhysicalCell {
         switch self {
@@ -24,13 +22,11 @@ public enum KeysModeAction: CaseIterable, Equatable, Sendable {
         case .arrowDown: return PhysicalCell(rawValue: 4)!
         case .arrowLeft: return PhysicalCell(rawValue: 1)!
         case .arrowRight: return PhysicalCell(rawValue: 7)!
-        case .copy: return PhysicalCell(rawValue: 6)!
-        case .paste: return PhysicalCell(rawValue: 3)!
+        case .undo: return PhysicalCell(rawValue: 3)!
         case .nextTrack: return PhysicalCell(rawValue: 9)!
         case .insertSpace: return PhysicalCell(rawValue: 8)!
         case .pressBackspace: return PhysicalCell(rawValue: 11)!
-        case .pasteStoredPassword: return PhysicalCell(rawValue: 2)!
-        case .escape: return PhysicalCell(rawValue: 12)!
+        case .pressEnter: return PhysicalCell(rawValue: 12)!
         }
     }
 
@@ -49,13 +45,11 @@ public enum KeysModeAction: CaseIterable, Equatable, Sendable {
         case .arrowDown: return "Down Arrow"
         case .arrowLeft: return "Left Arrow"
         case .arrowRight: return "Right Arrow"
-        case .copy: return "Copy"
-        case .paste: return "Paste"
+        case .undo: return "Undo"
         case .nextTrack: return "Next Track"
         case .insertSpace: return "Space"
         case .pressBackspace: return "Backspace"
-        case .pasteStoredPassword: return "Paste password"
-        case .escape: return "Escape"
+        case .pressEnter: return "Enter"
         }
     }
 
@@ -65,18 +59,16 @@ public enum KeysModeAction: CaseIterable, Equatable, Sendable {
         switch self {
         case .arrowUp, .arrowDown, .arrowLeft, .arrowRight:
             return ModeHUDActionFamilyPalette.arrowKeys
-        case .copy, .paste:
-            return ModeHUDActionFamilyPalette.clipboard
+        case .undo:
+            return ModeHUDActionFamilyPalette.historyNavigation
         case .nextTrack:
             return ModeHUDActionFamilyPalette.media
         case .insertSpace:
             return ModeHUDActionFamilyPalette.space
         case .pressBackspace:
             return ModeHUDActionFamilyPalette.backspace
-        case .pasteStoredPassword:
-            return ModeHUDActionFamilyPalette.storedPassword
-        case .escape:
-            return ModeHUDActionFamilyPalette.backspace
+        case .pressEnter:
+            return ModeHUDActionFamilyPalette.enter
         }
     }
 

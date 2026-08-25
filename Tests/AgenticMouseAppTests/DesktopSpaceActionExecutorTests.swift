@@ -6,31 +6,39 @@ import XCTest
 @MainActor
 final class DesktopSpaceActionExecutorTests: XCTestCase {
     func testSpaceLeftPostsOneControlLeftCycle() {
-        var events: [(CGKeyCode, CGEventFlags, Bool)] = []
-        let executor = DesktopSpaceActionExecutor { events.append(($0, $1, $2)); return true }
+        var events: [DesktopSpaceActionExecutor.KeyEvent] = []
+        let executor = DesktopSpaceActionExecutor { events = $0; return true }
 
         guard case .success = executor.perform(.moveToSpaceLeft) else {
             return XCTFail("Space Left should dispatch")
         }
-        XCTAssertEqual(events.map(\.0), [123, 123])
-        XCTAssertEqual(events.map(\.1), [[.maskControl], [.maskControl]])
-        XCTAssertEqual(events.map(\.2), [true, false])
+        XCTAssertEqual(events.map(\.keyCode), [59, 123, 123, 59])
+        XCTAssertEqual(
+            events.map(\.flags),
+            [[.maskControl], [.maskControl, .maskSecondaryFn], [.maskControl, .maskSecondaryFn], []]
+        )
+        XCTAssertEqual(events.map(\.type), [.flagsChanged, .keyDown, .keyUp, .flagsChanged])
+        XCTAssertEqual(events.map(\.timestampOffset), [0, 0.006, 0.026, 0.032])
     }
 
     func testSpaceRightPostsOneControlRightCycle() {
-        var events: [(CGKeyCode, CGEventFlags, Bool)] = []
-        let executor = DesktopSpaceActionExecutor { events.append(($0, $1, $2)); return true }
+        var events: [DesktopSpaceActionExecutor.KeyEvent] = []
+        let executor = DesktopSpaceActionExecutor { events = $0; return true }
 
         guard case .success = executor.perform(.moveToSpaceRight) else {
             return XCTFail("Space Right should dispatch")
         }
-        XCTAssertEqual(events.map(\.0), [124, 124])
-        XCTAssertEqual(events.map(\.1), [[.maskControl], [.maskControl]])
-        XCTAssertEqual(events.map(\.2), [true, false])
+        XCTAssertEqual(events.map(\.keyCode), [59, 124, 124, 59])
+        XCTAssertEqual(
+            events.map(\.flags),
+            [[.maskControl], [.maskControl, .maskSecondaryFn], [.maskControl, .maskSecondaryFn], []]
+        )
+        XCTAssertEqual(events.map(\.type), [.flagsChanged, .keyDown, .keyUp, .flagsChanged])
+        XCTAssertEqual(events.map(\.timestampOffset), [0, 0.006, 0.026, 0.032])
     }
 
     func testFailedEventCreationIsReported() {
-        let executor = DesktopSpaceActionExecutor { _, _, _ in false }
+        let executor = DesktopSpaceActionExecutor { _ in false }
 
         guard case .failure(.eventCreationFailed) = executor.perform(.moveToSpaceLeft) else {
             return XCTFail("event creation failure should be surfaced")
@@ -40,7 +48,7 @@ final class DesktopSpaceActionExecutorTests: XCTestCase {
     func testMissingAccessibilityFailsBeforePosting() {
         var posted = false
         let executor = DesktopSpaceActionExecutor(
-            postEvent: { _, _, _ in posted = true; return true },
+            postChord: { _ in posted = true; return true },
             accessibilityTrusted: { false }
         )
         guard case .failure(.accessibilityPermissionMissing) = executor.perform(.moveToSpaceLeft) else {

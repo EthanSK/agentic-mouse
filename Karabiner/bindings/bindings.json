@@ -4,28 +4,12 @@
     "The Corsair adapter uses iCUE's neutral keypad transports and exact VirtualHIDKeyboard identity.",
     "The Razer adapter uses its onboard main-row transports and exact RZ01-03410 identity.",
     "Shared meanings follow physical cells, not the two mice's opposing printed-number order.",
-    "Base rules stay app-agnostic except where an approved VS Code override excludes the same physical transport.",
+    "Base rules stay app-agnostic except where the approved Forward and Back VS Code overrides exclude the same physical transport.",
     "Each physical wheel click is captured from that mouse's exact pointing interface and emits the shared Play/Pause action.",
     "Spare and runtime-owned transports are consumed so source keys never leak into applications."
   ],
   "security": {
-    "unlockedLeaseVariable": "agentic_mouse_session_unlocked_expires_at",
-    "additionalLockedSources": [
-      {
-        "from": {
-          "key_code": "f21",
-          "modifiers": { "optional": ["any"] }
-        },
-        "conditions": [
-          {
-            "type": "device_if",
-            "identifiers": [
-              { "vendor_id": 5426, "product_id": 141, "is_keyboard": true }
-            ]
-          }
-        ]
-      }
-    ]
+    "unlockedLeaseVariable": "agentic_mouse_session_unlocked_expires_at"
   },
   "modePicker": {
     "leaseVariablesBySource": {
@@ -42,29 +26,29 @@
     "interceptPhysicalCells": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
     "bindingsBySource": {
       "corsair": [
-        "corsair-side-01-horizontal-left",
-        "corsair-side-02-keys-mode",
+        "corsair-side-01-horizontal-wheel",
+        "corsair-side-02-app-specific-mode",
         "corsair-side-03-screenshot",
-        "corsair-side-04-horizontal-right",
+        "corsair-side-04-copy-paste-wheel",
         "corsair-side-05-forward",
-        "corsair-side-06-app-specific-mode",
+        "corsair-side-06-youtube-scrub-wheel",
         "corsair-side-07-enter",
         "corsair-side-08-back",
-        "corsair-side-09-app-shortcut",
+        "corsair-side-09-keys-mode",
         "corsair-side-10-mode-exit",
         "corsair-side-11-switch-app",
         "corsair-side-12-agentic-runtime"
       ],
       "razer": [
-        "razer-side-03-horizontal-right",
-        "razer-side-02-keys-mode",
+        "razer-side-03-horizontal-wheel",
+        "razer-side-02-app-specific-mode",
         "razer-side-01-screenshot",
-        "razer-side-06-horizontal-left",
+        "razer-side-06-copy-paste-wheel",
         "razer-side-05-forward",
-        "razer-side-04-app-specific-mode",
+        "razer-side-04-youtube-scrub-wheel",
         "razer-side-09-enter",
         "razer-side-08-back",
-        "razer-side-07-app-shortcut",
+        "razer-side-07-keys-mode",
         "razer-side-12-mode-exit",
         "razer-side-11-switch-app",
         "razer-side-10-agentic-runtime"
@@ -73,9 +57,9 @@
   },
   "bindings": [
     {
-      "id": "corsair-side-01-horizontal-left",
-      "description": "Corsair side 1 scrolls horizontally left, matching the last complete pre-removal Default Profile",
-      "action": "scroll-horizontally-left",
+      "id": "corsair-side-01-horizontal-wheel",
+      "description": "Corsair side 1 holds the Horizontal Scroll wheel chord until physical release",
+      "action": "hold-horizontal-scroll-wheel-corsair",
       "rule": "Corsair base layer",
       "from": {
         "key_code": "keypad_1",
@@ -109,9 +93,9 @@
       ]
     },
     {
-      "id": "corsair-side-02-keys-mode",
-      "description": "Corsair side 2 opens the shared Agentic Mouse Keys mode",
-      "action": "open-keys-mode-corsair",
+      "id": "corsair-side-02-app-specific-mode",
+      "description": "Corsair side 2 opens the current frontmost app mode",
+      "action": "open-app-specific-mode-corsair",
       "rule": "Corsair base layer",
       "from": {
         "key_code": "keypad_2",
@@ -163,9 +147,9 @@
       ]
     },
     {
-      "id": "corsair-side-04-horizontal-right",
-      "description": "Corsair side 4 scrolls horizontally right, matching the last complete pre-removal Default Profile",
-      "action": "scroll-horizontally-right",
+      "id": "corsair-side-04-copy-paste-wheel",
+      "description": "Corsair side 4 holds the top-level Copy / Paste wheel chord until physical release",
+      "action": "hold-copy-paste-wheel-corsair",
       "rule": "Corsair base layer",
       "from": {
         "key_code": "keypad_4",
@@ -203,9 +187,9 @@
       ]
     },
     {
-      "id": "corsair-side-06-app-specific-mode",
-      "description": "Corsair side 6 opens the current frontmost app mode",
-      "action": "open-app-specific-mode-corsair",
+      "id": "corsair-side-06-youtube-scrub-wheel",
+      "description": "Corsair side 6 holds the top-level YouTube scrub wheel chord",
+      "action": "hold-youtube-scrub-wheel-corsair",
       "rule": "Corsair base layer",
       "from": {
         "key_code": "keypad_6",
@@ -221,30 +205,12 @@
       ]
     },
     {
-      "id": "corsair-vscode-side-09-stage-next",
-      "description": "Corsair side 9 performs Better Git Stage + Next on one press and exact Undo on a rapid double press in VS Code",
-      "action": "vscode-stage-next-or-undo",
-      "rule": "Corsair VS Code layer",
-      "from": {
-        "key_code": "keypad_9",
-        "modifiers": { "optional": ["any"] }
-      },
-      "conditions": [
-        {
-          "type": "device_if",
-          "identifiers": [
-            { "vendor_id": 6940, "product_id": 65535, "is_keyboard": true }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "corsair-side-07-enter",
-      "description": "Corsair side 7 presses Enter outside runtime modes",
-      "action": "press-enter",
+      "id": "corsair-side-09-keys-mode",
+      "description": "Corsair side 9 opens the shared Agentic Mouse Keys mode",
+      "action": "open-keys-mode-corsair",
       "rule": "Corsair base layer",
       "from": {
-        "key_code": "keypad_7",
+        "key_code": "keypad_9",
         "modifiers": { "optional": ["any"] }
       },
       "conditions": [
@@ -279,12 +245,12 @@
       ]
     },
     {
-      "id": "corsair-side-09-app-shortcut",
-      "description": "Corsair side 9 is an app-specific wildcard and stays silent outside configured application overrides",
-      "action": "suppress-neutral-transport",
+      "id": "corsair-side-07-enter",
+      "description": "Corsair side 7 presses Enter outside runtime modes",
+      "action": "press-enter",
       "rule": "Corsair base layer",
       "from": {
-        "key_code": "keypad_9",
+        "key_code": "keypad_7",
         "modifiers": { "optional": ["any"] }
       },
       "conditions": [
@@ -293,16 +259,12 @@
           "identifiers": [
             { "vendor_id": 6940, "product_id": 65535, "is_keyboard": true }
           ]
-        },
-        {
-          "type": "frontmost_application_unless",
-          "bundle_identifiers": ["^com\\.microsoft\\.VSCode(?:Insiders)?$"]
         }
       ]
     },
     {
       "id": "corsair-side-10-mode-exit",
-      "description": "Corsair side 10 is silent outside modes and is the universal active-mode Exit",
+      "description": "Corsair side 10 toggles the persistent Default legend outside modes and is the universal active-mode Exit",
       "action": "suppress-neutral-transport",
       "rule": "Corsair base layer",
       "from": {
@@ -338,7 +300,7 @@
     },
     {
       "id": "corsair-side-12-agentic-runtime",
-      "description": "Corsair side 12 opens Utility modes and must not leak keypad plus",
+      "description": "Corsair side 12 opens Utility modes immediately and must not leak keypad plus",
       "action": "suppress-neutral-transport",
       "rule": "Corsair base layer",
       "from": {
@@ -386,6 +348,24 @@
           "type": "device_if",
           "identifiers": [
             { "vendor_id": 6940, "product_id": 65535, "is_keyboard": true }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "razer-dpi-up-voiceink",
+      "description": "Razer upper DPI button uses its proven F21 transport to toggle VoiceInk++ only on physical release",
+      "action": "toggle-voiceink-speech-to-text",
+      "rule": "Razer base layer",
+      "from": {
+        "key_code": "f21",
+        "modifiers": { "optional": ["any"] }
+      },
+      "conditions": [
+        {
+          "type": "device_if",
+          "identifiers": [
+            { "vendor_id": 5426, "product_id": 141, "is_keyboard": true }
           ]
         }
       ]
@@ -463,9 +443,9 @@
       ]
     },
     {
-      "id": "razer-side-02-keys-mode",
-      "description": "Razer side 2 shares physical cell 2 and opens the shared Agentic Mouse Keys mode",
-      "action": "open-keys-mode-razer",
+      "id": "razer-side-02-app-specific-mode",
+      "description": "Razer side 2 shares physical cell 2 and opens the current frontmost app mode",
+      "action": "open-app-specific-mode-razer",
       "rule": "Razer base layer",
       "from": {
         "key_code": "2",
@@ -481,9 +461,9 @@
       ]
     },
     {
-      "id": "razer-side-03-horizontal-right",
-      "description": "Razer side 3 uses the left-handed horizontal exception and scrolls right",
-      "action": "scroll-horizontally-right",
+      "id": "razer-side-03-horizontal-wheel",
+      "description": "Razer side 3 shares physical cell 1 and holds the Horizontal Scroll wheel chord until physical release",
+      "action": "hold-horizontal-scroll-wheel-razer",
       "rule": "Razer base layer",
       "from": {
         "key_code": "3",
@@ -499,30 +479,12 @@
       ]
     },
     {
-      "id": "razer-side-04-app-specific-mode",
-      "description": "Razer side 4 shares physical cell 6 and opens the current frontmost app mode",
-      "action": "open-app-specific-mode-razer",
+      "id": "razer-side-04-youtube-scrub-wheel",
+      "description": "Razer side 4 shares physical cell 6 and holds the top-level YouTube scrub wheel chord",
+      "action": "hold-youtube-scrub-wheel-razer",
       "rule": "Razer base layer",
       "from": {
         "key_code": "4",
-        "modifiers": { "optional": ["any"] }
-      },
-      "conditions": [
-        {
-          "type": "device_if",
-          "identifiers": [
-            { "vendor_id": 5426, "product_id": 141, "is_keyboard": true }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "razer-vscode-side-07-stage-next",
-      "description": "Razer side 7 shares physical cell 9 and performs Better Git Stage + Next on one press and exact Undo on a rapid double press in VS Code",
-      "action": "vscode-stage-next-or-undo",
-      "rule": "Razer VS Code layer",
-      "from": {
-        "key_code": "7",
         "modifiers": { "optional": ["any"] }
       },
       "conditions": [
@@ -557,9 +519,9 @@
       ]
     },
     {
-      "id": "razer-side-06-horizontal-left",
-      "description": "Razer side 6 uses the left-handed horizontal exception and scrolls left",
-      "action": "scroll-horizontally-left",
+      "id": "razer-side-06-copy-paste-wheel",
+      "description": "Razer side 6 shares physical cell 4 and holds the top-level Copy / Paste wheel chord until physical release",
+      "action": "hold-copy-paste-wheel-razer",
       "rule": "Razer base layer",
       "from": {
         "key_code": "6",
@@ -575,12 +537,12 @@
       ]
     },
     {
-      "id": "razer-side-07-app-shortcut",
-      "description": "Razer side 7 shares physical cell 9 as an app-specific wildcard and stays silent outside configured application overrides",
-      "action": "suppress-neutral-transport",
+      "id": "razer-side-09-enter",
+      "description": "Razer side 9 shares Corsair side 7's physical cell and presses Enter outside runtime modes",
+      "action": "press-enter",
       "rule": "Razer base layer",
       "from": {
-        "key_code": "7",
+        "key_code": "9",
         "modifiers": { "optional": ["any"] }
       },
       "conditions": [
@@ -589,10 +551,6 @@
           "identifiers": [
             { "vendor_id": 5426, "product_id": 141, "is_keyboard": true }
           ]
-        },
-        {
-          "type": "frontmost_application_unless",
-          "bundle_identifiers": ["^com\\.microsoft\\.VSCode(?:Insiders)?$"]
         }
       ]
     },
@@ -637,12 +595,12 @@
       ]
     },
     {
-      "id": "razer-side-09-enter",
-      "description": "Razer side 9 shares Corsair side 7's physical cell and presses Enter outside runtime modes",
-      "action": "press-enter",
+      "id": "razer-side-07-keys-mode",
+      "description": "Razer side 7 shares physical cell 9 and opens the shared Agentic Mouse Keys mode",
+      "action": "open-keys-mode-razer",
       "rule": "Razer base layer",
       "from": {
-        "key_code": "9",
+        "key_code": "7",
         "modifiers": { "optional": ["any"] }
       },
       "conditions": [
@@ -656,7 +614,7 @@
     },
     {
       "id": "razer-side-10-agentic-runtime",
-      "description": "Razer side 10 shares Corsair physical cell 12, opens Utility modes, and must not leak main-row 0",
+      "description": "Razer side 10 shares Corsair physical cell 12, opens Utility modes immediately, and must not leak main-row 0",
       "action": "suppress-neutral-transport",
       "rule": "Razer base layer",
       "from": {
@@ -692,7 +650,7 @@
     },
     {
       "id": "razer-side-12-mode-exit",
-      "description": "Razer side 12 shares physical cell 10, stays silent outside modes, and is the universal active-mode Exit",
+      "description": "Razer side 12 shares physical cell 10, toggles the persistent Default legend outside modes, and is the universal active-mode Exit",
       "action": "suppress-neutral-transport",
       "rule": "Razer base layer",
       "from": {

@@ -28,6 +28,142 @@
       }
     },
     {
+      "id": "hold-copy-paste-wheel-corsair",
+      "title": "Hold Copy / Paste + Wheel (Corsair)",
+      "description": "Tell Agentic Mouse that Corsair physical cell 4 is held until its exact source key releases.",
+      "source": "productivity/hold-copy-paste-wheel-corsair.jsonc",
+      "manipulator": {
+        "to": [
+          {
+            "send_user_command": {
+              "payload": {
+                "command": "agentic_mouse_wheel_chord",
+                "control": "clipboard",
+                "source": "corsair",
+                "phase": "press"
+              }
+            },
+            "repeat": false
+          }
+        ],
+        "to_after_key_up": [
+          {
+            "send_user_command": {
+              "payload": {
+                "command": "agentic_mouse_wheel_chord",
+                "control": "clipboard",
+                "source": "corsair",
+                "phase": "release"
+              }
+            },
+            "repeat": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "hold-copy-paste-wheel-razer",
+      "title": "Hold Copy / Paste + Wheel (Razer)",
+      "description": "Tell Agentic Mouse that Razer physical cell 4 is held until its exact source key releases.",
+      "source": "productivity/hold-copy-paste-wheel-razer.jsonc",
+      "manipulator": {
+        "to": [
+          {
+            "send_user_command": {
+              "payload": {
+                "command": "agentic_mouse_wheel_chord",
+                "control": "clipboard",
+                "source": "razer",
+                "phase": "press"
+              }
+            },
+            "repeat": false
+          }
+        ],
+        "to_after_key_up": [
+          {
+            "send_user_command": {
+              "payload": {
+                "command": "agentic_mouse_wheel_chord",
+                "control": "clipboard",
+                "source": "razer",
+                "phase": "release"
+              }
+            },
+            "repeat": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "hold-horizontal-scroll-wheel-corsair",
+      "title": "Hold Horizontal Scroll + Wheel (Corsair)",
+      "description": "Tell Agentic Mouse that Corsair physical cell 1 is held until its exact source key releases.",
+      "source": "navigation/hold-horizontal-scroll-wheel-corsair.jsonc",
+      "manipulator": {
+        "to": [
+          {
+            "send_user_command": {
+              "payload": {
+                "command": "agentic_mouse_wheel_chord",
+                "control": "horizontalScroll",
+                "source": "corsair",
+                "phase": "press"
+              }
+            },
+            "repeat": false
+          }
+        ],
+        "to_after_key_up": [
+          {
+            "send_user_command": {
+              "payload": {
+                "command": "agentic_mouse_wheel_chord",
+                "control": "horizontalScroll",
+                "source": "corsair",
+                "phase": "release"
+              }
+            },
+            "repeat": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "hold-horizontal-scroll-wheel-razer",
+      "title": "Hold Horizontal Scroll + Wheel (Razer)",
+      "description": "Tell Agentic Mouse that Razer physical cell 1 is held until its exact source key releases.",
+      "source": "navigation/hold-horizontal-scroll-wheel-razer.jsonc",
+      "manipulator": {
+        "to": [
+          {
+            "send_user_command": {
+              "payload": {
+                "command": "agentic_mouse_wheel_chord",
+                "control": "horizontalScroll",
+                "source": "razer",
+                "phase": "press"
+              }
+            },
+            "repeat": false
+          }
+        ],
+        "to_after_key_up": [
+          {
+            "send_user_command": {
+              "payload": {
+                "command": "agentic_mouse_wheel_chord",
+                "control": "horizontalScroll",
+                "source": "razer",
+                "phase": "release"
+              }
+            },
+            "repeat": false
+          }
+        ]
+      }
+    },
+    {
       "id": "hold-open-app-switcher",
       "title": "Hold open App Switcher",
       "description": "Open the native macOS App Switcher, keep it available for selection while held, and commit the highlighted app on release.",
@@ -49,6 +185,74 @@
       }
     },
     {
+      "id": "hold-youtube-scrub-wheel-corsair",
+      "title": "YouTube Scrub + Wheel (Corsair)",
+      "description": "Arm Agentic Mouse while Corsair physical cell 6 is held; release always disarms it.",
+      "source": "productivity/hold-youtube-scrub-wheel-corsair.jsonc",
+      "manipulator": {
+        "to": [
+          {
+            "send_user_command": {
+              "payload": {
+                "command": "agentic_mouse_wheel_chord",
+                "control": "youtubeScrub",
+                "source": "corsair",
+                "phase": "press"
+              }
+            },
+            "repeat": false
+          }
+        ],
+        "to_after_key_up": [
+          {
+            "send_user_command": {
+              "payload": {
+                "command": "agentic_mouse_wheel_chord",
+                "control": "youtubeScrub",
+                "source": "corsair",
+                "phase": "release"
+              }
+            },
+            "repeat": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "hold-youtube-scrub-wheel-razer",
+      "title": "YouTube Scrub + Wheel (Razer)",
+      "description": "Arm Agentic Mouse while Razer physical cell 6 is held; release always disarms it.",
+      "source": "productivity/hold-youtube-scrub-wheel-razer.jsonc",
+      "manipulator": {
+        "to": [
+          {
+            "send_user_command": {
+              "payload": {
+                "command": "agentic_mouse_wheel_chord",
+                "control": "youtubeScrub",
+                "source": "razer",
+                "phase": "press"
+              }
+            },
+            "repeat": false
+          }
+        ],
+        "to_after_key_up": [
+          {
+            "send_user_command": {
+              "payload": {
+                "command": "agentic_mouse_wheel_chord",
+                "control": "youtubeScrub",
+                "source": "razer",
+                "phase": "release"
+              }
+            },
+            "repeat": false
+          }
+        ]
+      }
+    },
+    {
       "id": "open-app-specific-mode-corsair",
       "title": "Open app-specific mode (Corsair)",
       "description": "Send one exact-device Corsair app-specific mode request to Agentic Mouse.",
@@ -61,7 +265,7 @@
                 "command": "agentic_mouse_mode_picker",
                 "action": "openAppSpecific",
                 "source": "corsair",
-                "physical_cell": 6,
+                "physical_cell": 2,
                 "phase": "press"
               }
             },
@@ -83,7 +287,7 @@
                 "command": "agentic_mouse_mode_picker",
                 "action": "openAppSpecific",
                 "source": "razer",
-                "physical_cell": 6,
+                "physical_cell": 2,
                 "phase": "press"
               }
             },
@@ -105,7 +309,7 @@
                 "command": "agentic_mouse_mode_picker",
                 "action": "openKeys",
                 "source": "corsair",
-                "physical_cell": 2,
+                "physical_cell": 9,
                 "phase": "press"
               }
             },
@@ -127,7 +331,7 @@
                 "command": "agentic_mouse_mode_picker",
                 "action": "openKeys",
                 "source": "razer",
-                "physical_cell": 2,
+                "physical_cell": 9,
                 "phase": "press"
               }
             },
@@ -244,7 +448,7 @@
               "payload": {
                 "command": "agentic_mouse_default_map_toggle",
                 "source": "corsair",
-                "physical_cell": 12
+                "physical_cell": 10
               }
             },
             "repeat": false
@@ -264,7 +468,7 @@
               "payload": {
                 "command": "agentic_mouse_default_map_toggle",
                 "source": "razer",
-                "physical_cell": 12
+                "physical_cell": 10
               }
             },
             "repeat": false

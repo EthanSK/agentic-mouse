@@ -42,6 +42,66 @@ static IOUSBDeviceInterface **am_razer_device_interface(io_service_t service) {
     return query == S_OK ? device : NULL;
 }
 
+static bool am_cfnumber_matches(CFTypeRef value, uint16_t expected) {
+    if (value == NULL || CFGetTypeID(value) != CFNumberGetTypeID()) {
+        return false;
+    }
+    int32_t actual = 0;
+    return CFNumberGetValue((CFNumberRef)value, kCFNumberSInt32Type, &actual) &&
+        actual == expected;
+}
+
+int32_t am_razer_usb_count_exact(
+    uint16_t vendor_id,
+    uint16_t product_id,
+    uint32_t *out_count
+) {
+    if (out_count == NULL) {
+        return AM_RAZER_INVALID_ARGUMENT;
+    }
+    *out_count = 0;
+
+    CFMutableDictionaryRef matching = IOServiceMatching(kIOUSBDeviceClassName);
+    if (matching == NULL) {
+        return (int32_t)kIOReturnNoMemory;
+    }
+
+    io_iterator_t iterator = IO_OBJECT_NULL;
+    IOReturn status = IOServiceGetMatchingServices(kIOMainPortDefault, matching, &iterator);
+    if (status != kIOReturnSuccess) {
+        return (int32_t)status;
+    }
+
+    io_service_t service;
+    while ((service = IOIteratorNext(iterator)) != IO_OBJECT_NULL) {
+        CFTypeRef vendor = IORegistryEntryCreateCFProperty(
+            service,
+            CFSTR("idVendor"),
+            kCFAllocatorDefault,
+            0
+        );
+        CFTypeRef product = IORegistryEntryCreateCFProperty(
+            service,
+            CFSTR("idProduct"),
+            kCFAllocatorDefault,
+            0
+        );
+        if (am_cfnumber_matches(vendor, vendor_id) &&
+            am_cfnumber_matches(product, product_id)) {
+            *out_count += 1;
+        }
+        if (vendor != NULL) {
+            CFRelease(vendor);
+        }
+        if (product != NULL) {
+            CFRelease(product);
+        }
+        IOObjectRelease(service);
+    }
+    IOObjectRelease(iterator);
+    return 0;
+}
+
 int32_t am_razer_usb_open_exact(
     uint16_t vendor_id,
     uint16_t product_id,

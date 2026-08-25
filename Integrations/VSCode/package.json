@@ -1,0 +1,30 @@
+{
+  "name": "agentic-mouse-vscode-bridge",
+  "displayName": "Agentic Mouse VS Code Bridge",
+  "description": "Executes the small, allow-listed set of VS Code commands requested by Agentic Mouse.",
+  "version": "0.1.0",
+  "publisher": "ethansk",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.83.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onUri"
+  ],
+  "main": "./extension.js",
+  "extensionKind": [
+    "ui"
+  ],
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": true
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/EthanSK/agentic-mouse"
+  }
+}

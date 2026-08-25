@@ -133,6 +133,14 @@ final class KarabinerUserCommandReceiver {
     private var socketFD: Int32 = -1
     private var lockFD: Int32 = -1
     private var source: DispatchSourceRead?
+    private var boundIdentity: SocketIdentity?
+
+    struct SocketIdentity: Equatable {
+        let device: dev_t
+        let inode: ino_t
+        let user: uid_t
+        let type: mode_t
+    }
 
     init(socketPath: String = KarabinerUserCommandReceiver.defaultSocketPath) {
         self.socketPath = socketPath
@@ -155,10 +163,15 @@ final class KarabinerUserCommandReceiver {
             close(openedLock)
             throw KarabinerModeBridgeError.systemCall("lock receiver", code)
         }
+        _ = fchmod(openedLock, S_IRUSR | S_IWUSR)
         lockFD = openedLock
 
         if FileManager.default.fileExists(atPath: socketPath) {
-            guard lockExisted, Self.isOwnedSocket(at: socketPath) else {
+            let recordedIdentity = Self.recordedSocketIdentity(from: openedLock)
+            guard lockExisted,
+                  let currentIdentity = Self.socketIdentity(at: socketPath),
+                  currentIdentity == recordedIdentity
+            else {
                 releaseLock(removeMarker: !lockExisted)
                 throw KarabinerModeBridgeError.socketPathOccupied(socketPath)
             }
@@ -168,9 +181,27 @@ final class KarabinerUserCommandReceiver {
         do {
             socketFD = try Self.bindDatagramSocket(path: socketPath)
             _ = chmod(socketPath, S_IRUSR | S_IWUSR)
+            guard let identity = Self.socketIdentity(at: socketPath) else {
+                let code = errno == 0 ? ENOENT : errno
+                close(socketFD)
+                socketFD = -1
+                unlink(socketPath)
+                throw KarabinerModeBridgeError.systemCall("inspect bound socket", code)
+            }
+            boundIdentity = identity
+            try Self.record(identity, in: openedLock)
             let existingFlags = fcntl(socketFD, F_GETFL)
             _ = fcntl(socketFD, F_SETFL, existingFlags | O_NONBLOCK)
         } catch {
+            if socketFD >= 0 {
+                close(socketFD)
+                socketFD = -1
+            }
+            if let boundIdentity,
+               Self.socketIdentity(at: socketPath) == boundIdentity {
+                unlink(socketPath)
+            }
+            self.boundIdentity = nil
             releaseLock(removeMarker: true)
             throw error
         }
@@ -196,7 +227,12 @@ final class KarabinerUserCommandReceiver {
                 close(socketFD)
             }
             socketFD = -1
-            if ownedSocket { unlink(socketPath) }
+            if ownedSocket,
+               let boundIdentity,
+               Self.socketIdentity(at: socketPath) == boundIdentity {
+                unlink(socketPath)
+            }
+            boundIdentity = nil
             releaseLock(removeMarker: ownedSocket)
         }
         if DispatchQueue.getSpecific(key: queueKey) != nil {
@@ -204,6 +240,17 @@ final class KarabinerUserCommandReceiver {
         } else {
             queue.sync(execute: cleanup)
         }
+    }
+
+    var isHealthy: Bool {
+        let inspect = { [self] in
+            guard socketFD >= 0, source != nil, let boundIdentity else { return false }
+            return Self.socketIdentity(at: socketPath) == boundIdentity
+        }
+        if DispatchQueue.getSpecific(key: queueKey) != nil {
+            return inspect()
+        }
+        return queue.sync(execute: inspect)
     }
 
     private func receiveAvailable(from fd: Int32, handler: @escaping Handler) {
@@ -233,11 +280,49 @@ final class KarabinerUserCommandReceiver {
         if removeMarker { unlink(socketPath + ".agentic-mouse.lock") }
     }
 
-    private static func isOwnedSocket(at path: String) -> Bool {
+    static func socketIdentity(at path: String) -> SocketIdentity? {
         var info = stat()
-        guard lstat(path, &info) == 0 else { return false }
-        let type = info.st_mode & S_IFMT
-        return info.st_uid == geteuid() && type == S_IFSOCK
+        guard lstat(path, &info) == 0 else { return nil }
+        return SocketIdentity(
+            device: info.st_dev,
+            inode: info.st_ino,
+            user: info.st_uid,
+            type: info.st_mode & S_IFMT
+        )
+    }
+
+    private static func record(_ identity: SocketIdentity, in fileDescriptor: Int32) throws {
+        let payload = "\(identity.device) \(identity.inode) \(identity.user) \(identity.type)\n"
+        let data = Data(payload.utf8)
+        guard ftruncate(fileDescriptor, 0) == 0,
+              lseek(fileDescriptor, 0, SEEK_SET) == 0
+        else {
+            throw KarabinerModeBridgeError.systemCall("prepare receiver marker", errno)
+        }
+        let written = data.withUnsafeBytes { bytes in
+            Darwin.write(fileDescriptor, bytes.baseAddress, bytes.count)
+        }
+        guard written == data.count else {
+            throw KarabinerModeBridgeError.systemCall("write receiver marker", errno)
+        }
+        _ = fsync(fileDescriptor)
+    }
+
+    private static func recordedSocketIdentity(from fileDescriptor: Int32) -> SocketIdentity? {
+        guard lseek(fileDescriptor, 0, SEEK_SET) == 0 else { return nil }
+        var bytes = [UInt8](repeating: 0, count: 256)
+        let count = Darwin.read(fileDescriptor, &bytes, bytes.count)
+        guard count > 0,
+              let value = String(bytes: bytes[0..<count], encoding: .utf8)
+        else { return nil }
+        let fields = value.split(whereSeparator: { $0 == " " || $0 == "\n" })
+        guard fields.count == 4,
+              let device = dev_t(fields[0]),
+              let inode = ino_t(fields[1]),
+              let user = uid_t(fields[2]),
+              let type = mode_t(fields[3])
+        else { return nil }
+        return SocketIdentity(device: device, inode: inode, user: user, type: type)
     }
 
     private static func bindDatagramSocket(path: String) throws -> Int32 {

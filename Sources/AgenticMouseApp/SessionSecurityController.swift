@@ -5,11 +5,14 @@ import ScimitarKit
 protocol SessionActivityObserving: AnyObject {
     var onSessionBecameActive: (() -> Void)? { get set }
     var onSessionResignedActive: (() -> Void)? { get set }
+    var onSessionMayBeAvailable: (() -> Void)? { get set }
     func start()
     func stop()
 }
 
-/// Observes only public NSWorkspace user-session and sleep notifications.
+/// Observes public NSWorkspace user-session, sleep/wake, and application
+/// activation notifications. Loginwindow activation is an immediate lockdown;
+/// leaving it or waking a display only arms positive user-input proof.
 ///
 /// Apple guarantees that an app launched into an inactive session receives
 /// `sessionDidResignActiveNotification` between will-finish and did-finish
@@ -19,10 +22,12 @@ protocol SessionActivityObserving: AnyObject {
 final class WorkspaceSessionActivityObserver: NSObject, SessionActivityObserving {
     var onSessionBecameActive: (() -> Void)?
     var onSessionResignedActive: (() -> Void)?
+    var onSessionMayBeAvailable: (() -> Void)?
 
     private let center: NotificationCenter
     private var isStarted = false
     private var sessionIsActive = true
+    private var loginWindowOwnsSession = false
 
     init(center: NotificationCenter = NSWorkspace.shared.notificationCenter) {
         self.center = center
@@ -61,6 +66,12 @@ final class WorkspaceSessionActivityObserver: NSObject, SessionActivityObserving
                 object: nil
             )
         }
+        center.addObserver(
+            self,
+            selector: #selector(applicationDidActivate),
+            name: NSWorkspace.didActivateApplicationNotification,
+            object: nil
+        )
     }
 
     func stop() {
@@ -71,6 +82,7 @@ final class WorkspaceSessionActivityObserver: NSObject, SessionActivityObserving
 
     @objc private func sessionBecameActive(_ notification: Notification) {
         sessionIsActive = true
+        loginWindowOwnsSession = false
         onSessionBecameActive?()
     }
 
@@ -87,8 +99,25 @@ final class WorkspaceSessionActivityObserver: NSObject, SessionActivityObserving
         // Display/system sleep is a temporary fail-closed boundary. Restore
         // only when no real session-resign event occurred; a locked or
         // switched-out session must wait for sessionDidBecomeActive.
-        if sessionIsActive {
-            onSessionBecameActive?()
+        if sessionIsActive, !loginWindowOwnsSession {
+            onSessionMayBeAvailable?()
+        }
+    }
+
+    @objc private func applicationDidActivate(_ notification: Notification) {
+        guard let application = notification.userInfo?[NSWorkspace.applicationUserInfoKey]
+                as? NSRunningApplication
+        else { return }
+        handleActivatedBundleIdentifier(application.bundleIdentifier)
+    }
+
+    func handleActivatedBundleIdentifier(_ bundleIdentifier: String?) {
+        if GlobalInputLaunchSessionUnlockProof.blocksSession(bundleIdentifier) {
+            loginWindowOwnsSession = true
+            onSessionResignedActive?()
+        } else if loginWindowOwnsSession {
+            loginWindowOwnsSession = false
+            if sessionIsActive { onSessionMayBeAvailable?() }
         }
     }
 
@@ -114,10 +143,15 @@ final class SessionSecurityController {
     private let observer: SessionActivityObserving
     private let lease: ColorProofLeaseControlling
     private let scheduler: TickScheduler
+    private let launchUnlockProof: LaunchSessionUnlockProofObserving
     private let heartbeatInterval: TimeInterval
     private let log: Log
+    private let recoverableLeaseError: (Error) -> Bool
     private(set) var state: State = .awaitingLaunchConfirmation
     private var started = false
+    private var sessionIsActive = false
+    private var awaitingInputProof = false
+    private var recoveryAttempt = 0
 
     var onLockdown: (() -> Void)?
     var onUnlock: (() -> Void)?
@@ -127,43 +161,97 @@ final class SessionSecurityController {
         observer: SessionActivityObserving,
         lease: ColorProofLeaseControlling,
         scheduler: TickScheduler,
+        launchUnlockProof: LaunchSessionUnlockProofObserving? = nil,
         log: Log,
-        heartbeatInterval: TimeInterval = 1
+        heartbeatInterval: TimeInterval = 1,
+        recoverableLeaseError: @escaping (Error) -> Bool = { error in
+            guard let error = error as? KarabinerModeBridgeError else { return false }
+            switch error {
+            case .commandLineUnavailable, .commandLineFailed:
+                return true
+            case .socketPathOccupied, .systemCall:
+                return false
+            }
+        }
     ) {
         self.observer = observer
         self.lease = lease
         self.scheduler = scheduler
+        self.launchUnlockProof = launchUnlockProof ?? GlobalInputLaunchSessionUnlockProof()
         self.log = log
         self.heartbeatInterval = heartbeatInterval
+        self.recoverableLeaseError = recoverableLeaseError
     }
 
     func start() {
         guard !started else { return }
         started = true
         state = .awaitingLaunchConfirmation
+        sessionIsActive = false
+        awaitingInputProof = false
+        recoveryAttempt = 0
         scheduler.stop()
+        launchUnlockProof.stop()
         lease.deactivate()
+        launchUnlockProof.onUnlockedInput = { [weak self] in
+            guard let self,
+                  self.awaitingInputProof,
+                  self.sessionIsActive
+            else { return }
+            self.markUnlocked()
+        }
         observer.onSessionBecameActive = { [weak self] in self?.markUnlocked() }
         observer.onSessionResignedActive = { [weak self] in self?.markLocked() }
+        observer.onSessionMayBeAvailable = { [weak self] in self?.beginUnlockProof() }
         observer.start()
         log.info("mouse command security boundary awaiting session confirmation")
     }
 
-    /// Call from applicationDidFinishLaunching. If the session were inactive,
-    /// NSWorkspace would already have delivered its documented resign event.
+    /// Call from applicationDidFinishLaunching. A supervised relaunch can occur
+    /// while loginwindow owns an ordinary locked session without a synchronous
+    /// NSWorkspace state query, so launch remains closed until the session
+    /// delivers positive global input or an explicit became-active notification.
     func confirmActiveSessionAfterLaunch() {
         guard state == .awaitingLaunchConfirmation else { return }
-        markUnlocked()
+        beginUnlockProof()
+    }
+
+    private func beginUnlockProof() {
+        guard started else { return }
+        sessionIsActive = true
+        awaitingInputProof = true
+        guard ensureUnlockProofMonitoring() else {
+            state = .locked
+            log.error("could not observe unlocked-session input; mouse commands remain disabled")
+            onLockdown?()
+            return
+        }
+        log.info("mouse command security boundary awaiting unlocked-session input proof")
+    }
+
+    @discardableResult
+    func ensureUnlockProofMonitoring() -> Bool {
+        guard started, awaitingInputProof, state != .unlocked else { return true }
+        return launchUnlockProof.start()
     }
 
     func markUnlocked() {
         guard started else { return }
+        launchUnlockProof.stop()
+        awaitingInputProof = false
+        sessionIsActive = true
+        attemptToUnlock()
+    }
+
+    private func attemptToUnlock() {
+        guard started, sessionIsActive else { return }
         do {
             try lease.activate()
         } catch {
-            failClosed(error)
+            failClosed(error, retryIfRecoverable: true)
             return
         }
+        recoveryAttempt = 0
         let changed = state != .unlocked
         state = .unlocked
         scheduler.start(interval: heartbeatInterval) { [weak self] in self?.renew() }
@@ -175,6 +263,10 @@ final class SessionSecurityController {
 
     func markLocked() {
         guard started else { return }
+        launchUnlockProof.stop()
+        sessionIsActive = false
+        awaitingInputProof = false
+        recoveryAttempt = 0
         let changed = state != .locked
         state = .locked
         scheduler.stop()
@@ -186,18 +278,24 @@ final class SessionSecurityController {
     }
 
     func handleLeaseFailure(_ error: Error) {
-        failClosed(error)
+        failClosed(error, retryIfRecoverable: true)
     }
 
     func stop() {
         guard started else { return }
         started = false
+        sessionIsActive = false
+        awaitingInputProof = false
+        recoveryAttempt = 0
         state = .locked
         scheduler.stop()
+        launchUnlockProof.stop()
         lease.deactivate()
         observer.stop()
         observer.onSessionBecameActive = nil
         observer.onSessionResignedActive = nil
+        observer.onSessionMayBeAvailable = nil
+        launchUnlockProof.onUnlockedInput = nil
     }
 
     private func renew() {
@@ -205,16 +303,32 @@ final class SessionSecurityController {
         do {
             try lease.renew()
         } catch {
-            failClosed(error)
+            failClosed(error, retryIfRecoverable: true)
         }
     }
 
-    private func failClosed(_ error: Error) {
+    private func failClosed(_ error: Error, retryIfRecoverable: Bool) {
         let changed = state != .locked
         state = .locked
         scheduler.stop()
         lease.deactivate()
         log.error("mouse command security lease failed closed: \(error)")
         if changed { onLockdown?() }
+        if retryIfRecoverable,
+           started,
+           sessionIsActive,
+           recoverableLeaseError(error) {
+            scheduleRecoveryAttempt()
+        }
+    }
+
+    private func scheduleRecoveryAttempt() {
+        let delays: [TimeInterval] = [1, 2, 5, 10, 30]
+        let delay = delays[min(recoveryAttempt, delays.count - 1)]
+        recoveryAttempt += 1
+        log.notice("Karabiner security lease recovery scheduled in \(delay) seconds")
+        scheduler.start(interval: delay) { [weak self] in
+            self?.attemptToUnlock()
+        }
     }
 }

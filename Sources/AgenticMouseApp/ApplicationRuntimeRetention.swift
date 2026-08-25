@@ -8,8 +8,8 @@ protocol AutomaticTerminationControlling: AnyObject {
 extension ProcessInfo: AutomaticTerminationControlling {}
 
 /// Keeps the menu-bar runtime alive while it owns mouse input, HUD, and
-/// lighting services. Launch-at-login starts the app once; it is not a
-/// supervisor and cannot recover a process that AppKit auto-terminates later.
+/// lighting services. The nested login-item supervisor remains the independent
+/// recovery layer if this supported AppKit opt-out does not prevent an exit.
 struct ApplicationRuntimeRetention {
     static let reason = "Agentic Mouse provides persistent mouse commands, HUD, and lighting"
 

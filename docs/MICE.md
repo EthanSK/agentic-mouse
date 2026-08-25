@@ -14,14 +14,14 @@ temporary lighting, but it does not write iCUE settings.
 |---|---|
 | Wheel press | Default middle-click source → exact-device Karabiner Play / Pause |
 | Top DPI button | iCUE F19 neutral transport → exact-device Karabiner VoiceInk++ on release; all DPI stages remain 2,750 |
-| Button 3 | Start / cancel selected-area Screenshot outside modes; mode-specific action inside modes |
+| Button 3 | Screenshot outside modes; rapid double-press pastes its copied result; mode-specific action inside modes |
 | Button 1 | Hold + wheel for at most one macOS Space; first sign wins until release |
 | Button 2 | Open the current frontmost app mode |
 | Button 4 | Hold + wheel for native horizontal scrolling |
 | Button 5 | Forward; VS Code overrides it to Previous Change through F17 |
 | Button 7 | Enter |
 | Button 8 | Back; VS Code overrides it to Next Change through F13 |
-| Button 6 | Intelligence on demand through one non-repeating Option-Space chord |
+| Button 6 | YouTube Scrub + Wheel through the existing VoiceInk bridge; up +5 sec, down −5 sec |
 | Button 9 | Open Keys mode |
 | Button 10 | Toggle this mouse's Default legend; universal Exit inside modes |
 | Button 11 | Hold-open Switch App |
@@ -33,7 +33,7 @@ behavior on 9 August 2026 after **Modify events** was enabled for its exact
 physical pointing interface. The equivalent Razer wheel remains separately
 unaccepted until that mouse is reconnected and tested.
 
-Button 6 opens Codex's global intelligence-on-demand window, button 2 opens the current
+Button 6 rewinds the selected YouTube target without focusing Chrome, button 2 opens the current
 frontmost app's mode, and button 9 opens shared Keys mode.
 Inside Keys, cell 3 sends Undo, cell 6 enters Keypad, and cell 9 owns Next Track.
 Normal behavior
@@ -50,7 +50,7 @@ permission.
 In VS Code only, physical cell 5 emits non-repeating F17 for Better Git Previous
 Change or F19 for rapid-double Stage + Previous; physical cell 8 emits F13 Next
 Change or rapid-double F18 Stage + Next. Top-level physical cell 6 remains
-Option-Space. Inside the VS Code child page, cell 9 sends
+YouTube Scrub + Wheel. Inside the VS Code child page, cell 9 sends
 F18 Stage + Next on a single press or F16 exact Undo on a rapid double. Hold
 cell 6 and ratchet down for cursor-history Back or up for Forward; delivery uses
 the current VS Code keybindings without changing them. Cells 5 and 8 retain
@@ -68,9 +68,10 @@ Source Control UI, another mouse binding, or `git add`. Better Git requires the
 saved `HEAD` and after-index tree to match before restoring the before-index
 tree; the working tree is never changed.
 
-Physical cell 3 starts or cancels the selected-area Screenshot interaction:
+Physical cell 3 starts or cancels the native selected-area Screenshot interaction,
+copies its saved image, and rapid-double-pastes that current clipboard item:
 Corsair printed 3 and mirrored Razer printed 1. Runtime pages own it only while
-active: Copy in Utility, DEF in Keypad, or Spare when
+active: Spaces in Utility, DEF in Keypad, or Spare when
 the current app page has no assignment. One press of shared physical cell 10
 (Corsair printed 10 / Razer printed 12) toggles the Default legend outside modes
 and exits an active mode. Canonical physical cell 11 owns Switch App outside

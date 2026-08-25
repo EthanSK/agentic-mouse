@@ -23,7 +23,7 @@ The hardware-free suite covers the state machines and their safety boundaries:
 | Lighting lifecycle | multi-tap mode indicator; normal iCUE lighting returns on release |
 | Device selection | no match or several matches fails closed |
 | Privacy | device identifiers are redacted |
-| Reference map | wheel Play/Pause, top DPI VoiceInk++, hold 1 + wheel for macOS Spaces, hold 4 + wheel for horizontal scroll, 2 current frontmost-app mode, 3 Screenshot/cancel, 5/8 Forward/Back outside VS Code and Previous/Next Change inside it, 6 Codex intelligence on demand through Option-Space, 7 Enter, 9 Keys mode, 10 Default legend outside modes or active-mode Exit, 11 Switch App and 12 Utility |
+| Reference map | wheel Play/Pause, top DPI VoiceInk++, hold 1 + wheel for horizontal scroll, hold 4 + wheel for Copy/Paste, 2 current frontmost-app mode, 3 Screenshot/cancel plus rapid-double Paste, 5/8 Forward/Back outside VS Code and Previous/Next Change inside it, hold 6 + wheel for YouTube ±5 sec per ratchet through the VoiceInk bridge, 7 Enter, 9 Keys mode, 10 Default legend outside modes or active-mode Exit, 11 Switch App and 12 Utility |
 
 ## What needs a real Corsair mouse
 
@@ -63,6 +63,10 @@ iCUE database or profile file behind the app's back.
    10, then press Extra Utilities cell 1 (Corsair 1 / Razer 3) and confirm Stay
    performs exactly one manual `Agentic Mouse Layout v1` restore through the
    reserved Control-Option-Shift-Command-A shortcut.
+   With a harmless disposable app frontmost, press Extra Utilities cell 9 and
+   confirm one ordinary save-aware Quit request. Keep holding or repeat the raw
+   press before leaving the page and confirm no second request occurs. Confirm
+   Agentic Mouse and its supervisor are never targets.
    Confirm no window restore occurs merely by entering the page, then use cell
    10 to exit directly to the ordinary top-level map. With a harmless command
    running, enter the frontmost VS Code,
@@ -89,14 +93,21 @@ iCUE database or profile file behind the app's back.
    `swift run agentic-mouse-doctor icue -- --probe-lighting --i-mean-it` to
    briefly write then release the shared lighting layer.
 10. Open the Default legend with a known frontmost app. Confirm only that app's
-    mode card shows its real installed icon enlarged and blurred to fill the
-    slot; the outer panel and every other card must remain unchanged. Enter
+    mode card shows its real installed icon enlarged and lightly blurred to fill
+    the slot while remaining recognisable. Enter the app mode and confirm the
+    panel perimeter and physical mouse use a strong representative colour from
+    that icon without changing the semantic action-family fills. Repeat with a
+    strongly different app icon and one neutral icon. The outer panel artwork
+    and every other card must remain unchanged. Enter
     Utility → Choose app and confirm each named app slot shows its own icon,
     while selector spares and the selected child app page use no app artwork.
 11. Open automatic app mode with Spotify, Notion, OBS, Claude, and one ordinary
     browser frontmost. Confirm each shows its named starter grid and exercise
     one harmless command per app (for example Spotify Search, Notion New Tab,
-    OBS Undo, Claude Find, and browser Find). Open two of those same targets
+    OBS Undo, Claude Search, and browser Find). For Claude, also verify its
+    dedicated Settings, Voice Mode, New Chat, Mute/Unmute Voice Mic, Enter,
+    Reload, Sidebar, Previous Tab, and Next Tab cards; exact UI controls must
+    fail closed rather than press an ambiguous match. Open two of those same targets
     through Utility → Choose app and confirm the card titles and actions are
     byte-for-byte identical to the automatic journey. Verify both matching
     entry cell 2 and universal cell 10 exit each app child, while cell 2 still

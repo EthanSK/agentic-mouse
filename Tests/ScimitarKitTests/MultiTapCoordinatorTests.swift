@@ -230,14 +230,14 @@ final class MultiTapCoordinatorTests: XCTestCase {
         XCTAssertTrue(keyControl.isFullyReleased, "the partial transaction is rolled back")
     }
 
-    func testModeCanEnterWithoutATextFieldAndHudExplainsWhyTypingIsBlocked() {
-        resolver.resolution = .refused(.secureField)
+    func testModeCanEnterWithARefusedTargetAndHudExplainsWhyTypingIsBlocked() {
+        resolver.resolution = .refused(.notEditable)
 
         pressButton(12)
 
         XCTAssertTrue(coordinator.isActive)
         XCTAssertTrue(hud.isVisible)
-        XCTAssertEqual(hud.lastSnapshot?.state.targetRefusal, .secureField)
+        XCTAssertEqual(hud.lastSnapshot?.state.targetRefusal, .notEditable)
         pressButton(2)
         settle()
         XCTAssertTrue(textOutput.deliveries.isEmpty)

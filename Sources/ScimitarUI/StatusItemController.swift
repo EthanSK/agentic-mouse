@@ -119,7 +119,7 @@ public final class StatusItemController {
             "Accessibility",
             status.accessibilityGranted ? "granted" : "NOT granted — multi-tap typing disabled"
         )
-        addInfo(to: menu, "Launch at login", status.launchAtLoginState)
+        addInfo(to: menu, "Self-recovery", status.launchAtLoginState)
 
         if !status.accessibilityGranted {
             let item = NSMenuItem(

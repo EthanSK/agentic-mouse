@@ -65,6 +65,25 @@ final class MultiTapEngineTests: XCTestCase {
         XCTAssertNil(engine.state.pendingCharacter)
     }
 
+    func testTwoQuickKeyEightTapsPreviewThenCommitUExactlyOnce() {
+        engine = MultiTapEngine(
+            keymap: .modesKeypad,
+            configuration: MultiTapConfiguration(initialShiftState: .lower)
+        )
+
+        var commands = engine.press(.k8, at: 0, target: resolution).textCommands
+        commands += engine.release(.k8, at: 0.05, target: resolution).textCommands
+        commands += engine.press(.k8, at: 0.15, target: resolution).textCommands
+        commands += engine.release(.k8, at: 0.20, target: resolution).textCommands
+
+        XCTAssertTrue(commands.isEmpty)
+        XCTAssertEqual(engine.state.pendingCharacter, "u")
+
+        commands += engine.tick(at: 1.2, target: resolution).textCommands
+        XCTAssertEqual(commands, [.insert("u")])
+        XCTAssertNil(engine.state.pendingCharacter)
+    }
+
     func testBufferedModeNeverEmitsABackspaceWhileCycling() {
         var commands: [TextCommand] = []
         for index in 0..<4 {
@@ -228,7 +247,7 @@ final class MultiTapEngineTests: XCTestCase {
     }
 
     func testExitWorksEvenWhenTheTargetIsRefused() {
-        let outcome = engine.press(.k12, at: 0, target: .refused(.secureField))
+        let outcome = engine.press(.k12, at: 0, target: .refused(.notEditable))
         XCTAssertTrue(outcome.exitRequested, "the way out must never depend on being able to type")
     }
 
@@ -245,19 +264,21 @@ final class MultiTapEngineTests: XCTestCase {
         }
     }
 
-    func testModesKeypadCellElevenCyclesShiftOnEachTap() {
+    func testModesKeypadCellElevenSpacesAndCellTwelveBackspacesOrReturns() {
         engine = MultiTapEngine(
             keymap: .modesKeypad,
             configuration: MultiTapConfiguration(initialShiftState: .lower)
         )
 
-        var now: TimeInterval = 0
-        for expected in [ShiftState.initialCaps, .upper, .numeric, .lower] {
-            _ = engine.press(.k11, at: now, target: resolution)
-            _ = engine.release(.k11, at: now + 0.05, target: resolution)
-            XCTAssertEqual(engine.state.shift, expected)
-            now += 0.2
-        }
+        _ = engine.press(.k11, at: 0, target: resolution)
+        XCTAssertEqual(engine.release(.k11, at: 0.05, target: resolution).textCommands, [.insert(" ")])
+
+        _ = engine.press(.k12, at: 0.2, target: resolution)
+        XCTAssertEqual(engine.release(.k12, at: 0.25, target: resolution).textCommands, [.deleteBackward(1)])
+
+        _ = engine.press(.k12, at: 0.4, target: resolution)
+        XCTAssertEqual(engine.tick(at: 0.8, target: resolution).textCommands, [.newline])
+        XCTAssertTrue(engine.release(.k12, at: 0.85, target: resolution).textCommands.isEmpty)
     }
 
     private func rebuild(shift: ShiftState) -> MultiTapEngine {

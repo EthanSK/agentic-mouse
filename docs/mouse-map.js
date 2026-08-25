@@ -29,8 +29,8 @@ const SIGNALS = {
 const PAIRS = [
   {
     id: "c1", corsair: 1, razer: 3, row: 3, col: 1,
-    action: "Spaces + Wheel", short: "Spaces", description: "Hold the cell; the first wheel sign moves one Space, then release to re-arm.",
-    signal: "runtime", output: "Agentic Mouse held-wheel chord", status: "IMPLEMENTED · PHYSICAL ACCEPTANCE PENDING",
+    action: "Horizontal Scroll + Wheel", short: "Horizontal", description: "Hold the cell and ratchet the wheel: up moves right, down moves left.",
+    signal: "runtime", output: "Agentic Mouse native horizontal-scroll chord", status: "IMPLEMENTED · PHYSICAL ACCEPTANCE PENDING",
   },
   {
     id: "c2", corsair: 2, razer: 2, row: 2, col: 1,
@@ -39,13 +39,13 @@ const PAIRS = [
   },
   {
     id: "c3", corsair: 3, razer: 1, row: 1, col: 1,
-    action: "Screenshot", short: "Screenshot", description: "Start the native selected-area screenshot crosshair; press again while it is active to cancel.",
+    action: "Screenshot / 2× Paste", short: "Screenshot", description: "Save through the native selected-area crosshair, copy the image, or rapid-double-press to paste the current copied screenshot.",
     signal: "runtime", output: "native Shift-Command-4 interaction", status: "PHYSICALLY REPORTED WORKING · EXACT SOURCE NOT RECORDED",
   },
   {
     id: "c4", corsair: 4, razer: 6, row: 3, col: 2,
-    action: "Horizontal Scroll + Wheel", short: "Horizontal", description: "Hold the cell and ratchet the wheel: up moves right, down moves left.",
-    signal: "runtime", output: "Agentic Mouse native horizontal-scroll chord", status: "PHYSICALLY REPORTED WORKING · EXACT SOURCE NOT RECORDED",
+    action: "Copy / Paste + Wheel", short: "Copy · Paste", description: "Hold and ratchet: up pastes, down copies.",
+    signal: "runtime", output: "Agentic Mouse held-wheel chord", status: "IMPLEMENTED · PHYSICAL ACCEPTANCE PENDING",
   },
   {
     id: "c5", corsair: 5, razer: 5, row: 2, col: 2,
@@ -58,8 +58,8 @@ const PAIRS = [
   },
   {
     id: "c6", corsair: 6, razer: 4, row: 1, col: 2,
-    action: "Intelligence on demand", short: "Codex window", description: "Open Codex's global hotkey window from any app.",
-    signal: "keyboard", output: "Option-Space · repeat false", status: "INSTALLED · PHYSICAL ACCEPTANCE PENDING",
+    action: "YouTube Scrub + Wheel", short: "YouTube scrub", description: "Scrub the selected YouTube target by five seconds per ratchet without focusing Chrome.",
+    signal: "runtime", output: "VoiceInk bridge · seek −5 seconds", status: "INSTALLED · PHYSICAL ACCEPTANCE PENDING",
   },
   {
     id: "c7", corsair: 7, razer: 9, row: 3, col: 3,
@@ -393,7 +393,7 @@ function setLayer(layer) {
 function updateLayerNote() {
   elements.layerNote.innerHTML = state.layer === "vscode"
     ? "<strong>VS Code base preview.</strong> Cells 5 and 8 add accepted single/double Better Git gestures; every other cell inherits Default. The deliberately entered VS Code mode has its own larger map in the main deck."
-    : "<strong>Normal preview.</strong> Physical cell 5 remains Forward, cell 8 remains Back, and cell 6 opens Codex's intelligence-on-demand window with Option-Space.";
+    : "<strong>Normal preview.</strong> Physical cell 5 remains Forward, cell 8 remains Back, and cell 6 rewinds the selected YouTube target by five seconds.";
 }
 
 function setKeyDevice(device) {

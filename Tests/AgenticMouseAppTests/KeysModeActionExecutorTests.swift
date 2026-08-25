@@ -5,16 +5,11 @@ import XCTest
 @MainActor
 final class KeysModeActionExecutorTests: XCTestCase {
     func testEveryKeyPostsExactlyOneNativeDownUpCycle() {
-        var events: [(CGKeyCode, Bool)] = []
-        var modifiedEvents: [(CGKeyCode, CGEventFlags, Bool)] = []
+        var events: [(CGKeyCode, CGEventFlags, Bool)] = []
         var systemEvents: [(Int32, Bool)] = []
         let executor = KeysModeActionExecutor(
-            postEvent: { keyCode, isDown in
-                events.append((keyCode, isDown))
-                return true
-            },
-            postModifiedEvent: { keyCode, flags, isDown in
-                modifiedEvents.append((keyCode, flags, isDown))
+            postEvent: { keyCode, flags, isDown in
+                events.append((keyCode, flags, isDown))
                 return true
             },
             postSystemEvent: { keyType, isDown in
@@ -27,7 +22,6 @@ final class KeysModeActionExecutorTests: XCTestCase {
         )
 
         for action in KeysModeAction.allCases {
-            if action == .pasteStoredPassword { continue }
             guard case .success = executor.perform(action) else {
                 return XCTFail("\(action) should post")
             }
@@ -35,11 +29,25 @@ final class KeysModeActionExecutorTests: XCTestCase {
 
         XCTAssertEqual(
             events.map(\.0),
-            [126, 126, 125, 125, 123, 123, 124, 124, 49, 49, 51, 51, 53, 53]
+            [126, 126, 125, 125, 123, 123, 124, 124, 6, 6, 49, 49, 51, 51, 36, 36]
         )
         XCTAssertEqual(
             events.map(\.1),
             [
+                [], [],
+                [], [],
+                [], [],
+                [], [],
+                .maskCommand, .maskCommand,
+                [], [],
+                [], [],
+                [], [],
+            ]
+        )
+        XCTAssertEqual(
+            events.map(\.2),
+            [
+                true, false,
                 true, false,
                 true, false,
                 true, false,
@@ -49,12 +57,6 @@ final class KeysModeActionExecutorTests: XCTestCase {
                 true, false,
             ]
         )
-        XCTAssertEqual(modifiedEvents.map(\.0), [8, 8, 9, 9])
-        XCTAssertEqual(
-            modifiedEvents.map(\.1),
-            [.maskCommand, .maskCommand, .maskCommand, .maskCommand]
-        )
-        XCTAssertEqual(modifiedEvents.map(\.2), [true, false, true, false])
         XCTAssertEqual(systemEvents.map(\.1), [true, false])
         XCTAssertEqual(Set(systemEvents.map(\.0)).count, 1)
     }
@@ -63,13 +65,13 @@ final class KeysModeActionExecutorTests: XCTestCase {
         var postedText: [String] = []
         var postedKey = false
         let executor = KeysModeActionExecutor(
-            postEvent: { _, _ in postedKey = true; return true },
+            postEvent: { _, _, _ in postedKey = true; return true },
             postText: { postedText.append($0); return true },
             accessibilityTrusted: { true },
             passwordProvider: { "not-a-real-secret" }
         )
 
-        guard case .success = executor.perform(.pasteStoredPassword) else {
+        guard case .success = executor.performStoredPassword() else {
             return XCTFail("configured password should be typed")
         }
         XCTAssertEqual(postedText, ["not-a-real-secret"])
@@ -83,7 +85,7 @@ final class KeysModeActionExecutorTests: XCTestCase {
             accessibilityTrusted: { true },
             passwordProvider: { nil }
         )
-        guard case .failure(.passwordNotConfigured) = executor.perform(.pasteStoredPassword) else {
+        guard case .failure(.passwordNotConfigured) = executor.performStoredPassword() else {
             return XCTFail("missing password should fail closed")
         }
         XCTAssertFalse(posted)
@@ -96,7 +98,7 @@ final class KeysModeActionExecutorTests: XCTestCase {
             inputAllowed: { false },
             passwordProvider: { readPassword = true; return "not-a-real-secret" }
         )
-        guard case .failure(.inputBlocked) = executor.perform(.pasteStoredPassword) else {
+        guard case .failure(.inputBlocked) = executor.performStoredPassword() else {
             return XCTFail("locked sessions should reject password entry")
         }
         XCTAssertFalse(readPassword)
@@ -105,7 +107,7 @@ final class KeysModeActionExecutorTests: XCTestCase {
     func testKeyUpIsAttemptedEvenWhenKeyDownFails() {
         var phases: [Bool] = []
         let executor = KeysModeActionExecutor(
-            postEvent: { _, isDown in
+            postEvent: { _, _, isDown in
                 phases.append(isDown)
                 return !isDown
             },
@@ -121,7 +123,7 @@ final class KeysModeActionExecutorTests: XCTestCase {
     func testMissingAccessibilityFailsBeforePosting() {
         var posted = false
         let executor = KeysModeActionExecutor(
-            postEvent: { _, _ in posted = true; return true },
+            postEvent: { _, _, _ in posted = true; return true },
             accessibilityTrusted: { false }
         )
         guard case .failure(.accessibilityPermissionMissing) = executor.perform(.arrowLeft) else {

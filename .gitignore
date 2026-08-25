@@ -41,3 +41,5 @@ __pycache__/
 .vscode/
 /tmp/
 Local/
+/.outstanding-items/
+/Rollbacks/

@@ -8,41 +8,42 @@ public enum ModeUtilityAction: Equatable, Sendable {
     case increaseDisplayBrightness
     case decreaseDisplayBrightness
     case rewindYouTubeFiveSeconds
+    case openIntelligenceOnDemand
     case zoomIn
     case zoomOut
     case moveToSpaceLeft
     case moveToSpaceRight
-
-    public var cell: PhysicalCell {
-        switch self {
-        case .increaseDisplayBrightness: return .brightnessIncrease
-        case .decreaseDisplayBrightness: return .brightnessDecrease
-        case .rewindYouTubeFiveSeconds: return .youtubeBackFiveSeconds
-        case .zoomIn: return .applicationZoomIn
-        case .zoomOut: return .applicationZoomOut
-        case .moveToSpaceLeft: return .desktopSpaceLeft
-        case .moveToSpaceRight: return .desktopSpaceRight
-        }
-    }
-
-    public func cell(for source: MouseSource) -> PhysicalCell {
-        guard source == .razer else { return cell }
-        switch self {
-        case .moveToSpaceLeft: return .desktopSpaceRight
-        case .moveToSpaceRight: return .desktopSpaceLeft
-        default: return cell
-        }
-    }
+    case copy
+    case paste
+    case moveWindowLeftWithMagnet
+    case moveWindowRightWithMagnet
+    case showDesktop
+    case missionControl
+    case showApplicationWindows
+    case organizeWindows
+    case quitApp
+    case pasteStoredPassword
 
     public var actionTitle: String {
         switch self {
         case .increaseDisplayBrightness: return "Brightness Up"
         case .decreaseDisplayBrightness: return "Brightness Down"
         case .rewindYouTubeFiveSeconds: return "YouTube −5 sec"
+        case .openIntelligenceOnDemand: return "Intelligence on demand"
         case .zoomIn: return "Zoom In"
         case .zoomOut: return "Zoom Out"
         case .moveToSpaceLeft: return "Space Left"
         case .moveToSpaceRight: return "Space Right"
+        case .copy: return "Copy"
+        case .paste: return "Paste"
+        case .moveWindowLeftWithMagnet: return "Magnet Left"
+        case .moveWindowRightWithMagnet: return "Magnet Right"
+        case .showDesktop: return "Show Desktop"
+        case .missionControl: return "Mission Control"
+        case .showApplicationWindows: return "App Exposé"
+        case .organizeWindows: return "Organize Windows"
+        case .quitApp: return "Quit App"
+        case .pasteStoredPassword: return "PP"
         }
     }
 
@@ -56,23 +57,61 @@ public enum ModeUtilityAction: Equatable, Sendable {
             return ModeHUDActionFamilyPalette.applicationZoom
         case .moveToSpaceLeft, .moveToSpaceRight:
             return ModeHUDActionFamilyPalette.desktopSpaces
+        case .copy, .paste:
+            return ModeHUDActionFamilyPalette.clipboard
+        case .moveWindowLeftWithMagnet, .moveWindowRightWithMagnet:
+            return ModeHUDActionFamilyPalette.windowManagement
+        case .showDesktop, .missionControl:
+            return ModeHUDActionFamilyPalette.systemOverview
+        case .showApplicationWindows, .organizeWindows:
+            return ModeHUDActionFamilyPalette.windowManagement
+        case .quitApp:
+            return RGBColor(red: 205, green: 56, blue: 72)
+        case .pasteStoredPassword:
+            return ModeHUDActionFamilyPalette.storedPassword
         case .rewindYouTubeFiveSeconds:
             return RGBColor(red: 255, green: 72, blue: 72)
+        case .openIntelligenceOnDemand:
+            return RGBColor(red: 126, green: 92, blue: 255)
         }
     }
 
-    public static func action(
-        for cell: PhysicalCell,
-        source: MouseSource = .corsair
-    ) -> ModeUtilityAction? {
-        [
-            .increaseDisplayBrightness,
-            .decreaseDisplayBrightness,
-            .rewindYouTubeFiveSeconds,
-            .zoomIn,
-            .zoomOut,
-            .moveToSpaceLeft,
-            .moveToSpaceRight,
-        ].first { $0.cell(for: source) == cell }
+    public static func directAction(for cell: PhysicalCell) -> ModeUtilityAction? {
+        switch cell {
+        case .storedPassword:
+            return .pasteStoredPassword
+        case .intelligenceOnDemand:
+            return .openIntelligenceOnDemand
+        default:
+            return nil
+        }
+    }
+
+    /// One-press actions on the nested Extra Utilities page. Keep this mapping
+    /// separate from Utility so the same canonical cells can own independent
+    /// semantics on different pages without changing either mouse transport.
+    public static func extraUtilitiesAction(for cell: PhysicalCell) -> ModeUtilityAction? {
+        switch cell {
+        case .organizeWindows: return .organizeWindows
+        case .quitApp: return .quitApp
+        default: return nil
+        }
+    }
+
+    /// True for one-shot actions routed through the shared native executor.
+    /// `directAction(for:)` separately decides which of them appear as Utility
+    /// cards; held-wheel families never enter this path.
+    public var isDirectAction: Bool {
+        switch self {
+        case .rewindYouTubeFiveSeconds, .openIntelligenceOnDemand,
+             .organizeWindows, .quitApp, .pasteStoredPassword:
+            return true
+        case .increaseDisplayBrightness, .decreaseDisplayBrightness,
+             .zoomIn, .zoomOut, .moveToSpaceLeft, .moveToSpaceRight,
+             .showDesktop, .missionControl, .showApplicationWindows:
+            return false
+        case .copy, .paste, .moveWindowLeftWithMagnet, .moveWindowRightWithMagnet:
+            return false
+        }
     }
 }

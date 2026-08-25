@@ -1,4 +1,4 @@
-// Opens the shared Keys mode directly from Corsair physical cell 2.
+// Opens the shared Keys mode directly from Corsair physical cell 9.
 {
   "id": "open-keys-mode-corsair",
   "title": "Open Keys mode (Corsair)",
@@ -10,7 +10,7 @@
           "command": "agentic_mouse_mode_picker",
           "action": "openKeys",
           "source": "corsair",
-          "physical_cell": 2,
+          "physical_cell": 9,
           "phase": "press"
         }
       },

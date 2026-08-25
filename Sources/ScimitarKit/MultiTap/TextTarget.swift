@@ -13,29 +13,42 @@ import Foundation
 /// If either changes, the pending character is cancelled: nothing is typed into
 /// the old field and nothing is typed into the new one.
 public struct TextTarget: Equatable, Hashable, Sendable {
+    public enum Anchor: String, Equatable, Hashable, Sendable {
+        /// Accessibility exposed the exact editable element.
+        case focusedElement
+        /// The app hid its internal keyboard focus. Delivery is allowed only
+        /// while the same application remains frontmost.
+        case frontmostApplication
+    }
+
     public let processIdentifier: pid_t
     /// Opaque, stable-for-the-lifetime-of-the-focus identity of the focused AX
     /// element. Never contains the element's *contents*.
     public let elementIdentity: String
     /// Redacted bundle tag, safe for logs.
     public let redactedApplication: String
+    public let anchor: Anchor
 
-    public init(processIdentifier: pid_t, elementIdentity: String, redactedApplication: String) {
+    public init(
+        processIdentifier: pid_t,
+        elementIdentity: String,
+        redactedApplication: String,
+        anchor: Anchor = .focusedElement
+    ) {
         self.processIdentifier = processIdentifier
         self.elementIdentity = elementIdentity
         self.redactedApplication = redactedApplication
+        self.anchor = anchor
     }
 
     public var debugDescription: String {
-        "pid \(processIdentifier) · \(redactedApplication) · el:\(Redaction.tag(elementIdentity))"
+        "pid \(processIdentifier) · \(redactedApplication) · \(anchor.rawValue) · el:\(Redaction.tag(elementIdentity))"
     }
 }
 
 /// Why a target was refused. All of these fail **closed**: no text is emitted.
 public enum TextTargetRefusal: Equatable, Sendable {
     case accessibilityPermissionMissing
-    /// A password field or anything else marked secure.
-    case secureField
     /// The focused element does not accept text (a button, a list, the desktop).
     case notEditable
     /// Nothing is focused, or Accessibility could not tell us what is.
@@ -46,8 +59,6 @@ public enum TextTargetRefusal: Equatable, Sendable {
         switch self {
         case .accessibilityPermissionMissing:
             return "Accessibility permission is not granted."
-        case .secureField:
-            return "The focused field is a secure/password field — multi-tap will not type into it."
         case .notEditable:
             return "The focused element does not accept text."
         case .unknown:

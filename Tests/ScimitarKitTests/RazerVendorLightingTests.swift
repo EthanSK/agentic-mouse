@@ -257,6 +257,26 @@ final class RazerVendorLightingControllerTests: XCTestCase {
         XCTAssertEqual(transport.closeCount, 1)
     }
 
+    func testPhysicalDeviceLossClosesWithoutTryingToWriteSpectrum() {
+        let transport = FakeRazerVendorTransport()
+        let controller = RazerVendorLightingController(
+            transport: transport,
+            idleColor: .white,
+            retryDelay: { _ in }
+        )
+
+        XCTAssertTrue(controller.restoreIdle())
+        let requestCountBeforeLoss = transport.requests.count
+
+        controller.handleDeviceLost()
+
+        XCTAssertEqual(transport.requests.count, requestCountBeforeLoss)
+        XCTAssertEqual(transport.closeCount, 1)
+
+        XCTAssertTrue(controller.restoreIdle())
+        XCTAssertEqual(transport.requests.suffix(2).map { $0[7] }, [0x02, 0x03])
+    }
+
     func testConfiguredBrightnessScalesIdleAndModeFramesWithoutChangingProtocol() {
         let transport = FakeRazerVendorTransport()
         let controller = RazerVendorLightingController(
@@ -335,6 +355,8 @@ final class RazerVendorLightingControllerTests: XCTestCase {
         XCTAssertTrue(swiftSource.contains("Int32(truncatingIfNeeded: kIOReturnNotFound)"))
         XCTAssertFalse(cSource.contains("USBInterfaceOpen"))
         XCTAssertFalse(cSource.contains("ResetDevice"))
+        XCTAssertTrue(cSource.contains("am_razer_usb_count_exact"))
+        XCTAssertTrue(cSource.contains("IORegistryEntryCreateCFProperty"))
     }
 }
 

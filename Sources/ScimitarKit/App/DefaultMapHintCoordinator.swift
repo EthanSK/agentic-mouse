@@ -1,7 +1,7 @@
 import Foundation
 
 /// Owns one mouse's persistent top-level button-map reference. Shared physical
-/// physical cell 12 toggles each source's independent copy. A runtime mode
+/// Physical cell 10 toggles each source's independent copy. A runtime mode
 /// may suspend the panel and later restore it without losing the user's
 /// explicit open/closed choice.
 public final class DefaultMapHintCoordinator {
@@ -12,7 +12,7 @@ public final class DefaultMapHintCoordinator {
     private let dismissScheduler: TickScheduler
     private let log: Log
     private let isAvailable: () -> Bool
-    private let isScreenshotCapturing: () -> Bool
+    private let screenshotActionState: () -> ScreenshotActionPresentationState
     private let frontmostAppContext: () -> FrontmostAppModeContext?
     private let displayDuration: TimeInterval
     private let ownedSource: MouseSource
@@ -23,7 +23,7 @@ public final class DefaultMapHintCoordinator {
         log: Log,
         source: MouseSource,
         isAvailable: @escaping () -> Bool = { true },
-        isScreenshotCapturing: @escaping () -> Bool = { false },
+        screenshotActionState: @escaping () -> ScreenshotActionPresentationState = { .idle },
         frontmostAppContext: @escaping () -> FrontmostAppModeContext? = { nil },
         displayDuration: TimeInterval = 0
     ) {
@@ -32,7 +32,7 @@ public final class DefaultMapHintCoordinator {
         self.log = log
         self.ownedSource = source
         self.isAvailable = isAvailable
-        self.isScreenshotCapturing = isScreenshotCapturing
+        self.screenshotActionState = screenshotActionState
         self.frontmostAppContext = frontmostAppContext
         self.displayDuration = max(0, displayDuration)
     }
@@ -57,6 +57,40 @@ public final class DefaultMapHintCoordinator {
         }
     }
 
+    /// Shows a recent wheel trace only in an already-visible Default legend.
+    /// Hidden top-level wheel diagnostics remain available in logs and never
+    /// create a panel or change the user's explicit legend-toggle state.
+    public func flashWheelDiagnostic(
+        source: MouseSource,
+        message: String
+    ) {
+        flashWheelFeedback(
+            source: source,
+            feedback: ModeHUDFeedback(message: message, tone: .informational)
+        )
+    }
+
+    /// Shows an action result only on the persistent Default legend the user
+    /// already opened. A top-level held-wheel action must never create a HUD or
+    /// leak its feedback into an active runtime mode.
+    public func flashWheelFeedback(
+        source: MouseSource,
+        feedback: ModeHUDFeedback
+    ) {
+        flashActionFeedback(source: source, feedback: feedback)
+    }
+
+    /// Shows a top-level one-shot result only when the user already has this
+    /// source's persistent Default legend open.
+    public func flashActionFeedback(
+        source: MouseSource,
+        feedback: ModeHUDFeedback
+    ) {
+        guard source == ownedSource else { return }
+        guard isAvailable(), isShowingHint else { return }
+        hud.flashFeedback(feedback)
+    }
+
     /// Temporarily hides the panel for a mode and returns the exact source to
     /// restore. A nil result means the map was closed before mode entry.
     public func suspendForMode() -> MouseSource? {
@@ -76,8 +110,13 @@ public final class DefaultMapHintCoordinator {
         log.info("default mouse map restored after runtime mode")
     }
 
-    public func cancel() { hideHint() }
-    public func shutdown() { hideHint() }
+    public func cancel() {
+        hideHint()
+    }
+
+    public func shutdown() {
+        hideHint()
+    }
 
     /// Refreshes next-action copy while preserving this mouse's independent
     /// open/closed state and panel ownership.
@@ -86,7 +125,7 @@ public final class DefaultMapHintCoordinator {
         hud.update(
             DefaultMapLegend.snapshot(
                 source: source,
-                screenshotIsCapturing: isScreenshotCapturing(),
+                screenshotActionState: screenshotActionState(),
                 frontmostAppContext: frontmostAppContext()
             )
         )
@@ -98,7 +137,7 @@ public final class DefaultMapHintCoordinator {
         hud.show(
             DefaultMapLegend.snapshot(
                 source: source,
-                screenshotIsCapturing: isScreenshotCapturing(),
+                screenshotActionState: screenshotActionState(),
                 frontmostAppContext: frontmostAppContext()
             )
         )
@@ -124,6 +163,7 @@ public final class DefaultMapHintCoordinator {
         source = nil
         hud.hide()
     }
+
 }
 
 public enum DefaultMapLegend {
@@ -133,12 +173,12 @@ public enum DefaultMapLegend {
 
     public static let legend: [ModeHUDLegendItem] = legend(
         source: .corsair,
-        screenshotIsCapturing: false
+        screenshotActionState: .idle
     )
 
     public static func snapshot(
         source: MouseSource,
-        screenshotIsCapturing: Bool = false,
+        screenshotActionState: ScreenshotActionPresentationState = .idle,
         frontmostAppContext: FrontmostAppModeContext? = nil
     ) -> ModeHUDSnapshot {
         ModeHUDSnapshot(
@@ -148,7 +188,7 @@ public enum DefaultMapLegend {
             selection: nil,
             legend: legend(
                 source: source,
-                screenshotIsCapturing: screenshotIsCapturing,
+                screenshotActionState: screenshotActionState,
                 frontmostAppContext: frontmostAppContext
             ),
             accent: accent,
@@ -160,7 +200,7 @@ public enum DefaultMapLegend {
 
     private static func legend(
         source: MouseSource,
-        screenshotIsCapturing: Bool,
+        screenshotActionState: ScreenshotActionPresentationState,
         frontmostAppContext: FrontmostAppModeContext? = nil
     ) -> [ModeHUDLegendItem] {
         PhysicalCell.all.map { cell in
@@ -169,7 +209,7 @@ public enum DefaultMapLegend {
             if cell == DefaultMapHintCommand.triggerCell(for: source) {
                 title = ModeHUDCopy.legendToggleTitle
             } else if cell == .screenshotToggle {
-                title = ModeHUDCopy.screenshotActionTitle(isCapturing: screenshotIsCapturing)
+                title = ModeHUDCopy.screenshotActionTitle(state: screenshotActionState)
             } else if cell == .frontmostAppModeSelector {
                 title = frontmostAppContext?.definition.title ?? "App mode"
             } else {
@@ -200,7 +240,16 @@ public enum DefaultMapLegend {
                 cell: cell,
                 actionTitle: title,
                 accent: itemAccent,
-                destinationModeAccent: destinationModeAccent
+                destinationModeAccent: destinationModeAccent,
+                appBackdrop: cell == .frontmostAppModeSelector
+                    ? frontmostAppContext.flatMap {
+                        ModeHUDAppBackdrop(
+                            bundleIdentifier: $0.bundleIdentifier,
+                            applicationPath: $0.applicationPath
+                        )
+                    }
+                    : nil,
+                controlStatus: .normal
             )
         }
     }
@@ -208,12 +257,19 @@ public enum DefaultMapLegend {
     private static func accent(for title: String) -> RGBColor {
         let lowered = title.lowercased()
         if lowered.contains("scroll") { return ModeHUDActionFamilyPalette.horizontalScroll }
+        if lowered.contains("spaces") { return ModeHUDActionFamilyPalette.desktopSpaces }
         if lowered.contains("switch") { return RGBColor(red: 168, green: 118, blue: 255) }
         if lowered.contains("track") { return RGBColor(red: 82, green: 214, blue: 132) }
         if lowered == "forward" || lowered == "back" {
             return ModeHUDActionFamilyPalette.historyNavigation
         }
         if lowered.contains("screenshot") { return RGBColor(red: 255, green: 188, blue: 74) }
+        if lowered.contains("youtube") { return RGBColor(red: 255, green: 72, blue: 72) }
+        if lowered.contains("copy") || lowered.contains("paste") {
+            return ModeHUDActionFamilyPalette.clipboard
+        }
+        if lowered == "enter" { return ModeHUDActionFamilyPalette.enter }
+        if lowered.contains("legend") { return ModeHUDActionFamilyPalette.legendToggle }
         if lowered.contains("keys") { return ModePickerCoordinator.keysAccent }
         if lowered.contains("modes") { return ModePickerCoordinator.accent }
         return RGBColor(red: 138, green: 145, blue: 158)

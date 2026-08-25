@@ -9,6 +9,19 @@ import ScimitarUI
 /// still explains why. Nothing is ever half-enabled silently.
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
+    nonisolated static let wakeNotifications = [
+        NSWorkspace.didWakeNotification,
+        NSWorkspace.screensDidWakeNotification,
+    ]
+
+    private struct PendingSpaceDiagnostic {
+        let source: MouseSource
+        let actionTitle: String
+        let detentCount: Int
+        let sentAt: TimeInterval
+        let generation: UInt64
+    }
+
     private let logSink: LogSink
     private var log: Log
     private var runtimeRetention = ApplicationRuntimeRetention()
@@ -19,40 +32,92 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: StatusItemController?
     private let launchAtLoginController = LaunchAtLoginController()
     private var launchAtLoginState = "unknown"
+    private var isQuitInProgress = false
     private var keypadHUDPresenters: [MouseSource: AppKitHUDPresenter] = [:]
     private var modeHUDPresenters: [MouseSource: AppKitModeHUDPresenter] = [:]
+    /// Shared across both source HUDs and app-mode resolution so an installed
+    /// app icon is loaded and sampled only once per process lifetime.
+    private let appIconProvider = WorkspaceModeHUDAppIconProvider()
 
     private let permission = AccessibilityPermission()
     private var targetResolvers: [MouseSource: TextTargetResolving] = [:]
     private var focusMonitor: FocusMonitoring?
+    private var runtimeHealthMonitor: RuntimeHealthMonitor?
+    private var wheelChordLastProblem: String?
+    private var karabinerReceiverLastProblem: String?
 
     private var lightingController: ICUELightingController?
     private var lightingCoordinator: LightingCoordinator?
     private var razerLightingController: RazerVendorLightingController?
+    private var razerRecoveryMonitor: RazerDeviceRecoveryMonitor?
     private var multiTapCoordinators: [MouseSource: MultiTapCoordinator] = [:]
     private var colorProofCoordinator: ColorProofCoordinator?
     private var modePickerCoordinators: [MouseSource: ModePickerCoordinator] = [:]
+    private var vsCodeModeGestureClassifiers: [MouseSource: VSCodeModeGestureClassifier] = [:]
     private var defaultMapHintCoordinators: [MouseSource: DefaultMapHintCoordinator] = [:]
     private var sessionSecurityController: SessionSecurityController?
     private var userCommandReceiver: KarabinerUserCommandReceiver?
     private var modeInputTransports: [MouseSource: KarabinerModeInputTransport] = [:]
+    private var wheelChordMonitor: ScrollWheelChordMonitor?
+    private var pendingSpaceDiagnostic: PendingSpaceDiagnostic?
+    private var spaceDiagnosticGeneration: UInt64 = 0
+    private var wakeRecoveryGate = WakeRecoveryGate()
+    private lazy var magnetWheelActionSequencer = MagnetWheelActionSequencer(
+        perform: { [weak self] request in
+            self?.performSequencedMagnetAction(request)
+        },
+        inputAllowed: { [weak self] in self?.mouseCommandsAllowed == true }
+    )
     private lazy var codexModeActionExecutor = CodexModeActionExecutor(
         inputAllowed: { [weak self] in self?.mouseCommandsAllowed == true }
     )
+    private var codexEditOwner: MouseSource?
     private lazy var applicationShortcutDispatcher = ApplicationShortcutDispatcher(
         inputAllowed: { [weak self] in self?.mouseCommandsAllowed == true }
     )
+    private lazy var vsCodeCommandBridge = VSCodeCommandBridge(
+        inputAllowed: { [weak self] in self?.mouseCommandsAllowed == true }
+    )
+    private let notificationCenterToggleVerifier = NotificationCenterToggleVerifier()
+    private lazy var chromeYouTubeSpeedHoldController: ChromeYouTubeSpeedHoldController = {
+        let controller = ChromeYouTubeSpeedHoldController(
+            inputAllowed: { [weak self] in self?.mouseCommandsAllowed == true }
+        )
+        controller.onStickyLockChange = { [weak self] source, locked in
+            self?.modeHUDPresenters[source]?.flashFeedback(ModeHUDFeedback(
+                message: locked ? "2× lock requested" : "1× speed requested",
+                tone: .informational
+            ))
+        }
+        return controller
+    }()
     private lazy var selectedAreaScreenshotController: SelectedAreaScreenshotController = {
         let controller = SelectedAreaScreenshotController(
             inputAllowed: { [weak self] in self?.mouseCommandsAllowed == true }
         )
-        controller.onCapturingChange = { [weak self] _ in
+        controller.onStateChange = { [weak self] in
             self?.defaultMapHintCoordinators.values.forEach { $0.refresh() }
+        }
+        controller.onAsynchronousResult = { [weak self] source, result in
+            self?.handleScreenshotTriggerResult(result, source: source)
+        }
+        controller.onClipboardCopy = { [weak self] source, result in
+            switch result {
+            case .success(let url):
+                self?.log.info("selected-area screenshot copied from \(url.lastPathComponent)")
+                self?.modeHUDPresenters[source]?.flashFeedback(ModeHUDFeedback(
+                    message: "Screenshot copied",
+                    tone: .confirmed
+                ))
+            case .failure(let error):
+                self?.log.notice("selected-area screenshot copy failed: \(error.localizedDescription)")
+                self?.modeHUDPresenters[source]?.flashProblem(error.localizedDescription)
+            }
         }
         controller.onCompletion = { [weak self] result in
             switch result {
-            case .saved(let url):
-                self?.log.info("selected-area screenshot saved to \(url.path)")
+            case .completed:
+                self?.log.info("native selected-area screenshot interaction completed")
             case .cancelled:
                 self?.log.info("selected-area screenshot selection cancelled")
             case .failed(let message):
@@ -61,7 +126,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         return controller
     }()
-    private let modeUtilityActionExecutor = ModeUtilityActionExecutor()
+    private lazy var modeUtilityActionExecutor = ModeUtilityActionExecutor(
+        inputAllowed: { [weak self] in self?.mouseCommandsAllowed == true },
+        typeStoredPassword: { [weak self] in
+            self?.keysModeActionExecutor.performStoredPassword() ?? .failure(.inputBlocked)
+        }
+    )
+    private lazy var claudeModeActionExecutor = ClaudeModeActionExecutor(
+        shortcutDispatcher: applicationShortcutDispatcher,
+        inputAllowed: { [weak self] in self?.mouseCommandsAllowed == true }
+    )
     private lazy var keysModeActionExecutor = KeysModeActionExecutor(
         inputAllowed: { [weak self] in self?.mouseCommandsAllowed == true }
     )
@@ -93,11 +167,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // active, which is what keeps the HUD from stealing focus.
         NSApp.setActivationPolicy(.accessory)
 
+        // Take AppKit's supported process-lifetime automatic-termination
+        // opt-out as soon as did-finish begins. The signed login helper is the
+        // recovery layer, but there is no reason to leave a launch-time gap.
+        runtimeRetention.retain()
         installTerminationHandlers()
         installWorkspaceObservers()
         sessionSecurityController?.confirmActiveSessionAfterLaunch()
         loadConfiguration()
-        launchAtLoginState = launchAtLoginController.ensureRegistered(log: log)
+        launchAtLoginState = launchAtLoginController.ensureRegistered(
+            revision: runtimeSupervisorRevision(),
+            log: log,
+            onStatusChange: { [weak self] state in
+                guard let self else { return }
+                self.launchAtLoginState = state
+                self.refreshStatus()
+            }
+        )
 
         rebuildHUDPresenters()
         statusItem = StatusItemController()
@@ -110,11 +196,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         startDefaultMapHint()
         startRazerLighting()
         startModePicker()
+        startWheelChordMonitor()
         startKarabinerUserCommands()
         startICUE()
         startMultiTap()
         startFocusMonitoring()
-        runtimeRetention.retain()
+        startRuntimeHealthMonitor()
         log.info("Accessibility trusted: \(permission.isTrusted)")
         refreshStatus()
     }
@@ -128,17 +215,29 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// Runs on every exit path, including signals.
     private func teardown() {
         shouldMaintainICUESession = false
+        runtimeHealthMonitor?.stop()
+        runtimeHealthMonitor = nil
+        notificationCenterToggleVerifier.cancel()
+        codexModeActionExecutor.cancelPendingActions()
+        codexEditOwner = nil
         sessionReconnectGeneration &+= 1
         sessionReconnectAttempt = 0
         defaultMapHintCoordinators.values.forEach { $0.shutdown() }
         modePickerCoordinators.values.forEach { $0.shutdown() }
+        vsCodeModeGestureClassifiers.values.forEach { $0.cancel() }
         colorProofCoordinator?.shutdown()
         userCommandReceiver?.stop()
+        wheelChordMonitor?.stop()
+        magnetWheelActionSequencer.cancelAll()
+        chromeYouTubeSpeedHoldController.cancelAll()
+        pendingSpaceDiagnostic = nil
+        spaceDiagnosticGeneration &+= 1
         selectedAreaScreenshotController.cancel()
         multiTapCoordinators.values.forEach { $0.shutdown() }
         modeInputTransports.values.forEach { $0.stop() }
         macroKeyTransport?.stop()
         corsairRecoveryMonitor?.stop()
+        razerRecoveryMonitor?.stop()
         lightingCoordinator?.releaseEverything()
         razerLightingController?.release()
         deviceRefreshGeneration &+= 1
@@ -153,17 +252,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         multiTapCoordinators.removeAll()
         colorProofCoordinator = nil
         modePickerCoordinators.removeAll()
+        vsCodeModeGestureClassifiers.removeAll()
         defaultMapHintCoordinators.removeAll()
         userCommandReceiver = nil
+        wheelChordMonitor = nil
         modeInputTransports.removeAll()
         suspendedDefaultMapSources.removeAll()
         macroKeyTransport = nil
         corsairRecoveryMonitor = nil
+        razerRecoveryMonitor = nil
         lightingCoordinator = nil
         razerLightingController = nil
         lightingController = nil
         targetResolvers.removeAll()
         focusMonitor = nil
+        wheelChordLastProblem = nil
+        karabinerReceiverLastProblem = nil
         selectedDevice = nil
         log.info("shutdown complete; mouse returned to iCUE")
     }
@@ -212,12 +316,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func handleSessionLocked() {
+        codexModeActionExecutor.cancelPendingActions()
+        codexEditOwner = nil
+        wheelChordMonitor?.clearAll()
+        magnetWheelActionSequencer.cancelAll()
+        chromeYouTubeSpeedHoldController.cancelAll()
+        pendingSpaceDiagnostic = nil
+        spaceDiagnosticGeneration &+= 1
         modePickerCoordinators.values.forEach { $0.handleSystemSleep() }
         colorProofCoordinator?.handleSystemSleep()
         multiTapCoordinators.values.forEach { $0.exit(reason: .shuttingDown) }
         defaultMapHintCoordinators.values.forEach { $0.shutdown() }
         selectedAreaScreenshotController.cancel()
         suspendedDefaultMapSources.removeAll()
+        SessionLockHUDHider.hideAll(
+            modeHUDs: modeHUDPresenters.values,
+            keypadHUDs: keypadHUDPresenters.values
+        )
         refreshStatus()
     }
 
@@ -241,29 +356,75 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             name: NSWorkspace.screensDidSleepNotification,
             object: nil
         )
+        for name in Self.wakeNotifications {
+            center.addObserver(
+                self,
+                selector: #selector(systemDidWake),
+                name: name,
+                object: nil
+            )
+        }
         center.addObserver(
             self,
-            selector: #selector(systemDidWake),
-            name: NSWorkspace.didWakeNotification,
+            selector: #selector(activeSpaceDidChange),
+            name: NSWorkspace.activeSpaceDidChangeNotification,
             object: nil
         )
     }
 
     @objc private func systemWillSleep(_ notification: Notification) {
+        codexModeActionExecutor.cancelPendingActions()
+        codexEditOwner = nil
+        wheelChordMonitor?.clearAll()
+        magnetWheelActionSequencer.cancelAll()
+        chromeYouTubeSpeedHoldController.cancelAll()
+        notificationCenterToggleVerifier.cancel()
+        pendingSpaceDiagnostic = nil
+        spaceDiagnosticGeneration &+= 1
+        selectedAreaScreenshotController.cancel()
         modePickerCoordinators.values.forEach { $0.handleSystemSleep() }
         colorProofCoordinator?.handleSystemSleep()
         multiTapCoordinators.values.forEach { $0.exit(reason: .shuttingDown) }
         lightingCoordinator?.releaseEverything()
+        razerRecoveryMonitor?.stop()
         razerLightingController?.release()
         refreshStatus()
     }
 
     @objc private func systemDidWake(_ notification: Notification) {
+        let now = ProcessInfo.processInfo.systemUptime
+        guard wakeRecoveryGate.shouldRecover(at: now) else {
+            log.debug("coalesced duplicate screen/system wake recovery")
+            return
+        }
         if ICUESession.shared.state.isUsable, selectedDevice != nil {
             lightingCoordinator?.handleSessionRestored()
         }
-        _ = razerLightingController?.restoreIdle()
+        let razerPresent = RazerVendorUSBTransport.exactDeviceIsPresent()
+        let razerRecovered = razerPresent && (razerLightingController?.restoreIdle() == true)
+        razerRecoveryMonitor?.synchronize(
+            present: razerPresent,
+            recovered: razerRecovered
+        )
+        razerRecoveryMonitor?.start()
         refreshStatus()
+    }
+
+    @objc private func activeSpaceDidChange(_ notification: Notification) {
+        guard let pending = pendingSpaceDiagnostic else { return }
+        pendingSpaceDiagnostic = nil
+        let elapsedMilliseconds = max(
+            0,
+            Int((ProcessInfo.processInfo.systemUptime - pending.sentAt) * 1_000)
+        )
+        let message = "\(pending.actionTitle) observed · \(pending.detentCount) "
+            + "\(Self.ratchetNoun(pending.detentCount).lowercased()) · "
+            + "\(elapsedMilliseconds) ms"
+        log.info("wheel diagnostic: \(pending.source.displayName): \(message)")
+        guard modePickerCoordinators[pending.source]?.isActive == true else { return }
+        modeHUDPresenters[pending.source]?.flashFeedback(
+            ModeHUDFeedback(message: message, tone: .confirmed)
+        )
     }
 
     // MARK: - Configuration
@@ -283,9 +444,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         startDefaultMapHint()
         startRazerLighting()
         startModePicker()
+        startWheelChordMonitor()
         startKarabinerUserCommands()
         startICUE()
         startMultiTap()
+        startFocusMonitoring()
+        startRuntimeHealthMonitor()
         refreshStatus()
     }
 
@@ -299,15 +463,50 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         )
         modeHUDPresenters = Dictionary(
             uniqueKeysWithValues: MouseSource.allCases.map { source in
-                (source, AppKitModeHUDPresenter(source: source, configuration: configuration.hud))
+                (
+                    source,
+                    AppKitModeHUDPresenter(
+                        source: source,
+                        configuration: configuration.hud,
+                        appIconProvider: appIconProvider
+                    )
+                )
             }
         )
     }
 
     private func quit() {
-        sessionSecurityController?.stop()
-        teardown()
-        NSApp.terminate(nil)
+        guard !isQuitInProgress else { return }
+        isQuitInProgress = true
+        launchAtLoginState = "disarming for Quit"
+        refreshStatus()
+        launchAtLoginController.disableForIntentionalQuit(log: log) { [weak self] result in
+            guard let self else { return }
+            self.isQuitInProgress = false
+            switch result {
+            case .success:
+                self.sessionSecurityController?.stop()
+                self.teardown()
+                NSApp.terminate(nil)
+            case .failure:
+                self.launchAtLoginState = "Quit cancelled — recovery was not safely disarmed"
+                if !self.configurationWarnings.contains(where: { $0.hasPrefix("Quit cancelled:") }) {
+                    self.configurationWarnings.append(
+                        "Quit cancelled: Agentic Mouse could not safely disable runtime self-recovery"
+                    )
+                }
+                self.refreshStatus()
+            }
+        }
+    }
+
+    private func runtimeSupervisorRevision() -> String {
+        let version = Bundle.main.object(
+            forInfoDictionaryKey: "CFBundleShortVersionString"
+        ) as? String ?? "unknown"
+        let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String
+            ?? "unknown"
+        return "\(version)-\(build)-\(Bundle.main.bundleURL.resolvingSymlinksInPath().path)"
     }
 
     // MARK: - iCUE
@@ -609,8 +808,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                         && self.modePickerCoordinators[source]?.isActive != true
                         && !keypadOwnsSource
                 },
-                isScreenshotCapturing: { [weak self] in
-                    self?.selectedAreaScreenshotController.isCapturing == true
+                screenshotActionState: { [weak self] in
+                    self?.selectedAreaScreenshotController.presentationState ?? .idle
                 },
                 frontmostAppContext: { [weak self] in
                     self?.currentFrontmostAppModeContext()
@@ -623,6 +822,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     // MARK: - Colour proof
 
     private func startRazerLighting() {
+        razerRecoveryMonitor?.stop()
         let controller = RazerVendorLightingController(
             transport: RazerVendorUSBTransport(),
             idleColor: .white,
@@ -639,7 +839,29 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             self?.modeHUDPresenters[.razer]?.flashProblem(message)
         }
         razerLightingController = controller
-        _ = controller.restoreIdle()
+        let initiallyPresent = RazerVendorUSBTransport.exactDeviceIsPresent()
+        let initiallyRecovered = controller.restoreIdle()
+        let monitor = RazerDeviceRecoveryMonitor(
+            initiallyPresent: initiallyPresent,
+            initiallyRecovered: initiallyRecovered,
+            scheduler: DispatchTickScheduler(),
+            probePresence: { RazerVendorUSBTransport.exactDeviceIsPresent() },
+            recover: { [weak controller] in controller?.restoreIdle() == true },
+            onLost: { [weak self, weak controller] in
+                self?.log.notice("Razer recovery monitor observed the Naga disconnect")
+                controller?.handleDeviceLost()
+                self?.colorProofCoordinator?.handleDeviceLost(.razer)
+                self?.modePickerCoordinators[.razer]?.handleDeviceLost(.razer)
+                self?.refreshStatus()
+            },
+            onRecovered: { [weak self] in
+                self?.log.info("Razer recovery monitor restored idle white")
+                self?.colorProofCoordinator?.refreshLightingAvailability()
+                self?.refreshStatus()
+            }
+        )
+        monitor.start()
+        razerRecoveryMonitor = monitor
     }
 
     private func startColorProof() {
@@ -703,6 +925,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 log: Log(category: "mode-picker-\(source.rawValue)", sink: logSink),
                 heartbeatInterval: configuration.colorProof.heartbeatInterval
             )
+            let vsCodeGestures = VSCodeModeGestureClassifier(
+                clock: SystemMonotonicClock(),
+                scheduler: DispatchTickScheduler()
+            )
+            vsCodeModeGestureClassifiers[source] = vsCodeGestures
             coordinator.onAppearanceChange = { [weak self] modeColor, actionColor in
                 guard let self else { return [] }
                 switch source {
@@ -720,6 +947,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
             coordinator.onModeChange = { [weak self] active in
                 guard let self else { return }
+                self.wheelChordMonitor?.clear(source: source)
+                self.magnetWheelActionSequencer.cancel(source: source)
                 if active {
                     if self.defaultMapHintCoordinators[source]?.suspendForMode() != nil {
                         self.suspendedDefaultMapSources.insert(source)
@@ -727,12 +956,27 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     self.colorProofCoordinator?.exit(reason: .userRequested)
                     self.multiTapCoordinators[source]?.exit(reason: .userRequested)
                 } else {
+                    self.chromeYouTubeSpeedHoldController.cancel(source: source)
+                    // An exit can be user-driven, but it can also be lock,
+                    // sleep, device loss, or lease failure. Drop any bounded
+                    // click still awaiting classification so a teardown can
+                    // never emit a late Better Git command.
+                    self.vsCodeModeGestureClassifiers[source]?.cancel()
                     self.multiTapCoordinators[source]?.exit(reason: .userRequested)
                     if self.mouseCommandsAllowed,
                        self.suspendedDefaultMapSources.remove(source) != nil {
                         self.defaultMapHintCoordinators[source]?.restoreAfterMode(source: source)
                     } else if !self.mouseCommandsAllowed {
                         self.suspendedDefaultMapSources.remove(source)
+                    }
+                    if self.codexEditOwner == source {
+                        self.codexModeActionExecutor.cancelQueuedMessageEdit()
+                    }
+                    let anotherCodexModeIsActive = self.modePickerCoordinators.values.contains {
+                        $0.isActive && $0.page == .appSpecific && $0.appSpecificTarget == .codex
+                    }
+                    if !anotherCodexModeIsActive {
+                        self.codexModeActionExecutor.cancelPendingVerifications()
                     }
                 }
                 self.refreshStatus()
@@ -753,13 +997,34 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     bundleIdentifier: nil
                 )
             }
-            coordinator.onAppSpecificInput = { [weak self] requestedSource, target, cell in
+            coordinator.resolveAppSpecificDefinition = { [weak self] target in
+                self?.appSpecificDefinition(for: target) ?? target.definition
+            }
+            coordinator.resolveAppSelectorDefinition = { [weak self] in
+                self?.appSelectorDefinition() ?? AppSpecificMode.selectorDefinition
+            }
+            coordinator.onAppSpecificInput = { [weak self] requestedSource, target, cell, phase in
                 guard let self, requestedSource == source else { return false }
                 let result: Result<Void, ApplicationShortcutDispatcher.DispatchError>
                 switch target {
                 case .codex:
+                    guard phase == .press else { return true }
                     guard let action = CodexModeAction.action(for: cell) else { return false }
+                    let previousEditOwner = self.codexEditOwner
+                    if action == .editQueuedMessage {
+                        self.codexEditOwner = source
+                    }
+                    defer {
+                        if action == .editQueuedMessage {
+                            self.codexEditOwner = previousEditOwner
+                        }
+                    }
                     result = self.codexModeActionExecutor.perform(action) { [weak self] feedback in
+                        guard let self,
+                              self.modePickerCoordinators[source]?.isActive == true,
+                              self.modePickerCoordinators[source]?.page == .appSpecific,
+                              self.modePickerCoordinators[source]?.appSpecificTarget == .codex
+                        else { return }
                         let hudFeedback: ModeHUDFeedback
                         switch feedback {
                         case .checking(let message), .sentUnverified(let message):
@@ -769,32 +1034,126 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                         case .notConfirmed(let message):
                             hudFeedback = ModeHUDFeedback(message: message, tone: .notConfirmed)
                         }
-                        self?.modeHUDPresenters[source]?.flashFeedback(hudFeedback)
+                        self.modeHUDPresenters[source]?.flashFeedback(hudFeedback)
                     }
                 case .chrome:
-                    guard ChromeModeAction.action(for: cell) == .closeCurrentWindow else {
+                    guard let action = ChromeModeAction.action(for: cell) else { return false }
+                    switch action {
+                    case .closeCurrentTab, .closeCurrentWindow, .openDevTools, .reloadCurrentTab, .newTab,
+                         .focusAddress, .reopenClosedTab, .findPage:
+                        guard phase == .press else { return true }
+                        guard let shortcut = ChromeModeShortcutResolver.shortcut(for: action) else {
+                            return false
+                        }
+                        result = self.applicationShortcutDispatcher.perform(
+                            shortcut,
+                            targetBundleIdentifier: target.bundleIdentifier,
+                            targetDisplayName: target.displayName
+                        )
+                    case .holdYouTubeDoubleSpeed:
+                        return self.chromeYouTubeSpeedHoldController.handle(
+                            source: source,
+                            phase: phase
+                        )
+                    case .cycleTabsWithWheel:
+                        return false
+                    }
+                case .vsCode:
+                    guard phase == .press else { return true }
+                    guard let action = VSCodeModeAction.action(for: cell) else { return false }
+                    guard let classifier = self.vsCodeModeGestureClassifiers[source] else {
+                        return false
+                    }
+                    classifier.handlePress(action: action) { [weak self] command in
+                        self?.performVSCodeModeCommand(command, source: source)
+                    }
+                    return true
+                case .terminal, .iTerm:
+                    guard let action = TerminalModeAction.action(for: cell) else {
+                        return false
+                    }
+                    guard phase == .press else { return true }
+                    guard let shortcut = TerminalModeShortcutResolver.shortcut(for: action) else {
+                        self.modeHUDPresenters[source]?.flashProblem(
+                            "Could not resolve Interrupt terminal for the current keyboard layout"
+                        )
                         return false
                     }
                     result = self.applicationShortcutDispatcher.perform(
-                        .init(keyCode: 13, flags: .maskCommand),
+                        shortcut,
                         targetBundleIdentifier: target.bundleIdentifier,
                         targetDisplayName: target.displayName
                     )
-                case .vsCode:
-                    guard let action = VSCodeModeAction.action(for: cell) else { return false }
-                    let shortcut: ApplicationShortcutDispatcher.Shortcut
-                    switch action {
-                    case .previousChange:
-                        shortcut = .init(keyCode: 64, flags: []) // F17
-                    case .nextChange:
-                        shortcut = .init(keyCode: 105, flags: []) // F13
-                    case .stageAndNext:
-                        shortcut = .init(keyCode: 79, flags: []) // F18
-                    case .toggleTerminal:
-                        shortcut = .init(keyCode: 38, flags: .maskCommand) // Command-J
+                case .iPhoneMirroring:
+                    guard phase == .press else { return true }
+                    guard let action = IPhoneMirroringModeAction.action(for: cell) else {
+                        return false
+                    }
+                    guard let shortcut = IPhoneMirroringModeShortcutResolver.shortcut(
+                        for: action
+                    ) else {
+                        self.modeHUDPresenters[source]?.flashProblem(
+                            "Could not resolve Notifications for the current keyboard layout"
+                        )
+                        return false
+                    }
+                    let previousVisibility = self.notificationCenterToggleVerifier
+                        .captureBeforeToggle()
+                    result = self.applicationShortcutDispatcher.performForegroundHardwareShortcut(
+                        shortcut,
+                        targetBundleIdentifier: target.bundleIdentifier,
+                        targetDisplayName: target.displayName
+                    )
+                    if case .success = result {
+                        self.modeHUDPresenters[source]?.flashFeedback(ModeHUDFeedback(
+                            message: "Checking Notification Centre…",
+                            tone: .informational
+                        ))
+                        self.notificationCenterToggleVerifier.verifyToggle(
+                            from: previousVisibility
+                        ) { [weak self] outcome in
+                            let feedback: ModeHUDFeedback
+                            switch outcome {
+                            case .opened:
+                                feedback = ModeHUDFeedback(
+                                    message: "Notification Centre opened",
+                                    tone: .confirmed
+                                )
+                            case .closed:
+                                feedback = ModeHUDFeedback(
+                                    message: "Notification Centre closed",
+                                    tone: .confirmed
+                                )
+                            case .unchanged:
+                                feedback = ModeHUDFeedback(
+                                    message: "Notification Centre did not change",
+                                    tone: .notConfirmed
+                                )
+                            case .unavailable:
+                                feedback = ModeHUDFeedback(
+                                    message: "Shortcut sent — result not confirmed",
+                                    tone: .informational
+                                )
+                            }
+                            self?.modeHUDPresenters[source]?.flashFeedback(feedback)
+                        }
+                    }
+                case .claude:
+                    guard phase == .press else { return true }
+                    guard let action = ClaudeModeAction.action(for: cell) else {
+                        return false
+                    }
+                    result = self.claudeModeActionExecutor.perform(action)
+                case .spotify, .obs, .notion, .telegram, .safari,
+                     .firefox, .opera, .restreamChat, .preview, .mail, .iCue,
+                     .karabinerSettings, .systemSettings, .finder,
+                     .karabinerEventViewer:
+                    guard phase == .press else { return true }
+                    guard let action = StandardAppMode.action(for: target, cell: cell) else {
+                        return false
                     }
                     result = self.applicationShortcutDispatcher.perform(
-                        shortcut,
+                        StandardAppModeShortcutResolver.shortcut(for: action),
                         targetBundleIdentifier: target.bundleIdentifier,
                         targetDisplayName: target.displayName
                     )
@@ -807,15 +1166,71 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 }
             }
             coordinator.onUtilityAction = { [weak self] requestedSource, action in
-                guard let self, requestedSource == source else { return false }
-                guard action == .rewindYouTubeFiveSeconds else {
-                    // Deterministic native Utility outputs are emitted by the
-                    // exact-device Karabiner rule. Reaching this closure for
-                    // one of them would risk a duplicate synthetic key cycle.
-                    return false
+                guard let self, requestedSource == source else {
+                    return .failed(message: nil)
                 }
-                if case .success = self.modeUtilityActionExecutor.perform(action) { return true }
-                return false
+                // ModePicker routes only one-press Utility cards here. Keep
+                // held-wheel families out so one detent can never double-fire.
+                guard action.isDirectAction else { return .failed(message: nil) }
+                switch self.modeUtilityActionExecutor.perform(action) {
+                case .success:
+                    return .performed
+                case .failure(.storedPasswordAccessibilityPermissionMissing):
+                    return .failed(message:
+                        "Accessibility permission is required to paste the stored password"
+                    )
+                case .failure(.storedPasswordNotConfigured):
+                    return .failed(message:
+                        "Set the Utility password from the Agentic Mouse menu"
+                    )
+                case .failure(.storedPasswordInputBlocked):
+                    return .failed(message:
+                        "Mouse commands are disabled while macOS is locked"
+                    )
+                case .failure(.clipboardAccessibilityPermissionMissing):
+                    return .failed(message:
+                        "Accessibility permission is required for Copy and Paste"
+                    )
+                case .failure(.clipboardInputBlocked):
+                    return .failed(message:
+                        "Mouse commands are disabled while macOS is locked"
+                    )
+                case .failure(.organizeWindowsAccessibilityPermissionMissing):
+                    return .failed(message:
+                        "Accessibility permission is required to organize windows"
+                    )
+                case .failure(.organizeWindowsInputBlocked):
+                    return .failed(message:
+                        "Mouse commands are disabled while macOS is locked"
+                    )
+                case .failure(.quitAppAccessibilityPermissionMissing):
+                    return .failed(message:
+                        "Accessibility permission is required to quit the current app"
+                    )
+                case .failure(.quitAppInputBlocked):
+                    return .failed(message:
+                        "Mouse commands are disabled while macOS is locked"
+                    )
+                case .failure(.quitAppTargetUnavailable):
+                    return .failed(message: "No app is available to quit")
+                case .failure(.intelligenceOnDemandAccessibilityPermissionMissing):
+                    return .failed(message:
+                        "Accessibility permission is required for Intelligence on demand"
+                    )
+                case .failure(.intelligenceOnDemandInputBlocked):
+                    return .failed(message:
+                        "Mouse commands are disabled while macOS is locked"
+                    )
+                case .failure:
+                    return .failed(message: nil)
+                }
+            }
+            coordinator.onWheelControlChange = { [weak self] requestedSource, control in
+                guard requestedSource == source else { return }
+                if control == nil {
+                    self?.magnetWheelActionSequencer.cancel(source: source)
+                }
+                self?.wheelChordMonitor?.setActive(control, for: source)
             }
             coordinator.onKeysInput = { [weak self] requestedSource, action in
                 guard let self, requestedSource == source else { return false }
@@ -848,9 +1263,593 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    private func performVSCodeModeCommand(
+        _ command: VSCodeModeCommand,
+        source: MouseSource
+    ) {
+        guard let shortcut = VSCodeModeShortcutResolver.shortcut(for: command) else {
+            modeHUDPresenters[source]?.flashProblem(
+                "Could not resolve Interrupt terminal for the current keyboard layout"
+            )
+            return
+        }
+
+        if case .failure(let error) = applicationShortcutDispatcher.perform(
+            shortcut,
+            targetBundleIdentifier: AppSpecificTarget.vsCode.bundleIdentifier,
+            targetDisplayName: AppSpecificTarget.vsCode.displayName
+        ) {
+            modeHUDPresenters[source]?.flashProblem(error.description)
+        }
+    }
+
     // MARK: - Karabiner commands
 
+    private func startWheelChordMonitor() {
+        if let wheelChordMonitor {
+            attemptToStartWheelChordMonitor(wheelChordMonitor)
+            return
+        }
+        let monitor = ScrollWheelChordMonitor(
+            permission: permission,
+            inputAllowed: { [weak self] in self?.mouseCommandsAllowed == true },
+            log: Log(category: "wheel-chords", sink: logSink)
+        )
+        monitor.onStep = { [weak self] step in
+            guard let self else { return false }
+            if step.control == .horizontalScroll {
+                self.scheduleHorizontalWheelAction(step)
+                return true
+            }
+            if let action = step.control.youtubeSeekAction(for: step.direction) {
+                self.scheduleYouTubeSeekAction(action, step: step)
+                return true
+            }
+            if let tabAction = step.control.chromeTabAction(for: step.direction) {
+                guard let coordinator = self.modePickerCoordinators[step.source],
+                      coordinator.isActive,
+                      coordinator.page == .appSpecific,
+                      coordinator.appSpecificTarget == .chrome,
+                      coordinator.activeWheelControl == .chromeTabs
+                else { return false }
+                self.scheduleChromeTabAction(tabAction, step: step)
+                return true
+            }
+            if let action = step.control.spotifyVolumeAction(for: step.direction) {
+                guard let coordinator = self.modePickerCoordinators[step.source],
+                      coordinator.isActive,
+                      coordinator.page == .appSpecific,
+                      coordinator.appSpecificTarget == .spotify,
+                      coordinator.activeWheelControl == .spotifyVolume
+                else { return false }
+                self.scheduleSpotifyVolumeAction(action, step: step)
+                return true
+            }
+            if let command = step.control.vsCodeCursorHistoryCommand(for: step.direction) {
+                guard let coordinator = self.modePickerCoordinators[step.source],
+                      coordinator.isActive,
+                      coordinator.page == .appSpecific,
+                      coordinator.appSpecificTarget == .vsCode,
+                      coordinator.activeWheelControl == .vsCodeCursorHistory
+                else { return false }
+                self.scheduleVSCodeCursorHistoryAction(command, step: step)
+                return true
+            }
+            if let action = step.control.codexReasoningEffortAction(for: step.direction) {
+                guard let coordinator = self.modePickerCoordinators[step.source],
+                      coordinator.isActive,
+                      coordinator.page == .appSpecific,
+                      coordinator.appSpecificTarget == .codex,
+                      coordinator.activeWheelControl == .codexReasoningEffort
+                else { return false }
+                self.scheduleCodexReasoningEffortAction(action, step: step)
+                return true
+            }
+            if let action = step.control.codexChatHistoryAction(for: step.direction) {
+                guard let coordinator = self.modePickerCoordinators[step.source],
+                      coordinator.isActive,
+                      coordinator.page == .appSpecific,
+                      coordinator.appSpecificTarget == .codex,
+                      coordinator.activeWheelControl == .codexChatHistory
+                else { return false }
+                self.scheduleCodexChatHistoryAction(action, step: step)
+                return true
+            }
+            if let action = step.control.topLevelSystemAction(for: step.direction) {
+                // Return from the Quartz event-tap callback before posting the
+                // Copy/Paste shortcut. This prevents synthetic keyboard input
+                // from re-entering the callback that is still consuming the
+                // source wheel event.
+                self.scheduleUtilityWheelAction(action, step: step)
+                return true
+            }
+            guard let coordinator = self.modePickerCoordinators[step.source],
+                  coordinator.isActive,
+                  coordinator.page == .modes,
+                  coordinator.activeWheelControl == step.control,
+                  let action = step.control.utilityAction(for: step.direction)
+            else {
+                return false
+            }
+            if action == .moveWindowLeftWithMagnet
+                || action == .moveWindowRightWithMagnet {
+                // Return from the Quartz wheel callback before opening
+                // Magnet's global Control-Option-Arrow accelerator. This
+                // prevents synthetic keyboard input from re-entering the tap
+                // that is still consuming the source wheel event.
+                self.scheduleMagnetAction(
+                    action,
+                    source: step.source,
+                    detentCount: step.detentCount
+                )
+                return true
+            }
+            if action == .moveToSpaceLeft || action == .moveToSpaceRight {
+                self.scheduleSpaceAction(
+                    action,
+                    source: step.source,
+                    detentCount: step.detentCount
+                )
+                return true
+            }
+            self.scheduleUtilityWheelAction(action, step: step)
+            return true
+        }
+        monitor.onProblem = { [weak self] message in
+            guard let self else { return }
+            let activeSources = self.modePickerCoordinators
+                .filter { $0.value.activeWheelControl != nil }
+                .map(\.key)
+            if activeSources.isEmpty {
+                self.modeHUDPresenters.values.forEach { $0.flashProblem(message) }
+            } else {
+                activeSources.forEach { self.modeHUDPresenters[$0]?.flashProblem(message) }
+            }
+        }
+        monitor.onDiagnostic = { [weak self] source, message in
+            self?.defaultMapHintCoordinators[source]?.flashWheelDiagnostic(
+                source: source,
+                message: message
+            )
+        }
+        wheelChordMonitor = monitor
+        attemptToStartWheelChordMonitor(monitor)
+    }
+
+    private func attemptToStartWheelChordMonitor(_ monitor: ScrollWheelChordMonitor) {
+        guard !monitor.isRunning else { return }
+        do {
+            try monitor.start()
+            if wheelChordLastProblem != nil {
+                log.info("wheel-chord event tap recovered")
+            }
+            wheelChordLastProblem = nil
+        } catch {
+            let problem = String(describing: error)
+            guard wheelChordLastProblem != problem else { return }
+            wheelChordLastProblem = problem
+            log.notice("wheel-chord event tap unavailable: \(problem)")
+            modeHUDPresenters.values.forEach {
+                $0.flashProblem("Wheel controls unavailable: \(problem)")
+            }
+        }
+    }
+
+    private func scheduleHorizontalWheelAction(_ step: WheelChordStateMachine.Step) {
+        DispatchQueue.main.async { [weak self] in
+            guard let self, self.mouseCommandsAllowed else { return }
+            let linesPerRatchet = self.configuration.input.horizontalScrollLinesPerRatchet
+            guard ScrollWheelChordMonitor.postHorizontalWheel(
+                step.direction,
+                linesPerRatchet: linesPerRatchet
+            ) else {
+                self.modeHUDPresenters[step.source]?.flashProblem(
+                    "Horizontal Scroll could not be posted"
+                )
+                self.flashWheelActionFeedback(
+                    step,
+                    outcome: .couldNotBeSent
+                )
+                return
+            }
+            self.log.info(
+                "Horizontal Scroll ratchet \(step.detentCount) posted from "
+                    + "\(step.source.displayName) wheel chord at \(linesPerRatchet) lines/ratchet"
+            )
+            self.flashWheelActionFeedback(step)
+        }
+    }
+
+    private func scheduleYouTubeSeekAction(
+        _ action: YouTubeSeekAction,
+        step: WheelChordStateMachine.Step
+    ) {
+        DispatchQueue.main.async { [weak self] in
+            guard let self,
+                  self.mouseCommandsAllowed,
+                  self.wheelChordMonitor?.activeControl(for: step.source) == .youtubeScrub
+            else { return }
+            switch self.modeUtilityActionExecutor.performYouTubeSeek(action) {
+            case .success:
+                self.log.info(
+                    "YouTube \(action.seconds > 0 ? "+5" : "−5") sec ratchet "
+                        + "\(step.detentCount) requested through the VoiceInk bridge from "
+                        + step.source.displayName
+                )
+                self.flashWheelActionFeedback(step)
+            case .failure:
+                self.flashWheelActionFeedback(step, outcome: .couldNotBeSent)
+            }
+        }
+    }
+
+    private func scheduleChromeTabAction(
+        _ tabAction: ChromeTabNavigationAction,
+        step: WheelChordStateMachine.Step
+    ) {
+        DispatchQueue.main.async { [weak self] in
+            guard let self, self.mouseCommandsAllowed else { return }
+            let keyCode: CGKeyCode = tabAction == .nextTab ? 124 : 123
+            let result = self.applicationShortcutDispatcher.perform(
+                .init(
+                    keyCode: keyCode,
+                    flags: .maskCommand.union(.maskAlternate)
+                ),
+                targetBundleIdentifier: AppSpecificTarget.chrome.bundleIdentifier,
+                targetDisplayName: AppSpecificTarget.chrome.displayName
+            )
+            switch result {
+            case .success:
+                let direction = tabAction == .nextTab ? "right" : "left"
+                self.log.info(
+                    "Chrome tab \(direction) ratchet \(step.detentCount) posted from "
+                        + "\(step.source.displayName) wheel chord"
+                )
+                self.flashWheelActionFeedback(step)
+            case .failure(let error):
+                self.modeHUDPresenters[step.source]?.flashProblem(error.description)
+                self.flashWheelActionFeedback(
+                    step,
+                    outcome: .couldNotBeSent
+                )
+            }
+        }
+    }
+
+    private func scheduleSpotifyVolumeAction(
+        _ action: StandardAppModeAction,
+        step: WheelChordStateMachine.Step
+    ) {
+        DispatchQueue.main.async { [weak self] in
+            guard let self, self.mouseCommandsAllowed else { return }
+            let result = self.applicationShortcutDispatcher.perform(
+                StandardAppModeShortcutResolver.shortcut(for: action),
+                targetBundleIdentifier: AppSpecificTarget.spotify.bundleIdentifier,
+                targetDisplayName: AppSpecificTarget.spotify.displayName
+            )
+            switch result {
+            case .success:
+                self.log.info(
+                    "Spotify \(action.title.lowercased()) ratchet \(step.detentCount) posted from "
+                        + "\(step.source.displayName) wheel chord"
+                )
+                self.flashWheelActionFeedback(step)
+            case .failure(let error):
+                self.modeHUDPresenters[step.source]?.flashProblem(error.description)
+                self.flashWheelActionFeedback(
+                    step,
+                    outcome: .couldNotBeSent
+                )
+            }
+        }
+    }
+
+    private func scheduleVSCodeCursorHistoryAction(
+        _ command: VSCodeModeCommand,
+        step: WheelChordStateMachine.Step
+    ) {
+        DispatchQueue.main.async { [weak self] in
+            guard let self,
+                  self.mouseCommandsAllowed,
+                  self.wheelChordMonitor?.activeControl(for: step.source)
+                    == .vsCodeCursorHistory
+            else { return }
+            let action: VSCodeCommandBridge.Action = command == .navigateForward
+                ? .cursorHistoryForward
+                : .cursorHistoryBack
+            self.vsCodeCommandBridge.perform(action) { [weak self] result in
+                guard let self else { return }
+                switch result {
+                case .success:
+                    let direction = command == .navigateForward ? "forward" : "back"
+                    self.log.info(
+                        "VS Code cursor history \(direction) ratchet \(step.detentCount) "
+                            + "requested through the direct VS Code bridge from "
+                            + "\(step.source.displayName)"
+                    )
+                    self.flashWheelActionFeedback(step)
+                case .failure(let error):
+                    self.modeHUDPresenters[step.source]?.flashProblem(error.description)
+                    self.flashWheelActionFeedback(
+                        step,
+                        outcome: .couldNotBeSent
+                    )
+                }
+            }
+        }
+    }
+
+    private func scheduleCodexReasoningEffortAction(
+        _ action: CodexReasoningEffortAction,
+        step: WheelChordStateMachine.Step
+    ) {
+        DispatchQueue.main.async { [weak self] in
+            guard let self,
+                  self.mouseCommandsAllowed,
+                  self.wheelChordMonitor?.activeControl(for: step.source)
+                    == .codexReasoningEffort
+            else { return }
+            switch self.codexModeActionExecutor.performReasoningEffort(action) {
+            case .success:
+                self.log.info(
+                    "Codex reasoning effort \(action == .increase ? "up" : "down") "
+                        + "ratchet \(step.detentCount) posted from "
+                        + "\(step.source.displayName) wheel chord"
+                )
+                self.flashWheelActionFeedback(step)
+            case .failure(let error):
+                self.modeHUDPresenters[step.source]?.flashProblem(error.description)
+                self.flashWheelActionFeedback(step, outcome: .couldNotBeSent)
+            }
+        }
+    }
+
+    private func scheduleCodexChatHistoryAction(
+        _ action: CodexChatHistoryAction,
+        step: WheelChordStateMachine.Step
+    ) {
+        DispatchQueue.main.async { [weak self] in
+            guard let self,
+                  self.mouseCommandsAllowed,
+                  self.wheelChordMonitor?.activeControl(for: step.source)
+                    == .codexChatHistory
+            else { return }
+            switch self.codexModeActionExecutor.performChatHistory(action) {
+            case .success:
+                self.log.info(
+                    "Codex chat \(action == .forward ? "forward" : "back") "
+                        + "ratchet \(step.detentCount) posted from "
+                        + "\(step.source.displayName) wheel chord"
+                )
+                self.flashWheelActionFeedback(step)
+            case .failure(let error):
+                self.modeHUDPresenters[step.source]?.flashProblem(error.description)
+                self.flashWheelActionFeedback(step, outcome: .couldNotBeSent)
+            }
+        }
+    }
+
+    private func scheduleUtilityWheelAction(
+        _ action: ModeUtilityAction,
+        step: WheelChordStateMachine.Step
+    ) {
+        DispatchQueue.main.async { [weak self] in
+            guard let self, self.mouseCommandsAllowed else { return }
+            switch self.modeUtilityActionExecutor.perform(action) {
+            case .success:
+                self.log.info(
+                    "\(action.actionTitle) ratchet \(step.detentCount) posted from "
+                        + "\(step.source.displayName) wheel chord"
+                )
+                self.flashWheelActionFeedback(step)
+            case .failure:
+                if step.control.topLevelCell == nil {
+                    self.modeHUDPresenters[step.source]?.flashProblem(
+                        "\(action.actionTitle) could not be performed"
+                    )
+                }
+                self.flashWheelActionFeedback(
+                    step,
+                    outcome: .couldNotBeSent
+                )
+            }
+        }
+    }
+
+    private func scheduleSpaceAction(
+        _ action: ModeUtilityAction,
+        source: MouseSource,
+        detentCount: Int
+    ) {
+        let shortcutName: String
+        switch action {
+        case .moveToSpaceLeft:
+            shortcutName = "CTRL-FN-LEFT"
+        case .moveToSpaceRight:
+            shortcutName = "CTRL-FN-RIGHT"
+        default:
+            modeHUDPresenters[source]?.flashProblem("Unexpected top-level Space action")
+            return
+        }
+
+        DispatchQueue.main.async { [weak self] in
+            guard let self, self.mouseCommandsAllowed else { return }
+            switch self.modeUtilityActionExecutor.perform(action) {
+            case .success:
+                let direction: WheelChordDirection = action == .moveToSpaceRight ? .up : .down
+                self.flashWheelActionFeedback(.init(
+                    source: source,
+                    control: .spaces,
+                    direction: direction,
+                    detentCount: detentCount
+                ))
+                self.spaceDiagnosticGeneration &+= 1
+                let generation = self.spaceDiagnosticGeneration
+                self.pendingSpaceDiagnostic = PendingSpaceDiagnostic(
+                    source: source,
+                    actionTitle: action.actionTitle,
+                    detentCount: detentCount,
+                    sentAt: ProcessInfo.processInfo.systemUptime,
+                    generation: generation
+                )
+                self.log.info(
+                    "\(shortcutName) posted from \(source.displayName) Utility wheel chord"
+                )
+                DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) { [weak self] in
+                    guard let self,
+                          self.pendingSpaceDiagnostic?.generation == generation
+                    else { return }
+                    self.pendingSpaceDiagnostic = nil
+                    let message = "\(action.actionTitle) sent · \(detentCount) "
+                        + "\(Self.ratchetNoun(detentCount).lowercased()) · "
+                        + "no Space change observed"
+                    self.log.notice("wheel diagnostic: \(source.displayName): \(message)")
+                    guard self.modePickerCoordinators[source]?.isActive == true else { return }
+                    self.modeHUDPresenters[source]?.flashFeedback(
+                        ModeHUDFeedback(message: message, tone: .notConfirmed)
+                    )
+                }
+            case .failure(let error):
+                self.pendingSpaceDiagnostic = nil
+                self.log.notice(
+                    "\(shortcutName) failed from \(source.displayName) wheel chord: \(error)"
+                )
+                self.modeHUDPresenters[source]?.flashProblem(
+                    "\(shortcutName) could not be posted: \(error)"
+                )
+                let direction: WheelChordDirection = action == .moveToSpaceRight ? .up : .down
+                self.flashWheelActionFeedback(
+                    .init(
+                        source: source,
+                        control: .spaces,
+                        direction: direction,
+                        detentCount: detentCount
+                    ),
+                    outcome: .couldNotBeSent
+                )
+            }
+        }
+    }
+
+    private func scheduleMagnetAction(
+        _ action: ModeUtilityAction,
+        source: MouseSource,
+        detentCount: Int
+    ) {
+        DispatchQueue.main.async { [weak self] in
+            guard let self,
+                  self.mouseCommandsAllowed,
+                  self.wheelChordMonitor?.activeControl(for: source) == .magnetWindow
+            else {
+                return
+            }
+            let accepted = self.magnetWheelActionSequencer.enqueue(.init(
+                action: action,
+                source: source,
+                detentCount: detentCount
+            ))
+            guard accepted else {
+                self.log.notice(
+                    "\(action.actionTitle) ratchet \(detentCount) rejected because the "
+                        + "bounded Magnet queue is full or input became inactive"
+                )
+                let direction: WheelChordDirection = action == .moveWindowLeftWithMagnet
+                    ? .up
+                    : .down
+                self.flashWheelActionFeedback(
+                    .init(
+                        source: source,
+                        control: .magnetWindow,
+                        direction: direction,
+                        detentCount: detentCount
+                    ),
+                    outcome: .couldNotBeQueued
+                )
+                return
+            }
+            self.log.info(
+                "\(action.actionTitle) ratchet \(detentCount) queued from "
+                    + "\(source.displayName); pending "
+                    + "\(self.magnetWheelActionSequencer.pendingCount)"
+            )
+        }
+    }
+
+    private func performSequencedMagnetAction(
+        _ request: MagnetWheelActionSequencer.Request
+    ) {
+        switch modeUtilityActionExecutor.perform(request.action) {
+        case .success:
+            log.info(
+                "\(request.action.actionTitle) ratchet \(request.detentCount) posted from "
+                    + "\(request.source.displayName) wheel chord"
+            )
+            let direction: WheelChordDirection = request.action == .moveWindowLeftWithMagnet
+                ? .up
+                : .down
+            flashWheelActionFeedback(.init(
+                source: request.source,
+                control: .magnetWindow,
+                direction: direction,
+                detentCount: request.detentCount
+            ))
+        case .failure(let error):
+            log.notice(
+                "\(request.action.actionTitle) ratchet \(request.detentCount) failed from "
+                    + "\(request.source.displayName) wheel chord: \(error)"
+            )
+            modeHUDPresenters[request.source]?.flashProblem(
+                "\(request.action.actionTitle) could not be posted: \(error)"
+            )
+            let direction: WheelChordDirection = request.action == .moveWindowLeftWithMagnet
+                ? .up
+                : .down
+            flashWheelActionFeedback(
+                .init(
+                    source: request.source,
+                    control: .magnetWindow,
+                    direction: direction,
+                    detentCount: request.detentCount
+                ),
+                outcome: .couldNotBeSent
+            )
+        }
+    }
+
+    /// Presents one uniform, source-specific result after a held-wheel output
+    /// route accepts or rejects the action. Runtime pages already own a visible
+    /// HUD; top-level actions may update only an already-open Default legend.
+    private func flashWheelActionFeedback(
+        _ step: WheelChordStateMachine.Step,
+        outcome: WheelChordActionOutcome = .sent
+    ) {
+        guard let feedback = step.control.hudFeedback(
+            for: step.direction,
+            detentCount: step.detentCount,
+            outcome: outcome
+        ) else { return }
+        if step.control.topLevelCell != nil {
+            defaultMapHintCoordinators[step.source]?.flashWheelFeedback(
+                source: step.source,
+                feedback: feedback
+            )
+            return
+        }
+        guard modePickerCoordinators[step.source]?.isActive == true else { return }
+        modeHUDPresenters[step.source]?.flashFeedback(feedback)
+    }
+
+    private static func ratchetNoun(_ count: Int) -> String {
+        count == 1 ? "RATCHET" : "RATCHETS"
+    }
+
     private func startKarabinerUserCommands() {
+        if let userCommandReceiver {
+            guard !userCommandReceiver.isHealthy else { return }
+            log.notice("Karabiner user-command socket disappeared; rebinding")
+            userCommandReceiver.stop()
+            self.userCommandReceiver = nil
+        }
         let receiver = KarabinerUserCommandReceiver()
         do {
             try receiver.start { [weak self] data in
@@ -862,33 +1861,119 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     self.modePickerCoordinators[command.source]?.handle(command)
                     return
                 }
+                if let command = try? WheelChordCommand.decodeTopLevel(data) {
+                    self.wheelChordMonitor?.setActive(
+                        command.phase == .press ? command.control : nil,
+                        for: command.source
+                    )
+                    return
+                }
                 if let command = try? DefaultMapHintCommand.decode(data) {
                     self.defaultMapHintCoordinators[command.source]?.handleToggle(source: command.source)
                     return
                 }
                 if let command = try? SelectedAreaScreenshotCommand.decode(data) {
-                    switch self.selectedAreaScreenshotController.toggle() {
-                    case .started:
-                        self.log.info("selected-area screenshot started from \(command.source.displayName)")
-                    case .cancelled:
-                        self.log.info("selected-area screenshot cancelled from \(command.source.displayName)")
-                    case .blocked:
-                        self.log.notice("selected-area screenshot rejected while the session was inactive")
-                    case .failed(let message):
-                        self.log.notice("selected-area screenshot unavailable: \(message)")
+                    let result = self.selectedAreaScreenshotController.handlePress(
+                        from: command.source
+                    )
+                    self.handleScreenshotTriggerResult(result, source: command.source)
+                    return
+                }
+                if let command = try? YouTubeRewindCommand.decode(data) {
+                    guard self.modePickerCoordinators[command.source]?.isActive != true else {
+                        self.log.notice("ignored delayed top-level YouTube rewind during a mode")
+                        return
                     }
+                    let feedback: ModeHUDFeedback
+                    switch self.modeUtilityActionExecutor.perform(.rewindYouTubeFiveSeconds) {
+                    case .success:
+                        feedback = ModeHUDFeedback(
+                            message: "YouTube −5 sec requested",
+                            tone: .informational
+                        )
+                        self.log.info(
+                            "YouTube −5 sec requested from top-level "
+                                + command.source.displayName
+                        )
+                    case .failure:
+                        feedback = ModeHUDFeedback(
+                            message: "YouTube −5 sec could not be requested",
+                            tone: .notConfirmed
+                        )
+                    }
+                    self.defaultMapHintCoordinators[command.source]?.flashActionFeedback(
+                        source: command.source,
+                        feedback: feedback
+                    )
                     return
                 }
                 self.log.debug("ignored unrelated or malformed Karabiner user command")
             }
             userCommandReceiver = receiver
+            if karabinerReceiverLastProblem != nil {
+                log.info("Karabiner user-command receiver recovered")
+            }
+            karabinerReceiverLastProblem = nil
             log.info("Karabiner user-command receiver ready")
         } catch {
-            log.notice("Karabiner user-command receiver unavailable: \(error)")
+            let problem = String(describing: error)
+            guard karabinerReceiverLastProblem != problem else { return }
+            karabinerReceiverLastProblem = problem
+            log.notice("Karabiner user-command receiver unavailable: \(problem)")
             modeHUDPresenters.values.forEach {
-                $0.flashProblem("Mouse commands unavailable: \(error)")
+                $0.flashProblem("Mouse commands unavailable: \(problem)")
             }
         }
+    }
+
+    private func handleScreenshotTriggerResult(
+        _ result: SelectedAreaScreenshotController.TriggerResult,
+        source: MouseSource
+    ) {
+        switch result {
+        case .awaitingSinglePress:
+            log.debug("classifying screenshot press from \(source.displayName)")
+        case .started:
+            log.info("selected-area screenshot started from \(source.displayName)")
+        case .cancelled:
+            log.info("selected-area screenshot cancelled from \(source.displayName)")
+        case .pasteQueued:
+            log.info("screenshot paste queued until the saved image is available")
+            modeHUDPresenters[source]?.flashFeedback(ModeHUDFeedback(
+                message: "Paste queued",
+                tone: .informational
+            ))
+        case .pasted:
+            log.info("screenshot paste shortcut sent from \(source.displayName)")
+            modeHUDPresenters[source]?.flashFeedback(ModeHUDFeedback(
+                message: "Paste screenshot sent",
+                tone: .informational
+            ))
+        case .blocked:
+            log.notice("selected-area screenshot rejected while the session was inactive")
+        case .failed(let message):
+            log.notice("selected-area screenshot unavailable: \(message)")
+            modeHUDPresenters[source]?.flashProblem(message)
+        }
+    }
+
+    private func startRuntimeHealthMonitor() {
+        runtimeHealthMonitor?.stop()
+        let monitor = RuntimeHealthMonitor(
+            scheduler: DispatchTickScheduler(),
+            interval: 2
+        ) { [weak self] in
+            guard let self else { return }
+            if self.userCommandReceiver?.isHealthy != true {
+                self.startKarabinerUserCommands()
+            }
+            if self.wheelChordMonitor?.isRunning != true {
+                self.startWheelChordMonitor()
+            }
+            self.sessionSecurityController?.ensureUnlockProofMonitoring()
+        }
+        runtimeHealthMonitor = monitor
+        monitor.start()
     }
 
     // MARK: - Multi-tap
@@ -930,7 +2015,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 log: Log(category: "multitap-\(source.rawValue)", sink: logSink),
                 entryAllowed: { [weak self] in
                     guard let picker = self?.modePickerCoordinators[source] else { return false }
-                    return picker.isActive && (picker.page == .modes || picker.page == .keypad)
+                    return picker.isActive && (picker.page == .keys || picker.page == .keypad)
                 },
                 // Runtime Keypad enters through the Modes journey but always exits
                 // on the shared physical cell 10. Keep the text engine's safety
@@ -960,7 +2045,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             multiTapCoordinators[source] = coordinator
             do {
                 try transport.start()
-                log.info("\(source.displayName) keypad mode ready — open Utility and choose cell 7")
+                log.info("\(source.displayName) keypad mode ready — open Keys and choose cell 6")
             } catch {
                 log.notice(
                     "\(source.displayName) input transport unavailable: "
@@ -980,7 +2065,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             guard let self else { return }
             self.multiTapCoordinators.values.forEach { $0.handleFocusChange() }
             let context = self.currentFrontmostAppModeContext()
-            self.modePickerCoordinators.values.forEach { $0.updateFrontmostApp(context) }
+            for (source, coordinator) in self.modePickerCoordinators {
+                if coordinator.followsFrontmostApp,
+                   coordinator.appSpecificTarget == .chrome,
+                   context.target != .chrome {
+                    self.chromeYouTubeSpeedHoldController.cancel(source: source)
+                }
+                coordinator.updateFrontmostApp(context)
+            }
             self.defaultMapHintCoordinators.values.forEach { $0.refresh() }
         }
         monitor.start()
@@ -998,11 +2090,32 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             )
         }
         let bundleIdentifier = application.bundleIdentifier
+        let backdrop = ModeHUDAppBackdrop(
+            bundleIdentifier: bundleIdentifier,
+            applicationPath: application.bundleURL?.path
+        )
         return FrontmostAppModeContext(
             target: AppSpecificTarget.target(forBundleIdentifier: bundleIdentifier),
             displayName: application.localizedName ?? bundleIdentifier ?? "Current app",
-            bundleIdentifier: bundleIdentifier
+            bundleIdentifier: bundleIdentifier,
+            applicationPath: application.bundleURL?.path,
+            iconAccent: backdrop.flatMap { appIconProvider.accent(for: $0) }
         )
+    }
+
+    private func appSpecificDefinition(
+        for target: AppSpecificTarget
+    ) -> AppSpecificModeDefinition {
+        let accent = ModeHUDAppBackdrop(bundleIdentifier: target.bundleIdentifier)
+            .flatMap { appIconProvider.accent(for: $0) }
+        guard let accent else { return target.definition }
+        return target.definition.replacingIdentityAccent(with: accent)
+    }
+
+    private func appSelectorDefinition() -> AppSpecificModeDefinition {
+        AppSpecificMode.selectorDefinition { [weak self] target in
+            self?.appSpecificDefinition(for: target).accent ?? target.accent
+        }
     }
 
     private func makeTransport(excluding excludedIdentifiers: Set<String> = []) -> InputTransport? {
@@ -1071,8 +2184,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         field.placeholderString = "Password"
 
         let alert = NSAlert()
-        alert.messageText = "Set Keys Mode password"
-        alert.informativeText = "Stored only in this Mac's Keychain. Keys Mode cell 2 types it directly without using the clipboard."
+        alert.messageText = "Set Utility password"
+        alert.informativeText = "Stored only in this Mac's Keychain. Utility cell 7 types it directly without using the clipboard."
         alert.accessoryView = field
         alert.addButton(withTitle: "Save")
         alert.addButton(withTitle: "Cancel")
@@ -1096,7 +2209,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func confirmClearKeysPassword() {
         guard mouseCommandsAllowed else { return }
         let alert = NSAlert()
-        alert.messageText = "Clear Keys Mode password?"
+        alert.messageText = "Clear Utility password?"
         alert.informativeText = "This removes the device-local Keychain item."
         alert.addButton(withTitle: "Clear")
         alert.addButton(withTitle: "Cancel")
@@ -1110,7 +2223,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func showPasswordStorageProblem(_ message: String) {
         let alert = NSAlert()
         alert.alertStyle = .warning
-        alert.messageText = "Keys Mode password unavailable"
+        alert.messageText = "Utility password unavailable"
         alert.informativeText = message
         alert.runModal()
     }
@@ -1158,6 +2271,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             let name: String
             switch coordinator.page {
             case .modes: name = "Utility"
+            case .extraUtilities: name = "Extra Utilities"
             case .keypad: name = "Keypad"
             case .appSelector: name = "Choose app"
             case .appSpecific: name = "App-specific"

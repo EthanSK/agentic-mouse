@@ -9,6 +9,10 @@ let package = Package(
     products: [
         .library(name: "ScimitarKit", targets: ["ScimitarKit"]),
         .executable(name: "agentic-mouse", targets: ["AgenticMouseApp"]),
+        .executable(
+            name: "agentic-mouse-supervisor",
+            targets: ["AgenticMouseSupervisor"]
+        ),
         .executable(name: "agentic-mouse-doctor", targets: ["ScimitarDoctor"])
     ],
     targets: [
@@ -59,6 +63,11 @@ let package = Package(
         ),
 
         .executableTarget(
+            name: "AgenticMouseSupervisor",
+            path: "Sources/AgenticMouseSupervisor"
+        ),
+
+        .executableTarget(
             name: "ScimitarDoctor",
             dependencies: ["ScimitarKit"],
             path: "Sources/ScimitarDoctor"
@@ -74,6 +83,18 @@ let package = Package(
             name: "AgenticMouseAppTests",
             dependencies: ["AgenticMouseApp"],
             path: "Tests/AgenticMouseAppTests"
+        ),
+
+        .testTarget(
+            name: "AgenticMouseSupervisorTests",
+            dependencies: ["AgenticMouseSupervisor"],
+            path: "Tests/AgenticMouseSupervisorTests"
+        ),
+
+        .testTarget(
+            name: "ScimitarUITests",
+            dependencies: ["ScimitarUI"],
+            path: "Tests/ScimitarUITests"
         )
     ]
 )

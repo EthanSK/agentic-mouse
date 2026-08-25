@@ -82,7 +82,7 @@ binding from iCUE's keypad and physical-pointing namespaces. The separate Razer
 adapter generates the same base shape from its onboard main-row and
 physical-pointing namespaces, plus its two DPI VoiceInk bindings. Physical
 cells 5 and 8 also generate exact-device VS Code overrides with matching base
-exclusions. Cell 6 remains the global Option-Space action in every app, cell 9
+exclusions. Cell 6 remains the global YouTube scrub wheel action in every app, cell 9
 opens Keys, and every other control inherits its ordinary action. Generation never installs or
 enables rules as a side effect, and linted output is not physical proof. The
 Razer output was installed only after the returned exact device and ordered
@@ -94,10 +94,9 @@ or Razer button identifies its canonical physical cell; it does not create a
 device-specific action. One press of canonical cell 10 toggles that source
 mouse's Default legend outside modes and exits its active mode, while canonical
 cell 11 holds open Switch App and cell 12 opens Utility immediately. Only explicit hardware or handedness behavior
-may diverge. The left-handed Razer mirrors every horizontal directional family:
-printed 6/3 scroll Left/Right, and its Keys arrows plus top-level Spaces navigation
-reverse their corresponding horizontal meanings. Corsair retains its own
-right-handed directions.
+may diverge. The left-handed Razer mirrors only the explicitly handed Keys
+arrows. One-cell wheel controls keep the same accepted physical polarity on
+both mice.
 
 ### Locked-session security boundary
 
@@ -292,11 +291,16 @@ never artwork for a page. On the Default legend, `AppDelegate` supplies the
 frontmost app's exact running bundle path plus its identifier to the current-app
 slot. Named targets in `Choose app` carry their canonical configured bundle
 identifiers directly. `ScimitarUI` resolves the real installed icon with
-`NSWorkspace`, caches it by that stable identity, and renders an enlarged,
-blurred, edge-to-edge copy inside only that card behind its white label. The
+`NSWorkspace`, resolves both automatic and manual identities to one `.app`
+path cache, and renders an enlarged, lightly blurred, edge-to-edge copy inside
+only that card behind its white label. A bounded 32 × 32 sample chooses the
+strongest populated chromatic cluster and normalizes it into the app mode's
+HUD and mouse-lighting accent; a legible grey handles genuinely neutral icons,
+and the deterministic definition colour remains the failure fallback. Semantic
+action-family fills do not change. The
 outer `NSGlassEffectView`, child app page, selector spares, and all unrelated
 cards remain unchanged. Icon bytes are never copied into the mode domain,
-config, or repository.
+config, or repository, and neither icons nor derived colours are persisted.
 
 One `ModePickerCoordinator` per exact `MouseSource` is the authoritative layer
 above individual modes. A single press of physical cell 12 (Corsair 12 / Razer 10)
@@ -305,9 +309,10 @@ all twelve transports feed one ordered press/release stream, independent of
 ordinary frontmost-app conditions. Universal physical cell 10 exits any active
 mode and toggles that source mouse's independent Default legend outside modes.
 Keys cell 6 selects Keypad. Outside modes,
-cell 6 emits the global Option-Space intelligence-on-demand action. Top-level
+cell 6 emits the exact-device YouTube scrub press/release lifecycle. Top-level
 cell 2 opens a live frontmost-app child that refreshes on workspace activation;
-Utility cell 11 opens the separate configured-app selector and locks the chosen
+Utility cell 8 emits the hardware-shaped Option-Space Intelligence on Demand
+shortcut. Utility cell 11 opens the separate configured-app selector and locks the chosen
 target without activation. App children keep cell 12 available for real app
 actions and use either their matching entry cell 2 or universal cell 10 to
 exit. The parent selector still uses cell 2 for Terminal. Top-level cell 9 and Utility cell 9
@@ -332,28 +337,44 @@ native key events. Secure editable fields accept the same direct input; unknown
 focus and app changes still fail closed.
 The coordinator keeps a cycle-free navigation path per mouse, reusing an
 existing ancestor rather than stacking duplicate pages. Utility assigns cell 3
-to the Copy / Paste wheel chord, cell 4 to the Mission Control / Show Desktop
+to the Spaces wheel chord, cell 4 to the Mission Control / Show Desktop
 wheel chord, cell 5 to a down-only, one-action-per-hold native App Exposé chord, cell 6
 to the Magnet Left / Right wheel chord, cell 7 to Paste Password, and uses cell
 12 to enter the nested Extra Utilities page. Extra Utilities maps cell 1 to one
 manual hardware-like Control-Option-Shift-Command-A lifecycle, which invokes Stay's verified global restore
 hotkey for `Agentic Mouse Layout v1`; no automatic restore, AppleScript, or Stay
-UI automation exists in Agentic Mouse. Universal cell 10 exits the nested page
+UI automation exists in Agentic Mouse. Extra Utilities cell 9 sends one
+hardware-like Command-Q lifecycle to the frontmost external process. It
+excludes both Agentic Mouse bundle identifiers, remains lock/Accessibility
+gated, and is latched once per page visit. An unexpected native transport for
+either direct action fails closed without dispatching or burning its retry
+latch. Universal cell 10 exits the nested page
 and the active mode. The shared app-specific registry recognizes Ethan's measured
 high-use desktop set. `StandardAppMode` owns data-driven starter pages
-for Spotify, OBS, Claude, Notion, Telegram, Safari, Firefox, Opera, Restream
+for Spotify, OBS, Notion, Telegram, Safari, Firefox, Opera, Restream
 Chat++, Preview, Mail, Finder, System Settings, iCUE, and the Karabiner apps.
+Safari keeps every useful browser-starter action but reorders its grid to match
+Chrome wherever the two apps expose the same command: Close Tab / DevTools /
+New Tab / Reload / Reopen Tab / Find Page use cells 1/3/5/6/11/12. Safari's
+separate Previous/Next Tab controls stay on 4/7 and Back/Forward use 8/9;
+Firefox and Opera retain their original browser grid and Downloads action.
 Spotify layers one stateful control onto that shared definition: hold canonical
 cell 7 and ratchet up/down to send Command-Up/Command-Down directly to the
 running Spotify process, while cell 8 remains Spare. The chord is shared by
 automatic and manually selected Spotify journeys, debounces duplicate raw
 events, and releases back to ordinary scrolling without activating Spotify.
-Codex, Chrome, VS Code, Terminal, iTerm, and iPhone Mirroring retain dedicated action types where
+Codex, Claude, Chrome, VS Code, Terminal, iTerm, and iPhone Mirroring retain dedicated action types where
 they require gestures, verification, press/release state, or app-specific
 dispatch. iPhone Mirroring is automatic-only: exact bundle ID
 `com.apple.ScreenContinuity` maps child cell 1 to one frontmost-only,
 unlocked-session, Accessibility-trusted Fn-N hardware cycle for macOS
 Notification Center. No mirrored-screen swipe or UI automation is involved.
+Claude's automatic and manual journeys share one dedicated definition. Native
+menu accelerators use the process-targeted shortcut dispatcher. Search,
+sidebar, Voice Mode, and microphone actions inspect only Claude's focused
+window with a bounded de-duplicated Accessibility traversal and finite
+messaging timeout. Only one exact enabled pressable label is accepted; missing
+or ambiguous controls fail closed.
 Both automatic and manual journeys resolve the same
 `AppSpecificTarget.definition`; only their focus lifetime differs. VS Code,
 Terminal, and iTerm expose one app-targeted Ctrl-C interrupt on child cell 12
@@ -372,8 +393,10 @@ ordinary Default mode legend. A single press of shared physical cell 10
 toggles each source's respective copy with one exact-device command and no lease or lighting
 change. Each source owns an independent legend; hiding
 one never retargets or closes the other. Mode entry suspends only that source's panel; exit restores it only
-if it was already visible. Outside modes, cell 3 starts or cancels one native
-selected-area screenshot interaction; it is not a universal in-mode legend
+if it was already visible. Outside modes, cell 3 single-presses one native
+selected-area screenshot interaction, copies the uniquely identified saved image,
+and rapid-double-pastes it while Agentic Mouse still owns the current clipboard item;
+it is not a universal in-mode legend
 control. Mode HUDs and Keypad panels appear on all connected displays, use a
 distinct accent per mode, keep the actual function prominent, and show only the
 initiating mouse's small printed button label under each function. Every
@@ -387,15 +410,19 @@ Two-way wheel chords deliberately split responsibility at the supported API
 boundary. Exact-device Karabiner press/release commands arm one source-specific
 control, because Quartz wheel events do not expose device identity. An
 Accessibility-trusted `CGEvent` tap then consumes phase-free vertical wheel
-events while exactly one chord is armed. Horizontal, Utility, Chrome Tabs, and
-Magnet act once per accepted event regardless of delta magnitude. Top-level
-Spaces uses a stricter one-action hold latch: the first accepted sign posts one
+events while exactly one chord is armed. Top-level Copy/Paste, Horizontal,
+Utility, Chrome Tabs, and Magnet route by their explicit semantic cadence.
+Utility Spaces uses a stricter one-action hold latch: the first accepted sign posts one
 Space step and every later event is consumed until physical release re-arms it.
 Continuous trackpad scrolling and every wheel event outside a chord pass
 through; simultaneous Corsair and Razer chords are consumed without guessing.
 Lock, sleep, device loss, lease failure, and shutdown clear the state.
-Horizontal output is a native Quartz horizontal line scroll; top-level Spaces
-and Utility brightness/zoom reuse their existing bounded executors.
+Horizontal output is a native Quartz horizontal line scroll. Its bounded
+`input.horizontalScrollLinesPerRatchet` setting changes only the emitted
+axis-2 line magnitude (default 4, supported 1...12); the discrete-ratchet state
+machine still owns the unchanged same-direction duplicate-burst filter.
+Top-level Copy/Paste and Utility brightness/zoom/spaces reuse their existing bounded
+executors.
 
 The colour-proof coordinator defaults both its idle and absolute timeouts to
 zero, so the mode and HUD remain active until the entry cell explicitly exits.

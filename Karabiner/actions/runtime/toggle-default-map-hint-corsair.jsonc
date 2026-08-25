@@ -1,4 +1,4 @@
-// Toggles the persistent top-level legend from shared physical cell 12 on Corsair.
+// Toggles the persistent top-level legend from shared physical cell 10 on Corsair.
 {
   "id": "toggle-default-map-hint-corsair",
   "title": "Toggle Default mode legend (Corsair)",
@@ -9,7 +9,7 @@
         "payload": {
           "command": "agentic_mouse_default_map_toggle",
           "source": "corsair",
-          "physical_cell": 12
+          "physical_cell": 10
         }
       },
       "repeat": false

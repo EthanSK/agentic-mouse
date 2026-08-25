@@ -10,7 +10,9 @@ public enum HUDLayout {
     /// One cell of the on-screen grid.
     public struct Cell: Equatable, Sendable {
         public let key: MultiTapKey
-        /// The digit or symbol a phone would print: `1`…`9`, `*`, `0`, `#`.
+        /// The large positional label. Runtime Keypad uses the exact number
+        /// printed on the source mouse; the standalone classic map retains the
+        /// historical phone glyphs.
         public let legend: String
         /// `ABC`, `SPACE`, `DEL`, `EXIT`, …
         public let caption: String
@@ -65,7 +67,7 @@ public enum HUDLayout {
 
         return Cell(
             key: key,
-            legend: key.keypadLegend,
+            legend: legend(for: key, snapshot: snapshot),
             caption: caption(for: spec, shift: shift),
             holdCaption: spec?.holdCaption,
             cycle: cycle,
@@ -74,6 +76,17 @@ public enum HUDLayout {
             isHeld: snapshot.state.heldKey == key,
             isModeToggle: key == toggleKey
         )
+    }
+
+    /// Runtime Keypad is learned against the physical mouse, not a fictional
+    /// phone bottom row. Source projection also places Razer printed 1 at its
+    /// real top-right position without changing any canonical action cell.
+    static func legend(for key: MultiTapKey, snapshot: HUDSnapshot) -> String {
+        guard snapshot.keymap == .modesKeypad,
+              let physicalCell = PhysicalCell(rawValue: key.rawValue),
+              let printedSide = physicalCell.printedSide(on: snapshot.source)
+        else { return key.keypadLegend }
+        return String(printedSide)
     }
 
     /// In `123` mode a letter key shows its digit rather than `ABC`, which is

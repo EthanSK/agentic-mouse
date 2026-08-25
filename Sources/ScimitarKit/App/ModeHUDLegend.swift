@@ -1,5 +1,16 @@
 import Foundation
 
+/// Latest physically reported state of one visible mouse control.
+///
+/// A red cross is deliberately narrower than "not yet tested": it means Ethan
+/// explicitly reported the control broken or unreliable and has not since
+/// physically accepted it. Source changes, automated tests, and a fresh install
+/// do not clear that report by themselves.
+public enum ModeHUDControlStatus: Equatable, Hashable, Sendable {
+    case normal
+    case reportedBroken
+}
+
 /// One cell in the reusable runtime-mode legend shown by Agentic Mouse.
 /// Future modes supply their own action labels while reusing the same physical
 /// cross-device grid and non-activating panel.
@@ -9,21 +20,55 @@ public struct ModeHUDLegendItem: Equatable, Hashable, Sendable {
     public let accent: RGBColor
     /// Set only when this card opens another mode or submenu. The destination
     /// colour replaces the ordinary current-mode border and receives stronger
-    /// perimeter emphasis, while `accent` remains the card's action fill.
+    /// perimeter emphasis. On the neutral Default page it also becomes the
+    /// card's full-strength fill; active mode pages keep their action-family
+    /// fill inside the destination-coloured border.
     public let destinationModeAccent: RGBColor?
+    /// Optional presentation identity for the one card representing a concrete
+    /// application. The UI resolves its real installed icon at render time;
+    /// ordinary cards and whole-panel backgrounds never receive this artwork.
+    public let appBackdrop: ModeHUDAppBackdrop?
+    public let controlStatus: ModeHUDControlStatus
 
     public init(
         cell: PhysicalCell,
         actionTitle: String,
         accent: RGBColor,
-        destinationModeAccent: RGBColor? = nil
+        destinationModeAccent: RGBColor? = nil,
+        appBackdrop: ModeHUDAppBackdrop? = nil
+    ) {
+        self.init(
+            cell: cell,
+            actionTitle: actionTitle,
+            accent: accent,
+            destinationModeAccent: destinationModeAccent,
+            appBackdrop: appBackdrop,
+            controlStatus: .normal
+        )
+    }
+
+    public init(
+        cell: PhysicalCell,
+        actionTitle: String,
+        accent: RGBColor,
+        destinationModeAccent: RGBColor? = nil,
+        appBackdrop: ModeHUDAppBackdrop? = nil,
+        controlStatus: ModeHUDControlStatus
     ) {
         self.cell = cell
         self.actionTitle = actionTitle
         self.accent = accent
         self.destinationModeAccent = destinationModeAccent
+        self.appBackdrop = appBackdrop
+        self.controlStatus = controlStatus
     }
 
+    /// Keep the repair marker immediately after the source-specific printed
+    /// identifier so the action title stays concise and stable.
+    public func printedControlLabel(on source: MouseSource) -> String {
+        let label = cell.displayLabel(on: source)
+        return controlStatus == .reportedBroken ? "\(label) ❌" : label
+    }
 }
 
 /// Visual treatment for the reusable mode legend.
@@ -37,32 +82,51 @@ public enum ModeHUDPresentationStyle: String, Equatable, Sendable {
 
     public var requiresOpaqueWindow: Bool { self != .neutral }
 
+    /// Accent strength applied over the outer native glass surface. Active
+    /// modes need a clear identity without diluting their opaque action cards.
+    public var panelAccentOpacity: Double {
+        switch self {
+        case .neutral: return 0
+        case .boldOpaque: return 0.48
+        }
+    }
+
     public func displayAccent(_ color: RGBColor) -> RGBColor {
         color
     }
 
     public func cardFill(_ color: RGBColor) -> RGBColor {
-        color
+        switch self {
+        case .neutral:
+            return color
+        case .boldOpaque:
+            // Keep action-family identity without letting twelve saturated
+            // controls compete with the active mode itself. This remains an
+            // opaque RGB surface; only its brightness is reduced.
+            return color.scaledBrightness(0.52)
+        }
     }
 
-    public func cardForeground(for fill: RGBColor) -> RGBColor {
-        guard self != .neutral else { return .white }
-        return fill.relativeLuminance > 0.62
-            ? RGBColor(red: 18, green: 22, blue: 30)
-            : .white
+    public func cardForeground(for _: RGBColor) -> RGBColor {
+        // Agentic Mouse uses bold colour as identity, not as a conventional
+        // light surface. Keep the card hierarchy consistent across every mode
+        // instead of switching bright fills to black text.
+        .white
     }
 }
 
 /// The two independent colour roles of one HUD card.
 ///
 /// The mode colour forms the ordinary perimeter across the grid, while the
-/// action colour remains inside the card. Navigation cards deliberately use
-/// the destination mode's colour as a stronger perimeter so the next submenu
-/// is legible before it is opened.
+/// action colour remains as a calmer opaque fill inside ordinary mode cards.
+/// Navigation cards deliberately use the destination mode's colour as both a
+/// stronger perimeter and a full-strength fill, so the modes themselves remain
+/// the most saturated controls in the hierarchy.
 public struct ModeHUDCardColors: Equatable, Sendable {
     public let border: RGBColor
     public let fill: RGBColor
     public let foreground: RGBColor
+    public let usesStrongDestinationFill: Bool
 
     public init(
         modeAccent: RGBColor,
@@ -70,8 +134,15 @@ public struct ModeHUDCardColors: Equatable, Sendable {
         destinationModeAccent: RGBColor? = nil,
         presentationStyle: ModeHUDPresentationStyle = .neutral
     ) {
-        border = presentationStyle.displayAccent(destinationModeAccent ?? modeAccent)
-        fill = presentationStyle.cardFill(actionAccent)
+        if let destination = destinationModeAccent {
+            usesStrongDestinationFill = true
+            border = presentationStyle.displayAccent(destination)
+            fill = presentationStyle.displayAccent(destination)
+        } else {
+            usesStrongDestinationFill = false
+            border = presentationStyle.displayAccent(modeAccent)
+            fill = presentationStyle.cardFill(actionAccent)
+        }
         foreground = presentationStyle.cardForeground(for: fill)
     }
 }
@@ -118,9 +189,13 @@ public enum ModeHUDActionFamilyPalette {
     public static let brightness = RGBColor(red: 255, green: 196, blue: 45)
     public static let applicationZoom = RGBColor(red: 35, green: 218, blue: 177)
     public static let desktopSpaces = RGBColor(red: 66, green: 132, blue: 255)
+    public static let browserTabs = RGBColor(red: 66, green: 133, blue: 244)
+    public static let systemOverview = RGBColor(red: 72, green: 118, blue: 255)
     public static let arrowKeys = RGBColor(red: 255, green: 170, blue: 28)
     public static let clipboard = RGBColor(red: 52, green: 210, blue: 184)
+    public static let windowManagement = RGBColor(red: 255, green: 116, blue: 74)
     public static let enter = RGBColor(red: 48, green: 218, blue: 126)
+    public static let legendToggle = RGBColor(red: 0, green: 205, blue: 255)
     public static let space = RGBColor(red: 55, green: 150, blue: 255)
     public static let backspace = RGBColor(red: 255, green: 70, blue: 92)
     public static let storedPassword = RGBColor(red: 190, green: 86, blue: 255)
@@ -137,13 +212,27 @@ public enum ModeHUDCopy {
     /// name is clearer than state copy that can only ever be seen while open.
     public static let legendToggleTitle = "Legend toggle"
 
-    public static func screenshotActionTitle(isCapturing: Bool) -> String {
-        isCapturing ? "Cancel screenshot" : "Screenshot"
+    public static func screenshotActionTitle(
+        state: ScreenshotActionPresentationState
+    ) -> String {
+        switch state {
+        case .idle: return "Screenshot"
+        case .capturing: return "Cancel screenshot"
+        case .copying: return "Copying screenshot…"
+        case .pasteReady: return "Screenshot · 2× Paste"
+        }
     }
 
     public static func referenceHeader(for source: MouseSource) -> String {
         "\(source.displayName.uppercased()) BUTTON MAP"
     }
+}
+
+public enum ScreenshotActionPresentationState: Equatable, Sendable {
+    case idle
+    case capturing
+    case copying
+    case pasteReady
 }
 
 /// The reusable presentation contract for a mouse mode or a short mapping
@@ -179,6 +268,31 @@ public struct ModeHUDFeedback: Equatable, Sendable {
     public init(message: String, tone: Tone) {
         self.message = message
         self.tone = tone
+    }
+}
+
+/// Stable app identity used only to resolve presentation artwork in the UI
+/// layer. The exact running `.app` path wins for an automatic frontmost-app
+/// journey; manually selected configured apps fall back to their canonical
+/// bundle identifier. No icon bytes enter the mode domain or persisted config.
+public struct ModeHUDAppBackdrop: Equatable, Hashable, Sendable {
+    public let bundleIdentifier: String?
+    public let applicationPath: String?
+
+    public init?(bundleIdentifier: String?, applicationPath: String? = nil) {
+        let normalizedBundleIdentifier = bundleIdentifier?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        let normalizedApplicationPath = applicationPath?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        guard normalizedBundleIdentifier?.isEmpty == false
+                || normalizedApplicationPath?.isEmpty == false
+        else { return nil }
+        self.bundleIdentifier = normalizedBundleIdentifier?.isEmpty == false
+            ? normalizedBundleIdentifier
+            : nil
+        self.applicationPath = normalizedApplicationPath?.isEmpty == false
+            ? normalizedApplicationPath
+            : nil
     }
 }
 

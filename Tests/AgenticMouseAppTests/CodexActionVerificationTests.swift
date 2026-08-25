@@ -123,7 +123,8 @@ final class CodexActionVerificationTests: XCTestCase {
         let executor = CodexModeActionExecutor(
             targetProcessResolver: { 42 },
             postEvent: { _, _, _, _ in true },
-            accessibilityTrusted: { true }
+            accessibilityTrusted: { true },
+            editQueuedMessage: { .success(()) }
         )
 
         guard case .success = executor.perform(.steerQueuedMessage, feedback: {
@@ -135,6 +136,142 @@ final class CodexActionVerificationTests: XCTestCase {
             feedback,
             [.sentUnverified("Steer queued message sent — result not exposed by Codex")]
         )
+
+        feedback.removeAll()
+        guard case .success = executor.perform(.editQueuedMessage, feedback: {
+            feedback.append($0)
+        }) else {
+            return XCTFail("edit action should dispatch")
+        }
+        XCTAssertEqual(
+            feedback,
+            [.sentUnverified("Edit queued message pressed — result not confirmed by Codex")]
+        )
+    }
+
+    func testVoiceStateTransitionIsTheOnlyConfirmedVoiceResult() {
+        XCTAssertEqual(
+            CodexVoiceSessionVerifier.feedback(before: .inactive, after: .active),
+            .confirmed("Voice mode started — confirmed by Codex")
+        )
+        XCTAssertEqual(
+            CodexVoiceSessionVerifier.feedback(before: .active, after: .inactive),
+            .confirmed("Voice mode stopped — confirmed by Codex")
+        )
+        XCTAssertNil(CodexVoiceSessionVerifier.feedback(before: .active, after: .active))
+    }
+
+    func testVoiceDispatchNeverPretendsAnUnobservedChangeSucceeded() {
+        let state: CodexVoiceSessionStateReader.State = .inactive
+        var scheduled: [@Sendable @MainActor () -> Void] = []
+        var feedback: [CodexActionFeedback] = []
+        let verifier = CodexVoiceSessionVerifier(
+            readState: { state },
+            schedule: { _, action in scheduled.append(action) },
+            retryDelays: [0]
+        )
+        let executor = CodexModeActionExecutor(
+            targetProcessResolver: { 42 },
+            targetProcessIsActive: { _ in true },
+            postHardwareSystemShortcut: { _ in true },
+            accessibilityTrusted: { true },
+            voiceSessionVerifier: verifier
+        )
+
+        guard case .success = executor.perform(.toggleVoiceMode, feedback: {
+            feedback.append($0)
+        }) else {
+            return XCTFail("voice shortcut should dispatch")
+        }
+        XCTAssertEqual(
+            feedback,
+            [.checking("Voice mode shortcut sent — checking Codex state")]
+        )
+        scheduled.removeFirst()()
+        XCTAssertEqual(
+            feedback.last,
+            .notConfirmed("Voice mode change was not confirmed by Codex")
+        )
+    }
+
+    func testLockedVoiceActionDoesNotReadCodexAccessibilityState() {
+        var stateReadCount = 0
+        let verifier = CodexVoiceSessionVerifier(
+            readState: { stateReadCount += 1; return .inactive },
+            retryDelays: []
+        )
+        let executor = CodexModeActionExecutor(
+            targetProcessResolver: { 42 },
+            targetProcessIsActive: { _ in true },
+            postHardwareSystemShortcut: { _ in true },
+            accessibilityTrusted: { true },
+            inputAllowed: { false },
+            voiceSessionVerifier: verifier
+        )
+
+        guard case .failure = executor.perform(.toggleVoiceMode) else {
+            return XCTFail("locked Voice Mode must fail before reading Codex")
+        }
+        XCTAssertEqual(stateReadCount, 0)
+    }
+
+    func testCancellingCodexActionsSuppressesDelayedVoiceFeedback() {
+        var state: CodexVoiceSessionStateReader.State = .inactive
+        var scheduled: [@Sendable @MainActor () -> Void] = []
+        var feedback: [CodexActionFeedback] = []
+        let verifier = CodexVoiceSessionVerifier(
+            readState: { state },
+            schedule: { _, action in scheduled.append(action) },
+            retryDelays: [0]
+        )
+        let executor = CodexModeActionExecutor(
+            targetProcessResolver: { 42 },
+            targetProcessIsActive: { _ in true },
+            postHardwareSystemShortcut: { _ in true },
+            accessibilityTrusted: { true },
+            voiceSessionVerifier: verifier
+        )
+
+        _ = executor.perform(.toggleVoiceMode, feedback: { feedback.append($0) })
+        executor.cancelPendingActions()
+        state = .active
+        scheduled.removeFirst()()
+
+        XCTAssertEqual(
+            feedback,
+            [.checking("Voice mode shortcut sent — checking Codex state")]
+        )
+    }
+
+    func testDelayedVoicePollRechecksInputAndAccessibilityBeforeReadingCodex() {
+        var inputAllowed = true
+        var trusted = true
+        var scheduled: [@Sendable @MainActor () -> Void] = []
+        var postDispatchReadCount = 0
+        var feedback: [CodexActionFeedback] = []
+        let verifier = CodexVoiceSessionVerifier(
+            readState: { postDispatchReadCount += 1; return .active },
+            captureState: { .inactive },
+            schedule: { _, action in scheduled.append(action) },
+            retryDelays: [0],
+            inputAllowed: { inputAllowed },
+            accessibilityTrusted: { trusted }
+        )
+
+        verifier.verify(from: .inactive) { feedback.append($0) }
+        inputAllowed = false
+        scheduled.removeFirst()()
+        XCTAssertEqual(postDispatchReadCount, 0)
+        XCTAssertEqual(
+            feedback,
+            [.notConfirmed("Voice mode change was not confirmed by Codex")]
+        )
+
+        inputAllowed = true
+        verifier.verify(from: .inactive) { feedback.append($0) }
+        trusted = false
+        scheduled.removeFirst()()
+        XCTAssertEqual(postDispatchReadCount, 0)
     }
 
     func testStateReaderUsesOnlyCodexPinnedThreadIds() throws {

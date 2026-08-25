@@ -10,6 +10,14 @@ extern "C" {
 
 typedef void *AMRazerUSBHandle;
 
+/// Counts USB devices matching `vendor_id` and `product_id` without opening
+/// the device or touching any input interface.
+int32_t am_razer_usb_count_exact(
+    uint16_t vendor_id,
+    uint16_t product_id,
+    uint32_t *out_count
+);
+
 /// Opens exactly one USB device matching `vendor_id` and `product_id`.
 /// Returns zero on success, -2 when more than one exact device is present,
 /// or an IOKit status value on transport failure.

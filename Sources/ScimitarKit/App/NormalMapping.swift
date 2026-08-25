@@ -56,21 +56,22 @@ public struct ScimitarNormalMapping: Equatable, Sendable {
 
     /// The default semantic layer.
     ///
-    /// Buttons 5/8 are the ordinary Forward/Back pair and 1/4 are the
-    /// horizontal-scroll pair. Speech-to-text remains on the separate DPI
-    /// Toggle control, matching the last complete pre-removal iCUE export.
+    /// Buttons 5/8 are the ordinary Forward/Back pair. Holding cell 1 turns
+    /// that mouse's ratcheted wheel into one-step horizontal scrolling;
+    /// holding cell 4 turns it into Copy/Paste.
+    /// Speech-to-text remains on the separate DPI control.
     public static let normal = ScimitarNormalMapping(
         profileName: "Normal",
         assignments: [
             Assignment(
                 button: 1,
-                action: "Horizontal scroll left",
-                implementation: "Karabiner action: scroll-horizontally-left"
+                action: "Horizontal Scroll + Wheel",
+                implementation: "Hold the exact-device cell; Agentic Mouse converts each ratchet into one native horizontal step"
             ),
             Assignment(
                 button: 2,
-                action: "Keys mode",
-                implementation: "Exact-device Karabiner opens the shared native-key mode; active cell 10 exits"
+                action: "App-specific mode",
+                implementation: "Exact-device Karabiner opens the current frontmost app mode; active cell 10 exits"
             ),
             Assignment(
                 button: 3,
@@ -79,14 +80,14 @@ public struct ScimitarNormalMapping: Equatable, Sendable {
             ),
             Assignment(
                 button: 4,
-                action: "Horizontal scroll right",
-                implementation: "Karabiner action: scroll-horizontally-right"
+                action: "Copy / Paste + Wheel",
+                implementation: "Hold the exact-device cell; Agentic Mouse sends Paste or Copy for each accepted ratchet"
             ),
             Assignment(button: 5, action: "Forward"),
             Assignment(
                 button: 6,
-                action: "App-specific mode",
-                implementation: "Exact-device Karabiner opens the current frontmost app mode; active cell 10 exits"
+                action: "YouTube Scrub + Wheel",
+                implementation: "Hold the exact-device cell; each accepted ratchet asks the VoiceInk YouTube Bridge to seek the selected target by exactly five seconds without focusing Chrome"
             ),
             Assignment(
                 button: 7,
@@ -96,13 +97,13 @@ public struct ScimitarNormalMapping: Equatable, Sendable {
             Assignment(button: 8, action: "Back"),
             Assignment(
                 button: 9,
-                action: "App shortcut",
-                implementation: "Karabiner suppresses the neutral transport by default; VS Code emits Stage + Next and supports the configured double-click action"
+                action: "Keys mode",
+                implementation: "Exact-device Karabiner opens the shared native-key mode; active cell 10 exits"
             ),
             Assignment(
                 button: 10,
-                action: "Spare / mode exit",
-                implementation: "Consumed outside runtime modes; universal Exit while a mode is active"
+                action: "Legend toggle / mode exit",
+                implementation: "Toggles the persistent Default legend outside modes; universal Exit while a mode is active"
             ),
             Assignment(
                 button: 11,
@@ -111,8 +112,8 @@ public struct ScimitarNormalMapping: Equatable, Sendable {
             ),
             Assignment(
                 button: 12,
-                action: "Utility modes / Legend toggle",
-                implementation: "One press opens Utility; a rapid second press toggles the persistent Default legend"
+                action: "Utility modes",
+                implementation: "One press opens Utility immediately"
             )
         ]
     )
@@ -130,7 +131,7 @@ public struct ScimitarNormalMapping: Equatable, Sendable {
     public static let untouchedControls: [String] = [
         "Left click",
         "Right click",
-        "Wheel scroll (vertical)",
+        "Wheel scroll (vertical; temporarily captured only while a wheel chord is held)",
         "Wheel press — neutral middle click; exact-device Karabiner Play/Pause",
         "Pointer movement",
         "DPI Toggle button — neutral exact-device F19 transport; Karabiner triggers VoiceInk++ speech-to-text on physical release; does not change DPI"
@@ -161,21 +162,6 @@ public enum DefaultMouseMapping {
     ) -> ScimitarNormalMapping.Assignment? {
         guard let assignment = ScimitarNormalMapping.normal.assignment(for: cell.rawValue) else {
             return nil
-        }
-        guard source == .razer else { return assignment }
-        if cell.rawValue == 1 {
-            return .init(
-                button: assignment.button,
-                action: "Horizontal scroll right",
-                implementation: "Left-handed Razer horizontal-scroll exception"
-            )
-        }
-        if cell.rawValue == 4 {
-            return .init(
-                button: assignment.button,
-                action: "Horizontal scroll left",
-                implementation: "Left-handed Razer horizontal-scroll exception"
-            )
         }
         return assignment
     }

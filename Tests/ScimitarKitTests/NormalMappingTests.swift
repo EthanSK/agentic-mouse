@@ -11,28 +11,28 @@ final class NormalMappingTests: XCTestCase {
 
     // MARK: - Normal profile
 
-    func testHorizontalScrollIsTheOneFourPair() {
-        let left = ScimitarNormalMapping.normal.assignment(for: 1)
-        XCTAssertEqual(left?.action, "Horizontal scroll left")
+    func testTopLevelWheelChordsUseHorizontalOnCellOneAndClipboardOnCellFour() {
+        let chord = ScimitarNormalMapping.normal.assignment(for: 1)
+        XCTAssertEqual(chord?.action, "Horizontal Scroll + Wheel")
         XCTAssertEqual(
-            left?.implementation,
-            "Karabiner action: scroll-horizontally-left"
+            chord?.implementation,
+            "Hold the exact-device cell; Agentic Mouse converts each ratchet into one native horizontal step"
         )
 
-        let right = ScimitarNormalMapping.normal.assignment(for: 4)
-        XCTAssertEqual(right?.action, "Horizontal scroll right")
+        let clipboard = ScimitarNormalMapping.normal.assignment(for: 4)
+        XCTAssertEqual(clipboard?.action, "Copy / Paste + Wheel")
         XCTAssertEqual(
-            right?.implementation,
-            "Karabiner action: scroll-horizontally-right"
+            clipboard?.implementation,
+            "Hold the exact-device cell; Agentic Mouse sends Paste or Copy for each accepted ratchet"
         )
     }
 
-    func testUtilityLegendIsCellTwelveSwitchAppIsElevenAndExitIsTen() {
-        XCTAssertEqual(ScimitarNormalMapping.normal.assignment(for: 12)?.action, "Utility modes / Legend toggle")
+    func testUtilityIsCellTwelveSwitchAppIsElevenAndLegendExitIsTen() {
+        XCTAssertEqual(ScimitarNormalMapping.normal.assignment(for: 12)?.action, "Utility modes")
         XCTAssertEqual(ScimitarNormalMapping.normal.assignment(for: 11)?.action, "Switch App")
-        XCTAssertEqual(ScimitarNormalMapping.normal.assignment(for: 10)?.action, "Spare / mode exit")
-        XCTAssertEqual(PhysicalCell.defaultMapToggle.printedSide(on: .corsair), 12)
-        XCTAssertEqual(PhysicalCell.defaultMapToggle.printedSide(on: .razer), 10)
+        XCTAssertEqual(ScimitarNormalMapping.normal.assignment(for: 10)?.action, "Legend toggle / mode exit")
+        XCTAssertEqual(PhysicalCell.defaultMapToggle.printedSide(on: .corsair), 10)
+        XCTAssertEqual(PhysicalCell.defaultMapToggle.printedSide(on: .razer), 12)
         XCTAssertEqual(PhysicalCell.switchApp.printedSide(on: .corsair), 11)
         XCTAssertEqual(PhysicalCell.switchApp.printedSide(on: .razer), 11)
     }
@@ -63,22 +63,31 @@ final class NormalMappingTests: XCTestCase {
         )
     }
 
-    func testTwoOpensKeysSixOpensTheFrontmostAppAndNineIsTheAppShortcut() {
-        XCTAssertEqual(ScimitarNormalMapping.normal.assignment(for: 2)?.action, "Keys mode")
+    func testTwoOpensTheFrontmostAppSixScrubsYouTubeAndNineOpensKeys() {
+        XCTAssertEqual(ScimitarNormalMapping.normal.assignment(for: 2)?.action, "App-specific mode")
         XCTAssertEqual(
             ScimitarNormalMapping.normal.assignment(for: 2)?.implementation,
-            "Exact-device Karabiner opens the shared native-key mode; active cell 10 exits"
-        )
-        XCTAssertEqual(ScimitarNormalMapping.normal.assignment(for: 6)?.action, "App-specific mode")
-        XCTAssertEqual(
-            ScimitarNormalMapping.normal.assignment(for: 6)?.implementation,
             "Exact-device Karabiner opens the current frontmost app mode; active cell 10 exits"
         )
-        XCTAssertEqual(ScimitarNormalMapping.normal.assignment(for: 9)?.action, "App shortcut")
+        XCTAssertEqual(ScimitarNormalMapping.normal.assignment(for: 6)?.action, "YouTube Scrub + Wheel")
+        XCTAssertEqual(
+            ScimitarNormalMapping.normal.assignment(for: 6)?.implementation,
+            "Hold the exact-device cell; each accepted ratchet asks the VoiceInk YouTube Bridge to seek the selected target by exactly five seconds without focusing Chrome"
+        )
+        XCTAssertEqual(ScimitarNormalMapping.normal.assignment(for: 9)?.action, "Keys mode")
         XCTAssertEqual(
             ScimitarNormalMapping.normal.assignment(for: 9)?.implementation,
-            "Karabiner suppresses the neutral transport by default; VS Code emits Stage + Next and supports the configured double-click action"
+            "Exact-device Karabiner opens the shared native-key mode; active cell 10 exits"
         )
+        XCTAssertEqual(PhysicalCell.youtubeBackFiveSeconds.printedSide(on: .corsair), 6)
+        XCTAssertEqual(PhysicalCell.youtubeBackFiveSeconds.printedSide(on: .razer), 4)
+        XCTAssertEqual(PhysicalCell.youtubeScrubWheelControl, PhysicalCell.youtubeBackFiveSeconds)
+        XCTAssertEqual(PhysicalCell.intelligenceOnDemand.printedSide(on: .corsair), 8)
+        XCTAssertEqual(PhysicalCell.intelligenceOnDemand.printedSide(on: .razer), 8)
+        XCTAssertEqual(PhysicalCell.keysModeEntry.printedSide(on: .corsair), 9)
+        XCTAssertEqual(PhysicalCell.keysModeEntry.printedSide(on: .razer), 7)
+        XCTAssertEqual(VSCodeModeAction.stageAndNext.cell, PhysicalCell(rawValue: 9))
+        XCTAssertEqual(VSCodeMode.cursorHistoryWheelCell, PhysicalCell(rawValue: 6))
     }
 
     func testEveryDpiStageIsTheLogitechValue() {
@@ -120,13 +129,19 @@ final class NormalMappingTests: XCTestCase {
 
     // MARK: - Interaction with Modes and Keypad
 
-    func testCellTwelveOwnsTheUtilityModesEntry() {
+    func testCellTwelveOwnsUtilityAndCellTenOwnsLegendOutsideModes() {
         for profile in ScimitarNormalMapping.allProfiles {
-            let toggle = profile.assignment(for: 12)
-            XCTAssertEqual(toggle?.action, "Utility modes / Legend toggle")
+            let utility = profile.assignment(for: 12)
+            XCTAssertEqual(utility?.action, "Utility modes")
+            XCTAssertEqual(
+                utility?.implementation,
+                "One press opens Utility immediately"
+            )
+            let toggle = profile.assignment(for: 10)
+            XCTAssertEqual(toggle?.action, "Legend toggle / mode exit")
             XCTAssertEqual(
                 toggle?.implementation,
-                "One press opens Utility; a rapid second press toggles the persistent Default legend"
+                "Toggles the persistent Default legend outside modes; universal Exit while a mode is active"
             )
         }
     }
@@ -138,12 +153,13 @@ final class NormalMappingTests: XCTestCase {
         XCTAssertEqual(PhysicalCell.modeExit.rawValue, 10)
     }
 
-    func testModesKeypadUsesTenForExitElevenForShiftAndTwelveForSpaceReturn() {
+    func testModesKeypadUsesTenForExitElevenForSpaceAndTwelveForBackspaceReturn() {
         XCTAssertEqual(MultiTapKeymap.modesKeypad[.k10]?.tapAction, .exitMode)
-        XCTAssertEqual(MultiTapKeymap.modesKeypad[.k11]?.caption, "SHIFT")
-        XCTAssertEqual(MultiTapKeymap.modesKeypad[.k11]?.tapAction, .shiftCycle)
+        XCTAssertEqual(MultiTapKeymap.modesKeypad[.k11]?.caption, "SPACE")
+        XCTAssertEqual(MultiTapKeymap.modesKeypad[.k11]?.tapAction, .space)
         XCTAssertNil(MultiTapKeymap.modesKeypad[.k11]?.holdAction)
-        XCTAssertEqual(MultiTapKeymap.modesKeypad[.k12]?.tapAction, .space)
+        XCTAssertEqual(MultiTapKeymap.modesKeypad[.k12]?.caption, "BACKSPACE")
+        XCTAssertEqual(MultiTapKeymap.modesKeypad[.k12]?.tapAction, .backspace)
         XCTAssertEqual(MultiTapKeymap.modesKeypad[.k12]?.holdAction, .newline)
     }
 

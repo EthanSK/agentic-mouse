@@ -1,0 +1,30 @@
+// Arms the top-level Copy / Paste wheel chord for the exact Razer source lifetime.
+{
+  "id": "hold-copy-paste-wheel-razer",
+  "title": "Hold Copy / Paste + Wheel (Razer)",
+  "description": "Tell Agentic Mouse that Razer physical cell 4 is held until its exact source key releases.",
+  "manipulator": {
+    "to": [{
+      "send_user_command": {
+        "payload": {
+          "command": "agentic_mouse_wheel_chord",
+          "control": "clipboard",
+          "source": "razer",
+          "phase": "press"
+        }
+      },
+      "repeat": false
+    }],
+    "to_after_key_up": [{
+      "send_user_command": {
+        "payload": {
+          "command": "agentic_mouse_wheel_chord",
+          "control": "clipboard",
+          "source": "razer",
+          "phase": "release"
+        }
+      },
+      "repeat": false
+    }]
+  }
+}

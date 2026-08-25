@@ -33,63 +33,18 @@ MODE_PAGE_KEYPAD = 5
 APP_SELECTOR_TARGET_CELLS = {1, 4, 7}
 KEYS_MODE_OUTPUT_BY_PHYSICAL_CELL = {
     1: {"key_code": "left_arrow", "repeat": False},
-    3: {
-        "key_code": "v",
-        "modifiers": ["left_command"],
-        "repeat": False,
-    },
+    3: {"key_code": "z", "modifiers": ["left_command"], "repeat": False},
     4: {"key_code": "down_arrow", "repeat": False},
     5: {"key_code": "up_arrow", "repeat": False},
-    6: {
-        "key_code": "c",
-        "modifiers": ["left_command"],
-        "repeat": False,
-    },
     7: {"key_code": "right_arrow", "repeat": False},
     8: {"key_code": "spacebar", "repeat": False},
     9: {"consumer_key_code": "scan_next_track", "repeat": False},
     11: {"key_code": "delete_or_backspace", "repeat": False},
-    12: {"key_code": "escape", "repeat": False},
+    12: {"key_code": "return_or_enter", "repeat": False},
 }
 RAZER_KEYS_MODE_OUTPUT_OVERRIDES = {
     1: {"key_code": "right_arrow", "repeat": False},
     7: {"key_code": "left_arrow", "repeat": False},
-}
-RAZER_UTILITY_MODE_OUTPUT_OVERRIDES = {
-    3: {
-        "key_code": "right_arrow",
-        "modifiers": ["left_control"],
-        "repeat": False,
-    },
-    6: {
-        "key_code": "left_arrow",
-        "modifiers": ["left_control"],
-        "repeat": False,
-    },
-}
-UTILITY_MODE_OUTPUT_BY_PHYSICAL_CELL = {
-    1: {"consumer_key_code": "display_brightness_increment", "repeat": False},
-    2: {
-        "key_code": "equal_sign",
-        "modifiers": ["left_command", "left_shift"],
-        "repeat": False,
-    },
-    3: {
-        "key_code": "left_arrow",
-        "modifiers": ["left_control"],
-        "repeat": False,
-    },
-    4: {"consumer_key_code": "display_brightness_decrement", "repeat": False},
-    5: {
-        "key_code": "hyphen",
-        "modifiers": ["left_command"],
-        "repeat": False,
-    },
-    6: {
-        "key_code": "right_arrow",
-        "modifiers": ["left_control"],
-        "repeat": False,
-    },
 }
 OUTPUT_FIELDS = {
     "to",
@@ -870,35 +825,23 @@ def build_mode_picker_rule(
             binding_id = mode_picker["bindingsBySource"][source][index]
             binding = by_id[binding_id]
             ordinary_conditions = device_conditions(binding, source=source, active=True)
-            native_output = (
+            keys_native_output = (
                 RAZER_KEYS_MODE_OUTPUT_OVERRIDES.get(physical_cell)
                 if source == "razer"
                 else None
             ) or KEYS_MODE_OUTPUT_BY_PHYSICAL_CELL.get(physical_cell)
-            native_utility_output = (
-                RAZER_UTILITY_MODE_OUTPUT_OVERRIDES.get(physical_cell)
-                if source == "razer"
-                else None
-            ) or UTILITY_MODE_OUTPUT_BY_PHYSICAL_CELL.get(physical_cell)
-            if native_output is not None:
+            if keys_native_output is not None:
                 ordinary_conditions.append(
                     {
                         "type": "expression_unless",
                         "expression": f"{page_variable} == {MODE_PAGE_KEYS}",
                     }
                 )
-            if native_utility_output is not None:
+            if physical_cell == 6:
                 ordinary_conditions.append(
                     {
                         "type": "expression_unless",
-                        "expression": f"{page_variable} == {MODE_PAGE_UTILITY}",
-                    }
-                )
-            if physical_cell == 7:
-                ordinary_conditions.append(
-                    {
-                        "type": "expression_unless",
-                        "expression": f"{page_variable} == {MODE_PAGE_UTILITY}",
+                        "expression": f"{page_variable} == {MODE_PAGE_KEYS}",
                     }
                 )
             if physical_cell == 11:
@@ -933,7 +876,7 @@ def build_mode_picker_rule(
                     "conditions": ordinary_conditions,
                 }
             )
-            if native_output is not None:
+            if keys_native_output is not None:
                 native_conditions = device_conditions(binding, source=source, active=True)
                 native_conditions.append(
                     {
@@ -947,33 +890,9 @@ def build_mode_picker_rule(
                         "from": copy.deepcopy(binding["from"]),
                         "to": [
                             command_event("selectNative", source, index + 1, "press"),
-                            copy.deepcopy(native_output),
+                            copy.deepcopy(keys_native_output),
                         ],
                         "conditions": native_conditions,
-                    }
-                )
-
-            if native_utility_output is not None:
-                native_utility_conditions = device_conditions(
-                    binding,
-                    source=source,
-                    active=True,
-                )
-                native_utility_conditions.append(
-                    {
-                        "type": "expression_if",
-                        "expression": f"{page_variable} == {MODE_PAGE_UTILITY}",
-                    }
-                )
-                manipulators.append(
-                    {
-                        "type": "basic",
-                        "from": copy.deepcopy(binding["from"]),
-                        "to": [
-                            command_event("selectNative", source, index + 1, "press"),
-                            copy.deepcopy(native_utility_output),
-                        ],
-                        "conditions": native_utility_conditions,
                     }
                 )
 
@@ -1006,12 +925,12 @@ def build_mode_picker_rule(
                     }
                 )
 
-            if physical_cell == 7:
+            if physical_cell == 6:
                 keypad_conditions = device_conditions(binding, source=source, active=True)
                 keypad_conditions.append(
                     {
                         "type": "expression_if",
-                        "expression": f"{page_variable} == {MODE_PAGE_UTILITY}",
+                        "expression": f"{page_variable} == {MODE_PAGE_KEYS}",
                     }
                 )
                 manipulators.append(
@@ -1081,13 +1000,15 @@ def build_mode_picker_rule(
                     }
                 )
 
+    legend_index = mode_picker["exitPhysicalCell"] - 1
+
     def default_legend_event(source: str) -> dict[str, Any]:
         return {
             "send_user_command": {
                 "payload": {
                     "command": "agentic_mouse_default_map_toggle",
                     "source": source,
-                    "physical_cell": entry_index + 1,
+                    "physical_cell": legend_index + 1,
                 }
             },
             "repeat": False,
@@ -1096,65 +1017,54 @@ def build_mode_picker_rule(
     for source in ("corsair", "razer"):
         variable = variables_by_source[source]
         page_variable = page_variables_by_source[source]
-        binding = by_id[mode_picker["bindingsBySource"][source][entry_index]]
-        pending_variable = f"agentic_mouse_{source}_utility_or_legend_pending"
-        inactive_conditions = device_conditions(binding, source=source, active=False)
+        legend_binding = by_id[mode_picker["bindingsBySource"][source][legend_index]]
+        entry_binding = by_id[mode_picker["bindingsBySource"][source][entry_index]]
 
-        # A rapid second press chooses the persistent Default legend and clears
-        # the pending single press before Karabiner can open Utility.
+        # Outside a runtime mode, the universal cell-10 control toggles this
+        # mouse's persistent Default legend. Inside a mode, the higher active
+        # manipulator above uses the same physical cell as universal Exit.
         manipulators.append(
             {
                 "type": "basic",
-                "from": copy.deepcopy(binding["from"]),
-                "to": [
-                    {"set_variable": {"name": pending_variable, "value": False}},
-                    default_legend_event(source),
-                ],
-                "conditions": inactive_conditions
-                + [{"type": "variable_if", "name": pending_variable, "value": True}],
+                "from": copy.deepcopy(legend_binding["from"]),
+                "to": [default_legend_event(source)],
+                "conditions": device_conditions(
+                    legend_binding,
+                    source=source,
+                    active=False,
+                ),
             }
         )
 
-        pending_condition = {
-            "type": "variable_if",
-            "name": pending_variable,
-            "value": True,
-        }
-        open_events = [
-            {
-                "set_variable": {
-                    "name": variable,
-                    "expression": (
-                        "system.now.milliseconds + "
-                        f'{mode_picker["bootstrapMilliseconds"]}'
-                    ),
-                },
-                "conditions": [copy.deepcopy(pending_condition)],
-            },
-            {
-                "set_variable": {
-                    "name": page_variable,
-                    "value": MODE_PAGE_UTILITY,
-                },
-                "conditions": [copy.deepcopy(pending_condition)],
-            },
-            {**command_event("open", source, entry_index + 1), "conditions": [copy.deepcopy(pending_condition)]},
-            {"set_variable": {"name": pending_variable, "value": False}},
-        ]
+        # Utility no longer waits for a possible second click because the
+        # legend has its own dedicated top-level control.
         manipulators.append(
             {
                 "type": "basic",
-                "from": copy.deepcopy(binding["from"]),
+                "from": copy.deepcopy(entry_binding["from"]),
                 "to": [
-                    {"set_variable": {"name": pending_variable, "value": True}},
+                    {
+                        "set_variable": {
+                            "name": variable,
+                            "expression": (
+                                "system.now.milliseconds + "
+                                f'{mode_picker["bootstrapMilliseconds"]}'
+                            ),
+                        }
+                    },
+                    {
+                        "set_variable": {
+                            "name": page_variable,
+                            "value": MODE_PAGE_UTILITY,
+                        }
+                    },
+                    command_event("open", source, entry_index + 1),
                 ],
-                "to_delayed_action": {
-                    "to_if_invoked": copy.deepcopy(open_events),
-                    "to_if_canceled": copy.deepcopy(open_events),
-                },
-                "parameters": {"basic.to_delayed_action_delay_milliseconds": 300},
-                "conditions": inactive_conditions
-                + [{"type": "variable_unless", "name": pending_variable, "value": True}],
+                "conditions": device_conditions(
+                    entry_binding,
+                    source=source,
+                    active=False,
+                ),
             }
         )
 

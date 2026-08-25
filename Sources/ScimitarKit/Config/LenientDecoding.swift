@@ -187,7 +187,10 @@ extension AppConfiguration.MultiTapConfigurationFile {
 }
 
 extension AppConfiguration.InputConfiguration {
-    private enum Keys: String, CodingKey { case transport, gridMacroKeys, toggleKey, fallbackBindings }
+    private enum Keys: String, CodingKey {
+        case transport, gridMacroKeys, toggleKey, fallbackBindings
+        case horizontalScrollLinesPerRatchet
+    }
 
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: Keys.self)
@@ -196,7 +199,11 @@ extension AppConfiguration.InputConfiguration {
             transport: container.value(.transport, default: defaults.transport),
             gridMacroKeys: container.value(.gridMacroKeys, default: defaults.gridMacroKeys),
             toggleKey: container.value(.toggleKey, default: defaults.toggleKey),
-            fallbackBindings: container.value(.fallbackBindings, default: defaults.fallbackBindings)
+            fallbackBindings: container.value(.fallbackBindings, default: defaults.fallbackBindings),
+            horizontalScrollLinesPerRatchet: container.value(
+                .horizontalScrollLinesPerRatchet,
+                default: defaults.horizontalScrollLinesPerRatchet
+            )
         )
     }
 
@@ -206,6 +213,7 @@ extension AppConfiguration.InputConfiguration {
         try container.encode(gridMacroKeys, forKey: .gridMacroKeys)
         try container.encode(toggleKey, forKey: .toggleKey)
         try container.encode(fallbackBindings, forKey: .fallbackBindings)
+        try container.encode(horizontalScrollLinesPerRatchet, forKey: .horizontalScrollLinesPerRatchet)
     }
 }
 

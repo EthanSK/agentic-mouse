@@ -16,6 +16,18 @@ public final class RazerVendorUSBTransport: RazerVendorTransport {
 
     public init() {}
 
+    /// Read-only presence probe for reconnect recovery. It enumerates the
+    /// exact USB device without opening it or disturbing the live controller.
+    public static func exactDeviceIsPresent() -> Bool {
+        var count: UInt32 = 0
+        let status = am_razer_usb_count_exact(
+            RazerNagaVendorProtocol.vendorID,
+            RazerNagaVendorProtocol.productID,
+            &count
+        )
+        return status == 0 && count == 1
+    }
+
     deinit { close() }
 
     public func open() throws {

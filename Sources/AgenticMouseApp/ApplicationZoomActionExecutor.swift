@@ -50,8 +50,12 @@ struct ApplicationZoomActionExecutor {
         case .zoomOut:
             keyCode = Self.minusKeyCode
             flags = [.maskCommand]
-        case .increaseDisplayBrightness, .decreaseDisplayBrightness, .rewindYouTubeFiveSeconds,
-             .moveToSpaceLeft, .moveToSpaceRight:
+        case .increaseDisplayBrightness, .decreaseDisplayBrightness,
+             .rewindYouTubeFiveSeconds, .openIntelligenceOnDemand,
+             .moveToSpaceLeft, .moveToSpaceRight, .copy, .paste,
+             .moveWindowLeftWithMagnet, .moveWindowRightWithMagnet,
+             .showDesktop, .missionControl, .pasteStoredPassword,
+             .showApplicationWindows, .organizeWindows, .quitApp:
             preconditionFailure("ApplicationZoomActionExecutor only owns Zoom In and Zoom Out")
         }
 

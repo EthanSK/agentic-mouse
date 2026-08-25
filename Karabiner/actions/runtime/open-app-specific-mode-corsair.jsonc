@@ -1,4 +1,4 @@
-// Opens the frontmost app's Agentic Mouse mode directly from Corsair physical cell 6.
+// Opens the frontmost app's Agentic Mouse mode directly from Corsair physical cell 2.
 {
   "id": "open-app-specific-mode-corsair",
   "title": "Open app-specific mode (Corsair)",
@@ -10,7 +10,7 @@
           "command": "agentic_mouse_mode_picker",
           "action": "openAppSpecific",
           "source": "corsair",
-          "physical_cell": 6,
+          "physical_cell": 2,
           "phase": "press"
         }
       },

@@ -17,8 +17,7 @@ enum KeysModeActionError: Error, Equatable {
 /// only the shared semantic action.
 @MainActor
 struct KeysModeActionExecutor {
-    typealias EventPoster = @MainActor (_ keyCode: CGKeyCode, _ isDown: Bool) -> Bool
-    typealias ModifiedEventPoster = @MainActor (
+    typealias EventPoster = @MainActor (
         _ keyCode: CGKeyCode,
         _ flags: CGEventFlags,
         _ isDown: Bool
@@ -30,7 +29,6 @@ struct KeysModeActionExecutor {
     typealias PasswordProvider = @MainActor () -> String?
 
     private let postEvent: EventPoster
-    private let postModifiedEvent: ModifiedEventPoster
     private let postSystemEvent: SystemEventPoster
     private let postText: TextPoster
     private let accessibilityTrusted: AccessibilityTrustProvider
@@ -39,7 +37,6 @@ struct KeysModeActionExecutor {
 
     init(
         postEvent: @escaping EventPoster = Self.postKeyboardEvent,
-        postModifiedEvent: @escaping ModifiedEventPoster = Self.postModifiedKeyboardEvent,
         postSystemEvent: @escaping SystemEventPoster = Self.postSystemAuxiliaryKey,
         postText: @escaping TextPoster = Self.postText,
         accessibilityTrusted: @escaping AccessibilityTrustProvider = AXIsProcessTrusted,
@@ -47,7 +44,6 @@ struct KeysModeActionExecutor {
         passwordProvider: @escaping PasswordProvider = StoredPasswordKeychain.load
     ) {
         self.postEvent = postEvent
-        self.postModifiedEvent = postModifiedEvent
         self.postSystemEvent = postSystemEvent
         self.postText = postText
         self.accessibilityTrusted = accessibilityTrusted
@@ -62,67 +58,54 @@ struct KeysModeActionExecutor {
         guard accessibilityTrusted() else {
             return .failure(.accessibilityPermissionMissing)
         }
-        if action == .pasteStoredPassword {
-            guard let password = passwordProvider(), !password.isEmpty else {
-                return .failure(.passwordNotConfigured)
-            }
-            return postText(password) ? .success(()) : .failure(.eventCreationFailed)
-        }
         if action == .nextTrack {
             let keyType = Int32(NX_KEYTYPE_NEXT)
             let down = postSystemEvent(keyType, true)
             let up = postSystemEvent(keyType, false)
             return down && up ? .success(()) : .failure(.eventCreationFailed)
         }
-        if action == .copy || action == .paste {
-            let keyCode: CGKeyCode = action == .copy ? 8 : 9
-            let down = postModifiedEvent(keyCode, .maskCommand, true)
-            let up = postModifiedEvent(keyCode, .maskCommand, false)
-            return down && up ? .success(()) : .failure(.eventCreationFailed)
-        }
         let keyCode: CGKeyCode
+        let flags: CGEventFlags
         switch action {
-        case .arrowLeft: keyCode = 123
-        case .arrowRight: keyCode = 124
-        case .arrowDown: keyCode = 125
-        case .arrowUp: keyCode = 126
-        case .copy, .paste, .nextTrack:
+        case .arrowLeft: keyCode = 123; flags = []
+        case .arrowRight: keyCode = 124; flags = []
+        case .arrowDown: keyCode = 125; flags = []
+        case .arrowUp: keyCode = 126; flags = []
+        case .undo: keyCode = 6; flags = .maskCommand
+        case .nextTrack:
             preconditionFailure("handled before native key-code selection")
-        case .insertSpace: keyCode = 49
-        case .pressBackspace: keyCode = 51
-        case .escape: keyCode = 53
-        case .pasteStoredPassword:
-            preconditionFailure("handled before native key-code selection")
+        case .insertSpace: keyCode = 49; flags = []
+        case .pressBackspace: keyCode = 51; flags = []
+        case .pressEnter: keyCode = 36; flags = []
         }
 
-        let down = postEvent(keyCode, true)
-        let up = postEvent(keyCode, false)
+        let down = postEvent(keyCode, flags, true)
+        let up = postEvent(keyCode, flags, false)
         return down && up ? .success(()) : .failure(.eventCreationFailed)
     }
 
-    private static func postKeyboardEvent(keyCode: CGKeyCode, isDown: Bool) -> Bool {
-        guard let source = CGEventSource(stateID: .hidSystemState),
-              let event = CGEvent(
-            keyboardEventSource: source,
-            virtualKey: keyCode,
-            keyDown: isDown
-        ) else { return false }
-        event.post(tap: .cghidEventTap)
-        return true
+    /// Utility owns the password card, but the security-sensitive text path
+    /// remains here beside the same lock, TCC, and synthetic-input guards.
+    func performStoredPassword() -> Result<Void, KeysModeActionError> {
+        guard inputAllowed() else { return .failure(.inputBlocked) }
+        guard accessibilityTrusted() else { return .failure(.accessibilityPermissionMissing) }
+        guard let password = passwordProvider(), !password.isEmpty else {
+            return .failure(.passwordNotConfigured)
+        }
+        return postText(password) ? .success(()) : .failure(.eventCreationFailed)
     }
 
-    private static func postModifiedKeyboardEvent(
+    private static func postKeyboardEvent(
         keyCode: CGKeyCode,
         flags: CGEventFlags,
         isDown: Bool
     ) -> Bool {
         guard let source = CGEventSource(stateID: .hidSystemState),
               let event = CGEvent(
-                keyboardEventSource: source,
-                virtualKey: keyCode,
-                keyDown: isDown
-              )
-        else { return false }
+            keyboardEventSource: source,
+            virtualKey: keyCode,
+            keyDown: isDown
+        ) else { return false }
         event.flags = flags
         event.post(tap: .cghidEventTap)
         return true

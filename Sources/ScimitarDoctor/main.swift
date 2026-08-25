@@ -493,7 +493,7 @@ func probeLighting(session: ICUESession, configuration: AppConfiguration) {
 // MARK: - keymap
 
 func runKeymap() {
-    let keymap = MultiTapKeymap.classic
+    let keymap = MultiTapKeymap.modesKeypad
 
     heading("Physical grid (thumb side, front → back)")
     output("""
@@ -506,20 +506,12 @@ func runKeymap() {
         └────┴────┴────┴────┘
     """)
 
-    heading("As a phone keypad (each physical column is one keypad row)")
-    output("        1 2 3\n        4 5 6\n        7 8 9\n        * 0 #")
-
-    heading("Assignments")
+    heading("Runtime Keypad assignments")
     for key in MultiTapKey.allCases {
         guard let spec = keymap[key] else { continue }
         let cycle = spec.cycle.isEmpty ? spec.caption : spec.cycle.map(String.init).joined(separator: " ")
         let hold = spec.holdCaption.map { " · \($0)" } ?? ""
-        output(String(format: "  %2d  [%@]  %@%@", key.rawValue, key.keypadLegend, cycle, hold))
-    }
-
-    heading("Shift states")
-    for state in ShiftState.allCases {
-        output("  \(state.indicator.padding(toLength: 5, withPad: " ", startingAt: 0)) \(state.rawValue)")
+        output(String(format: "  %2d  %@%@", key.rawValue, cycle, hold))
     }
 }
 

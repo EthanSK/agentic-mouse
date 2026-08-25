@@ -56,9 +56,10 @@ public struct PhysicalCell: RawRepresentable, Hashable, Codable, Sendable, Compa
     /// and visible labels pinned to this value in tests before any live install.
     public static let colorProofEntry = PhysicalCell(rawValue: 3)!
 
-    /// Shared ordinary top-level Utility / legend control. One press opens
-    /// Utility; a rapid second press toggles the persistent Default legend.
-    public static let defaultMapToggle = PhysicalCell(rawValue: 12)!
+    /// Shared ordinary top-level persistent Default-legend toggle. This is
+    /// Corsair printed 10 and the mirrored left-handed Razer printed 12.
+    /// The same physical cell remains the universal Exit inside runtime modes.
+    public static let defaultMapToggle = PhysicalCell(rawValue: 10)!
 
     public static func defaultMapToggle(for source: MouseSource) -> PhysicalCell {
         defaultMapToggle
@@ -74,51 +75,94 @@ public struct PhysicalCell: RawRepresentable, Hashable, Codable, Sendable, Compa
 
     /// Universal exit for every active runtime mode.
     /// This is Corsair printed 10 and the mirrored Razer printed 12. Outside
-    /// a runtime mode, the same physical cell is deliberately blank.
+    /// a runtime mode, the same physical cell toggles the persistent Default
+    /// legend.
     public static let modeExit = PhysicalCell(rawValue: 10)!
 
     /// Historical Colour Proof-only HUD control retained for its isolated
     /// regression harness. Live product modes do not reserve cell 3: Utility
-    /// uses it for Space Left, Keypad restores DEF, and other pages show Spare.
+    /// uses it for Spaces + Wheel, Keypad restores DEF, and other pages show
+    /// Spare.
     public static let modeHUDToggle = PhysicalCell(rawValue: 3)!
 
-    /// Selects Keypad from the Modes menu.
-    public static let keypadModeSelector = PhysicalCell(rawValue: 7)!
+    /// Selects Keypad from Keys mode.
+    public static let keypadModeSelector = PhysicalCell(rawValue: 6)!
 
-    /// Adjusts the current macOS display brightness from Utility. The controls
-    /// form the left vertical pair: cell 1 increases and cell 4 decreases.
-    public static let brightnessIncrease = PhysicalCell(rawValue: 1)!
-    public static let brightnessDecrease = PhysicalCell(rawValue: 4)!
+    /// Two-way Utility controls. Hold the cell and move the ratcheted wheel;
+    /// one wheel step produces one action in the corresponding direction.
+    public static let brightnessWheelControl = PhysicalCell(rawValue: 1)!
+    public static let zoomWheelControl = PhysicalCell(rawValue: 2)!
+    public static let spacesWheelControl = PhysicalCell(rawValue: 3)!
+    public static let systemOverviewWheelControl = PhysicalCell(rawValue: 4)!
+    public static let applicationWindowsWheelControl = PhysicalCell(rawValue: 5)!
+    public static let magnetWheelControl = PhysicalCell(rawValue: 6)!
+
+    /// Ordinary top-level Copy / Paste wheel chord. This is Corsair printed 4
+    /// and Razer printed 6 through the canonical physical-cell crosswalk.
+    public static let clipboardWheelControl = PhysicalCell(rawValue: 4)!
+
+    /// Types the optional device-local Keychain password from Utility.
+    public static let storedPassword = PhysicalCell(rawValue: 7)!
+
+    /// Ordinary top-level horizontal-wheel conversion. Hold cell 1 and use the
+    /// same mouse's wheel.
+    public static let horizontalScrollWheelControl = PhysicalCell(rawValue: 1)!
+
+    /// Ordinary top-level YouTube scrub wheel chord. Hold cell 6 and use the
+    /// same mouse's wheel; each reconstructed ratchet seeks exactly five
+    /// seconds through the background VoiceInk YouTube Bridge.
+    public static let youtubeScrubWheelControl = PhysicalCell(rawValue: 6)!
 
     /// Rewinds the selected YouTube target through the existing VoiceInk
-    /// YouTube Bridge without bringing Chrome to the front.
-    public static let youtubeBackFiveSeconds = PhysicalCell(rawValue: 8)!
-
-    /// Applies the standard macOS application zoom shortcuts to whichever app
-    /// is frontmost when the Modes utility is pressed.
-    public static let applicationZoomIn = PhysicalCell(rawValue: 2)!
-    public static let applicationZoomOut = PhysicalCell(rawValue: 5)!
-
-    /// Moves between adjacent macOS Spaces using the standard system
-    /// Control-Left / Control-Right shortcuts.
-    public static let desktopSpaceLeft = PhysicalCell(rawValue: 3)!
-    public static let desktopSpaceRight = PhysicalCell(rawValue: 6)!
+    /// YouTube Bridge without bringing Chrome to the front. This is a
+    /// top-level action on Corsair printed 6 / Razer printed 4.
+    public static let youtubeBackFiveSeconds = PhysicalCell(rawValue: 6)!
 
     /// Opens the configured-app selector from Utility.
     public static let appSpecificModeSelector = PhysicalCell(rawValue: 11)!
 
+    /// Opens the nested Extra Utilities page from Utility. This is Corsair
+    /// printed 12 and Razer printed 10 through the canonical crosswalk. The
+    /// same canonical cell remains available to app-specific pages because
+    /// active-page semantics, not device transports, own the action.
+    public static let extraUtilitiesSelector = PhysicalCell(rawValue: 12)!
+
+    /// Restores Stay's saved Agentic Mouse window layout from Extra Utilities.
+    /// This is Corsair printed 1 and Razer printed 3.
+    public static let organizeWindows = PhysicalCell(rawValue: 1)!
+
+    /// Sends a normal Command-Q to the current frontmost application from
+    /// Extra Utilities. This is Corsair printed 9 and Razer printed 7.
+    public static let quitApp = PhysicalCell(rawValue: 9)!
+
+    /// Sends one Control-C keyboard interrupt from terminal-capable
+    /// app-specific modes. Extra Utilities owns this cell only while that
+    /// nested page is active.
+    public static let interruptTerminal = PhysicalCell(rawValue: 12)!
+
     /// Opens the current frontmost application's mode from the ordinary layer.
-    public static let frontmostAppModeSelector = PhysicalCell(rawValue: 6)!
+    /// Inside any app-specific child page, the same physical cell exits that
+    /// page exactly like `modeExit`. This is Corsair printed 2 and Razer
+    /// printed 2.
+    public static let frontmostAppModeSelector = PhysicalCell(rawValue: 2)!
+
+    /// The two reserved exits on every app-specific child page. The manual
+    /// app selector is a parent page, so it still uses cell 2 to choose
+    /// Terminal and reserves only the universal cell-10 exit.
+    public var isAppSpecificModeExit: Bool {
+        self == Self.frontmostAppModeSelector || self == Self.modeExit
+    }
 
     /// Opens the shared native arrow-key mode from Utility.
     public static let keysModeSelector = PhysicalCell(rawValue: 9)!
 
     /// Opens the shared native arrow-key mode directly from the ordinary layer.
-    public static let keysModeEntry = PhysicalCell(rawValue: 2)!
+    /// This is Corsair printed 9 and Razer printed 7.
+    public static let keysModeEntry = PhysicalCell(rawValue: 9)!
 
-    /// Ordinary app-specific wildcard. It is silent unless the current app has
-    /// an explicit override.
-    public static let appShortcut = PhysicalCell(rawValue: 9)!
+    /// Opens Codex's global intelligence-on-demand window with Option-Space
+    /// from Utility. Cell 8 is printed 8 on both exact mice.
+    public static let intelligenceOnDemand = PhysicalCell(rawValue: 8)!
 
     /// Holds open the native macOS application switcher outside modes.
     public static let switchApp = PhysicalCell(rawValue: 11)!

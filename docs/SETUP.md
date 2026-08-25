@@ -118,9 +118,10 @@ The things worth confirming:
 - the **DPI Toggle button** emits the named iCUE F19 transport, and Karabiner
   triggers VoiceInk++ on release without changing DPI;
 - **5** = Forward, **8** = Back;
-- **2** opens the current frontmost app mode, **3** starts/cancels Screenshot,
-  **6** opens Codex's intelligence-on-demand window with Option-Space, and **7** = Enter;
-- **9** opens Keys; cell 6 keeps the same global action in VS Code;
+- **2** opens the current frontmost app mode, **3** starts/cancels Screenshot
+  and rapid-double-pastes its copied result,
+  **6** rewinds the selected YouTube target by five seconds without focusing Chrome, and **7** = Enter;
+- **9** opens Keys; cell 6 keeps the same global YouTube action in VS Code;
   **10** toggles the Default
   legend outside modes, **11** holds open Switch App, and **12** opens Utility;
 - while any runtime mode is active, **10** exits it;
@@ -130,6 +131,8 @@ The things worth confirming:
   for Mission Control/Show Desktop, hold **5** and ratchet down for App Exposé,
   hold **6** for Magnet Left/Right, and **7** types the optional device-local
   Keychain password; **12** opens Extra Utilities;
+- inside Extra Utilities, **1** manually restores the saved Stay layout, **9**
+  sends one ordinary Command-Q to the frontmost external app, and **10** exits;
 - inside VS Code, Terminal, or iTerm app-specific mode, **12** resolves semantic
   C from the active keyboard layout and sends Ctrl-C to that app;
 - every visible DPI stage, Sniper included, reads **2,750**;
@@ -151,6 +154,24 @@ This writes `build/AgenticMouse.app`. It installs nothing. Move it
 wherever you want it.
 
 Launch it once. It appears in the menu bar and has **no Dock icon**.
+
+### Install the VS Code command bridge
+
+Cursor History + Wheel uses VS Code's own Back and Forward commands instead of
+simulating a keyboard shortcut. Package and install the small local bridge once:
+
+```bash
+make vscode-bridge
+code --install-extension build/agentic-mouse-vscode-bridge-0.1.0.vsix --force
+```
+
+The bridge accepts only the exact Agentic Mouse Cursor History routes and
+refuses them unless its VS Code window is focused. It does not add or replace
+any user keybinding. The VSIX is also included in the packaged app at
+`Contents/Resources/AgenticMouseVSCodeBridge.vsix` for a matching local install.
+If VS Code does not discover the newly installed bridge in the current process,
+reload VS Code once at a safe time; the Agentic Mouse installer must not restart
+an active editor automatically.
 
 ## 6. Grant Accessibility permission
 

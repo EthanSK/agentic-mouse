@@ -159,7 +159,8 @@ public struct AppConfiguration: Codable, Equatable, Sendable {
     // MARK: - Default-map reference
 
     public struct DefaultMapHintConfiguration: Codable, Equatable, Sendable {
-        /// Shared physical cell 12 rapidly double-toggles each source's persistent reference.
+        /// Legacy decode compatibility for older cell-12 double-click configs.
+        /// The current Default legend uses a direct one-press cell-10 command.
         public var enabled: Bool
         public var doubleClickInterval: TimeInterval
         /// Optional legacy auto-hide timeout. Zero keeps the map visible until
@@ -180,6 +181,9 @@ public struct AppConfiguration: Codable, Equatable, Sendable {
     // MARK: - Input
 
     public struct InputConfiguration: Codable, Equatable, Sendable {
+        public static let defaultHorizontalScrollLinesPerRatchet = 4
+        public static let horizontalScrollLinesPerRatchetRange = 1...12
+
         public enum TransportKind: String, Codable, CaseIterable, Sendable {
             /// Raw `CorsairKeyEvent`s from the exact device. The production route.
             case icueMacroKey
@@ -194,17 +198,23 @@ public struct AppConfiguration: Codable, Equatable, Sendable {
         public var toggleKey: Int
         /// Fallback-only: how each grid key appears as a CGEvent.
         public var fallbackBindings: [String: InputBinding]
+        /// Horizontal line-wheel units emitted for each accepted physical ratchet.
+        /// Ratchet de-duplication is independent and remains owned by the wheel
+        /// state machine.
+        public var horizontalScrollLinesPerRatchet: Int
 
         public init(
             transport: TransportKind = .icueMacroKey,
             gridMacroKeys: [Int] = Array(1...12),
             toggleKey: Int = 10,
-            fallbackBindings: [String: InputBinding] = [:]
+            fallbackBindings: [String: InputBinding] = [:],
+            horizontalScrollLinesPerRatchet: Int = Self.defaultHorizontalScrollLinesPerRatchet
         ) {
             self.transport = transport
             self.gridMacroKeys = gridMacroKeys
             self.toggleKey = toggleKey
             self.fallbackBindings = fallbackBindings
+            self.horizontalScrollLinesPerRatchet = horizontalScrollLinesPerRatchet
         }
 
         /// Reverses the user-facing `k1`...`k12` dictionary into the exact

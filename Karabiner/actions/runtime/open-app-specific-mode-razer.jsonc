@@ -1,4 +1,4 @@
-// Opens the frontmost app's Agentic Mouse mode directly from Razer physical cell 6 (printed 4).
+// Opens the frontmost app's Agentic Mouse mode directly from Razer physical cell 2 (printed 2).
 {
   "id": "open-app-specific-mode-razer",
   "title": "Open app-specific mode (Razer)",
@@ -10,7 +10,7 @@
           "command": "agentic_mouse_mode_picker",
           "action": "openAppSpecific",
           "source": "razer",
-          "physical_cell": 6,
+          "physical_cell": 2,
           "phase": "press"
         }
       },

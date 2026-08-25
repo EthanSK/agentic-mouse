@@ -8,33 +8,33 @@ enum DesktopSpaceActionError: Error, Equatable {
 }
 
 /// Sends the standard macOS Space-navigation shortcuts without changing app
-/// focus. Each mouse press produces one bounded Control-Arrow down/up cycle.
+/// focus. This Mac stores them as Control-Fn-Arrow. Emit a real modifier
+/// lifecycle rather than relying on flags attached to the arrow alone.
 @MainActor
 struct DesktopSpaceActionExecutor {
-    typealias EventPoster = @MainActor (
-        _ keyCode: CGKeyCode,
-        _ flags: CGEventFlags,
-        _ isDown: Bool
-    ) -> Bool
+    typealias KeyEvent = SyntheticKeyboardChordPoster.Event
+
+    typealias ChordPoster = @MainActor (_ events: [KeyEvent]) -> Bool
     typealias AccessibilityTrustProvider = @MainActor () -> Bool
 
+    private static let controlKeyCode: CGKeyCode = 59
     private static let leftArrowKeyCode: CGKeyCode = 123
     private static let rightArrowKeyCode: CGKeyCode = 124
 
-    private let postEvent: EventPoster
+    private let postChord: ChordPoster
     private let accessibilityTrusted: AccessibilityTrustProvider
 
     init(
-        postEvent: @escaping EventPoster = Self.postKeyboardEvent,
+        postChord: @escaping ChordPoster = SyntheticKeyboardChordPoster.shared.post,
         accessibilityTrusted: @escaping AccessibilityTrustProvider = AXIsProcessTrusted
     ) {
-        self.postEvent = postEvent
+        self.postChord = postChord
         self.accessibilityTrusted = accessibilityTrusted
     }
 
     /// Test-only convenience that avoids coupling event-recorder tests to TCC.
-    init(_ postEvent: @escaping EventPoster) {
-        self.init(postEvent: postEvent, accessibilityTrusted: { true })
+    init(_ postChord: @escaping ChordPoster) {
+        self.init(postChord: postChord, accessibilityTrusted: { true })
     }
 
     func perform(_ action: ModeUtilityAction) -> Result<Void, DesktopSpaceActionError> {
@@ -48,32 +48,24 @@ struct DesktopSpaceActionExecutor {
         case .moveToSpaceRight:
             keyCode = Self.rightArrowKeyCode
         case .increaseDisplayBrightness, .decreaseDisplayBrightness,
-             .rewindYouTubeFiveSeconds, .zoomIn, .zoomOut:
+             .rewindYouTubeFiveSeconds, .openIntelligenceOnDemand, .zoomIn, .zoomOut,
+             .copy, .paste, .showDesktop, .missionControl,
+             .moveWindowLeftWithMagnet, .moveWindowRightWithMagnet,
+             .pasteStoredPassword, .showApplicationWindows, .organizeWindows, .quitApp:
             preconditionFailure("DesktopSpaceActionExecutor only owns Space Left and Space Right")
         }
 
-        let flags: CGEventFlags = [.maskControl]
-        guard postEvent(keyCode, flags, true), postEvent(keyCode, flags, false) else {
+        let shortcutFlags: CGEventFlags = [.maskControl, .maskSecondaryFn]
+        let events = [
+            KeyEvent.modifier(keyCode: Self.controlKeyCode, flags: [.maskControl], at: 0),
+            KeyEvent.key(keyCode: keyCode, flags: shortcutFlags, isDown: true, at: 0.006),
+            KeyEvent.key(keyCode: keyCode, flags: shortcutFlags, isDown: false, at: 0.026),
+            KeyEvent.modifier(keyCode: Self.controlKeyCode, flags: [], at: 0.032),
+        ]
+        guard postChord(events) else {
             return .failure(.eventCreationFailed)
         }
         return .success(())
     }
 
-    private static func postKeyboardEvent(
-        keyCode: CGKeyCode,
-        flags: CGEventFlags,
-        isDown: Bool
-    ) -> Bool {
-        guard let source = CGEventSource(stateID: .hidSystemState),
-              let event = CGEvent(
-            keyboardEventSource: source,
-            virtualKey: keyCode,
-            keyDown: isDown
-        ) else {
-            return false
-        }
-        event.flags = flags
-        event.post(tap: .cghidEventTap)
-        return true
-    }
 }

@@ -27,6 +27,8 @@ import Foundation
 /// switched away, the event is delivered to the original (now background) app
 /// or dropped, but it can never be typed into somebody else's window.
 public final class CGEventTextOutput: TextOutput {
+    typealias EventPoster = (CGEvent, pid_t) -> Void
+
     /// `kVK_Delete`. Positional, identical on every layout.
     private static let deleteKeyCode: CGKeyCode = 0x33
     /// `kVK_Return`.
@@ -35,6 +37,7 @@ public final class CGEventTextOutput: TextOutput {
     private let permission: AccessibilityPermissionChecking
     private let targetResolver: TextTargetResolving?
     private let log: Log
+    private let postEvent: EventPoster
     /// Gap between synthetic events. Zero works in most apps, but a small pause
     /// keeps Electron and Java text views from dropping characters.
     private let interEventDelay: TimeInterval
@@ -50,6 +53,21 @@ public final class CGEventTextOutput: TextOutput {
         self.permission = permission
         self.targetResolver = targetResolver
         self.log = log
+        self.postEvent = { event, pid in event.postToPid(pid) }
+        self.interEventDelay = interEventDelay
+    }
+
+    init(
+        permission: AccessibilityPermissionChecking,
+        targetResolver: TextTargetResolving? = nil,
+        log: Log,
+        interEventDelay: TimeInterval = 0,
+        postEvent: @escaping EventPoster
+    ) {
+        self.permission = permission
+        self.targetResolver = targetResolver
+        self.log = log
+        self.postEvent = postEvent
         self.interEventDelay = interEventDelay
     }
 
@@ -89,8 +107,20 @@ public final class CGEventTextOutput: TextOutput {
 
     private func verify(_ target: TextTarget) throws {
         guard let targetResolver else { return }
-        guard targetResolver.resolveCurrentTarget().target == target else {
+        guard let current = targetResolver.resolveCurrentTarget().target else {
             throw TextOutputError.targetChanged
+        }
+        switch target.anchor {
+        case .focusedElement:
+            guard current == target else { throw TextOutputError.targetChanged }
+        case .frontmostApplication:
+            // Chromium-backed editors can expose no AX-focused element when
+            // Keypad starts, then expose one before the pending character is
+            // committed. The same PID remains the safe application anchor;
+            // switching to another application still cancels delivery.
+            guard current.processIdentifier == target.processIdentifier else {
+                throw TextOutputError.targetChanged
+            }
         }
     }
 
@@ -136,7 +166,7 @@ public final class CGEventTextOutput: TextOutput {
     }
 
     private func post(_ event: CGEvent, to pid: pid_t) {
-        event.postToPid(pid)
+        postEvent(event, pid)
         if interEventDelay > 0 {
             Thread.sleep(forTimeInterval: interEventDelay)
         }

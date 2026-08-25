@@ -29,9 +29,10 @@ final class HUDViewModel: ObservableObject {
 
 /// The reference card.
 ///
-/// Laid out as the mouse's real 4×3 thumb pad rather than as a phone keypad,
-/// because the user is feeling for a button, not reading a phone. Each cell
-/// still prints the phone digit and its letters, so `2 = ABC` stays obvious.
+/// Laid out as the source mouse's real 4×3 thumb pad rather than as a phone
+/// keypad, because the user is feeling for a button, not reading a phone. The
+/// large label is the number printed on that exact mouse; letter groups retain
+/// the familiar phone mapping.
 struct HUDView: View {
     @ObservedObject var model: HUDViewModel
     let showsTapProgressRing: Bool

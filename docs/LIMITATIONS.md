@@ -68,7 +68,7 @@ and brightness judgment against the Corsair.
 Razer printed 12) exits the menu and every child mode; outside modes one press
 toggles that source mouse's own Default legend. Shared physical cell 11 owns
 Switch App. Physical cell 12 opens Utility immediately.
-Physical cell 3 starts or cancels Screenshot
+Physical cell 3 starts or cancels Screenshot and rapid-double-pastes its copied image
 outside modes; active-mode legends remain visible until cell 10 exits the mode.
 There is no idle or absolute timeout while Agentic Mouse is healthy; the short
 Karabiner lease fails closed after process failure. Exact-device mode ingress
@@ -158,12 +158,14 @@ iCUE's database files.
 
 **Normal-mode assignments are not managed by this helper.** iCUE owns the
 Corsair neutral keypad transports, while one exact-device Karabiner base maps
-them globally: hold 1 + ratcheted wheel = macOS Spaces, 2 = current
-frontmost-app mode, 3 = Screenshot, hold 4 + ratcheted wheel = horizontal
-scroll, 5 = Forward, 6 = Codex intelligence on demand through Option-Space, 7 = Enter, 8 = Back,
+them globally: hold 1 + ratcheted wheel = horizontal scroll, 2 = current
+frontmost-app mode, 3 = Screenshot / rapid-double Paste, hold 4 + ratcheted wheel = Copy / Paste,
+5 = Forward, 6 = YouTube Scrub + Wheel through the VoiceInk bridge, 7 = Enter, 8 = Back,
 9 = Keys mode, 10 = Default legend outside modes / universal Exit,
 11 = Switch App and 12 = Utility.
-Physical cell 3 starts a native selected-area Screenshot outside modes.
+Physical cell 3 starts a native selected-area Screenshot outside modes, copies
+the uniquely identified saved image, and rapid-double-pastes it while the
+clipboard still contains that owned screenshot.
 Physical cell 10 exits the active mode;
 there is no separate in-mode legend toggle. Wheel
 click also stays a
@@ -188,7 +190,7 @@ chord is cleared on lock, sleep, device loss, lease failure, or app shutdown.
 all twelve buttons while multi-tap is active and releases them on exit. In VS
 Code, Karabiner maps physical cell 5 to non-repeating F17 Previous Change and
 cell 8 to non-repeating F13 Next Change. Top-level cell 6 remains the global
-non-repeating Option-Space action. Matching exclusions preserve Forward/Back
+source-specific YouTube scrub action. Matching exclusions preserve Forward/Back
 everywhere else without duplicating other controls. Top-level cell 2 opens the
 frontmost app's mode and top-level cell 9 opens Keys. In Keys, cell 3 emits
 Undo as Command-Z, cell 6 enters Keypad, and cell 9 emits Next Track; the Razer swaps the horizontal-arrow

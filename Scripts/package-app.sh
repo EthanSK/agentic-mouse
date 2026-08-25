@@ -4,8 +4,8 @@
 #
 # Deterministic and self-contained: given the same source tree it produces the
 # same bundle layout every time. It does not install anything, does not touch
-# ~/Library, does not register a LaunchAgent, and does not modify any system
-# setting. Copying the result out of ./build/ is a separate, manual decision.
+# ~/Library, does not register its bundled login item, and does not modify any
+# system setting. Copying the result out of ./build/ is a separate decision.
 #
 # The proprietary iCUE SDK is never vendored into this repository. If it is
 # available at package time it is copied into the bundle so the app can find it
@@ -19,6 +19,7 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BUILD_DIR="${REPO_ROOT}/build"
 APP_NAME="AgenticMouse"
 APP_DIR="${BUILD_DIR}/${APP_NAME}.app"
+SUPERVISOR_APP_DIR="${APP_DIR}/Contents/Library/LoginItems/AgenticMouseSupervisor.app"
 CONFIGURATION="${CONFIGURATION:-release}"
 CODE_SIGN_IDENTITY="${CODE_SIGN_IDENTITY:--}"
 INSTALL_CANDIDATE="${INSTALL_CANDIDATE:-0}"
@@ -113,14 +114,32 @@ rm -rf "${APP_DIR}"
 mkdir -p "${APP_DIR}/Contents/MacOS"
 mkdir -p "${APP_DIR}/Contents/Resources"
 mkdir -p "${APP_DIR}/Contents/Frameworks"
+mkdir -p "${SUPERVISOR_APP_DIR}/Contents/MacOS"
 
 cp "${BIN_PATH}/agentic-mouse" "${APP_DIR}/Contents/MacOS/${APP_NAME}"
 cp "${BIN_PATH}/agentic-mouse-doctor" "${APP_DIR}/Contents/MacOS/agentic-mouse-doctor"
+cp "${BIN_PATH}/agentic-mouse-supervisor" \
+  "${SUPERVISOR_APP_DIR}/Contents/MacOS/AgenticMouseSupervisor"
 cp "${INFO_PLIST}" "${APP_DIR}/Contents/Info.plist"
+cp "${REPO_ROOT}/Resources/SupervisorInfo.plist" \
+  "${SUPERVISOR_APP_DIR}/Contents/Info.plist"
+bash "${REPO_ROOT}/Scripts/package-vscode-bridge.sh" \
+  "${APP_DIR}/Contents/Resources/AgenticMouseVSCodeBridge.vsix"
 bash "${REPO_ROOT}/Scripts/update-app-version.sh" \
   "${APP_DIR}/Contents/Info.plist" \
   "${PACKAGE_MARKETING_VERSION}" \
   "${PACKAGE_BUILD_VERSION}"
+bash "${REPO_ROOT}/Scripts/update-app-version.sh" \
+  "${SUPERVISOR_APP_DIR}/Contents/Info.plist" \
+  "${PACKAGE_MARKETING_VERSION}" \
+  "${PACKAGE_BUILD_VERSION}"
+SUPERVISOR_MARKETING_VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "${SUPERVISOR_APP_DIR}/Contents/Info.plist")"
+SUPERVISOR_BUILD_VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "${SUPERVISOR_APP_DIR}/Contents/Info.plist")"
+if [[ "${SUPERVISOR_MARKETING_VERSION}" != "${PACKAGE_MARKETING_VERSION}" \
+  || "${SUPERVISOR_BUILD_VERSION}" != "${PACKAGE_BUILD_VERSION}" ]]; then
+  printf '\033[31m error:\033[0m runtime supervisor version does not match the outer app.\n' >&2
+  exit 1
+fi
 
 # The app dlopen()s the SDK from Contents/Frameworks first, so no rpath or
 # install_name surgery is needed.
@@ -149,6 +168,10 @@ fi
 if ! codesign --force --sign "${CODE_SIGN_IDENTITY}" \
   "${APP_DIR}/Contents/MacOS/agentic-mouse-doctor"; then
   printf '\033[31m error:\033[0m codesign failed for the bundled doctor; refusing to continue.\n' >&2
+  exit 1
+fi
+if ! codesign --force --sign "${CODE_SIGN_IDENTITY}" "${SUPERVISOR_APP_DIR}"; then
+  printf '\033[31m error:\033[0m codesign failed for the runtime supervisor; refusing to continue.\n' >&2
   exit 1
 fi
 

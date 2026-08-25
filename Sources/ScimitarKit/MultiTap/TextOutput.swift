@@ -5,9 +5,10 @@ import Foundation
 public protocol TextOutput: AnyObject {
     /// Applies the commands in order, **to the given target only**.
     ///
-    /// Implementations must deliver to `target.processIdentifier` specifically
-    /// rather than posting a global HID event, so that a race between the user
-    /// switching apps and the commit landing cannot type into the wrong window.
+    /// Implementations must either deliver to `target.processIdentifier`
+    /// specifically or revalidate a foreground-app anchor immediately before
+    /// every global event, so a race between an app switch and delivery cannot
+    /// type into the wrong window.
     func apply(_ commands: [TextCommand], to target: TextTarget) throws
 }
 

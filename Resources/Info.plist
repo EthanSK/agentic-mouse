@@ -16,9 +16,9 @@
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>1.0.4</string>
+	<string>1.0.128</string>
 	<key>CFBundleVersion</key>
-	<string>10</string>
+	<string>134</string>
 	<key>LSMinimumSystemVersion</key>
 	<string>13.0</string>
 
@@ -43,7 +43,7 @@
 	<string>Agentic Mouse needs Accessibility permission to type the characters you tap out on the mouse, and to check which text field has focus so a half-typed letter is never sent to the wrong app.</string>
 
 	<key>NSAppleEventsUsageDescription</key>
-	<string>Not used. Agentic Mouse does not script other applications.</string>
+	<string>Agentic Mouse uses macOS System Events to send the exact keyboard shortcuts selected in app-specific mouse modes.</string>
 
 	<key>NSHighResolutionCapable</key>
 	<true/>

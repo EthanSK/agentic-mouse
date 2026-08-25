@@ -1,0 +1,30 @@
+// Arms the top-level Copy / Paste wheel chord for the exact Corsair source lifetime.
+{
+  "id": "hold-copy-paste-wheel-corsair",
+  "title": "Hold Copy / Paste + Wheel (Corsair)",
+  "description": "Tell Agentic Mouse that Corsair physical cell 4 is held until its exact source key releases.",
+  "manipulator": {
+    "to": [{
+      "send_user_command": {
+        "payload": {
+          "command": "agentic_mouse_wheel_chord",
+          "control": "clipboard",
+          "source": "corsair",
+          "phase": "press"
+        }
+      },
+      "repeat": false
+    }],
+    "to_after_key_up": [{
+      "send_user_command": {
+        "payload": {
+          "command": "agentic_mouse_wheel_chord",
+          "control": "clipboard",
+          "source": "corsair",
+          "phase": "release"
+        }
+      },
+      "repeat": false
+    }]
+  }
+}

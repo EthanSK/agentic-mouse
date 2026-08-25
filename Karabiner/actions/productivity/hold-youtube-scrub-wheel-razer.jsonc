@@ -1,0 +1,30 @@
+// Holds the top-level YouTube scrub chord on Razer physical cell 6 (printed 4).
+{
+  "id": "hold-youtube-scrub-wheel-razer",
+  "title": "YouTube Scrub + Wheel (Razer)",
+  "description": "Arm Agentic Mouse while Razer physical cell 6 is held; release always disarms it.",
+  "manipulator": {
+    "to": [{
+      "send_user_command": {
+        "payload": {
+          "command": "agentic_mouse_wheel_chord",
+          "control": "youtubeScrub",
+          "source": "razer",
+          "phase": "press"
+        }
+      },
+      "repeat": false
+    }],
+    "to_after_key_up": [{
+      "send_user_command": {
+        "payload": {
+          "command": "agentic_mouse_wheel_chord",
+          "control": "youtubeScrub",
+          "source": "razer",
+          "phase": "release"
+        }
+      },
+      "repeat": false
+    }]
+  }
+}

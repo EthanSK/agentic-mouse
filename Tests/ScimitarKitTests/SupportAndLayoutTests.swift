@@ -117,10 +117,16 @@ final class HUDLayoutTests: XCTestCase {
     }
 
     func testRazerGridMirrorsColumnsWithoutChangingCanonicalKeys() {
-        let grid = HUDLayout.grid(for: snapshot(source: .razer))
+        var runtime = snapshot(source: .razer)
+        runtime.keymap = .modesKeypad
+        runtime.toggleKey = .k10
+        let grid = HUDLayout.grid(for: runtime, toggleKey: runtime.toggleKey)
         XCTAssertEqual(grid[0].map(\.key.rawValue), [12, 9, 6, 3])
         XCTAssertEqual(grid[1].map(\.key.rawValue), [11, 8, 5, 2])
         XCTAssertEqual(grid[2].map(\.key.rawValue), [10, 7, 4, 1])
+        XCTAssertEqual(grid[0].map(\.legend), ["10", "7", "4", "1"])
+        XCTAssertEqual(grid[1].map(\.legend), ["11", "8", "5", "2"])
+        XCTAssertEqual(grid[2].map(\.legend), ["12", "9", "6", "3"])
     }
 
     func testCellsCarryThePhoneLegendAndTheLetters() {
@@ -165,8 +171,12 @@ final class HUDLayoutTests: XCTestCase {
         XCTAssertFalse(HUDLayout.cell(for: .k12, snapshot: runtime, toggleKey: runtime.toggleKey).isModeToggle)
         XCTAssertEqual(runtime.keymap[.k3]?.caption, "DEF")
         XCTAssertEqual(runtime.keymap[.k3]?.cycle, ["d", "e", "f"])
-        XCTAssertEqual(runtime.keymap[.k11]?.caption, "SHIFT")
-        XCTAssertEqual(runtime.keymap[.k11]?.tapAction, .shiftCycle)
+        XCTAssertEqual(runtime.keymap[.k11]?.caption, "SPACE")
+        XCTAssertEqual(runtime.keymap[.k11]?.tapAction, .space)
+        XCTAssertEqual(runtime.keymap[.k12]?.caption, "BACKSPACE")
+        XCTAssertEqual(runtime.keymap[.k12]?.tapAction, .backspace)
+        XCTAssertEqual(runtime.keymap[.k12]?.holdAction, .newline)
+        XCTAssertEqual(HUDLayout.grid(for: runtime, toggleKey: runtime.toggleKey)[0].map(\.legend), ["3", "6", "9", "12"])
     }
 
     func testPunctuationPreviewPreservesEveryClassicPhoneSymbol() {
@@ -187,8 +197,8 @@ final class HUDLayoutTests: XCTestCase {
 
     func testARefusedTargetIsExplained() {
         var state = MultiTapState()
-        state.targetRefusal = .secureField
-        XCTAssertTrue(HUDLayout.pendingDescription(for: snapshot(state: state)).contains("secure"))
+        state.targetRefusal = .notEditable
+        XCTAssertTrue(HUDLayout.pendingDescription(for: snapshot(state: state)).contains("does not accept text"))
     }
 
     func testStatusLineShowsTheCaseIndicator() {
@@ -279,6 +289,7 @@ final class ConfigurationTests: XCTestCase {
         XCTAssertEqual(configuration.input.transport, .icueMacroKey)
         XCTAssertEqual(configuration.input.toggleKey, 10)
         XCTAssertEqual(configuration.input.gridMacroKeys, Array(1...12))
+        XCTAssertEqual(configuration.input.horizontalScrollLinesPerRatchet, 4)
         XCTAssertTrue(configuration.defaultMapHint.enabled)
         XCTAssertEqual(configuration.defaultMapHint.doubleClickInterval, 0.34)
         XCTAssertEqual(configuration.defaultMapHint.displayDuration, 0)
@@ -300,6 +311,13 @@ final class ConfigurationTests: XCTestCase {
         let decoded = try JSONDecoder().decode(AppConfiguration.self, from: Data("{}".utf8))
         XCTAssertTrue(decoded.defaultMapHint.enabled)
         XCTAssertEqual(decoded.defaultMapHint, AppConfiguration.default.defaultMapHint)
+    }
+
+    func testOlderConfigWithoutHorizontalScrollSensitivityUsesNormalFastDefault() throws {
+        let data = Data(#"{"input":{"transport":"icueMacroKey"}}"#.utf8)
+        let decoded = try JSONDecoder().decode(AppConfiguration.self, from: data)
+
+        XCTAssertEqual(decoded.input.horizontalScrollLinesPerRatchet, 4)
     }
 
     func testConfigurationRoundTripsThroughJSON() throws {
@@ -427,6 +445,30 @@ final class ConfigurationTests: XCTestCase {
         XCTAssertEqual(result.configuration.input.toggleKey, 10)
         XCTAssertTrue(result.warnings.contains { $0.contains("gridMacroKeys") })
         XCTAssertTrue(result.warnings.contains { $0.contains("toggleKey") })
+    }
+
+    func testHorizontalScrollSensitivityIsAdjustableWithinItsBoundedRange() {
+        var configuration = AppConfiguration.default
+        configuration.input.horizontalScrollLinesPerRatchet = 9
+
+        let result = ConfigurationLoader.sanitize(configuration)
+
+        XCTAssertEqual(result.configuration.input.horizontalScrollLinesPerRatchet, 9)
+        XCTAssertFalse(result.warnings.contains { $0.contains("horizontalScrollLinesPerRatchet") })
+    }
+
+    func testSanitizationRestoresUnsafeHorizontalScrollSensitivity() {
+        for unsafeValue in [0, 13] {
+            var configuration = AppConfiguration.default
+            configuration.input.horizontalScrollLinesPerRatchet = unsafeValue
+
+            let result = ConfigurationLoader.sanitize(configuration)
+
+            XCTAssertEqual(result.configuration.input.horizontalScrollLinesPerRatchet, 4)
+            XCTAssertTrue(
+                result.warnings.contains { $0.contains("horizontalScrollLinesPerRatchet") }
+            )
+        }
     }
 
     func testRuntimeConfigurationForcesTheUniversalExitCell() {
