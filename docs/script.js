@@ -24,7 +24,7 @@ const LAYERS = {
       ["Screenshot / 2× Paste", "Save through native Shift-Command-4, copy the result, or rapid-double-press to paste it."],
       ["Copy / Paste + Wheel", "Hold and ratchet: up pastes, down copies."],
       ["Forward", "Go forward one page or navigation step."],
-      ["YouTube Scrub + Wheel", "Scrub the selected YouTube target by five seconds per ratchet without focusing Chrome."],
+      ["YouTube Scrub + Wheel", "Click to rewind five seconds, or hold and ratchet to scrub by five seconds without focusing Chrome."],
       ["Enter", "Insert one native Return in the frontmost app."],
       ["Back", "Go back one page or navigation step."],
       ["Keys mode", "Open the shared native-key mode."],

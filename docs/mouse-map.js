@@ -58,8 +58,8 @@ const PAIRS = [
   },
   {
     id: "c6", corsair: 6, razer: 4, row: 1, col: 2,
-    action: "YouTube Scrub + Wheel", short: "YouTube scrub", description: "Scrub the selected YouTube target by five seconds per ratchet without focusing Chrome.",
-    signal: "runtime", output: "VoiceInk bridge · seek −5 seconds", status: "INSTALLED · PHYSICAL ACCEPTANCE PENDING",
+    action: "YouTube Scrub + Wheel", short: "YouTube scrub", description: "Click to rewind five seconds, or hold and ratchet to scrub by five seconds without focusing Chrome.",
+    signal: "runtime", output: "VoiceInk bridge · click −5 · wheel ±5 seconds", status: "INSTALLED · PHYSICAL ACCEPTANCE PENDING",
   },
   {
     id: "c7", corsair: 7, razer: 9, row: 3, col: 3,

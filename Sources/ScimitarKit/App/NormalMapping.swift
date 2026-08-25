@@ -87,7 +87,7 @@ public struct ScimitarNormalMapping: Equatable, Sendable {
             Assignment(
                 button: 6,
                 action: "YouTube Scrub + Wheel",
-                implementation: "Hold the exact-device cell; each accepted ratchet asks the VoiceInk YouTube Bridge to seek the selected target by exactly five seconds without focusing Chrome"
+                implementation: "Release without wheel input to rewind five seconds; otherwise each accepted ratchet asks the VoiceInk YouTube Bridge to seek the selected target by exactly five seconds without focusing Chrome"
             ),
             Assignment(
                 button: 7,

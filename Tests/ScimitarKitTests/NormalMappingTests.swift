@@ -63,7 +63,7 @@ final class NormalMappingTests: XCTestCase {
         )
     }
 
-    func testTwoOpensTheFrontmostAppSixScrubsYouTubeAndNineOpensKeys() {
+    func testTwoOpensTheFrontmostAppSixClicksOrScrubsYouTubeAndNineOpensKeys() {
         XCTAssertEqual(ScimitarNormalMapping.normal.assignment(for: 2)?.action, "App-specific mode")
         XCTAssertEqual(
             ScimitarNormalMapping.normal.assignment(for: 2)?.implementation,
@@ -72,7 +72,7 @@ final class NormalMappingTests: XCTestCase {
         XCTAssertEqual(ScimitarNormalMapping.normal.assignment(for: 6)?.action, "YouTube Scrub + Wheel")
         XCTAssertEqual(
             ScimitarNormalMapping.normal.assignment(for: 6)?.implementation,
-            "Hold the exact-device cell; each accepted ratchet asks the VoiceInk YouTube Bridge to seek the selected target by exactly five seconds without focusing Chrome"
+            "Release without wheel input to rewind five seconds; otherwise each accepted ratchet asks the VoiceInk YouTube Bridge to seek the selected target by exactly five seconds without focusing Chrome"
         )
         XCTAssertEqual(ScimitarNormalMapping.normal.assignment(for: 9)?.action, "Keys mode")
         XCTAssertEqual(

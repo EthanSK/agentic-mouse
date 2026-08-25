@@ -2181,3 +2181,11 @@ remains evidence for why the earlier `-p` and explicit-child variants failed.
 **Fix:** Share one AppKit icon/style provider across both source HUDs and mode-definition resolution. Resolve to the exact `.app` path, rasterize only 32 × 32 pixels on the first cache miss, choose the strongest populated chromatic cluster, normalize it to a legible saturated mode accent, and use a bounded grey for truly neutral icons. Feed that accent through the existing app definition so it drives the panel/perimeter, navigation card, and mouse lighting while semantic action-family fills remain unchanged. Cache both icon and colour in memory by resolved app path, and reduce the trigger artwork to an 8-point blur at 1.14× scale.
 **Guard:** Automatic frontmost and manual Choose App journeys must use the same dynamic definition source and path cache. Never persist icon bytes or derived colours, sample on every redraw, flatten semantic action colours, spread artwork across a child app page, or claim the look physically accepted before Ethan checks the installed HUD.
 ---
+---
+**Date:** 2026-08-25
+**Trigger:** The top-level YouTube button needed a plain-click rewind while retaining its held-wheel scrub gesture.
+**Symptom:** The shared cell-6 transport exposed press, wheel, and release, but release always only disarmed the wheel chord, so a wheel-free click did nothing.
+**Root cause:** The wheel state machine discarded the completed hold without reporting whether any scroll input occurred during that exact source lifetime.
+**Fix:** Return a completed release record, mark every armed source after any nonzero vertical wheel input, and rewind five seconds only when the released control is YouTube Scrub and that record is still wheel-free. Keep accepted wheel ratchets on the existing ±5-second VoiceInk route.
+**Guard:** Duplicate presses must not reset the wheel-seen latch. Filtered, phased, ambiguous, and failed wheel paths must suppress the release click, while stale releases, lock, sleep, reload, source clear, and teardown must never emit a rewind.
+---

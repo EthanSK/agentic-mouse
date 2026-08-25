@@ -478,6 +478,25 @@ public final class WheelChordStateMachine {
         }
     }
 
+    /// The completed physical hold. A plain click is a release whose lifetime
+    /// contained no vertical wheel input; teardown clears state without
+    /// producing this value, so lock, sleep, and reload cannot trigger it.
+    public struct Release: Equatable, Sendable {
+        public let source: MouseSource
+        public let control: WheelChordControl
+        public let didObserveWheelInput: Bool
+
+        public init(
+            source: MouseSource,
+            control: WheelChordControl,
+            didObserveWheelInput: Bool
+        ) {
+            self.source = source
+            self.control = control
+            self.didObserveWheelInput = didObserveWheelInput
+        }
+    }
+
     public enum Routing: Equatable, Sendable {
         case passThrough
         case consume(Step)
@@ -497,6 +516,7 @@ public final class WheelChordStateMachine {
     private var activeBySource: [MouseSource: WheelChordControl] = [:]
     private var acceptedDetentCountBySource: [MouseSource: Int] = [:]
     private var didActBySource: [MouseSource: Bool] = [:]
+    private var didObserveWheelInputBySource: [MouseSource: Bool] = [:]
     private var lastActionBySource: [MouseSource: (WheelChordDirection, TimeInterval)] = [:]
 
     public init(clock: MonotonicClock = SystemMonotonicClock()) {
@@ -508,22 +528,44 @@ public final class WheelChordStateMachine {
         for source: MouseSource
     ) {
         let previous = activeBySource[source]
+        guard let control else {
+            _ = release(for: source)
+            return
+        }
         activeBySource[source] = control
-        if control == nil {
-            acceptedDetentCountBySource[source] = nil
-            didActBySource[source] = nil
-            lastActionBySource[source] = nil
-        } else if previous != control || acceptedDetentCountBySource[source] == nil {
+        if previous != control || acceptedDetentCountBySource[source] == nil {
             acceptedDetentCountBySource[source] = 0
             didActBySource[source] = false
+            didObserveWheelInputBySource[source] = false
             lastActionBySource[source] = nil
         }
+    }
+
+    /// Releases one source and returns its completed hold only when the
+    /// optional expected control still owns that source. This prevents a stale
+    /// release from ending a newer top-level chord.
+    @discardableResult
+    public func release(
+        _ expectedControl: WheelChordControl? = nil,
+        for source: MouseSource
+    ) -> Release? {
+        guard let control = activeBySource[source],
+              expectedControl == nil || expectedControl == control
+        else { return nil }
+        let release = Release(
+            source: source,
+            control: control,
+            didObserveWheelInput: didObserveWheelInputBySource[source] == true
+        )
+        clear(source: source)
+        return release
     }
 
     public func clear(source: MouseSource) {
         activeBySource[source] = nil
         acceptedDetentCountBySource[source] = nil
         didActBySource[source] = nil
+        didObserveWheelInputBySource[source] = nil
         lastActionBySource[source] = nil
     }
 
@@ -531,6 +573,7 @@ public final class WheelChordStateMachine {
         activeBySource.removeAll()
         acceptedDetentCountBySource.removeAll()
         didActBySource.removeAll()
+        didObserveWheelInputBySource.removeAll()
         lastActionBySource.removeAll()
     }
 
@@ -561,6 +604,13 @@ public final class WheelChordStateMachine {
         // but accept phase-free detents so exact-device held chords work
         // through both physical mouse adapters.
         let isGestureScroll = isContinuous && (scrollPhase != 0 || momentumPhase != 0)
+        // A held YouTube control must not become a rewind click after any
+        // actual scroll input. Mark every armed source before pass-through or
+        // ambiguity so a trackpad gesture or two-mouse conflict also fails
+        // closed instead of adding an unexpected −5 seconds on release.
+        for source in Array(activeBySource.keys) {
+            didObserveWheelInputBySource[source] = true
+        }
         guard !isGestureScroll else {
             return .passThrough
         }

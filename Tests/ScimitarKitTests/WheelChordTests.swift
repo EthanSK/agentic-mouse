@@ -108,6 +108,89 @@ final class WheelChordTests: XCTestCase {
         )
     }
 
+    func testPlainYouTubeReleaseIsAClickOnBothMice() {
+        for source in MouseSource.allCases {
+            let state = WheelChordStateMachine()
+            state.setActive(.youtubeScrub, for: source)
+
+            XCTAssertEqual(
+                state.release(.youtubeScrub, for: source),
+                .init(
+                    source: source,
+                    control: .youtubeScrub,
+                    didObserveWheelInput: false
+                )
+            )
+            XCTAssertNil(state.activeControl(for: source))
+            XCTAssertNil(state.release(.youtubeScrub, for: source))
+        }
+    }
+
+    func testYouTubeWheelGestureSuppressesTheReleaseClick() {
+        let state = WheelChordStateMachine()
+        state.setActive(.youtubeScrub, for: .corsair)
+
+        XCTAssertEqual(
+            state.route(verticalDelta: -1, isContinuous: false),
+            .consume(.init(
+                source: .corsair,
+                control: .youtubeScrub,
+                direction: .down,
+                detentCount: 1
+            ))
+        )
+        state.setActive(.youtubeScrub, for: .corsair)
+        XCTAssertEqual(
+            state.release(.youtubeScrub, for: .corsair),
+            .init(
+                source: .corsair,
+                control: .youtubeScrub,
+                didObserveWheelInput: true
+            ),
+            "a duplicate press must not forget that this hold already used the wheel"
+        )
+    }
+
+    func testPassedThroughAndAmbiguousWheelInputAlsoSuppressYouTubeClick() {
+        let state = WheelChordStateMachine()
+        state.setActive(.youtubeScrub, for: .razer)
+        XCTAssertEqual(
+            state.route(
+                verticalDelta: 1,
+                isContinuous: true,
+                scrollPhase: 2
+            ),
+            .passThrough
+        )
+        XCTAssertEqual(
+            state.release(.youtubeScrub, for: .razer)?.didObserveWheelInput,
+            true
+        )
+
+        state.setActive(.youtubeScrub, for: .corsair)
+        state.setActive(.brightness, for: .razer)
+        XCTAssertEqual(state.route(verticalDelta: -1, isContinuous: false), .consumeAmbiguous)
+        XCTAssertEqual(
+            state.release(.youtubeScrub, for: .corsair)?.didObserveWheelInput,
+            true
+        )
+        XCTAssertEqual(
+            state.release(.brightness, for: .razer)?.didObserveWheelInput,
+            true
+        )
+    }
+
+    func testStaleReleaseAndLifecycleClearCannotTriggerYouTubeClick() {
+        let state = WheelChordStateMachine()
+        state.setActive(.youtubeScrub, for: .corsair)
+
+        XCTAssertNil(state.release(.clipboard, for: .corsair))
+        XCTAssertEqual(state.activeControl(for: .corsair), .youtubeScrub)
+
+        state.clear(source: .corsair)
+        XCTAssertNil(state.release(.youtubeScrub, for: .corsair))
+    }
+
     func testSpacesProducesAtMostOneStepPerHoldAndRearmsOnRelease() {
         let state = WheelChordStateMachine()
         state.setActive(.spaces, for: .corsair)

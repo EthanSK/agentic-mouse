@@ -47,7 +47,7 @@ These are the currently authoritative Corsair assignments:
 | Button 3 | Screenshot; rapid double-press pastes the copied result | Same global action |
 | Button 4 | Hold + wheel for Copy / Paste | Same global action |
 | Button 5 | Forward | Previous Change through F17 |
-| Button 6 | Hold + wheel to scrub YouTube ±5 sec per ratchet through the VoiceInk bridge | Same global action |
+| Button 6 | Click to rewind YouTube 5 sec; hold + wheel to scrub ±5 sec per ratchet through the VoiceInk bridge | Same global action |
 | Button 7 | Enter | Enter |
 | Button 8 | Back | Next Change through F13 |
 | Button 9 | Open Keys mode | Same global action |
@@ -62,8 +62,8 @@ right or left, and release re-arms the next move. Hold cell 4 for per-ratchet
 Copy / Paste. Each accepted cell-1 horizontal detent emits four horizontal
 line units by default; set
 `input.horizontalScrollLinesPerRatchet` from 1 through 12 to tune the travel
-without weakening the fixed duplicate-ratchet filter. Hold button 6 and ratchet up to move the selected
-YouTube target forward five seconds or down to move it backward five seconds without focusing Chrome; button 2 opens the current
+without weakening the fixed duplicate-ratchet filter. Click button 6 without moving the wheel to rewind the selected
+YouTube target five seconds. Hold it and ratchet up to move forward five seconds or down to move backward five seconds without focusing Chrome; button 2 opens the current
 frontmost app mode, and button 9 opens shared Keys mode. On the left-handed Razer, YouTube Scrub + Wheel is printed 4, Keys is printed
 7, and Enter is printed 9. Switch App uses shared physical cell 11. Cell 10 toggles that
 source mouse's independent Default legend outside modes and exits any active

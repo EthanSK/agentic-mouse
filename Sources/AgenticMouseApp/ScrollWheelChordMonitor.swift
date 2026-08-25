@@ -15,6 +15,7 @@ import ScimitarKit
 /// Two simultaneously held source chords are consumed without guessing.
 final class ScrollWheelChordMonitor {
     typealias StepHandler = (WheelChordStateMachine.Step) -> Bool
+    typealias ReleaseHandler = (WheelChordStateMachine.Release) -> Void
     typealias ProblemHandler = (String) -> Void
     typealias DiagnosticHandler = (_ source: MouseSource, _ message: String) -> Void
     typealias InputAllowed = () -> Bool
@@ -27,6 +28,7 @@ final class ScrollWheelChordMonitor {
     private let diagnosticThrottle: WheelChordDiagnosticThrottle
 
     var onStep: StepHandler?
+    var onRelease: ReleaseHandler?
     var onProblem: ProblemHandler?
     var onDiagnostic: DiagnosticHandler?
 
@@ -105,17 +107,37 @@ final class ScrollWheelChordMonitor {
         _ control: WheelChordControl?,
         for source: MouseSource
     ) {
-        let previous = state.activeControl(for: source)
+        guard let control else {
+            finishHold(for: source)
+            return
+        }
         state.setActive(control, for: source)
         diagnosticThrottle.reset(source: source)
-        if let control {
-            emitDiagnostic(
-                source: source,
-                message: "\(controlLabel(control, source: source)) ARMED · 0 RATCHETS"
-            )
-        } else if let previous {
-            log.info("\(controlLabel(previous, source: source)) released")
+        emitDiagnostic(
+            source: source,
+            message: "\(controlLabel(control, source: source)) ARMED · 0 RATCHETS"
+        )
+    }
+
+    /// Preserves the exact top-level control on release so an old command
+    /// cannot finish a newer hold from the same mouse source.
+    func handle(_ command: WheelChordCommand) {
+        switch command.phase {
+        case .press:
+            setActive(command.control, for: command.source)
+        case .release:
+            finishHold(command.control, for: command.source)
         }
+    }
+
+    private func finishHold(
+        _ expectedControl: WheelChordControl? = nil,
+        for source: MouseSource
+    ) {
+        guard let release = state.release(expectedControl, for: source) else { return }
+        diagnosticThrottle.reset(source: source)
+        log.info("\(controlLabel(release.control, source: source)) released")
+        onRelease?(release)
     }
 
     func clear(source: MouseSource) {

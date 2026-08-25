@@ -1403,6 +1403,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             self.scheduleUtilityWheelAction(action, step: step)
             return true
         }
+        monitor.onRelease = { [weak self] release in
+            guard release.control == .youtubeScrub,
+                  !release.didObserveWheelInput
+            else { return }
+            self?.performTopLevelYouTubeRewind(from: release.source)
+        }
         monitor.onProblem = { [weak self] message in
             guard let self else { return }
             let activeSources = self.modePickerCoordinators
@@ -1870,10 +1876,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     return
                 }
                 if let command = try? WheelChordCommand.decodeTopLevel(data) {
-                    self.wheelChordMonitor?.setActive(
-                        command.phase == .press ? command.control : nil,
-                        for: command.source
-                    )
+                    self.wheelChordMonitor?.handle(command)
                     return
                 }
                 if let command = try? DefaultMapHintCommand.decode(data) {
@@ -1888,31 +1891,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     return
                 }
                 if let command = try? YouTubeRewindCommand.decode(data) {
-                    guard self.modePickerCoordinators[command.source]?.isActive != true else {
-                        self.log.notice("ignored delayed top-level YouTube rewind during a mode")
-                        return
-                    }
-                    let feedback: ModeHUDFeedback
-                    switch self.modeUtilityActionExecutor.perform(.rewindYouTubeFiveSeconds) {
-                    case .success:
-                        feedback = ModeHUDFeedback(
-                            message: "YouTube −5 sec requested",
-                            tone: .informational
-                        )
-                        self.log.info(
-                            "YouTube −5 sec requested from top-level "
-                                + command.source.displayName
-                        )
-                    case .failure:
-                        feedback = ModeHUDFeedback(
-                            message: "YouTube −5 sec could not be requested",
-                            tone: .notConfirmed
-                        )
-                    }
-                    self.defaultMapHintCoordinators[command.source]?.flashActionFeedback(
-                        source: command.source,
-                        feedback: feedback
-                    )
+                    self.performTopLevelYouTubeRewind(from: command.source)
                     return
                 }
                 self.log.debug("ignored unrelated or malformed Karabiner user command")
@@ -1932,6 +1911,35 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 $0.flashProblem("Mouse commands unavailable: \(problem)")
             }
         }
+    }
+
+    /// A plain top-level YouTube press cannot be identified until release,
+    /// because any wheel input keeps the existing scrub gesture and
+    /// must suppress this single −5-second action.
+    private func performTopLevelYouTubeRewind(from source: MouseSource) {
+        guard mouseCommandsAllowed else { return }
+        guard modePickerCoordinators[source]?.isActive != true else {
+            log.notice("ignored delayed top-level YouTube rewind during a mode")
+            return
+        }
+        let feedback: ModeHUDFeedback
+        switch modeUtilityActionExecutor.perform(.rewindYouTubeFiveSeconds) {
+        case .success:
+            feedback = ModeHUDFeedback(
+                message: "YouTube −5 sec requested",
+                tone: .informational
+            )
+            log.info("YouTube −5 sec requested from top-level " + source.displayName)
+        case .failure:
+            feedback = ModeHUDFeedback(
+                message: "YouTube −5 sec could not be requested",
+                tone: .notConfirmed
+            )
+        }
+        defaultMapHintCoordinators[source]?.flashActionFeedback(
+            source: source,
+            feedback: feedback
+        )
     }
 
     private func handleScreenshotTriggerResult(
