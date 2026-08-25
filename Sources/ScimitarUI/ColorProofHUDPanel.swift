@@ -19,16 +19,19 @@ public final class AppKitModeHUDPresenter: NSObject, ModeHUDPresenting {
     private let model: ModeHUDViewModel
     private let source: MouseSource
     private let configuration: AppConfiguration.HUDConfiguration
+    private let workspaceNotificationCenter: NotificationCenter
     private var problemDismissWorkItem: DispatchWorkItem?
     private var feedbackDismissWorkItem: DispatchWorkItem?
     private var delayedScreenReconcileWorkItem: DispatchWorkItem?
+    private var delayedSpaceReattachWorkItem: DispatchWorkItem?
     private var displayScope: DisplayScope = .target
     private var panelOpacity: CGFloat
 
     public init(
         source: MouseSource,
         configuration: AppConfiguration.HUDConfiguration = .init(),
-        appIconProvider: WorkspaceModeHUDAppIconProvider = .init()
+        appIconProvider: WorkspaceModeHUDAppIconProvider = .init(),
+        workspaceNotificationCenter: NotificationCenter = NSWorkspace.shared.notificationCenter
     ) {
         self.source = source
         self.model = ModeHUDViewModel(
@@ -36,6 +39,7 @@ public final class AppKitModeHUDPresenter: NSObject, ModeHUDPresenting {
             appIconProvider: appIconProvider
         )
         self.configuration = configuration
+        self.workspaceNotificationCenter = workspaceNotificationCenter
         self.panelOpacity = CGFloat(configuration.opacity)
         super.init()
         NotificationCenter.default.addObserver(
@@ -44,11 +48,19 @@ public final class AppKitModeHUDPresenter: NSObject, ModeHUDPresenting {
             name: NSApplication.didChangeScreenParametersNotification,
             object: nil
         )
+        workspaceNotificationCenter.addObserver(
+            self,
+            selector: #selector(activeSpaceDidChange),
+            name: NSWorkspace.activeSpaceDidChangeNotification,
+            object: nil
+        )
     }
 
     deinit {
         delayedScreenReconcileWorkItem?.cancel()
+        delayedSpaceReattachWorkItem?.cancel()
         NotificationCenter.default.removeObserver(self)
+        workspaceNotificationCenter.removeObserver(self)
     }
 
     public var isVisible: Bool { panels.values.contains { $0.panel.isVisible } }
@@ -74,9 +86,10 @@ public final class AppKitModeHUDPresenter: NSObject, ModeHUDPresenting {
         problemDismissWorkItem?.cancel()
         feedbackDismissWorkItem?.cancel()
         delayedScreenReconcileWorkItem?.cancel()
+        delayedSpaceReattachWorkItem?.cancel()
         model.isActive = false
         model.feedback = nil
-        panels.values.forEach { $0.panel.orderOut(nil) }
+        discardPanels()
         displayScope = .target
     }
 
@@ -89,7 +102,7 @@ public final class AppKitModeHUDPresenter: NSObject, ModeHUDPresenting {
             guard let self else { return }
             self.model.problem = nil
             if !self.model.isActive {
-                self.panels.values.forEach { $0.panel.orderOut(nil) }
+                self.discardPanels()
             }
         }
         problemDismissWorkItem = work
@@ -105,7 +118,7 @@ public final class AppKitModeHUDPresenter: NSObject, ModeHUDPresenting {
             guard let self else { return }
             self.model.feedback = nil
             if !self.model.isActive {
-                self.panels.values.forEach { $0.panel.orderOut(nil) }
+                self.discardPanels()
             }
         }
         feedbackDismissWorkItem = work
@@ -116,6 +129,37 @@ public final class AppKitModeHUDPresenter: NSObject, ModeHUDPresenting {
         guard isVisible else { return }
         reconcilePanels(show: true)
         scheduleSettledScreenReconciliation()
+    }
+
+    @objc private func activeSpaceDidChange(_ notification: Notification) {
+        DispatchQueue.main.async { [weak self] in
+            guard let self, self.model.isActive else { return }
+            self.reattachPanelsToCurrentSpaces()
+            self.scheduleSettledSpaceReattachment()
+        }
+    }
+
+    /// Cached panels can remain fully rendered on a stale Space while AppKit
+    /// still reports them visible. Recreate them on a later main-queue turn so
+    /// every connected display gets a new click-through panel in its current
+    /// Space without changing the model's explicit open state. (Codex task: 01a03a49-d2a9-7d63-85c0-f74ef52aeeab)
+    private func reattachPanelsToCurrentSpaces() {
+        guard model.isActive else { return }
+        discardPanels()
+        DispatchQueue.main.async { [weak self] in
+            guard let self, self.model.isActive else { return }
+            self.reconcilePanels(show: true)
+        }
+    }
+
+    private func scheduleSettledSpaceReattachment() {
+        delayedSpaceReattachWorkItem?.cancel()
+        let work = DispatchWorkItem { [weak self] in
+            guard let self, self.model.isActive else { return }
+            self.reattachPanelsToCurrentSpaces()
+        }
+        delayedSpaceReattachWorkItem = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5, execute: work)
     }
 
     /// AppKit can publish screen-parameter changes before `NSScreen.screens`
@@ -146,6 +190,11 @@ public final class AppKitModeHUDPresenter: NSObject, ModeHUDPresenting {
             position(instance, on: screen)
             if show { instance.panel.orderFrontRegardless() }
         }
+    }
+
+    private func discardPanels() {
+        panels.values.forEach { $0.panel.orderOut(nil) }
+        panels.removeAll()
     }
 
     private func ensurePanel(for screen: NSScreen) -> PanelInstance {

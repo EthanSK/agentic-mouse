@@ -71,15 +71,19 @@ public final class AppKitHUDPresenter: NSObject, HUDPresenting {
     private let model: HUDViewModel
     private let source: MouseSource
     private let configuration: AppConfiguration.HUDConfiguration
+    private let workspaceNotificationCenter: NotificationCenter
     private var problemDismissWorkItem: DispatchWorkItem?
+    private var delayedSpaceReattachWorkItem: DispatchWorkItem?
 
     public init(
         source: MouseSource,
-        configuration: AppConfiguration.HUDConfiguration = .init()
+        configuration: AppConfiguration.HUDConfiguration = .init(),
+        workspaceNotificationCenter: NotificationCenter = NSWorkspace.shared.notificationCenter
     ) {
         self.source = source
         self.model = HUDViewModel(source: source)
         self.configuration = configuration
+        self.workspaceNotificationCenter = workspaceNotificationCenter
         super.init()
         NotificationCenter.default.addObserver(
             self,
@@ -87,9 +91,19 @@ public final class AppKitHUDPresenter: NSObject, HUDPresenting {
             name: NSApplication.didChangeScreenParametersNotification,
             object: nil
         )
+        workspaceNotificationCenter.addObserver(
+            self,
+            selector: #selector(activeSpaceDidChange),
+            name: NSWorkspace.activeSpaceDidChangeNotification,
+            object: nil
+        )
     }
 
-    deinit { NotificationCenter.default.removeObserver(self) }
+    deinit {
+        delayedSpaceReattachWorkItem?.cancel()
+        NotificationCenter.default.removeObserver(self)
+        workspaceNotificationCenter.removeObserver(self)
+    }
 
     public var isVisible: Bool { panels.values.contains { $0.panel.isVisible } }
 
@@ -107,13 +121,14 @@ public final class AppKitHUDPresenter: NSObject, HUDPresenting {
 
     public func hide() {
         problemDismissWorkItem?.cancel()
+        delayedSpaceReattachWorkItem?.cancel()
         // The model must be told the mode is over, not just the window.
         // `flashProblem`'s dismissal asks `model.isActive` whether it is safe to
         // order the panel out; leaving a stale `true` here would strand a
         // failure message on screen indefinitely, because `hide()` is followed
         // by `flashProblem()` on every failure exit.
         model.isActive = false
-        panels.values.forEach { $0.panel.orderOut(nil) }
+        discardPanels()
     }
 
     /// Shows a short-lived explanation when the mode could not be entered.
@@ -127,7 +142,7 @@ public final class AppKitHUDPresenter: NSObject, HUDPresenting {
         let work = DispatchWorkItem { [weak self] in
             guard let self else { return }
             self.model.problem = nil
-            if !self.model.isActive { self.panels.values.forEach { $0.panel.orderOut(nil) } }
+            if !self.model.isActive { self.discardPanels() }
         }
         problemDismissWorkItem = work
         DispatchQueue.main.asyncAfter(deadline: .now() + 4, execute: work)
@@ -138,6 +153,42 @@ public final class AppKitHUDPresenter: NSObject, HUDPresenting {
     @objc private func screenParametersDidChange(_ notification: Notification) {
         guard isVisible else { return }
         reconcilePanels(show: true)
+    }
+
+    @objc private func activeSpaceDidChange(_ notification: Notification) {
+        DispatchQueue.main.async { [weak self] in
+            guard let self, self.model.isActive else { return }
+            self.reattachPanelsToCurrentSpaces()
+            self.scheduleSettledSpaceReattachment()
+        }
+    }
+
+    /// Cached panels can remain attached to a stale Space even while AppKit
+    /// reports them visible. Recreate them on a later main-queue turn so each
+    /// connected display receives a fresh non-activating panel in its current
+    /// Space. Hidden models remain hidden. (Codex task: 01a03a49-d2a9-7d63-85c0-f74ef52aeeab)
+    private func reattachPanelsToCurrentSpaces() {
+        guard model.isActive else { return }
+        discardPanels()
+        DispatchQueue.main.async { [weak self] in
+            guard let self, self.model.isActive else { return }
+            self.reconcilePanels(show: true)
+        }
+    }
+
+    private func scheduleSettledSpaceReattachment() {
+        delayedSpaceReattachWorkItem?.cancel()
+        let work = DispatchWorkItem { [weak self] in
+            guard let self, self.model.isActive else { return }
+            self.reattachPanelsToCurrentSpaces()
+        }
+        delayedSpaceReattachWorkItem = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5, execute: work)
+    }
+
+    private func discardPanels() {
+        panels.values.forEach { $0.panel.orderOut(nil) }
+        panels.removeAll()
     }
 
     private func ensurePanel(for screen: NSScreen) -> PanelInstance {

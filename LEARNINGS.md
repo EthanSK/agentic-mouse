@@ -1,5 +1,17 @@
 # Learnings
 
+## 2026-08-25 — Reattach HUD panels to the current macOS Spaces
+
+**Trigger:** Ethan still could not see the Default legend after Accessibility and CGWindow inspection reported three Agentic Mouse panels and direct per-window captures showed fully rendered v1.0.128 content.
+
+**Finding:** The panels existed but belonged to stale, non-current macOS Spaces. Full screenshots of all three currently visible displays showed no legend, and the CGWindow records lacked `kCGWindowIsOnscreen`. Toggling the Corsair Default legend off and on made one panel visible on the Samsung display, while the other two current display Spaces still had no legend. `.canJoinAllSpaces`, AX window counts, and direct window captures therefore do not prove that a HUD is visible in the user's current Spaces.
+
+**Fix:** Observe `NSWorkspace.activeSpaceDidChangeNotification` in both AppKit HUD presenters. While the model remains explicitly active, discard the cached `HUDPanel` instances and recreate one panel per target display on a later main-queue turn, then repeat once after 500 ms so separate-Spaces-per-display transitions have settled. Hiding a HUD discards its panels and clears the active model first, so neither the immediate nor delayed Space reconciliation can reopen a legend the user closed. (Codex task: 01a03a49-d2a9-7d63-85c0-f74ef52aeeab)
+
+**Guard:** Preserve the existing `.nonactivatingPanel`, click-through, status-bar-level, `.canJoinAllSpaces`, and full-screen auxiliary contract by recreating the same `HUDPanel` type. Treat full-display pixel evidence from every connected display's current Space as the visibility proof; AX counts and direct panel captures prove only that windows exist and render.
+
+**Verification:** Three focused AppKit lifecycle tests prove that an active all-display legend replaces every visible panel after a Space-change notification, an explicitly hidden legend stays hidden after the same notification and delayed pass, and every recreated panel retains the non-activating click-through contract. Developer-ID-signed Agentic Mouse v1.0.129 (build 135) was installed as PID 83847 with supervisor PID 83890. Its status menu reported the exact Scimitar, iCUE connected, Accessibility granted, and self-recovery enabled; the process also had the bundled iCUE framework open. After the genuine-session input gate opened, one normal Corsair Default toggle logged a successful open. Full-display pixel screenshots then visibly proved one v1.0.129 legend on each current AVT GC553G2, Built-in Retina Display, and LS27A800U Space; the requested Horizontal Scroll + Wheel and Copy / Paste + Wheel positions were visible in every legend.
+
 ## 2026-08-25 — Restore attended Default HUD visibility after replacement
 
 **Trigger:** Agentic Mouse input, iCUE, Accessibility, and its supervisor were healthy after the v1.0.128 replacement, but Ethan reported that no HUD was visible.
