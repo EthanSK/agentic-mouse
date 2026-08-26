@@ -2198,3 +2198,12 @@ remains evidence for why the earlier `-p` and explicit-child variants failed.
 **Fix:** Map physical wheel up to Zoom In and wheel down to Zoom Out on both mice.
 **Guard:** Keep the change local to Zoom. Never flip Brightness, Spaces, Horizontal Scroll, Clipboard, YouTube, or another wheel family with it, and pin Zoom independently in resolver and HUD-feedback tests.
 ---
+
+---
+**Date:** 2026-08-26
+**Trigger:** Ethan asked to switch the tab-wheel direction in Chrome mode.
+**Symptom:** Chrome mode used wheel up for Next Tab and wheel down for Previous Tab, opposite Ethan's preferred navigation gesture.
+**Root cause:** Chrome Tabs inherited the earlier right/forward held-wheel convention even though its direction is an independent app-specific preference.
+**Fix:** Reverse only Chrome Tabs: wheel up selects Previous Tab and wheel down selects Next Tab on both mice. Derive footer feedback from `chromeTabAction(for:)` so the displayed result cannot drift from dispatch.
+**Guard:** Keep this reversal local to Chrome Tabs. Do not flip Horizontal Scroll, YouTube Scrub, Spaces, Cursor History, Codex Chats Selection, or another wheel family, and pin the Chrome resolver and footer feedback together.
+---

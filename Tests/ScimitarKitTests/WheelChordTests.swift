@@ -640,8 +640,8 @@ final class WheelChordTests: XCTestCase {
         XCTAssertEqual(YouTubeSeekAction.forwardFiveSeconds.seconds, 5)
         XCTAssertEqual(YouTubeSeekAction.backwardFiveSeconds.seconds, -5)
         XCTAssertNil(WheelChordControl.chromeTabs.utilityAction(for: .up))
-        XCTAssertEqual(WheelChordControl.chromeTabs.chromeTabAction(for: .up), .nextTab)
-        XCTAssertEqual(WheelChordControl.chromeTabs.chromeTabAction(for: .down), .previousTab)
+        XCTAssertEqual(WheelChordControl.chromeTabs.chromeTabAction(for: .up), .previousTab)
+        XCTAssertEqual(WheelChordControl.chromeTabs.chromeTabAction(for: .down), .nextTab)
         XCTAssertNil(WheelChordControl.zoom.chromeTabAction(for: .up))
         XCTAssertEqual(
             WheelChordControl.spotifyVolume.spotifyVolumeAction(for: .up),
@@ -686,8 +686,8 @@ final class WheelChordTests: XCTestCase {
             (.magnetWindow, .down, "Magnet Right"),
             (.spaces, .up, "Space Right"),
             (.spaces, .down, "Space Left"),
-            (.chromeTabs, .up, "Next Tab"),
-            (.chromeTabs, .down, "Previous Tab"),
+            (.chromeTabs, .up, "Previous Tab"),
+            (.chromeTabs, .down, "Next Tab"),
             (.spotifyVolume, .up, "Volume up"),
             (.spotifyVolume, .down, "Volume down"),
             (.vsCodeCursorHistory, .up, "Cursor History Forward"),
@@ -728,7 +728,7 @@ final class WheelChordTests: XCTestCase {
                 outcome: .couldNotBeSent
             ),
             ModeHUDFeedback(
-                message: "Next Tab could not be sent · 1 ratchet",
+                message: "Previous Tab could not be sent · 1 ratchet",
                 tone: .notConfirmed
             )
         )

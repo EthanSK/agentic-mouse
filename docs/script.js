@@ -174,7 +174,7 @@ const LAYERS = {
       ["Close current tab", "Send Command-W to the running Chrome process."],
       ["Exit Chrome mode", "Return directly to Default."],
       ["Open DevTools", "Send Chrome's Command-Option-I shortcut."],
-      ["Tabs + Wheel", "Hold and ratchet: up moves to the next tab, down to the previous tab."],
+      ["Tabs + Wheel", "Hold and ratchet: up moves to the previous tab, down to the next tab."],
       ["New tab", "Send Command-T to Chrome."],
       ["Reload current tab", "Send Command-R to Chrome."],
       ["Hold 2× speed", "Hold for 2× on the selected playing YouTube video; double-click locks/unlocks 2×."],

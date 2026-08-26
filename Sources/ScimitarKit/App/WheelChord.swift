@@ -181,9 +181,7 @@ public enum WheelChordControl: String, Codable, CaseIterable, Sendable {
         for direction: WheelChordDirection
     ) -> ChromeTabNavigationAction? {
         guard self == .chromeTabs else { return nil }
-        // Match Ethan's accepted held-wheel convention: wheel up advances to
-        // the item on the right; wheel down returns to the item on the left.
-        return direction == .up ? .nextTab : .previousTab
+        return direction == .up ? .previousTab : .nextTab // Chrome intentionally uses wheel up for Previous and wheel down for Next after Ethan reversed only this family; do not infer its polarity from other wheel controls. (Codex task: 01a039f7-873c-7c30-b3dc-af8a6724ace5)
     }
 
     public func youtubeSeekAction(
@@ -250,7 +248,7 @@ public enum WheelChordControl: String, Codable, CaseIterable, Sendable {
                 ? "YouTube +5 sec"
                 : "YouTube −5 sec"
         case .chromeTabs:
-            return direction == .up ? "Next Tab" : "Previous Tab"
+            return chromeTabAction(for: direction) == .nextTab ? "Next Tab" : "Previous Tab"
         case .spotifyVolume:
             return spotifyVolumeAction(for: direction)?.title
         case .vsCodeCursorHistory:
