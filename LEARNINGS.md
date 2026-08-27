@@ -1,5 +1,17 @@
 # Learnings
 
+## 2026-08-27 — Keep ordinary action feedback inside the user's legend state
+
+**Trigger:** Ethan double-pressed the top-level Screenshot button to paste the last Agentic Mouse screenshot. The paste succeeded, but its feedback unexpectedly opened the closed Default legend.
+
+**Finding:** Screenshot copy, paste-queued, pasted, and failure callbacks sent feedback directly to the shared `AppKitModeHUDPresenter`. `flashFeedback` always reconciled panels with `show: true`, even after the Default coordinator had marked its legend closed. The same top-level bypass existed for a Horizontal Scroll posting failure, and delayed app-mode feedback could arrive after its owning page had closed.
+
+**Fix:** Route every Screenshot result and the top-level Horizontal Scroll failure through the source's `DefaultMapHintCoordinator`, which accepts ordinary feedback only when that source's Default legend is already open. Ignore ordinary `flashFeedback` when the presenter's model is inactive, and require the delayed iPhone Mirroring verification to still belong to the same active source, app-specific page, and target before showing it. Keep deliberate system/readiness problems on the standalone problem path because they report that mouse input itself is unavailable. (Codex task: 01a039f7-873c-7c30-b3dc-af8a6724ace5)
+
+**Guard:** A successful or failed top-level action may update an already-open Default legend but must never open one. A delayed mode result must verify its current page and target before touching the HUD. Preserve explicit user visibility as the single source of truth; do not make `ModeHUDPresenting` feedback a second visibility controller.
+
+**Verification:** The focused Screenshot, Default-map, and AppKit lifecycle suites passed 37 tests, including hidden-legend success/failure and inactive-presenter regressions. The complete clean gate passed 657 Swift tests, six Musixmatch tests, six VS Code bridge tests, 17 Karabiner generator tests, both Karabiner lints, packaging/version contracts, and shell syntax; the updated `configure-mice` skill passed validation. Developer-ID-signed Agentic Mouse v1.0.138 (build 144) is installed as main PID 99098 with supervisor PID 99112, stable Accessibility trust, command-socket ownership, and an active Unix connection to iCUE's live SDK server. Its executable SHA-256 is `cbd70376f5e7f2d7b528749738720e1a06686fce800f2a30495e7de5e2eae896`; the embedded iCUE SDK, live config, live Karabiner file, and VS Code keybindings remain byte-identical at SHA-256 `48bbc94bed670d036af8e1acca0017449b36d7c6d1e15dafe0791b42b6be84fe`, `aa1499d88bd34875dc11f9a2873165d09cd2323c590126f425da4fd72e3189be`, `b8a0048a76dda9aa03e38aeb538da4346d465428d078f7eeca7593c264698bbd`, and `8d23c9fae7eb21104cda9203be4b95e2cebacfb08e708f806977dcb3720b60aa`. Full-display pixel captures of all three current Spaces plus Accessibility window count zero prove the pre-install closed legend state remained closed after replacement. The exact prior app is preserved at `Rollbacks/AgenticMouse-v1.0.137-build143-before-v1.0.138.app` and recoverably in Trash. Literal physical Screenshot double-paste acceptance remains Ethan-owned.
+
 ## 2026-08-25 — Start VS Code Terminal toggling with Hide
 
 **Trigger:** Ethan reported that VS Code mode's Toggle Terminal control needed two presses before it began hiding and showing the integrated Terminal as expected.

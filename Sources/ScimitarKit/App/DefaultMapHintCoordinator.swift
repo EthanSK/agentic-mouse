@@ -91,6 +91,17 @@ public final class DefaultMapHintCoordinator {
         hud.flashFeedback(feedback)
     }
 
+    /// Shows a top-level one-shot failure only when the user already has this
+    /// source's persistent Default legend open.
+    public func flashActionProblem(
+        source: MouseSource,
+        message: String
+    ) {
+        guard source == ownedSource else { return }
+        guard isAvailable(), isShowingHint else { return }
+        hud.flashProblem(message)
+    }
+
     /// Temporarily hides the panel for a mode and returns the exact source to
     /// restore. A nil result means the map was closed before mode entry.
     public func suspendForMode() -> MouseSource? {

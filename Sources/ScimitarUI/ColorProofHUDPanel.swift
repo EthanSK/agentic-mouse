@@ -110,6 +110,7 @@ public final class AppKitModeHUDPresenter: NSObject, ModeHUDPresenting {
     }
 
     public func flashFeedback(_ feedback: ModeHUDFeedback) {
+        guard model.isActive else { return } // A screenshot or asynchronous mode result can finish after the user closes the HUD; ignore it so feedback never resurrects an explicitly hidden panel. (Codex task: 01a039f7-873c-7c30-b3dc-af8a6724ace5)
         model.feedback = feedback
         reconcilePanels(show: true)
 

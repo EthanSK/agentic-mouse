@@ -105,13 +105,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             switch result {
             case .success(let url):
                 self?.log.info("selected-area screenshot copied from \(url.lastPathComponent)")
-                self?.modeHUDPresenters[source]?.flashFeedback(ModeHUDFeedback(
-                    message: "Screenshot copied",
-                    tone: .confirmed
-                ))
+                self?.defaultMapHintCoordinators[source]?.flashActionFeedback(
+                    source: source,
+                    feedback: ModeHUDFeedback(
+                        message: "Screenshot copied",
+                        tone: .confirmed
+                    )
+                )
             case .failure(let error):
                 self?.log.notice("selected-area screenshot copy failed: \(error.localizedDescription)")
-                self?.modeHUDPresenters[source]?.flashProblem(error.localizedDescription)
+                self?.defaultMapHintCoordinators[source]?.flashActionProblem(
+                    source: source,
+                    message: error.localizedDescription
+                )
             }
         }
         controller.onCompletion = { [weak self] result in
@@ -1136,7 +1142,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                                     tone: .informational
                                 )
                             }
-                            self?.modeHUDPresenters[source]?.flashFeedback(feedback)
+                            guard let self,
+                                  self.modePickerCoordinators[source]?.isActive == true,
+                                  self.modePickerCoordinators[source]?.page == .appSpecific,
+                                  self.modePickerCoordinators[source]?.appSpecificTarget == .iPhoneMirroring
+                            else { return }
+                            self.modeHUDPresenters[source]?.flashFeedback(feedback)
                         }
                     }
                 case .claude:
@@ -1458,8 +1469,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 step.direction,
                 linesPerRatchet: linesPerRatchet
             ) else {
-                self.modeHUDPresenters[step.source]?.flashProblem(
-                    "Horizontal Scroll could not be posted"
+                self.defaultMapHintCoordinators[step.source]?.flashActionProblem(
+                    source: step.source,
+                    message: "Horizontal Scroll could not be posted"
                 )
                 self.flashWheelActionFeedback(
                     step,
@@ -1956,21 +1968,30 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             log.info("selected-area screenshot cancelled from \(source.displayName)")
         case .pasteQueued:
             log.info("screenshot paste queued until the saved image is available")
-            modeHUDPresenters[source]?.flashFeedback(ModeHUDFeedback(
-                message: "Paste queued",
-                tone: .informational
-            ))
+            defaultMapHintCoordinators[source]?.flashActionFeedback(
+                source: source,
+                feedback: ModeHUDFeedback(
+                    message: "Paste queued",
+                    tone: .informational
+                )
+            )
         case .pasted:
             log.info("screenshot paste shortcut sent from \(source.displayName)")
-            modeHUDPresenters[source]?.flashFeedback(ModeHUDFeedback(
-                message: "Paste screenshot sent",
-                tone: .informational
-            ))
+            defaultMapHintCoordinators[source]?.flashActionFeedback(
+                source: source,
+                feedback: ModeHUDFeedback(
+                    message: "Paste screenshot sent",
+                    tone: .informational
+                )
+            )
         case .blocked:
             log.notice("selected-area screenshot rejected while the session was inactive")
         case .failed(let message):
             log.notice("selected-area screenshot unavailable: \(message)")
-            modeHUDPresenters[source]?.flashProblem(message)
+            defaultMapHintCoordinators[source]?.flashActionProblem(
+                source: source,
+                message: message
+            )
         }
     }
 

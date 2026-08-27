@@ -341,6 +341,30 @@ final class DefaultMapHintCoordinatorTests: XCTestCase {
         XCTAssertTrue(hud.feedback.isEmpty)
     }
 
+    func testTopLevelActionProblemNeverOpensAHiddenDefaultLegend() {
+        coordinator.flashActionProblem(
+            source: .corsair,
+            message: "Screenshot could not be copied"
+        )
+
+        XCTAssertFalse(hud.isVisible)
+        XCTAssertFalse(coordinator.isShowingHint)
+        XCTAssertTrue(hud.problems.isEmpty)
+    }
+
+    func testTopLevelActionProblemUsesAnAlreadyVisibleDefaultLegend() {
+        coordinator.handleToggle(source: .corsair)
+
+        coordinator.flashActionProblem(
+            source: .corsair,
+            message: "Screenshot could not be copied"
+        )
+
+        XCTAssertEqual(hud.problems, ["Screenshot could not be copied"])
+        XCTAssertTrue(hud.isVisible)
+        XCTAssertTrue(coordinator.isShowingHint)
+    }
+
     func testIgnoredHiddenWheelTraceDoesNotChangeTheNextLegendToggle() {
         coordinator.flashWheelDiagnostic(source: .corsair, message: "SPACES B1 ARMED")
         XCTAssertFalse(hud.isVisible)

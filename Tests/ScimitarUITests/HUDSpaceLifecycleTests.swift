@@ -48,6 +48,20 @@ final class HUDSpaceLifecycleTests: XCTestCase {
         XCTAssertFalse(presenter.isVisible)
     }
 
+    func testFeedbackDoesNotReopenExplicitlyHiddenModeHUD() async {
+        let presenter = AppKitModeHUDPresenter(source: .corsair)
+        presenter.show(DefaultMapLegend.snapshot(source: .corsair))
+        presenter.hide()
+
+        presenter.flashFeedback(ModeHUDFeedback(
+            message: "Paste screenshot sent",
+            tone: .informational
+        ))
+        await waitForMainQueueTurns()
+
+        XCTAssertFalse(presenter.isVisible)
+    }
+
     func testRecreatedHUDPanelKeepsNonActivatingClickThroughContract() {
         let panel = HUDPanel(contentRect: NSRect(x: 0, y: 0, width: 100, height: 100))
 
