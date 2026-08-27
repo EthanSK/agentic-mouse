@@ -39,6 +39,7 @@ final class VSCodeCommandBridge {
         _ applicationURL: URL,
         _ completion: @escaping (Error?) -> Void
     ) -> Void
+    typealias Completion = @MainActor (Result<Void, BridgeError>) -> Void
     typealias InputAllowedProvider = @MainActor () -> Bool
 
     static let extensionIdentifier = "ethansk.agentic-mouse-vscode-bridge"
@@ -60,7 +61,7 @@ final class VSCodeCommandBridge {
 
     func perform(
         _ action: Action,
-        completion: @escaping (Result<Void, BridgeError>) -> Void
+        completion: @escaping Completion
     ) {
         guard inputAllowed() else {
             completion(.failure(BridgeError(
@@ -86,12 +87,15 @@ final class VSCodeCommandBridge {
         }
 
         openURL(url, target.applicationURL) { error in
-            if let error {
-                completion(.failure(BridgeError(
-                    description: "Could not reach the VS Code bridge: \(error.localizedDescription)"
-                )))
-            } else {
-                completion(.success(()))
+            // LaunchServices can finish on its private open queue; updating the HUD there crashes AppKit after the first wheel action. Always return bridge results on the main queue. (Codex task: 01a039f7-873c-7c30-b3dc-af8a6724ace5)
+            DispatchQueue.main.async {
+                if let error {
+                    completion(.failure(BridgeError(
+                        description: "Could not reach the VS Code bridge: \(error.localizedDescription)"
+                    )))
+                } else {
+                    completion(.success(()))
+                }
             }
         }
     }

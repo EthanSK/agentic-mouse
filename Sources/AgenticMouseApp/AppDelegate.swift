@@ -166,6 +166,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // Accessory: no Dock icon, and — critically — the app can never become
         // active, which is what keeps the HUD from stealing focus.
         NSApp.setActivationPolicy(.accessory)
+        NSApp.unhideWithoutActivation() // Launching the LSUIElement with `open -j` left Agentic Mouse running while macOS suppressed every fully rendered HUD window. Unhide without activation so a background install cannot strand an invisible runtime or steal focus. (Codex task: 01a039f7-873c-7c30-b3dc-af8a6724ace5)
 
         // Take AppKit's supported process-lifetime automatic-termination
         // opt-out as soon as did-finish begins. The signed login helper is the

@@ -37,6 +37,7 @@ final class HUDPanel: NSPanel {
         level = .statusBar
         collectionBehavior = [
             .canJoinAllSpaces,
+            .canJoinAllApplications, // The legend can render correctly but remain hidden in another app's macOS window set. Join every app set so this system overlay stays visible without activation. (Codex task: 01a039f7-873c-7c30-b3dc-af8a6724ace5)
             .stationary,
             .fullScreenAuxiliary,
             .ignoresCycle

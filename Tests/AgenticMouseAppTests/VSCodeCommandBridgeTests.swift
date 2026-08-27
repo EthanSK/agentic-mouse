@@ -21,9 +21,10 @@ final class VSCodeCommandBridgeTests: XCTestCase {
         )
     }
 
-    func testOpensBackThroughTheRunningFrontmostVSCodeWithoutActivationRequest() {
+    func testOpensBackThroughTheRunningFrontmostVSCodeWithoutActivationRequest() async {
         var opened: [(URL, URL)] = []
         var result: Result<Void, VSCodeCommandBridge.BridgeError>?
+        let completed = expectation(description: "bridge request completed")
         let bridge = VSCodeCommandBridge(
             targetResolver: { .init(
                 processIdentifier: 314,
@@ -37,7 +38,11 @@ final class VSCodeCommandBridgeTests: XCTestCase {
             inputAllowed: { true }
         )
 
-        bridge.perform(.cursorHistoryBack) { result = $0 }
+        bridge.perform(.cursorHistoryBack) {
+            result = $0
+            completed.fulfill()
+        }
+        await fulfillment(of: [completed], timeout: 1)
 
         XCTAssertEqual(opened.count, 1)
         XCTAssertEqual(
@@ -104,7 +109,7 @@ final class VSCodeCommandBridgeTests: XCTestCase {
         XCTAssertEqual(terminalError.description, "VS Code must be frontmost for Toggle Terminal")
     }
 
-    func testReportsMissingVSCodeAndWorkspaceOpenFailuresHonestly() {
+    func testReportsMissingVSCodeAndWorkspaceOpenFailuresHonestly() async {
         var missing: Result<Void, VSCodeCommandBridge.BridgeError>?
         VSCodeCommandBridge(
             targetResolver: { nil },
@@ -120,6 +125,7 @@ final class VSCodeCommandBridgeTests: XCTestCase {
             var errorDescription: String? { "URI rejected" }
         }
         var rejected: Result<Void, VSCodeCommandBridge.BridgeError>?
+        let rejectedCompletion = expectation(description: "rejected bridge request completed")
         VSCodeCommandBridge(
             targetResolver: { .init(
                 processIdentifier: 314,
@@ -128,7 +134,11 @@ final class VSCodeCommandBridgeTests: XCTestCase {
             ) },
             openURL: { _, _, completion in completion(OpenFailure()) },
             inputAllowed: { true }
-        ).perform(.cursorHistoryForward) { rejected = $0 }
+        ).perform(.cursorHistoryForward) {
+            rejected = $0
+            rejectedCompletion.fulfill()
+        }
+        await fulfillment(of: [rejectedCompletion], timeout: 1)
         guard case .failure(let rejectedError) = rejected else {
             return XCTFail("workspace open failure should be reported")
         }
@@ -136,5 +146,30 @@ final class VSCodeCommandBridgeTests: XCTestCase {
             rejectedError.description,
             "Could not reach the VS Code bridge: URI rejected"
         )
+    }
+
+    func testReturnsBackgroundWorkspaceCompletionToTheMainThread() async {
+        let completed = expectation(description: "background bridge request completed")
+        let bridge = VSCodeCommandBridge(
+            targetResolver: { .init(
+                processIdentifier: 314,
+                applicationURL: self.appURL,
+                isActive: true
+            ) },
+            openURL: { _, _, completion in
+                DispatchQueue.global().async { completion(nil) }
+            },
+            inputAllowed: { true }
+        )
+
+        bridge.perform(.cursorHistoryBack) { result in
+            XCTAssertTrue(Thread.isMainThread)
+            guard case .success = result else {
+                return XCTFail("the background workspace completion should still succeed")
+            }
+            completed.fulfill()
+        }
+
+        await fulfillment(of: [completed], timeout: 1)
     }
 }

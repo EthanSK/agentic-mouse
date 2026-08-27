@@ -57,6 +57,7 @@ final class HUDSpaceLifecycleTests: XCTestCase {
         XCTAssertTrue(panel.ignoresMouseEvents)
         XCTAssertFalse(panel.hidesOnDeactivate)
         XCTAssertTrue(panel.collectionBehavior.contains(.canJoinAllSpaces))
+        XCTAssertTrue(panel.collectionBehavior.contains(.canJoinAllApplications))
         XCTAssertTrue(panel.collectionBehavior.contains(.fullScreenAuxiliary))
         XCTAssertEqual(panel.level, .statusBar)
         panel.close()
