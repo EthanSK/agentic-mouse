@@ -2251,3 +2251,13 @@ remains evidence for why the earlier `-p` and explicit-child variants failed.
 **Guard:** Never use `open -j` to relaunch the installed Agentic Mouse. Treat AX window counts and direct window captures only as render evidence; require full-display pixel screenshots across every connected current display and visible Space, plus a real toggle, before accepting HUD visibility.
 **Verification:** The final v1.0.137 app was deliberately launched through the previously failing `open -gj` route. Full-display screenshots then showed the v1.0.137 legend on all three connected displays, and Ethan physically confirmed that the legend toggle was working. The complete clean gate passed on the final source, and the live runtime remained Developer-ID signed, Accessibility trusted, iCUE connected, and supervisor-managed.
 ---
+
+---
+**Date:** 2026-08-28
+**Trigger:** A Mini-only Spotify Song Radio investigation exposed a remote-session takeover risk before the Agentic Mouse action was physically bound.
+**Symptom:** Spotify on one Mac showed a local `Play` control while its separate `Playing on …` banner proved music was still playing on another Spotify Connect device. Treating `Play` as idle would let a local Song Radio Apple Event seize that remote session.
+**Root cause:** Spotify's local transport label describes what clicking the local client would do; it is not authoritative evidence about where Connect playback currently lives.
+**Fix:** Before reading the current song and again immediately before the playback-changing radio command, traverse the already-running Spotify app's Accessibility tree without activating it. Refuse any `Playing on …` banner and fail closed when the read-only traversal cannot be completed.
+**Guard:** Never infer local Spotify playback from the play/pause control alone. Preserve the second just-in-time check, never launch or activate Spotify merely to inspect it, and keep a missing or incomplete Accessibility result as an explicit refusal rather than a hidden fallback. A real radio transition remains unverified while the current Connect device is another Mac.
+**Verification:** Commit `91d8972` is pushed to `origin/main`; the focused Song Radio suite passes ten tests, including the exact `Play` plus remote-banner near-miss, refusal before capture, and refusal when the device changes between capture and command.
+---
