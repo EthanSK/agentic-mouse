@@ -114,6 +114,86 @@ final class SpotifySongRadioControllerTests: XCTestCase {
         XCTAssertEqual(failure(receivedResult), .positionTooNearEnd)
     }
 
+    func testRemotePlaybackIsRefusedBeforeInspectingOrChangingSpotify() async {
+        let captureCount = LockedBox(0)
+        let startCount = LockedBox(0)
+        let completion = expectation(description: "remote playback refusal completes")
+        var receivedResult: Result<Void, SpotifySongRadioError>?
+        let capturedSnapshot = snapshot()
+        var injected = automation(snapshot: capturedSnapshot, now: 100)
+        injected.confirmLocalPlayback = { .failure(.playbackOnAnotherDevice) }
+        injected.capture = {
+            captureCount.mutate { $0 += 1 }
+            return .success(capturedSnapshot)
+        }
+        injected.startRadio = { _ in
+            startCount.mutate { $0 += 1 }
+            return .success(())
+        }
+        let controller = SpotifySongRadioController(
+            spotifyIsRunning: { true },
+            inputAllowed: { true },
+            automation: injected
+        )
+        controller.onCompletion = { _, result in
+            receivedResult = result
+            completion.fulfill()
+        }
+
+        XCTAssertEqual(controller.start(source: .corsair), .accepted)
+        await fulfillment(of: [completion], timeout: 1)
+
+        XCTAssertEqual(captureCount.value, 0)
+        XCTAssertEqual(startCount.value, 0)
+        XCTAssertEqual(failure(receivedResult), .playbackOnAnotherDevice)
+    }
+
+    func testPlaybackDeviceIsRecheckedImmediatelyBeforeRadioStarts() async {
+        let guardCount = LockedBox(0)
+        let startCount = LockedBox(0)
+        let completion = expectation(description: "second device guard completes")
+        var receivedResult: Result<Void, SpotifySongRadioError>?
+        var injected = automation(snapshot: snapshot(), now: 100)
+        injected.confirmLocalPlayback = {
+            let count = guardCount.mutateAndReturn { value in
+                value += 1
+                return value
+            }
+            return count == 1 ? .success(()) : .failure(.playbackOnAnotherDevice)
+        }
+        injected.startRadio = { _ in
+            startCount.mutate { $0 += 1 }
+            return .success(())
+        }
+        let controller = SpotifySongRadioController(
+            spotifyIsRunning: { true },
+            inputAllowed: { true },
+            automation: injected
+        )
+        controller.onCompletion = { _, result in
+            receivedResult = result
+            completion.fulfill()
+        }
+
+        XCTAssertEqual(controller.start(source: .razer), .accepted)
+        await fulfillment(of: [completion], timeout: 1)
+
+        XCTAssertEqual(guardCount.value, 2)
+        XCTAssertEqual(startCount.value, 0)
+        XCTAssertEqual(failure(receivedResult), .playbackOnAnotherDevice)
+    }
+
+    func testRemoteBannerWinsEvenWhenTheTransportLabelSaysPlay() {
+        XCTAssertTrue(SpotifyPlaybackDeviceGuard.containsRemotePlaybackBanner([
+            "Play",
+            "Playing on Another Mac",
+        ]))
+        XCTAssertFalse(SpotifyPlaybackDeviceGuard.containsRemotePlaybackBanner([
+            "Pause",
+            "Connect to a device",
+        ]))
+    }
+
     func testSecondRequestIsRejectedWhileFirstRequestIsInFlight() async {
         let captureStarted = expectation(description: "capture starts")
         let releaseCapture = LockedBox(false)
@@ -174,6 +254,7 @@ final class SpotifySongRadioControllerTests: XCTestCase {
         ) -> Void = { _ in }
     ) -> SpotifySongRadioAutomation {
         SpotifySongRadioAutomation(
+            confirmLocalPlayback: { .success(()) },
             capture: { .success(snapshot) },
             startRadio: { _ in .success(()) },
             currentTrackURI: { .success(snapshot.trackURI) },
@@ -238,5 +319,11 @@ private final class LockedBox<Value>: @unchecked Sendable {
         lock.lock()
         defer { lock.unlock() }
         body(&storedValue)
+    }
+
+    func mutateAndReturn<Result>(_ body: (inout Value) -> Result) -> Result {
+        lock.lock()
+        defer { lock.unlock() }
+        return body(&storedValue)
     }
 }

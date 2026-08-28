@@ -20,6 +20,8 @@ enum SpotifySongRadioError: Error, Equatable, Sendable {
     case automationTimedOut
     case cancelled
     case currentItemUnavailable
+    case playbackDeviceUnknown
+    case playbackOnAnotherDevice
     case positionTooNearEnd
     case radioDidNotLoad
     case scriptingFailed
@@ -37,6 +39,10 @@ enum SpotifySongRadioError: Error, Equatable, Sendable {
             return "Song Radio was cancelled"
         case .currentItemUnavailable:
             return "Spotify has no current song"
+        case .playbackDeviceUnknown:
+            return "Could not confirm Spotify is playing on this Mac"
+        case .playbackOnAnotherDevice:
+            return "Spotify is playing on another device"
         case .positionTooNearEnd:
             return "The song is too close to ending"
         case .radioDidNotLoad:
@@ -54,6 +60,7 @@ enum SpotifySongRadioError: Error, Equatable, Sendable {
 }
 
 struct SpotifySongRadioAutomation: Sendable {
+    var confirmLocalPlayback: @Sendable () async -> Result<Void, SpotifySongRadioError>
     var capture: @Sendable () async -> Result<SpotifySongRadioSnapshot, SpotifySongRadioError>
     var startRadio: @Sendable (_ trackURI: String) async -> Result<Void, SpotifySongRadioError>
     var currentTrackURI: @Sendable () async -> Result<String, SpotifySongRadioError>
@@ -66,7 +73,9 @@ struct SpotifySongRadioAutomation: Sendable {
 
     static func live() -> Self {
         let client = SpotifyAppleScriptClient()
+        let deviceGuard = SpotifyPlaybackDeviceGuard()
         return Self(
+            confirmLocalPlayback: { await deviceGuard.confirmLocalPlayback() },
             capture: { await client.capture() },
             startRadio: { await client.startRadio(trackURI: $0) },
             currentTrackURI: { await client.currentTrackURI() },
@@ -107,7 +116,7 @@ final class SpotifySongRadioController {
     init(
         spotifyIsRunning: @escaping () -> Bool = {
             !NSRunningApplication.runningApplications(
-                withBundleIdentifier: SpotifyAppleScriptClient.bundleIdentifier
+                withBundleIdentifier: SpotifySongRadioTarget.bundleIdentifier
             ).isEmpty
         },
         inputAllowed: @escaping () -> Bool = { true },
@@ -147,6 +156,10 @@ final class SpotifySongRadioController {
 
     private func performTransition() async -> Result<Void, SpotifySongRadioError> {
         guard mayContinue else { return .failure(.cancelled) }
+        if case .failure(let error) = await automation.confirmLocalPlayback() {
+            return .failure(error)
+        }
+        guard mayContinue else { return .failure(.cancelled) }
         let snapshot: SpotifySongRadioSnapshot
         switch await automation.capture() {
         case .success(let captured):
@@ -160,6 +173,10 @@ final class SpotifySongRadioController {
         }
         guard snapshot.position < snapshot.duration - 5 else {
             return .failure(.positionTooNearEnd)
+        }
+        guard mayContinue else { return .failure(.cancelled) }
+        if case .failure(let error) = await automation.confirmLocalPlayback() {
+            return .failure(error)
         }
         guard mayContinue else { return .failure(.cancelled) }
         if case .failure(let error) = await automation.startRadio(snapshot.trackURI) {
@@ -240,7 +257,7 @@ private struct SpotifyAppleScriptFailure: Error, Sendable {
 /// `NSAppleScript` is created and consumed entirely on that queue, so no
 /// non-Sendable Apple Event descriptor crosses into the main actor.
 private final class SpotifyAppleScriptClient: @unchecked Sendable {
-    static let bundleIdentifier = "com.spotify.client"
+    static let bundleIdentifier = SpotifySongRadioTarget.bundleIdentifier
 
     private let queue = DispatchQueue(label: "com.ethan.agentic-mouse.spotify-song-radio")
 
