@@ -1,5 +1,17 @@
 # Learnings
 
+## 2026-08-28 — Prefix the Keypad title with its editing controls
+
+**Trigger:** Ethan wanted the Keypad footer to identify its Space and Backspace controls at a glance before he read the mode title.
+
+**Finding:** The footer only said `KEYPAD MODE`. Space and Backspace were present in cells 11 and 12, but the footer did not visually distinguish the editing mode from the other mouse modes.
+
+**Fix:** Prefix the existing title with the native `space` and `delete.left` SF Symbols, in that order, using the existing Keypad accent and keeping the decorative symbols out of the accessibility label. (Codex task: 01a039f7-873c-7c30-b3dc-af8a6724ace5)
+
+**Guard:** Keep this change presentational. Cell 11 remains Space, cell 12 remains tap Backspace and hold Return, and the footer icon order remains Space then Backspace before `KEYPAD MODE`.
+
+**Verification:** The focused AppKit HUD suite passed eight tests, and the complete clean gate passed 657 Swift tests, six Musixmatch extension tests, six VS Code bridge tests, 17 Karabiner generator tests, generator freshness, both Karabiner lints, packaging/version contracts, and shell syntax. Developer-ID-signed Agentic Mouse v1.0.139 (build 145) is installed as main PID 5520 with Accessibility trust, command-socket ownership, iCUE connected through the embedded SDK, and the prior config, Karabiner rules, and VS Code keybindings byte-identical. Full-display pixel captures proved the new Space, Backspace, and `KEYPAD MODE` footer on the current AVT GC553G2, Built-in Retina Display, and LS27A800U Spaces; a second three-display capture proved the Keypad HUD closed again afterward. The active OBS recording remained uninterrupted. The exact prior app is preserved at `Rollbacks/AgenticMouse-v1.0.138-build144-before-v1.0.139.app`, and the replaced app is recoverable from Trash.
+
 ## 2026-08-27 — Keep ordinary action feedback inside the user's legend state
 
 **Trigger:** Ethan double-pressed the top-level Screenshot button to paste the last Agentic Mouse screenshot. The paste succeeded, but its feedback unexpectedly opened the closed Default legend.

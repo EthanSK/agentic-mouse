@@ -188,9 +188,15 @@ struct HUDView: View {
 
     private var footer: some View {
         HStack(spacing: 9) {
-            Text("KEYPAD MODE")
+            HStack(spacing: 4.5) {
+                Image(systemName: "space")
+                Image(systemName: "delete.left")
+                Text("KEYPAD MODE")
+            }
                 .font(.system(size: 13.5, weight: .bold, design: .rounded))
                 .foregroundStyle(modeColor)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel("Keypad mode")
 
             Text(model.statusLine)
                 .font(.system(size: 12, weight: .semibold, design: .monospaced))
