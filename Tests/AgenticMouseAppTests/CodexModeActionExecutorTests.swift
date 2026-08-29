@@ -77,27 +77,33 @@ final class CodexModeActionExecutorTests: XCTestCase {
         XCTAssertEqual(events.map(\.3), [true, false, true, false])
     }
 
-    func testVoiceModeUsesCodexsCurrentRealtimeVoiceShortcut() {
-        XCTAssertEqual(CodexModeActionExecutor.realtimeVoiceShortcut.keyCode, 9)
+    func testVoiceModeUsesCodexsDedicatedAppCommandBinding() {
+        XCTAssertEqual(CodexModeActionExecutor.voiceModeShortcut.keyCode, 64)
         XCTAssertEqual(
-            CodexModeActionExecutor.realtimeVoiceShortcut.flags,
-            [.maskControl, .maskShift]
+            CodexModeActionExecutor.voiceModeShortcut.flags,
+            CodexModeActionExecutor.hyper
         )
-        var pidTargetedEvents = 0
+        var pidTargetedEvents: [(pid_t, CGKeyCode, CGEventFlags, Bool)] = []
         var hardwareShortcuts: [CodexModeActionExecutor.Shortcut] = []
         let executor = CodexModeActionExecutor(
             targetProcessResolver: { 4242 },
-            postEvent: { _, _, _, _ in pidTargetedEvents += 1; return true },
-            targetProcessIsActive: { $0 == 4242 },
+            postEvent: { pidTargetedEvents.append(($0, $1, $2, $3)); return true },
+            targetProcessIsActive: { _ in false },
             postHardwareSystemShortcut: { hardwareShortcuts.append($0); return true },
             accessibilityTrusted: { true },
         )
 
         guard case .success = executor.perform(.toggleVoiceMode) else {
-            return XCTFail("Voice Mode should use Codex's foreground accelerator")
+            return XCTFail("Voice Mode should use Codex's app-scoped command")
         }
-        XCTAssertEqual(hardwareShortcuts, [CodexModeActionExecutor.realtimeVoiceShortcut])
-        XCTAssertEqual(pidTargetedEvents, 0)
+        XCTAssertEqual(pidTargetedEvents.map(\.0), [4242, 4242])
+        XCTAssertEqual(pidTargetedEvents.map(\.1), [64, 64])
+        XCTAssertEqual(pidTargetedEvents.map(\.2), [
+            CodexModeActionExecutor.hyper,
+            CodexModeActionExecutor.hyper,
+        ])
+        XCTAssertEqual(pidTargetedEvents.map(\.3), [true, false])
+        XCTAssertTrue(hardwareShortcuts.isEmpty)
     }
 
     func testOpenSideChatUsesCodexsBuiltInAppShortcut() {
@@ -126,18 +132,19 @@ final class CodexModeActionExecutorTests: XCTestCase {
         XCTAssertEqual(pidTargetedEvents, 0)
     }
 
-    func testVoiceModeFailsClosedWhenCodexIsNotFrontmost() {
+    func testVoiceModeTargetsRunningCodexWithoutForegroundActivation() {
+        var targetPids: [pid_t] = []
         let executor = CodexModeActionExecutor(
             targetProcessResolver: { 4242 },
+            postEvent: { pid, _, _, _ in targetPids.append(pid); return true },
             targetProcessIsActive: { _ in false },
-            postSystemShortcut: { _ in true },
             accessibilityTrusted: { true },
         )
 
-        guard case .failure(let error) = executor.perform(.toggleVoiceMode) else {
-            return XCTFail("a global Voice Mode accelerator must not target another app")
+        guard case .success = executor.perform(.toggleVoiceMode) else {
+            return XCTFail("the app-scoped Voice Mode command should target Codex directly")
         }
-        XCTAssertEqual(error.description, "Codex must be frontmost for this shortcut")
+        XCTAssertEqual(targetPids, [4242, 4242])
     }
 
     func testSteerUsesCodexsBuiltInCommandReturnShortcut() {
@@ -230,13 +237,15 @@ final class CodexModeActionExecutorTests: XCTestCase {
         XCTAssertEqual(targetPids, [5150, 5150])
     }
 
-    func testVoiceModeInvokesRealtimeVoiceDirectlyWithoutCreatingAPlainChat() {
-        var pidTargetedEvents = 0
+    func testVoiceModeInvokesComposerVoiceCommandWithoutCreatingAPlainChat() {
+        var pidTargetedEvents: [(CGKeyCode, CGEventFlags, Bool)] = []
         var hardwareShortcuts: [CodexModeActionExecutor.Shortcut] = []
         let executor = CodexModeActionExecutor(
             targetProcessResolver: { 9001 },
-            postEvent: { _, _, _, _ in pidTargetedEvents += 1; return true },
-            targetProcessIsActive: { $0 == 9001 },
+            postEvent: { _, keyCode, flags, isDown in
+                pidTargetedEvents.append((keyCode, flags, isDown))
+                return true
+            },
             postHardwareSystemShortcut: { hardwareShortcuts.append($0); return true },
             accessibilityTrusted: { true }
         )
@@ -244,8 +253,13 @@ final class CodexModeActionExecutorTests: XCTestCase {
         guard case .success = executor.perform(.toggleVoiceMode) else {
             return XCTFail("voice mode should schedule")
         }
-        XCTAssertEqual(hardwareShortcuts, [CodexModeActionExecutor.realtimeVoiceShortcut])
-        XCTAssertEqual(pidTargetedEvents, 0)
+        XCTAssertEqual(pidTargetedEvents.map(\.0), [64, 64])
+        XCTAssertEqual(pidTargetedEvents.map(\.1), [
+            CodexModeActionExecutor.hyper,
+            CodexModeActionExecutor.hyper,
+        ])
+        XCTAssertEqual(pidTargetedEvents.map(\.2), [true, false])
+        XCTAssertTrue(hardwareShortcuts.isEmpty)
     }
 
     func testKeyUpIsStillAttemptedWhenKeyDownFails() {
@@ -291,11 +305,13 @@ final class CodexModeActionExecutorTests: XCTestCase {
 
     func testLockedSessionBlocksImmediateAndDelayedCodexEvents() {
         var allowed = false
-        var hardwareShortcuts: [CodexModeActionExecutor.Shortcut] = []
+        var events: [(CGKeyCode, Bool)] = []
         let executor = CodexModeActionExecutor(
             targetProcessResolver: { 42 },
-            targetProcessIsActive: { _ in true },
-            postHardwareSystemShortcut: { hardwareShortcuts.append($0); return true },
+            postEvent: { _, keyCode, _, isDown in
+                events.append((keyCode, isDown))
+                return true
+            },
             accessibilityTrusted: { true },
             inputAllowed: { allowed }
         )
@@ -307,13 +323,14 @@ final class CodexModeActionExecutorTests: XCTestCase {
             lockedError.description,
             "Mouse commands are disabled while macOS is locked"
         )
-        XCTAssertTrue(hardwareShortcuts.isEmpty)
+        XCTAssertTrue(events.isEmpty)
 
         allowed = true
         guard case .success = executor.perform(.toggleVoiceMode) else {
-            return XCTFail("unlocked session should invoke realtime voice")
+            return XCTFail("unlocked session should invoke the voice command")
         }
-        XCTAssertEqual(hardwareShortcuts, [CodexModeActionExecutor.realtimeVoiceShortcut])
+        XCTAssertEqual(events.map(\.0), [64, 64])
+        XCTAssertEqual(events.map(\.1), [true, false])
     }
 
     func testPinUsesTheNormalCodexKeyboardShortcutWithoutAUserOverride() {

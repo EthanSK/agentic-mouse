@@ -1,5 +1,17 @@
 # Learnings
 
+## 2026-08-29 — Invoke Codex Voice Mode through its app-scoped command
+
+**Trigger:** Ethan reported that the Codex Voice Mode mouse button still did nothing and asked whether the current Codex app finally exposes a voice shortcut.
+
+**Finding:** ChatGPT 26.825.41651 exposes two distinct commands. The official configurable desktop hotkey is `realtimeVoice`, currently still Control-Shift-V in `~/.codex/keybindings.json`; `composer.startVoiceMode` is the app-scoped command. Agentic Mouse's complete hardware-shaped ANSI-V lifecycle and macOS System Events both left Codex inactive, so the OS-global Electron listener does not accept those automated input paths. With `composer.startVoiceMode` bound additively to Hyper-F17, the same PID-targeted key cycle immediately changed Codex's exact Accessibility state from inactive to `Stop voice chat`, and a second cycle stopped the test session. (Codex task: 01a039f7-873c-7c30-b3dc-af8a6724ace5)
+
+**Fix:** Preserve Ethan's normal Control-Shift-V `realtimeVoice` shortcut for physical keyboard use. Reserve Hyper-F17 for the app-scoped `composer.startVoiceMode` command and dispatch it directly to the running ChatGPT PID, using the same proven transport as the existing Voice Mic and Reasoning Effort commands. Voice Mode no longer needs ChatGPT frontmost and does not send a global chord that could leak into another app.
+
+**Guard:** Do not infer that an official OS-global shortcut accepts synthetic input merely because a physical key works. Do not remove or replace Ethan's normal global shortcut, restore the failed Quartz/System Events Control-Shift-V path, create a plain chat first, or use broad Accessibility presses. Keep the exact additive binding and both PID-targeted event phases under test; retain the Voice Mode repair marker until Ethan physically accepts the installed build.
+
+**Verification:** The live additive binding started Voice Mode without restarting ChatGPT, exposing one exact enabled `Stop voice chat` control; the second toggle removed that control and restored the inactive state. The complete clean gate passed 667 Swift tests, six Musixmatch tests, six VS Code bridge tests, 17 Karabiner generator tests, generated-source freshness, both Karabiner lints, packaging/version contracts, and shell syntax. Developer-ID-signed Agentic Mouse v1.0.142 (build 148) is installed as PID 82088 with executable SHA-256 `9b25a2ddc247ffbb561a597e9cb715d25ce9890db2e8393ca6e15a03783263cb`, CDHash `a1c5f517d38fa00b269a1e3414f733e6c2e4661b`, Team ID `T34G959ZG8`, Accessibility granted, iCUE connected, self-recovery enabled, exact mode-0600 command-socket ownership, and no leftover HUD windows. The embedded iCUE SDK, live Agentic Mouse configuration, and live Karabiner configuration remain byte-identical at SHA-256 `48bbc94bed670d036af8e1acca0017449b36d7c6d1e15dafe0791b42b6be84fe`, `aa1499d88bd34875dc11f9a2873165d09cd2323c590126f425da4fd72e3189be`, and `b8a0048a76dda9aa03e38aeb538da4346d465428d078f7eeca7593c264698bbd`. The active OBS recording remained on the same mux process throughout. The exact prior app is preserved at `Rollbacks/AgenticMouse-v1.0.141-build147-before-v1.0.142.app`, and the replaced app is recoverable from Trash. Literal physical mouse acceptance remains Ethan-owned.
+
 ## 2026-08-28 — Prefix the Keypad title with its editing controls
 
 **Trigger:** Ethan wanted the Keypad footer to identify its Space and Backspace controls at a glance before he read the mode title.

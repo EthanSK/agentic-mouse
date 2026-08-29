@@ -205,12 +205,12 @@ The macOS menu-bar app adds several optional runtime behaviours:
   ratchets up to increase and down to decrease. Voice Mode and Edit Queued Message retain red repair
   markers because their latest physical reports are still failed; their
   presence in the map is not a success claim. The redundant broken New Voice Chat card is
-  retired; Voice Mode keeps the same direct realtime-voice command. Voice
-  actions require ChatGPT frontmost and invoke its existing Control-Shift-V
-  `realtimeVoice` OS-global accelerator as an ANSI V key plus a complete
-  hardware-shaped Control/Shift lifecycle. Open in Side Chat uses Codex's built-in
+  retired; Voice Mode invokes Codex's app-scoped `composer.startVoiceMode`
+  command through the additive Hyper-F17 binding reserved for Agentic Mouse.
+  Ethan's normal Control-Shift-V `realtimeVoice` global shortcut remains
+  unchanged. Open in Side Chat uses Codex's built-in
   Command-Option-S app accelerator for the current task through macOS System
-  Events. These foreground-only controls fail
+  Events. That foreground-only control fails
   closed for a background Codex instead of sending a global chord to
   another app. Other keyboard-backed actions send Codex's
   own configured shortcuts directly to its running process without bringing it

@@ -3,10 +3,9 @@ import ScimitarKit
 
 /// Delivers Codex's own configured keyboard shortcuts. Renderer-owned commands
 /// can target the process without activation. Foreground Electron accelerators
-/// use their individually proven system transport: System Events for Side Chat
-/// and a hardware-shaped modifier lifecycle for realtime Voice Mode. A separate
-/// session-security provider blocks every event while the macOS user session is
-/// inactive.
+/// use their individually proven system transport, while Voice Mode uses its
+/// dedicated app-scoped command binding. A separate session-security provider
+/// blocks every event while the macOS user session is inactive.
 @MainActor
 final class CodexModeActionExecutor {
     typealias ActionError = ApplicationShortcutDispatcher.DispatchError
@@ -47,13 +46,7 @@ final class CodexModeActionExecutor {
         keyCode: 41, // physical semicolon; logical S in this modifier/layout path
         flags: [.maskCommand, .maskAlternate]
     )
-    static let realtimeVoiceShortcut = Shortcut(
-        // `realtimeVoice` is an Electron OS-global accelerator. Carbon global
-        // shortcuts match the accelerator's ANSI key position, so send the
-        // physical V key with a complete Control/Shift modifier lifecycle.
-        keyCode: 9,
-        flags: [.maskControl, .maskShift]
-    )
+    static let voiceModeShortcut = Shortcut(keyCode: 64, flags: hyper) // ChatGPT 26.825 ignores automated events sent to its OS-global realtimeVoice shortcut, while its app-scoped composer.startVoiceMode command accepts this additive Hyper-F17 binding without replacing Ethan's physical Control-Shift-V shortcut. Do not restore the failed synthetic global-hotkey route. (Codex task: 01a039f7-873c-7c30-b3dc-af8a6724ace5)
     static let steerQueuedMessageShortcut = Shortcut(
         keyCode: 36, // Return
         flags: .maskCommand
@@ -170,7 +163,7 @@ final class CodexModeActionExecutor {
         case .toggleMicrophoneMute:
             result = postShortcut(Self.microphoneShortcut)
         case .toggleVoiceMode:
-            result = postForegroundHardwareShortcut(Self.realtimeVoiceShortcut)
+            result = postShortcut(Self.voiceModeShortcut)
         case .openSideChat:
             result = postForegroundShortcut(Self.openSideChatShortcut)
         case .steerQueuedMessage:
@@ -266,13 +259,4 @@ final class CodexModeActionExecutor {
         )
     }
 
-    private func postForegroundHardwareShortcut(
-        _ shortcut: Shortcut
-    ) -> Result<Void, ActionError> {
-        shortcutDispatcher.performForegroundHardwareShortcut(
-            shortcut,
-            targetBundleIdentifier: CodexMode.bundleIdentifier,
-            targetDisplayName: "Codex"
-        )
-    }
 }
