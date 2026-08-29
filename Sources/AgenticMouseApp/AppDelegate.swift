@@ -1046,7 +1046,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 case .chrome:
                     guard let action = ChromeModeAction.action(for: cell) else { return false }
                     switch action {
-                    case .closeCurrentTab, .closeCurrentWindow, .openDevTools, .reloadCurrentTab, .newTab,
+                    case .closeCurrentTab, .openDevTools, .reloadCurrentTab, .newTab,
                          .focusAddress, .reopenClosedTab, .findPage:
                         guard phase == .press else { return true }
                         guard let shortcut = ChromeModeShortcutResolver.shortcut(for: action) else {

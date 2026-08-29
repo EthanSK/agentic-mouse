@@ -326,10 +326,6 @@ final class ApplicationShortcutDispatcherTests: XCTestCase {
             .init(keyCode: 13, flags: .maskCommand)
         )
         XCTAssertEqual(
-            ChromeModeShortcutResolver.shortcut(for: .closeCurrentWindow),
-            .init(keyCode: 13, flags: [.maskCommand, .maskShift])
-        )
-        XCTAssertEqual(
             ChromeModeShortcutResolver.shortcut(for: .reloadCurrentTab),
             .init(keyCode: 15, flags: .maskCommand)
         )

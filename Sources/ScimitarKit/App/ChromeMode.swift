@@ -2,7 +2,6 @@ import Foundation
 
 public enum ChromeModeAction: String, CaseIterable, Equatable, Sendable {
     case closeCurrentTab
-    case closeCurrentWindow
     case holdYouTubeDoubleSpeed
     case openDevTools
     case cycleTabsWithWheel
@@ -15,7 +14,6 @@ public enum ChromeModeAction: String, CaseIterable, Equatable, Sendable {
     public var cell: PhysicalCell {
         switch self {
         case .closeCurrentTab: return PhysicalCell(rawValue: 1)!
-        case .closeCurrentWindow: return PhysicalCell(rawValue: 8)!
         case .holdYouTubeDoubleSpeed: return PhysicalCell(rawValue: 7)!
         case .openDevTools: return PhysicalCell(rawValue: 3)!
         case .cycleTabsWithWheel: return PhysicalCell(rawValue: 4)!
@@ -30,7 +28,6 @@ public enum ChromeModeAction: String, CaseIterable, Equatable, Sendable {
     public var title: String {
         switch self {
         case .closeCurrentTab: return "Close current tab"
-        case .closeCurrentWindow: return "Close current window"
         case .holdYouTubeDoubleSpeed: return "Hold 2× speed"
         case .openDevTools: return "Open DevTools"
         case .cycleTabsWithWheel: return "Tabs + Wheel"
@@ -43,7 +40,8 @@ public enum ChromeModeAction: String, CaseIterable, Equatable, Sendable {
     }
 
     public static func action(for cell: PhysicalCell) -> ChromeModeAction? {
-        allCases.first { $0.cell == cell }
+        if cell.rawValue == 8 { return .newTab } // Chrome cell 8 deliberately duplicates cell 5's New tab action; do not restore Close current window here. (Codex task: 01a039f7-873c-7c30-b3dc-af8a6724ace5)
+        return allCases.first { $0.cell == cell }
     }
 }
 

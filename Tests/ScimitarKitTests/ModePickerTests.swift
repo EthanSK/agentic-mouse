@@ -1026,18 +1026,19 @@ final class ModePickerTests: XCTestCase {
         }
     }
 
-    func testChromeModeKeepsHistoryInDefaultAndSeparatesTabAndWindowClose() {
+    func testChromeModeKeepsHistoryInDefaultAndDuplicatesNewTabOnCellEight() {
         XCTAssertEqual(ChromeModeAction.closeCurrentTab.cell.rawValue, 1)
         XCTAssertEqual(ChromeMode.definition.legend[0].actionTitle, "Close current tab")
-        XCTAssertEqual(ChromeModeAction.closeCurrentWindow.cell.rawValue, 8)
-        XCTAssertEqual(ChromeMode.definition.legend[7].actionTitle, "Close current window")
+        XCTAssertEqual(ChromeModeAction.action(for: PhysicalCell(rawValue: 8)!), .newTab)
+        XCTAssertEqual(ChromeMode.definition.legend[7].actionTitle, "New tab")
         XCTAssertEqual(ChromeModeAction.holdYouTubeDoubleSpeed.cell.rawValue, 7)
         XCTAssertEqual(ChromeMode.definition.legend[6].actionTitle, "Hold 2× speed")
+        XCTAssertFalse(ChromeModeAction.allCases.contains { $0.title == "Close current window" })
         XCTAssertFalse(ChromeModeAction.allCases.contains { $0.title == "Back" })
         XCTAssertFalse(ChromeModeAction.allCases.contains { $0.title == "Forward" })
     }
 
-    func testChromeCloseActionsShareOneDefinitionAcrossAutomaticAndManualJourneys() {
+    func testChromeNewTabDuplicateSharesOneDefinitionAcrossAutomaticAndManualJourneys() {
         let automaticHUD = RecordingModeHUDPresenter()
         let automatic = makeCoordinator(hud: automaticHUD)
         automatic.resolveFrontmostApp = {
@@ -1067,8 +1068,8 @@ final class ModePickerTests: XCTestCase {
         XCTAssertEqual(manual.appSpecificDefinition, ChromeMode.definition)
         XCTAssertEqual(automaticHUD.snapshots.last?.legend[0].actionTitle, "Close current tab")
         XCTAssertEqual(manualHUD.snapshots.last?.legend[0].actionTitle, "Close current tab")
-        XCTAssertEqual(automaticHUD.snapshots.last?.legend[7].actionTitle, "Close current window")
-        XCTAssertEqual(manualHUD.snapshots.last?.legend[7].actionTitle, "Close current window")
+        XCTAssertEqual(automaticHUD.snapshots.last?.legend[7].actionTitle, "New tab")
+        XCTAssertEqual(manualHUD.snapshots.last?.legend[7].actionTitle, "New tab")
     }
 
     func testTopLevelCellNineOpensKeysModeAndCellTenExits() {

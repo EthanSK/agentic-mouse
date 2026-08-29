@@ -10,8 +10,6 @@ enum ChromeModeShortcutResolver {
         switch action {
         case .closeCurrentTab:
             return .init(keyCode: 13, flags: .maskCommand)
-        case .closeCurrentWindow:
-            return .init(keyCode: 13, flags: [.maskCommand, .maskShift])
         case .openDevTools:
             return .init(keyCode: 34, flags: [.maskCommand, .maskAlternate])
         case .reloadCurrentTab:

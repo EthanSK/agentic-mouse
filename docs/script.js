@@ -178,7 +178,7 @@ const LAYERS = {
       ["New tab", "Send Command-T to Chrome."],
       ["Reload current tab", "Send Command-R to Chrome."],
       ["Hold 2× speed", "Hold for 2× on the selected playing YouTube video; double-click locks/unlocks 2×."],
-      ["Close current window", "Send Shift-Command-W to Chrome."],
+      ["New tab", "Send Command-T to Chrome."],
       ["Address / Search", "Focus Chrome's address/search field."],
       ["Exit Chrome mode", "Return directly to Default."],
       ["Reopen tab", "Reopen the most recently closed tab."],
