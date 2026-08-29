@@ -252,10 +252,10 @@ The macOS menu-bar app adds several optional runtime behaviours:
   accepted personal preferences until Ethan tests them. The Chrome 2× transport
   and fail-safe lease are proven, but physical speed/restore acceptance on a
   playing video remains open.
-  Safari uses Chrome's cells for their six shared actions: Close Tab, Open
-  DevTools, New Tab, Reload, Reopen Tab, and Find Page. Its separate tab and
-  history controls remain available in the other non-exit cells; Downloads is
-  retired from Safari mode only.
+  Safari uses Chrome's cells for their shared actions: Close Tab, Open DevTools,
+  New Tab on both cells 5 and 8, Reload, Reopen Tab, and Find Page. Its separate
+  tab-direction and Forward controls remain available; Downloads is retired from
+  Safari mode only.
   Every mode has its own bold, saturated colour. If the Default mode legend was already open, it is restored
   after exit; otherwise the mode HUD closes.
   Active-mode legends stay visible until physical cell 10 exits the mode; no

@@ -266,10 +266,9 @@ public enum StandardAppMode {
         ]
     }
 
-    /// Safari keeps its complete browser shortcut set, but places equivalent
-    /// actions on the same canonical cells as Chrome wherever Chrome exposes
-    /// that action. Safari-only Back/Forward and separate tab-direction
-    /// controls occupy the remaining non-exit cells.
+    /// Safari places equivalent actions on the same canonical cells as Chrome
+    /// wherever Chrome exposes that action. Cell 8 deliberately duplicates
+    /// New tab, while Safari-only Forward and tab-direction controls remain.
     private static func safariActions() -> [StandardAppModeAction] {
         [
             a(1, "Close tab", 13, [.command]),
@@ -278,7 +277,7 @@ public enum StandardAppMode {
             a(5, "New tab", 17, [.command]),
             a(6, "Reload", 15, [.command]),
             a(7, "Next tab", 48, [.control]),
-            a(8, "Back", 33, [.command]),
+            a(8, "New tab", 17, [.command]),
             a(9, "Forward", 30, [.command]),
             a(11, "Reopen tab", 17, [.command, .shift]),
             a(12, "Find page", 3, [.command]),

@@ -1730,7 +1730,7 @@ final class ModePickerTests: XCTestCase {
         }
     }
 
-    func testSafariLayoutAlignsCommonActionsWithChromeWithoutDroppingSafariNavigation() {
+    func testSafariLayoutDuplicatesChromeNewTabOnCellEight() {
         let actions = StandardAppMode.actions(for: .safari)
         let expectedTitlesByCell = [
             1: "Close tab",
@@ -1739,7 +1739,7 @@ final class ModePickerTests: XCTestCase {
             5: "New tab",
             6: "Reload",
             7: "Next tab",
-            8: "Back",
+            8: "New tab",
             9: "Forward",
             11: "Reopen tab",
             12: "Find page",
@@ -1764,7 +1764,7 @@ final class ModePickerTests: XCTestCase {
                 "5|New tab|17|1",
                 "6|Reload|15|1",
                 "7|Next tab|48|8",
-                "8|Back|33|1",
+                "8|New tab|17|1",
                 "9|Forward|30|1",
                 "11|Reopen tab|17|3",
                 "12|Find page|3|1",
@@ -1774,6 +1774,7 @@ final class ModePickerTests: XCTestCase {
         XCTAssertEqual(AppSpecificTarget.safari.definition.legend[2].actionTitle, "Open DevTools")
         XCTAssertEqual(AppSpecificTarget.safari.definition.legend[4].actionTitle, "New tab")
         XCTAssertEqual(AppSpecificTarget.safari.definition.legend[5].actionTitle, "Reload")
+        XCTAssertEqual(AppSpecificTarget.safari.definition.legend[7].actionTitle, "New tab")
         XCTAssertEqual(AppSpecificTarget.safari.definition.legend[10].actionTitle, "Reopen tab")
         XCTAssertEqual(AppSpecificTarget.safari.definition.legend[11].actionTitle, "Find page")
 
