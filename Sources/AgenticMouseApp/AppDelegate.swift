@@ -1177,6 +1177,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     return false
                 }
             }
+            coordinator.onNativeAppSpecificInput = { [weak self] requestedSource, target, cell, phase in
+                guard let self, requestedSource == source, phase == .press,
+                      target == .codex,
+                      CodexModeAction.action(for: cell) == .toggleVoiceMode
+                else { return false }
+                self.modeHUDPresenters[source]?.flashFeedback(ModeHUDFeedback(
+                    message: "Voice mode shortcut sent",
+                    tone: .informational
+                ))
+                return true
+            }
             coordinator.onUtilityAction = { [weak self] requestedSource, action in
                 guard let self, requestedSource == source else {
                     return .failed(message: nil)

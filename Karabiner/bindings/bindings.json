@@ -20,6 +20,10 @@
       "corsair": "agentic_mouse_mode_picker_corsair_page",
       "razer": "agentic_mouse_mode_picker_razer_page"
     },
+    "appSelectionVariablesBySource": {
+      "corsair": "agentic_mouse_mode_picker_corsair_app_selection",
+      "razer": "agentic_mouse_mode_picker_razer_app_selection"
+    },
     "bootstrapMilliseconds": 1200,
     "entryPhysicalCell": 12,
     "exitPhysicalCell": 10,

@@ -46,7 +46,7 @@ final class CodexModeActionExecutor {
         keyCode: 41, // physical semicolon; logical S in this modifier/layout path
         flags: [.maskCommand, .maskAlternate]
     )
-    static let voiceModeShortcut = Shortcut(keyCode: 64, flags: hyper) // ChatGPT 26.825 ignores automated events sent to its OS-global realtimeVoice shortcut, while its app-scoped composer.startVoiceMode command accepts this additive Hyper-F17 binding without replacing Ethan's physical Control-Shift-V shortcut. Do not restore the failed synthetic global-hotkey route. (Codex task: 01a039f7-873c-7c30-b3dc-af8a6724ace5)
+    static let voiceModeShortcut = Shortcut(keyCode: 64, flags: hyper) // This Hyper-F17 route is only a software diagnostic fallback: the real mouse must use exact-device Karabiner native Control-Shift-V because ChatGPT ignores Agentic Mouse's synthetic global-hotkey events. (Codex task: 01a039f7-873c-7c30-b3dc-af8a6724ace5)
     static let steerQueuedMessageShortcut = Shortcut(
         keyCode: 36, // Return
         flags: .maskCommand

@@ -205,10 +205,15 @@ The macOS menu-bar app adds several optional runtime behaviours:
   ratchets up to increase and down to decrease. Voice Mode and Edit Queued Message retain red repair
   markers because their latest physical reports are still failed; their
   presence in the map is not a success claim. The redundant broken New Voice Chat card is
-  retired; Voice Mode invokes Codex's app-scoped `composer.startVoiceMode`
-  command through the additive Hyper-F17 binding reserved for Agentic Mouse.
-  Ethan's normal Control-Shift-V `realtimeVoice` global shortcut remains
-  unchanged. Open in Side Chat uses Codex's built-in
+  retired. ChatGPT's global `realtimeVoice` shortcut remains Ethan's unchanged
+  Control-Shift-V. The earlier PID-targeted Hyper-F17 synthetic route never fired
+  from real mouse input, so the exact-device Karabiner rule now emits the chord
+  natively; Agentic Mouse separately receives `selectNative` only for HUD feedback.
+  On `DVORAK - QWERTY CMD`, semantic V sits at the ANSI period position, so the
+  generated rule emits `key_code: period` with Control and Shift. The route requires
+  the exact mouse, an unlocked session, an active Codex page, and either manual
+  Codex selection or frontmost ChatGPT. Physical acceptance remains pending. Open in
+  Side Chat uses Codex's built-in
   Command-Option-S app accelerator for the current task through macOS System
   Events. That foreground-only control fails
   closed for a background Codex instead of sending a global chord to

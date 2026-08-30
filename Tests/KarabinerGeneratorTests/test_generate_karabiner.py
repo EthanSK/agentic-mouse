@@ -101,6 +101,10 @@ class KarabinerGeneratorTests(unittest.TestCase):
             set(picker["leaseVariablesBySource"]), {"corsair", "razer"}
         )
         self.assertEqual(len(set(picker["leaseVariablesBySource"].values())), 2)
+        self.assertEqual(
+            set(picker["appSelectionVariablesBySource"]), {"corsair", "razer"}
+        )
+        self.assertEqual(len(set(picker["appSelectionVariablesBySource"].values())), 2)
         corsair = picker["bindingsBySource"]["corsair"]
         razer = picker["bindingsBySource"]["razer"]
         self.assertEqual(len(corsair), 12)
@@ -122,18 +126,33 @@ class KarabinerGeneratorTests(unittest.TestCase):
             item for item in generated["rules"]
             if item["description"] == "Agentic Mouse — Modes (expiring, exact-device)"
         )
-        self.assertEqual(len(rule["manipulators"]), 58)
+        self.assertEqual(len(rule["manipulators"]), 66)
         actions = []
         legend_toggles = []
         for manipulator in rule["manipulators"]:
             condition_types = {item["type"] for item in manipulator["conditions"]}
             self.assertIn("device_if", condition_types)
             self.assertTrue({"expression_if", "expression_unless"} & condition_types)
-            self.assertFalse(
-                {"frontmost_application_if", "frontmost_application_unless"}
-                & condition_types,
-                "runtime Modes input must never inherit ordinary app-layer conditions",
-            )
+            frontmost_conditions = {
+                "frontmost_application_if", "frontmost_application_unless"
+            } & condition_types
+            if frontmost_conditions:
+                self.assertEqual(
+                    manipulator["from"]["key_code"],
+                    "keypad_plus" if any(
+                        condition.get("identifiers", [{}])[0].get("vendor_id") == 6940
+                        for condition in manipulator["conditions"]
+                        if condition["type"] == "device_if"
+                    ) else "0",
+                )
+                self.assertTrue(
+                    any(
+                        condition.get("type") == "expression_if"
+                        and condition.get("expression", "").endswith("_app_selection == 0")
+                        for condition in manipulator["conditions"]
+                    ),
+                    "only automatic app selection may consult the real frontmost app",
+                )
             immediate_commands = [
                 event for event in manipulator.get("to", [])
                 if "send_user_command" in event
@@ -162,8 +181,8 @@ class KarabinerGeneratorTests(unittest.TestCase):
                 self.assertEqual(release["physical_cell"], payload["physical_cell"])
 
         self.assertEqual(actions[:2], ["close", "close"])
-        self.assertEqual(actions.count("select"), 34)
-        self.assertEqual(actions.count("selectNative"), 18)
+        self.assertEqual(actions.count("select"), 38)
+        self.assertEqual(actions.count("selectNative"), 22)
         self.assertEqual(actions[-2:], ["open", "open"])
         self.assertEqual(
             {(item["source"], item["physical_cell"]) for item in legend_toggles},
@@ -357,6 +376,11 @@ class KarabinerGeneratorTests(unittest.TestCase):
                         == "selectNative"
                         for event in manipulator.get("to", [])
                     )
+                    and {
+                        "type": "expression_if",
+                        "expression": f"{page_variables[source_name]} == 2",
+                    }
+                    in manipulator.get("conditions", [])
                 )
                 for output_field, output_value in output.items():
                     self.assertEqual(native["to"][-1][output_field], output_value)
@@ -455,6 +479,7 @@ class KarabinerGeneratorTests(unittest.TestCase):
         ):
             variable = picker["leaseVariablesBySource"][source_name]
             page_variable = picker["pageVariablesBySource"][source_name]
+            app_selection_variable = picker["appSelectionVariablesBySource"][source_name]
             picker_expression = (
                 f'({variable} > system.now.milliseconds) and '
                 f'({variable} <= system.now.milliseconds + 15000)'
@@ -495,12 +520,67 @@ class KarabinerGeneratorTests(unittest.TestCase):
                 )
                 page = manipulator["to"][1]["set_variable"]
                 self.assertEqual(page["name"], page_variable)
-                command = manipulator["to"][2]["send_user_command"]["payload"]
+                command = next(
+                    event["send_user_command"]["payload"]
+                    for event in manipulator["to"]
+                    if "send_user_command" in event
+                )
                 self.assertEqual(command["source"], source_name)
                 self.assertIn(command["action"], {"openKeys", "openAppSpecific"})
                 self.assertEqual(
                     page["value"],
                     2 if command["action"] == "openKeys" else 4,
+                )
+                if command["action"] == "openAppSpecific":
+                    self.assertIn(
+                        {
+                            "set_variable": {
+                                "name": app_selection_variable,
+                                "value": 0,
+                            }
+                        },
+                        manipulator["to"],
+                    )
+
+            voice_transport = "keypad_plus" if source_name == "corsair" else "0"
+            voice_routes = [
+                manipulator
+                for manipulator in rule["manipulators"]
+                if manipulator.get("from", {}).get("key_code") == voice_transport
+                and {
+                    "type": "expression_if",
+                    "expression": f"{page_variable} == 4",
+                }
+                in manipulator.get("conditions", [])
+            ]
+            self.assertEqual(len(voice_routes), 4)
+            native_voice_routes = [
+                manipulator
+                for manipulator in voice_routes
+                if any(
+                    event.get("send_user_command", {}).get("payload", {}).get("action")
+                    == "selectNative"
+                    for event in manipulator["to"]
+                )
+            ]
+            self.assertEqual(len(native_voice_routes), 2)
+            for manipulator in native_voice_routes:
+                self.assertEqual(
+                    manipulator["to"][-1],
+                    {
+                        "key_code": "period",
+                        "modifiers": ["left_control", "left_shift"],
+                        "repeat": False,
+                        "conditions": [
+                            {
+                                "type": "expression_if",
+                                "expression": (
+                                    "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and "
+                                    "(agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+                                ),
+                            }
+                        ],
+                    },
                 )
 
         for rule in generated_base["rules"]:

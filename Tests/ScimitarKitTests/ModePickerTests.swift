@@ -1360,6 +1360,40 @@ final class ModePickerTests: XCTestCase {
         XCTAssertEqual(hud.snapshots.last?.selection?.title, "Up Arrow")
     }
 
+    func testNativeCodexVoiceUpdatesTheHUDWithoutCallingTheSyntheticAppRoute() {
+        let hud = RecordingModeHUDPresenter()
+        let coordinator = makeCoordinator(hud: hud)
+        var nativeInputs: [PhysicalCell] = []
+        var syntheticInputs: [PhysicalCell] = []
+        coordinator.resolveFrontmostApp = {
+            FrontmostAppModeContext(
+                target: .codex,
+                displayName: "Codex",
+                bundleIdentifier: AppSpecificTarget.codex.bundleIdentifier
+            )
+        }
+        coordinator.onNativeAppSpecificInput = { _, _, cell, _ in
+            nativeInputs.append(cell)
+            return true
+        }
+        coordinator.onAppSpecificInput = { _, _, cell, _ in
+            syntheticInputs.append(cell)
+            return true
+        }
+
+        coordinator.enterAppSpecific(source: .razer)
+        coordinator.handle(.init(
+            action: .selectNative,
+            source: .razer,
+            physicalCell: CodexModeAction.toggleVoiceMode.cell,
+            phase: .press
+        ))
+
+        XCTAssertEqual(nativeInputs, [CodexModeAction.toggleVoiceMode.cell])
+        XCTAssertTrue(syntheticInputs.isEmpty)
+        XCTAssertEqual(hud.snapshots.last?.selection?.title, "Voice mode")
+    }
+
     func testUtilityCellElevenOpensTheManualConfiguredAppSelector() {
         let hud = RecordingModeHUDPresenter()
         let coordinator = makeCoordinator(hud: hud)

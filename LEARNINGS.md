@@ -1,5 +1,17 @@
 # Learnings
 
+## 2026-08-30 — Deliver Codex Voice Mode as exact-device native keyboard input
+
+**Trigger:** Ethan pressed Razer printed 10 in Codex mode and nothing happened, despite the prior synthetic Hyper-F17 diagnostic appearing to work.
+
+**Finding:** Razer printed 10 correctly reached shared physical cell 12, but the installed v1.0.142 route sent a PID-targeted synthetic Hyper-F17 event. That controlled test did not reproduce the real Electron global-shortcut path. ChatGPT registers `realtimeVoice` as a main-process global shortcut and accepts native keyboard input, while Quartz and System Events delivery are ignored. The first native Karabiner attempt still failed because it emitted ANSI V: Ethan's `DVORAK - QWERTY CMD` layout maps semantic V to the ANSI period position whenever Command is not held, so ANSI V produced Control-Shift-period instead of Control-Shift-V. (Codex task: 01a039f7-873c-7c30-b3dc-af8a6724ace5)
+
+**Fix:** Keep Ethan's existing Control-Shift-V `realtimeVoice` binding unchanged. While an exact Corsair or Razer source owns an active Codex page, emit ANSI `period` with Control and Shift directly from Karabiner and send `selectNative` separately to Agentic Mouse for HUD feedback. Allow the native route only for manual Codex selection or for automatic app selection while ChatGPT is frontmost; every manually selected non-Codex page keeps the ordinary cell action.
+
+**Guard:** A PID-targeted synthetic shortcut test is not physical proof for an Electron global shortcut. Keep the exact-device, unlocked-session, active-page, app-selection, and frontmost-app gates in the generated rule. Preserve the Dvorak position explicitly in generator tests, ensure the app-specific rule precedes the excluded base route, and retain the repair marker until Ethan confirms one literal Razer or Corsair press opens Voice Mode.
+
+**Verification:** The complete corrected gate passed 668 Swift tests, six Musixmatch tests, six VS Code bridge tests, 17 Karabiner generator tests, generated-source freshness, both Karabiner lints, packaging/version contracts, shell syntax, and strict Developer-ID signing. Agentic Mouse v1.0.143 (build 149) is installed as PID 25886 with Accessibility trust, the command socket, the bundled iCUE SDK, and the active OBS recording preserved. The corrected generated and live Karabiner rules contain the exact Razer `key_code: 0` to ANSI `period` plus Control-Shift route, and the live configuration hash is `987b071fa392851b0cf7ed0efd6675d09aed50b1456db0e745291e4899852920`; the live installer preserved all three non-Agentic rules. Literal physical acceptance remains pending.
+
 ## 2026-08-29 — Invoke Codex Voice Mode through its app-scoped command
 
 **Trigger:** Ethan reported that the Codex Voice Mode mouse button still did nothing and asked whether the current Codex app finally exposes a voice shortcut.

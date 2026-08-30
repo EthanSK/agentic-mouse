@@ -31,6 +31,12 @@ MODE_PAGE_APP_SELECTOR = 3
 MODE_PAGE_APP_SPECIFIC = 4
 MODE_PAGE_KEYPAD = 5
 APP_SELECTOR_TARGET_CELLS = {1, 4, 7}
+APP_SELECTION_AUTOMATIC = 0
+APP_SELECTION_CODEX = 1
+APP_SELECTION_OTHER = 2
+CODEX_SELECTOR_PHYSICAL_CELL = 1
+CODEX_VOICE_PHYSICAL_CELL = 12
+CODEX_BUNDLE_IDENTIFIERS = [r"^com\.openai\.codex$"]
 KEYS_MODE_OUTPUT_BY_PHYSICAL_CELL = {
     1: {"key_code": "left_arrow", "repeat": False},
     3: {"key_code": "z", "modifiers": ["left_command"], "repeat": False},
@@ -369,6 +375,21 @@ def load_bindings(
             raise GenerationError(
                 f"{path}: modePicker.pageVariablesBySource must contain distinct valid corsair and razer variables"
             )
+        app_selection_variables = mode_picker.get("appSelectionVariablesBySource")
+        if (
+            not isinstance(app_selection_variables, dict)
+            or set(app_selection_variables) != {"corsair", "razer"}
+            or any(
+                not isinstance(variable, str) or not VARIABLE_NAME.fullmatch(variable)
+                for variable in app_selection_variables.values()
+            )
+            or len(set(app_selection_variables.values())) != 2
+            or set(app_selection_variables.values())
+            & (set(_lease_variables(mode_picker).values()) | set(page_variables.values()))
+        ):
+            raise GenerationError(
+                f"{path}: modePicker.appSelectionVariablesBySource must contain distinct valid corsair and razer variables"
+            )
     if color_proof and mode_picker:
         color_variables = set(_lease_variables(color_proof).values())
         picker_variables = set(_lease_variables(mode_picker).values())
@@ -389,6 +410,10 @@ def _lease_variables(metadata: dict[str, Any]) -> dict[str, str]:
 
 def _page_variables(metadata: dict[str, Any]) -> dict[str, str]:
     return metadata["pageVariablesBySource"]
+
+
+def _app_selection_variables(metadata: dict[str, Any]) -> dict[str, str]:
+    return metadata["appSelectionVariablesBySource"]
 
 
 def _active_expression(variable: str) -> str:
@@ -537,6 +562,7 @@ def build_documents(
                 direct_source, direct_action = direct_entry
                 variable = _lease_variables(mode_picker)[direct_source]
                 page_variable = _page_variables(mode_picker)[direct_source]
+                app_selection_variable = _app_selection_variables(mode_picker)[direct_source]
                 proof_manipulator.setdefault("to", []).insert(
                     0,
                     {
@@ -562,6 +588,16 @@ def build_documents(
                         }
                     },
                 )
+                if direct_action == "openAppSpecific":
+                    proof_manipulator["to"].insert(
+                        2,
+                        {
+                            "set_variable": {
+                                "name": app_selection_variable,
+                                "value": APP_SELECTION_AUTOMATIC,
+                            }
+                        },
+                    )
             for expression in lease_exclusions_by_binding.get(binding["id"], []):
                 proof_manipulator.setdefault("conditions", []).append(
                     {"type": "expression_unless", "expression": expression}
@@ -749,6 +785,7 @@ def build_mode_picker_rule(
     by_id = {binding["id"]: binding for binding in bindings}
     variables_by_source = _lease_variables(mode_picker)
     page_variables_by_source = _page_variables(mode_picker)
+    app_selection_variables_by_source = _app_selection_variables(mode_picker)
     proof_expression = None
     if color_proof:
         proof_expression = _any_active_expression(color_proof)
@@ -798,10 +835,56 @@ def build_mode_picker_rule(
             "repeat": False,
         }
 
+    def append_app_specific_input(
+        *,
+        binding: dict[str, Any],
+        source: str,
+        physical_cell: int,
+        selection_expression: str,
+        native: bool,
+        frontmost_condition: dict[str, Any] | None = None,
+    ) -> None:
+        conditions = device_conditions(binding, source=source, active=True)
+        conditions.extend(
+            [
+                {
+                    "type": "expression_if",
+                    "expression": (
+                        f"{page_variables_by_source[source]} == {MODE_PAGE_APP_SPECIFIC}"
+                    ),
+                },
+                {"type": "expression_if", "expression": selection_expression},
+            ]
+        )
+        if frontmost_condition is not None:
+            conditions.append(frontmost_condition)
+        action = "selectNative" if native else "select"
+        to = [command_event(action, source, physical_cell, "press")]
+        if native:
+            to.append(
+                {
+                    "key_code": "period",  # Ethan's Dvorak layout puts semantic V on the ANSI period key; sending ANSI V produced Control-Shift-. and Codex ignored it.
+                    "modifiers": ["left_control", "left_shift"],
+                    "repeat": False,
+                }
+            )
+        manipulator: dict[str, Any] = {
+            "type": "basic",
+            "from": copy.deepcopy(binding["from"]),
+            "to": to,
+            "conditions": conditions,
+        }
+        if not native:
+            manipulator["to_after_key_up"] = [
+                command_event(action, source, physical_cell, "release")
+            ]
+        manipulators.append(manipulator)
+
     manipulators: list[dict[str, Any]] = []
     for source in ("corsair", "razer"):
         variable = variables_by_source[source]
         page_variable = page_variables_by_source[source]
+        app_selection_variable = app_selection_variables_by_source[source]
         exit_binding = by_id[mode_picker["bindingsBySource"][source][exit_index]]
         close_conditions = device_conditions(exit_binding, source=source, active=True)
         manipulators.append(
@@ -811,6 +894,7 @@ def build_mode_picker_rule(
                 "to": [
                     {"set_variable": {"name": variable, "value": 0}},
                     {"set_variable": {"name": page_variable, "value": 0}},
+                    {"set_variable": {"name": app_selection_variable, "value": 0}},
                     command_event("close", source, exit_index + 1),
                 ],
                 "conditions": close_conditions,
@@ -818,6 +902,7 @@ def build_mode_picker_rule(
         )
     for source in ("corsair", "razer"):
         page_variable = page_variables_by_source[source]
+        app_selection_variable = app_selection_variables_by_source[source]
         for physical_cell in intercepted_cells:
             if physical_cell == exit_index + 1:
                 continue
@@ -865,6 +950,13 @@ def build_mode_picker_rule(
                         "expression": f"{page_variable} == {MODE_PAGE_APP_SELECTOR}",
                     }
                 )
+            if physical_cell == CODEX_VOICE_PHYSICAL_CELL:
+                ordinary_conditions.append(
+                    {
+                        "type": "expression_unless",
+                        "expression": f"{page_variable} == {MODE_PAGE_APP_SPECIFIC}",
+                    }
+                )
             manipulators.append(
                 {
                     "type": "basic",
@@ -876,6 +968,51 @@ def build_mode_picker_rule(
                     "conditions": ordinary_conditions,
                 }
             )
+
+            if physical_cell == CODEX_VOICE_PHYSICAL_CELL:
+                append_app_specific_input(
+                    binding=binding,
+                    source=source,
+                    physical_cell=physical_cell,
+                    selection_expression=(
+                        f"{app_selection_variable} == {APP_SELECTION_CODEX}"
+                    ),
+                    native=True,
+                )
+                automatic_expression = (
+                    f"{app_selection_variable} == {APP_SELECTION_AUTOMATIC}"
+                )
+                append_app_specific_input(
+                    binding=binding,
+                    source=source,
+                    physical_cell=physical_cell,
+                    selection_expression=automatic_expression,
+                    native=True,
+                    frontmost_condition={
+                        "type": "frontmost_application_if",
+                        "bundle_identifiers": CODEX_BUNDLE_IDENTIFIERS,
+                    },
+                )
+                append_app_specific_input(
+                    binding=binding,
+                    source=source,
+                    physical_cell=physical_cell,
+                    selection_expression=(
+                        f"{app_selection_variable} == {APP_SELECTION_OTHER}"
+                    ),
+                    native=False,
+                )
+                append_app_specific_input(
+                    binding=binding,
+                    source=source,
+                    physical_cell=physical_cell,
+                    selection_expression=automatic_expression,
+                    native=False,
+                    frontmost_condition={
+                        "type": "frontmost_application_unless",
+                        "bundle_identifiers": CODEX_BUNDLE_IDENTIFIERS,
+                    },
+                )
             if keys_native_output is not None:
                 native_conditions = device_conditions(binding, source=source, active=True)
                 native_conditions.append(
@@ -969,6 +1106,12 @@ def build_mode_picker_rule(
                                     "value": MODE_PAGE_APP_SELECTOR,
                                 }
                             },
+                            {
+                                "set_variable": {
+                                    "name": app_selection_variable,
+                                    "value": APP_SELECTION_OTHER,
+                                }
+                            },
                             command_event("select", source, index + 1, "press"),
                         ],
                         "conditions": selector_conditions,
@@ -994,6 +1137,16 @@ def build_mode_picker_rule(
                                     "value": MODE_PAGE_APP_SPECIFIC,
                                 }
                             },
+                            {
+                                "set_variable": {
+                                    "name": app_selection_variable,
+                                    "value": (
+                                        APP_SELECTION_CODEX
+                                        if physical_cell == CODEX_SELECTOR_PHYSICAL_CELL
+                                        else APP_SELECTION_OTHER
+                                    ),
+                                }
+                            },
                             command_event("select", source, index + 1, "press"),
                         ],
                         "conditions": target_conditions,
@@ -1017,6 +1170,7 @@ def build_mode_picker_rule(
     for source in ("corsair", "razer"):
         variable = variables_by_source[source]
         page_variable = page_variables_by_source[source]
+        app_selection_variable = app_selection_variables_by_source[source]
         legend_binding = by_id[mode_picker["bindingsBySource"][source][legend_index]]
         entry_binding = by_id[mode_picker["bindingsBySource"][source][entry_index]]
 
@@ -1056,6 +1210,12 @@ def build_mode_picker_rule(
                         "set_variable": {
                             "name": page_variable,
                             "value": MODE_PAGE_UTILITY,
+                        }
+                    },
+                    {
+                        "set_variable": {
+                            "name": app_selection_variable,
+                            "value": APP_SELECTION_AUTOMATIC,
                         }
                     },
                     command_event("open", source, entry_index + 1),

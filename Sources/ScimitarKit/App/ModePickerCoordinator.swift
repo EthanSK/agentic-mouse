@@ -109,6 +109,7 @@ public final class ModePickerCoordinator {
     public var onKeypadModeRequested: ((MouseSource) -> Bool)?
     public var onKeypadInput: ((MouseSource, PhysicalCell, ModePickerCommand.Phase) -> Void)?
     public var onAppSpecificInput: ((MouseSource, AppSpecificTarget, PhysicalCell, ModePickerCommand.Phase) -> Bool)?
+    public var onNativeAppSpecificInput: ((MouseSource, AppSpecificTarget, PhysicalCell, ModePickerCommand.Phase) -> Bool)?
     public var resolveFrontmostApp: (() -> FrontmostAppModeContext)?
     public var resolveAppSpecificDefinition: ((AppSpecificTarget) -> AppSpecificModeDefinition)?
     public var resolveAppSelectorDefinition: (() -> AppSpecificModeDefinition)?
@@ -464,8 +465,11 @@ public final class ModePickerCoordinator {
                 }
                 return
             }
+            let appSpecificInput = nativeOutputHandled
+                ? onNativeAppSpecificInput
+                : onAppSpecificInput
             if let target = appSpecificTarget,
-               onAppSpecificInput?(source, target, cell, phase) == true,
+               appSpecificInput?(source, target, cell, phase) == true,
                phase == .press {
                 recordSelection(cell: cell)
             }
