@@ -79,6 +79,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         inputAllowed: { [weak self] in self?.mouseCommandsAllowed == true }
     )
     private let notificationCenterToggleVerifier = NotificationCenterToggleVerifier()
+    private var screenshotInteractionWasActive = false
     private lazy var chromeYouTubeSpeedHoldController: ChromeYouTubeSpeedHoldController = {
         let controller = ChromeYouTubeSpeedHoldController(
             inputAllowed: { [weak self] in self?.mouseCommandsAllowed == true }
@@ -96,24 +97,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             inputAllowed: { [weak self] in self?.mouseCommandsAllowed == true }
         )
         controller.onStateChange = { [weak self] in
-            self?.defaultMapHintCoordinators.values.forEach { $0.refresh() }
+            self?.handleScreenshotStateChange()
         }
         controller.onAsynchronousResult = { [weak self] source, result in
             self?.handleScreenshotTriggerResult(result, source: source)
         }
-        controller.onClipboardCopy = { [weak self] source, result in
+        controller.onScreenshotReady = { [weak self] source, result in
             switch result {
             case .success(let url):
-                self?.log.info("selected-area screenshot copied from \(url.lastPathComponent)")
-                self?.defaultMapHintCoordinators[source]?.flashActionFeedback(
-                    source: source,
-                    feedback: ModeHUDFeedback(
-                        message: "Screenshot copied",
-                        tone: .confirmed
-                    )
-                )
+                self?.log.info("selected-area screenshot ready from \(url.lastPathComponent)")
             case .failure(let error):
-                self?.log.notice("selected-area screenshot copy failed: \(error.localizedDescription)")
+                self?.log.notice("selected-area screenshot preparation failed: \(error.localizedDescription)")
                 self?.defaultMapHintCoordinators[source]?.flashActionProblem(
                     source: source,
                     message: error.localizedDescription
@@ -132,6 +126,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         return controller
     }()
+
+    private func handleScreenshotStateChange() {
+        let isActive = selectedAreaScreenshotController.isCapturing
+        defaultMapHintCoordinators.values.forEach { $0.refresh() }
+        if screenshotInteractionWasActive, !isActive {
+            modeHUDPresenters.values.forEach { $0.reattachToCurrentSpaces() } // The native Screenshot overlay can strand fully rendered panels on its temporary/stale Spaces after either a plain-click cancel or a dragged capture; recreate only presenters whose model is still explicitly active. (Codex task: 01a039f7-873c-7c30-b3dc-af8a6724ace5)
+        }
+        screenshotInteractionWasActive = isActive
+    }
     private lazy var modeUtilityActionExecutor = ModeUtilityActionExecutor(
         inputAllowed: { [weak self] in self?.mouseCommandsAllowed == true },
         typeStoredPassword: { [weak self] in

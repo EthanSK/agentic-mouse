@@ -163,9 +163,14 @@ frontmost-app mode, 3 = Screenshot / rapid-double Paste, hold 4 + ratcheted whee
 5 = Forward, 6 = YouTube Scrub + Wheel through the VoiceInk bridge, 7 = Enter, 8 = Back,
 9 = Keys mode, 10 = Default legend outside modes / universal Exit,
 11 = Switch App and 12 = Utility.
-Physical cell 3 starts a native selected-area Screenshot outside modes, copies
-the uniquely identified saved image, and rapid-double-pastes it while the
-clipboard still contains that owned screenshot.
+Physical cell 3 starts a native selected-area Screenshot outside modes, retains
+the uniquely identified saved path without changing the clipboard, and on a
+rapid double press uses a short restoring pasteboard lease to paste that exact
+file into the current app. A newer clipboard write always wins over restoration.
+A plain click without a drag is cancellation; only a dragged selection waits for
+the saved file, with the existing 60-second bound preserved for slow destinations.
+Closing the native overlay also recreates only still-active HUD panels on the
+current display Spaces; an explicitly hidden legend remains hidden.
 Physical cell 10 exits the active mode;
 there is no separate in-mode legend toggle. Wheel
 click also stays a

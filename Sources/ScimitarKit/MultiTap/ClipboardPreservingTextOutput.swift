@@ -13,8 +13,6 @@ import Foundation
 /// snapshot is restored only if no person or application changed the clipboard
 /// in the meantime. Consecutive Keypad commits share the original snapshot.
 public final class ClipboardPreservingTextOutput: TextOutput {
-    typealias PasteboardItemSnapshot = [(NSPasteboard.PasteboardType, Data)]
-    typealias PasteboardSnapshot = [PasteboardItemSnapshot]
     typealias EventPoster = (CGEvent, pid_t?) -> Void
     typealias RestoreScheduler = (TimeInterval, @escaping () -> Void) -> Void
 
@@ -128,7 +126,7 @@ public final class ClipboardPreservingTextOutput: TextOutput {
            let originalSnapshot {
             snapshot = originalSnapshot
         } else {
-            snapshot = Self.snapshotClipboard(from: pasteboard)
+            snapshot = PasteboardSnapshot(capturing: pasteboard)
         }
 
         let identifier = UUID().uuidString
@@ -244,10 +242,7 @@ public final class ClipboardPreservingTextOutput: TextOutput {
 
     private func restoreIfOwned(_ lease: Lease, snapshot: PasteboardSnapshot) {
         guard lease.isOwned(on: pasteboard, markerType: Self.markerType) else { return }
-        pasteboard.clearContents()
-        if !snapshot.isEmpty {
-            pasteboard.writeObjects(Self.pasteboardItems(from: snapshot))
-        }
+        snapshot.restore(to: pasteboard)
         if activeLease == lease {
             activeLease = nil
             originalSnapshot = nil
@@ -257,24 +252,6 @@ public final class ClipboardPreservingTextOutput: TextOutput {
     private func wait() {
         guard interEventDelay > 0 else { return }
         Thread.sleep(forTimeInterval: interEventDelay)
-    }
-
-    static func snapshotClipboard(from pasteboard: NSPasteboard) -> PasteboardSnapshot {
-        (pasteboard.pasteboardItems ?? []).map { item in
-            item.types.compactMap { type in
-                item.data(forType: type).map { (type, $0) }
-            }
-        }
-    }
-
-    static func pasteboardItems(from snapshot: PasteboardSnapshot) -> [NSPasteboardItem] {
-        snapshot.map { itemSnapshot in
-            let item = NSPasteboardItem()
-            for (type, data) in itemSnapshot {
-                item.setData(data, forType: type)
-            }
-            return item
-        }
     }
 }
 #endif

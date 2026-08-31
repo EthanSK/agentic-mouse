@@ -1,3 +1,4 @@
+import AppKit
 import ApplicationServices
 import Foundation
 import ScimitarKit
@@ -107,31 +108,56 @@ final class SelectedAreaScreenshotControllerTests: XCTestCase {
         XCTAssertEqual(process.cancelCount, 1)
     }
 
-    func testCompletedCaptureCopiesTheNewSavedImageAndMakesPasteVisible() {
+    func testCompletedCaptureRemembersTheNewSavedImageAndMakesPasteVisible() {
         let process = RecordingScreenshotProcess()
         let scheduler = ManualTickScheduler()
         let clipboard = RecordingScreenshotClipboardCoordinator()
-        clipboard.completedCopyResult = .success(URL(fileURLWithPath: "/tmp/new-shot.png"))
+        clipboard.completedResolutionResult = .success(URL(fileURLWithPath: "/tmp/new-shot.png"))
         let controller = SelectedAreaScreenshotController(
             makeProcess: { process },
             gestureScheduler: scheduler,
             clipboardCoordinator: clipboard
         )
-        var copyResults: [Result<URL, ScreenshotClipboardError>] = []
-        controller.onClipboardCopy = { _, result in copyResults.append(result) }
+        var resolutionResults: [Result<URL, ScreenshotClipboardError>] = []
+        controller.onScreenshotReady = { _, result in resolutionResults.append(result) }
 
         _ = controller.handlePress(from: .corsair)
         scheduler.fire()
         process.complete(with: .completed)
         drainMainQueue()
 
-        XCTAssertEqual(clipboard.copyCount, 1)
+        XCTAssertEqual(clipboard.resolveCount, 1)
         XCTAssertEqual(clipboard.hasPasteableScreenshot, true)
         XCTAssertEqual(controller.buttonState, .screenshotReadyToPaste)
-        XCTAssertEqual(try? copyResults.first?.get().lastPathComponent, "new-shot.png")
+        XCTAssertEqual(try? resolutionResults.first?.get().lastPathComponent, "new-shot.png")
     }
 
-    func testDoublePressWhileNativeSaveIsPendingQueuesPasteUntilClipboardCopyCompletes() {
+    func testCompletedInteractionWithoutASavedFileReturnsToIdleAsCancellation() {
+        let process = RecordingScreenshotProcess()
+        let scheduler = ManualTickScheduler()
+        let clipboard = RecordingScreenshotClipboardCoordinator()
+        clipboard.completedResolutionResult = .failure(.screenshotFileNotFound)
+        let controller = SelectedAreaScreenshotController(
+            makeProcess: { process },
+            gestureScheduler: scheduler,
+            clipboardCoordinator: clipboard
+        )
+        var completions: [InteractiveScreenshotResult] = []
+        var resolutionResults: [Result<URL, ScreenshotClipboardError>] = []
+        controller.onCompletion = { completions.append($0) }
+        controller.onScreenshotReady = { _, result in resolutionResults.append(result) }
+
+        _ = controller.handlePress(from: .corsair)
+        scheduler.fire()
+        process.complete(with: .completed)
+        drainMainQueue()
+
+        XCTAssertEqual(controller.buttonState, .screenshot)
+        XCTAssertEqual(completions, [.cancelled])
+        XCTAssertTrue(resolutionResults.isEmpty, "a click-cancel must not show a screenshot failure")
+    }
+
+    func testDoublePressWhileNativeSaveIsPendingQueuesPasteUntilCaptureResolutionCompletes() {
         let process = RecordingScreenshotProcess()
         let scheduler = ManualTickScheduler()
         let clipboard = RecordingScreenshotClipboardCoordinator()
@@ -147,14 +173,14 @@ final class SelectedAreaScreenshotControllerTests: XCTestCase {
         scheduler.fire()
         process.complete(with: .completed)
         drainMainQueue()
-        XCTAssertTrue(clipboard.isCopyPending)
+        XCTAssertTrue(clipboard.isCapturePending)
         XCTAssertEqual(controller.buttonState, .copyingScreenshot)
 
         XCTAssertEqual(controller.handlePress(from: .corsair), .awaitingSinglePress)
         XCTAssertEqual(controller.handlePress(from: .corsair), .pasteQueued)
         XCTAssertEqual(clipboard.pasteCount, 0)
 
-        clipboard.completeCopy(.success(URL(fileURLWithPath: "/tmp/new-shot.png")))
+        clipboard.completeResolution(.success(URL(fileURLWithPath: "/tmp/new-shot.png")))
 
         XCTAssertEqual(clipboard.pasteCount, 1)
         XCTAssertEqual(asynchronous.last, .pasted)
@@ -165,7 +191,7 @@ final class SelectedAreaScreenshotControllerTests: XCTestCase {
         let scheduler = ManualTickScheduler()
         let clipboard = RecordingScreenshotClipboardCoordinator()
         clipboard.hasPasteableScreenshot = true
-        clipboard.pasteResult = .failure(.screenshotNoLongerOnClipboard)
+        clipboard.pasteResult = .failure(.screenshotNoLongerAvailable)
         let controller = SelectedAreaScreenshotController(
             makeProcess: { process },
             gestureScheduler: scheduler,
@@ -175,7 +201,7 @@ final class SelectedAreaScreenshotControllerTests: XCTestCase {
         _ = controller.handlePress(from: .razer)
         XCTAssertEqual(
             controller.handlePress(from: .razer),
-            .failed("The screenshot is no longer on the clipboard")
+            .failed("The saved screenshot is no longer available")
         )
         XCTAssertEqual(process.runCount, 0)
     }
@@ -220,14 +246,20 @@ final class SelectedAreaScreenshotControllerTests: XCTestCase {
         XCTAssertTrue(clipboard.lastCancelClearedOwnership)
     }
 
-    func testNativeClipboardCoordinatorCopiesOnlyTheBoundedNewCandidate() {
+    func testNativeClipboardCoordinatorRemembersOnlyTheBoundedNewCandidateUntilPaste() {
         let scheduler = ManualTickScheduler()
         let clock = ManualClock(now: 10)
         let directory = URL(fileURLWithPath: "/tmp/screenshots", isDirectory: true)
-        let candidate = directory.appendingPathComponent("Screenshot.png")
+        let candidate = makeTemporaryScreenshot()
+        defer { try? FileManager.default.removeItem(at: candidate) }
         var candidates: [URL] = []
-        var pasteboardCount = 41
-        var writtenURLs: [URL] = []
+        let pasteboard = NSPasteboard(
+            name: NSPasteboard.Name("agentic-mouse-screenshot-tests-\(UUID().uuidString)")
+        )
+        pasteboard.clearContents()
+        pasteboard.setString("VoiceInk text", forType: .string)
+        var postedProcessIdentifiers: [pid_t] = []
+        var restorations: [@MainActor @Sendable () -> Void] = []
         let coordinator = NativeScreenshotClipboardCoordinator(
             scheduler: scheduler,
             clock: clock,
@@ -236,37 +268,103 @@ final class SelectedAreaScreenshotControllerTests: XCTestCase {
             snapshotDirectory: { _ in ["/tmp/screenshots/old.png"] },
             findCandidates: { _ in candidates },
             metadataMarksScreenshot: { $0 == candidate },
-            writeToPasteboard: {
-                writtenURLs.append($0)
-                return pasteboardCount
-            },
-            pasteboardChangeCount: { pasteboardCount },
-            postPaste: { true },
+            pasteboard: pasteboard,
+            postPaste: { postedProcessIdentifiers.append($0); return true },
+            frontmostProcessIdentifier: { 4321 },
+            scheduleRestore: { restorations.append($0) },
             accessibilityTrusted: { true },
             inputAllowed: { true }
         )
         var result: Result<URL, ScreenshotClipboardError>?
 
         coordinator.prepareForCapture()
-        coordinator.copyCompletedCapture { result = $0 }
-        XCTAssertTrue(coordinator.isCopyPending)
+        coordinator.resolveCompletedCapture { result = $0 }
+        XCTAssertTrue(coordinator.isCapturePending)
 
         candidates = [candidate]
         scheduler.fire()
 
         XCTAssertEqual(try? result?.get(), candidate)
-        XCTAssertEqual(writtenURLs, [candidate])
         XCTAssertTrue(coordinator.hasPasteableScreenshot)
-        XCTAssertFalse(coordinator.isCopyPending)
+        XCTAssertFalse(coordinator.isCapturePending)
+        XCTAssertEqual(pasteboard.string(forType: .string), "VoiceInk text")
 
-        pasteboardCount = 42
-        XCTAssertFalse(coordinator.hasPasteableScreenshot)
-        switch coordinator.pasteScreenshot() {
-        case .success:
-            XCTFail("a changed clipboard must not paste the stale screenshot")
-        case .failure(let error):
-            XCTAssertEqual(error, .screenshotNoLongerOnClipboard)
-        }
+        XCTAssertNoThrow(try coordinator.pasteScreenshot().get())
+        XCTAssertEqual(postedProcessIdentifiers, [4321])
+        XCTAssertEqual(restorations.count, 1)
+        XCTAssertNotNil(pasteboard.data(forType: .tiff))
+        restorations.first?()
+        XCTAssertEqual(pasteboard.string(forType: .string), "VoiceInk text")
+    }
+
+    func testVoiceInkClipboardChangeWinsOverScreenshotPasteRestoration() {
+        let scheduler = ManualTickScheduler()
+        let directory = URL(fileURLWithPath: "/tmp/screenshots", isDirectory: true)
+        let candidate = makeTemporaryScreenshot()
+        defer { try? FileManager.default.removeItem(at: candidate) }
+        let pasteboard = NSPasteboard(
+            name: NSPasteboard.Name("agentic-mouse-screenshot-tests-\(UUID().uuidString)")
+        )
+        pasteboard.clearContents()
+        pasteboard.setString("before paste", forType: .string)
+        var restorations: [@MainActor @Sendable () -> Void] = []
+        let coordinator = NativeScreenshotClipboardCoordinator(
+            scheduler: scheduler,
+            resolveDirectory: { directory },
+            snapshotDirectory: { _ in [] },
+            findCandidates: { _ in [candidate] },
+            metadataMarksScreenshot: { _ in true },
+            pasteboard: pasteboard,
+            postPaste: { _ in true },
+            frontmostProcessIdentifier: { 4321 },
+            scheduleRestore: { restorations.append($0) },
+            accessibilityTrusted: { true }
+        )
+
+        coordinator.prepareForCapture()
+        coordinator.resolveCompletedCapture { _ in }
+        XCTAssertNoThrow(try coordinator.pasteScreenshot().get())
+        pasteboard.clearContents()
+        pasteboard.setString("new VoiceInk result", forType: .string)
+        restorations.first?()
+
+        XCTAssertEqual(pasteboard.string(forType: .string), "new VoiceInk result")
+    }
+
+    func testRepeatedScreenshotPastesRestoreClipboardFromBeforeTheFirstPaste() {
+        let scheduler = ManualTickScheduler()
+        let directory = URL(fileURLWithPath: "/tmp/screenshots", isDirectory: true)
+        let candidate = makeTemporaryScreenshot()
+        defer { try? FileManager.default.removeItem(at: candidate) }
+        let pasteboard = NSPasteboard(
+            name: NSPasteboard.Name("agentic-mouse-screenshot-tests-\(UUID().uuidString)")
+        )
+        pasteboard.clearContents()
+        pasteboard.setString("original clipboard", forType: .string)
+        var restorations: [@MainActor @Sendable () -> Void] = []
+        let coordinator = NativeScreenshotClipboardCoordinator(
+            scheduler: scheduler,
+            resolveDirectory: { directory },
+            snapshotDirectory: { _ in [] },
+            findCandidates: { _ in [candidate] },
+            metadataMarksScreenshot: { _ in true },
+            pasteboard: pasteboard,
+            postPaste: { _ in true },
+            frontmostProcessIdentifier: { 4321 },
+            scheduleRestore: { restorations.append($0) },
+            accessibilityTrusted: { true }
+        )
+
+        coordinator.prepareForCapture()
+        coordinator.resolveCompletedCapture { _ in }
+        XCTAssertNoThrow(try coordinator.pasteScreenshot().get())
+        XCTAssertNoThrow(try coordinator.pasteScreenshot().get())
+
+        XCTAssertEqual(restorations.count, 2)
+        restorations[0]()
+        XCTAssertNil(pasteboard.string(forType: .string))
+        restorations[1]()
+        XCTAssertEqual(pasteboard.string(forType: .string), "original clipboard")
     }
 
     func testNativeClipboardCoordinatorFailsClosedOnAmbiguousNewImagesAtTimeout() {
@@ -284,17 +382,16 @@ final class SelectedAreaScreenshotControllerTests: XCTestCase {
                 directory.appendingPathComponent("two.png"),
             ] },
             metadataMarksScreenshot: { _ in false },
-            writeToPasteboard: { _ in XCTFail("must not choose an ambiguous image"); return nil },
-            pasteboardChangeCount: { 0 },
-            postPaste: { true },
+            writeToPasteboard: { _, _, _ in XCTFail("must not choose an ambiguous image"); return nil },
+            postPaste: { _ in true },
             accessibilityTrusted: { true },
             inputAllowed: { true }
         )
         var result: Result<URL, ScreenshotClipboardError>?
 
         coordinator.prepareForCapture()
-        coordinator.copyCompletedCapture { result = $0 }
-        clock.advance(by: NativeScreenshotClipboardCoordinator.copyTimeout)
+        coordinator.resolveCompletedCapture { result = $0 }
+        clock.advance(by: NativeScreenshotClipboardCoordinator.captureResolutionTimeout)
         scheduler.fire()
 
         XCTAssertEqual(result, .failure(.screenshotFileAmbiguous))
@@ -304,6 +401,8 @@ final class SelectedAreaScreenshotControllerTests: XCTestCase {
         var events: [(CGKeyCode, CGEventFlags, Bool)] = []
         var handler: (@MainActor (InteractiveScreenshotResult) -> Void)?
         let monitor = NSObject()
+        let lifecycleScheduler = ManualTickScheduler()
+        var interactionIsActive = true
         var removedMonitor: Any?
         let process = NativeInteractiveScreenshotProcess(
             postEvent: { keyCode, flags, isDown in
@@ -314,7 +413,9 @@ final class SelectedAreaScreenshotControllerTests: XCTestCase {
                 handler = lifecycleHandler
                 return monitor
             },
-            removeLifecycleMonitor: { removedMonitor = $0 }
+            removeLifecycleMonitor: { removedMonitor = $0 },
+            lifecycleScheduler: lifecycleScheduler,
+            interactionIsActive: { interactionIsActive }
         )
         var results: [InteractiveScreenshotResult] = []
         process.onTermination = { results.append($0) }
@@ -331,10 +432,80 @@ final class SelectedAreaScreenshotControllerTests: XCTestCase {
         XCTAssertFalse(events[1].2)
 
         handler?(.completed)
+        interactionIsActive = false
+        lifecycleScheduler.fire()
 
         XCTAssertFalse(process.isRunning)
         XCTAssertTrue((removedMonitor as AnyObject?) === monitor)
         XCTAssertEqual(results, [.completed])
+    }
+
+    func testNativeProcessPollDetectsScreenshotDismissalWithoutAGlobalInputEvent() throws {
+        let monitor = NSObject()
+        let lifecycleScheduler = ManualTickScheduler()
+        var interactionIsActive = true
+        var removedMonitor: Any?
+        let process = NativeInteractiveScreenshotProcess(
+            postEvent: { _, _, _ in true },
+            startLifecycleMonitor: { _ in monitor },
+            removeLifecycleMonitor: { removedMonitor = $0 },
+            lifecycleScheduler: lifecycleScheduler,
+            interactionIsActive: { interactionIsActive }
+        )
+        var results: [InteractiveScreenshotResult] = []
+        process.onTermination = { results.append($0) }
+
+        try process.run()
+        XCTAssertTrue(process.isRunning)
+        XCTAssertEqual(lifecycleScheduler.interval, NativeInteractiveScreenshotProcess.lifecyclePollInterval)
+
+        interactionIsActive = false
+        lifecycleScheduler.fire()
+
+        XCTAssertFalse(process.isRunning)
+        XCTAssertTrue((removedMonitor as AnyObject?) === monitor)
+        XCTAssertEqual(results, [.cancelled])
+    }
+
+    func testNativeLifecyclePlainClickIsCancellationButDragIsCompletion() {
+        var observedSelectionDrag = false
+
+        XCTAssertNil(NativeInteractiveScreenshotProcess.classifyLifecycleEvent(
+            .leftMouseDown,
+            keyCode: 0,
+            observedSelectionDrag: &observedSelectionDrag
+        ))
+        XCTAssertEqual(NativeInteractiveScreenshotProcess.classifyLifecycleEvent(
+            .leftMouseUp,
+            keyCode: 0,
+            observedSelectionDrag: &observedSelectionDrag
+        ), .cancelled)
+
+        XCTAssertNil(NativeInteractiveScreenshotProcess.classifyLifecycleEvent(
+            .leftMouseDown,
+            keyCode: 0,
+            observedSelectionDrag: &observedSelectionDrag
+        ))
+        XCTAssertNil(NativeInteractiveScreenshotProcess.classifyLifecycleEvent(
+            .leftMouseDragged,
+            keyCode: 0,
+            observedSelectionDrag: &observedSelectionDrag
+        ))
+        XCTAssertEqual(NativeInteractiveScreenshotProcess.classifyLifecycleEvent(
+            .leftMouseUp,
+            keyCode: 0,
+            observedSelectionDrag: &observedSelectionDrag
+        ), .completed)
+    }
+
+    func testNativeLifecycleEscapeIsCancellation() {
+        var observedSelectionDrag = false
+
+        XCTAssertEqual(NativeInteractiveScreenshotProcess.classifyLifecycleEvent(
+            .keyDown,
+            keyCode: NativeInteractiveScreenshotProcess.escapeKeyCode,
+            observedSelectionDrag: &observedSelectionDrag
+        ), .cancelled)
     }
 
     func testNativeProcessCancellationSendsEscapeAndRemovesItsMonitor() throws {
@@ -402,6 +573,28 @@ final class SelectedAreaScreenshotControllerTests: XCTestCase {
     private func drainMainQueue() {
         RunLoop.main.run(until: Date().addingTimeInterval(0.01))
     }
+
+    private func makeTemporaryScreenshot() -> URL {
+        let url = URL(fileURLWithPath: NSTemporaryDirectory())
+            .appendingPathComponent("agentic-mouse-screenshot-\(UUID().uuidString).png")
+        let bitmap = NSBitmapImageRep(
+            bitmapDataPlanes: nil,
+            pixelsWide: 1,
+            pixelsHigh: 1,
+            bitsPerSample: 8,
+            samplesPerPixel: 4,
+            hasAlpha: true,
+            isPlanar: false,
+            colorSpaceName: .deviceRGB,
+            bytesPerRow: 4,
+            bitsPerPixel: 32
+        )
+        bitmap?.setColor(.red, atX: 0, y: 0)
+        let data = bitmap?.representation(using: .png, properties: [:])
+        XCTAssertNotNil(data)
+        XCTAssertNoThrow(try data?.write(to: url))
+        return url
+    }
 }
 
 @MainActor
@@ -431,16 +624,16 @@ private final class RecordingScreenshotProcess: InteractiveScreenshotProcess {
 @MainActor
 private final class RecordingScreenshotClipboardCoordinator: ScreenshotClipboardCoordinating {
     var hasPasteableScreenshot = false
-    private(set) var isCopyPending = false
-    var completedCopyResult: Result<URL, ScreenshotClipboardError>?
+    private(set) var isCapturePending = false
+    var completedResolutionResult: Result<URL, ScreenshotClipboardError>?
     var pasteResult: Result<Void, ScreenshotClipboardError> = .success(())
     private(set) var prepareCount = 0
     private(set) var discardCount = 0
-    private(set) var copyCount = 0
+    private(set) var resolveCount = 0
     private(set) var pasteCount = 0
     private(set) var cancelCount = 0
     private(set) var lastCancelClearedOwnership = false
-    private var copyCompletion: ((Result<URL, ScreenshotClipboardError>) -> Void)?
+    private var captureResolutionCompletion: ((Result<URL, ScreenshotClipboardError>) -> Void)?
 
     func prepareForCapture() {
         prepareCount += 1
@@ -450,24 +643,24 @@ private final class RecordingScreenshotClipboardCoordinator: ScreenshotClipboard
         discardCount += 1
     }
 
-    func copyCompletedCapture(
+    func resolveCompletedCapture(
         completion: @escaping (Result<URL, ScreenshotClipboardError>) -> Void
     ) {
-        copyCount += 1
-        isCopyPending = true
-        copyCompletion = completion
-        if let completedCopyResult {
-            completeCopy(completedCopyResult)
+        resolveCount += 1
+        isCapturePending = true
+        captureResolutionCompletion = completion
+        if let completedResolutionResult {
+            completeResolution(completedResolutionResult)
         }
     }
 
-    func completeCopy(_ result: Result<URL, ScreenshotClipboardError>) {
-        isCopyPending = false
+    func completeResolution(_ result: Result<URL, ScreenshotClipboardError>) {
+        isCapturePending = false
         if case .success = result {
             hasPasteableScreenshot = true
         }
-        let completion = copyCompletion
-        copyCompletion = nil
+        let completion = captureResolutionCompletion
+        captureResolutionCompletion = nil
         completion?(result)
     }
 
@@ -479,8 +672,8 @@ private final class RecordingScreenshotClipboardCoordinator: ScreenshotClipboard
     func cancel(clearOwnership: Bool) {
         cancelCount += 1
         lastCancelClearedOwnership = clearOwnership
-        isCopyPending = false
-        copyCompletion = nil
+        isCapturePending = false
+        captureResolutionCompletion = nil
         if clearOwnership { hasPasteableScreenshot = false }
     }
 }

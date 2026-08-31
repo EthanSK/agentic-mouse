@@ -14,7 +14,7 @@ temporary lighting, but it does not write iCUE settings.
 |---|---|
 | Wheel press | Default middle-click source → exact-device Karabiner Play / Pause |
 | Top DPI button | iCUE F19 neutral transport → exact-device Karabiner VoiceInk++ on release; all DPI stages remain 2,750 |
-| Button 3 | Screenshot outside modes; rapid double-press pastes its copied result; mode-specific action inside modes |
+| Button 3 | Screenshot outside modes; rapid double-press pastes its last saved result; mode-specific action inside modes |
 | Button 1 | Hold + wheel for at most one macOS Space; first sign wins until release |
 | Button 2 | Open the current frontmost app mode |
 | Button 4 | Hold + wheel for native horizontal scrolling |
@@ -69,9 +69,12 @@ saved `HEAD` and after-index tree to match before restoring the before-index
 tree; the working tree is never changed.
 
 Physical cell 3 starts or cancels the native selected-area Screenshot interaction,
-copies its saved image, and rapid-double-pastes that current clipboard item:
-Corsair printed 3 and mirrored Razer printed 1. Runtime pages own it only while
-active: Spaces in Utility, DEF in Keypad, or Spare when
+remembers its exact saved path without changing the clipboard, and rapid-double-pastes
+that saved image through a short restoring pasteboard lease:
+Corsair printed 3 and mirrored Razer printed 1. A plain click without a drag
+cancels the crosshair; a real dragged selection keeps the existing bounded wait
+for its saved file. Runtime pages own it only while active: Spaces in Utility,
+DEF in Keypad, or Spare when
 the current app page has no assignment. One press of shared physical cell 10
 (Corsair printed 10 / Razer printed 12) toggles the Default legend outside modes
 and exits an active mode. Canonical physical cell 11 owns Switch App outside

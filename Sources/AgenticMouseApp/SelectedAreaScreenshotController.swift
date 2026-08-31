@@ -23,7 +23,8 @@ enum ScreenshotClipboardError: Error, Equatable, LocalizedError {
     case screenshotFileNotFound
     case screenshotFileAmbiguous
     case screenshotImageUnreadable
-    case screenshotNoLongerOnClipboard
+    case screenshotNoLongerAvailable
+    case pasteTargetUnavailable
     case inputBlocked
     case accessibilityPermissionMissing
     case pasteEventCreationFailed
@@ -38,8 +39,10 @@ enum ScreenshotClipboardError: Error, Equatable, LocalizedError {
             "Screenshot saved, but more than one new image was found"
         case .screenshotImageUnreadable:
             "Screenshot saved, but its image was not ready to copy"
-        case .screenshotNoLongerOnClipboard:
-            "The screenshot is no longer on the clipboard"
+        case .screenshotNoLongerAvailable:
+            "The saved screenshot is no longer available"
+        case .pasteTargetUnavailable:
+            "Could not find the current app to paste into"
         case .inputBlocked:
             "Mouse commands are disabled while macOS is locked"
         case .accessibilityPermissionMissing:
@@ -59,10 +62,10 @@ struct ScreenshotCaptureBaseline: Equatable {
 @MainActor
 protocol ScreenshotClipboardCoordinating: AnyObject {
     var hasPasteableScreenshot: Bool { get }
-    var isCopyPending: Bool { get }
+    var isCapturePending: Bool { get }
     func prepareForCapture()
     func discardPreparedCapture()
-    func copyCompletedCapture(
+    func resolveCompletedCapture(
         completion: @escaping (Result<URL, ScreenshotClipboardError>) -> Void
     )
     func pasteScreenshot() -> Result<Void, ScreenshotClipboardError>
@@ -70,24 +73,47 @@ protocol ScreenshotClipboardCoordinating: AnyObject {
 }
 
 /// Watches only the configured macOS Screenshot destination after the native
-/// Shift-Command-4 interaction completes. This preserves the system's sound,
-/// save destination and floating thumbnail while making that same saved image
-/// available to ordinary Command-V targets without requesting screen capture
-/// permission or taking a second screenshot.
+/// Shift-Command-4 interaction completes. It remembers the exact saved path
+/// without occupying the pasteboard, then uses a short restoring paste lease
+/// only when the user explicitly double-presses the screenshot button.
 @MainActor
 final class NativeScreenshotClipboardCoordinator: ScreenshotClipboardCoordinating {
     typealias DirectoryResolver = @MainActor () -> URL?
     typealias DirectorySnapshotter = @MainActor (_ directoryURL: URL) -> Set<String>?
     typealias CandidateFinder = @MainActor (_ baseline: ScreenshotCaptureBaseline) -> [URL]
     typealias ScreenshotMetadataChecker = @MainActor (_ url: URL) -> Bool
-    typealias PasteboardWriter = @MainActor (_ url: URL) -> Int?
-    typealias PasteboardChangeCountProvider = @MainActor () -> Int
-    typealias PasteEventPoster = @MainActor () -> Bool
+    typealias PasteboardWriter = @MainActor (
+        _ pasteboard: NSPasteboard,
+        _ url: URL,
+        _ identifier: String
+    ) -> Int?
+    typealias PasteEventPoster = @MainActor (_ processIdentifier: pid_t) -> Bool
+    typealias FrontmostProcessIdentifierProvider = @MainActor () -> pid_t?
+    typealias RestoreScheduler = @MainActor (
+        _ action: @escaping @MainActor @Sendable () -> Void
+    ) -> Void
     typealias AccessibilityTrustProvider = @MainActor () -> Bool
     typealias InputAllowedProvider = @MainActor () -> Bool
 
     static let pollInterval: TimeInterval = 0.10
-    static let copyTimeout: TimeInterval = 60
+    static let captureResolutionTimeout: TimeInterval = 60
+    static let pasteboardRestoreDelay: TimeInterval = 0.25
+    private static let markerType = NSPasteboard.PasteboardType(
+        "com.ethansk.agentic-mouse.screenshot-paste-session"
+    )
+
+    private struct PasteLease {
+        let identifier: String
+        let changeCount: Int
+        let snapshot: PasteboardSnapshot
+
+        @MainActor
+        func isOwned(on pasteboard: NSPasteboard) -> Bool {
+            guard pasteboard.changeCount == changeCount else { return false }
+            return pasteboard.string(forType: NativeScreenshotClipboardCoordinator.markerType)
+                == identifier
+        }
+    }
 
     private let scheduler: TickScheduler
     private let clock: MonotonicClock
@@ -96,16 +122,19 @@ final class NativeScreenshotClipboardCoordinator: ScreenshotClipboardCoordinatin
     private let snapshotDirectory: DirectorySnapshotter
     private let findCandidates: CandidateFinder
     private let metadataMarksScreenshot: ScreenshotMetadataChecker
+    private let pasteboard: NSPasteboard
     private let writeToPasteboard: PasteboardWriter
-    private let pasteboardChangeCount: PasteboardChangeCountProvider
     private let postPaste: PasteEventPoster
+    private let frontmostProcessIdentifier: FrontmostProcessIdentifierProvider
+    private let scheduleRestore: RestoreScheduler
     private let accessibilityTrusted: AccessibilityTrustProvider
     private let inputAllowed: InputAllowedProvider
 
     private var preparedBaseline: ScreenshotCaptureBaseline?
-    private var copyCompletion: ((Result<URL, ScreenshotClipboardError>) -> Void)?
-    private var copyDeadline: TimeInterval?
-    private var ownedPasteboardChangeCount: Int?
+    private var captureResolutionCompletion: ((Result<URL, ScreenshotClipboardError>) -> Void)?
+    private var captureResolutionDeadline: TimeInterval?
+    private var pasteableScreenshotURL: URL?
+    private var activePasteLease: PasteLease?
     private var lastCandidateFailure: ScreenshotClipboardError?
 
     init(
@@ -120,13 +149,20 @@ final class NativeScreenshotClipboardCoordinator: ScreenshotClipboardCoordinatin
             NativeScreenshotClipboardCoordinator.findCandidateImages,
         metadataMarksScreenshot: @escaping ScreenshotMetadataChecker =
             NativeScreenshotClipboardCoordinator.metadataMarksScreenshot,
+        pasteboard: NSPasteboard = .general,
         writeToPasteboard: @escaping PasteboardWriter =
             NativeScreenshotClipboardCoordinator.writeImageToPasteboard,
-        pasteboardChangeCount: @escaping PasteboardChangeCountProvider = {
-            NSPasteboard.general.changeCount
-        },
         postPaste: @escaping PasteEventPoster =
             NativeScreenshotClipboardCoordinator.postCommandV,
+        frontmostProcessIdentifier: @escaping FrontmostProcessIdentifierProvider = {
+            NSWorkspace.shared.frontmostApplication?.processIdentifier
+        },
+        scheduleRestore: @escaping RestoreScheduler = { action in
+            DispatchQueue.main.asyncAfter(
+                deadline: .now() + NativeScreenshotClipboardCoordinator.pasteboardRestoreDelay,
+                execute: action
+            )
+        },
         accessibilityTrusted: @escaping AccessibilityTrustProvider = AXIsProcessTrusted,
         inputAllowed: @escaping InputAllowedProvider = { true }
     ) {
@@ -137,19 +173,20 @@ final class NativeScreenshotClipboardCoordinator: ScreenshotClipboardCoordinatin
         self.snapshotDirectory = snapshotDirectory
         self.findCandidates = findCandidates
         self.metadataMarksScreenshot = metadataMarksScreenshot
+        self.pasteboard = pasteboard
         self.writeToPasteboard = writeToPasteboard
-        self.pasteboardChangeCount = pasteboardChangeCount
         self.postPaste = postPaste
+        self.frontmostProcessIdentifier = frontmostProcessIdentifier
+        self.scheduleRestore = scheduleRestore
         self.accessibilityTrusted = accessibilityTrusted
         self.inputAllowed = inputAllowed
     }
 
     var hasPasteableScreenshot: Bool {
-        guard let ownedPasteboardChangeCount else { return false }
-        return pasteboardChangeCount() == ownedPasteboardChangeCount
+        pasteableScreenshotURL != nil
     }
 
-    var isCopyPending: Bool { copyCompletion != nil }
+    var isCapturePending: Bool { captureResolutionCompletion != nil }
 
     func prepareForCapture() {
         preparedBaseline = nil
@@ -167,51 +204,83 @@ final class NativeScreenshotClipboardCoordinator: ScreenshotClipboardCoordinatin
         preparedBaseline = nil
     }
 
-    func copyCompletedCapture(
+    func resolveCompletedCapture(
         completion: @escaping (Result<URL, ScreenshotClipboardError>) -> Void
     ) {
         scheduler.stop()
-        copyCompletion = completion
-        copyDeadline = clock.now + Self.copyTimeout
+        captureResolutionCompletion = completion
+        captureResolutionDeadline = clock.now + Self.captureResolutionTimeout
         lastCandidateFailure = nil
 
         guard preparedBaseline != nil else {
-            finishCopy(.failure(.screenshotDirectoryUnavailable))
+            finishCaptureResolution(.failure(.screenshotDirectoryUnavailable))
             return
         }
         pollForSavedScreenshot()
-        if isCopyPending {
+        if isCapturePending {
             scheduler.start(interval: Self.pollInterval) { [weak self] in
                 self?.pollForSavedScreenshot()
             }
         }
     }
 
-    func pasteScreenshot() -> Result<Void, ScreenshotClipboardError> {
+    func pasteScreenshot() -> Result<Void, ScreenshotClipboardError> { // Keeping only the saved path avoids VoiceInk or another copy replacing a long-lived screenshot clipboard; the double-click takes a short ownership-marked lease, pastes to the then-frontmost app, and restores only if nothing else changed the clipboard. (Codex task: 01a039f7-873c-7c30-b3dc-af8a6724ace5)
         guard inputAllowed() else { return .failure(.inputBlocked) }
         guard accessibilityTrusted() else {
             return .failure(.accessibilityPermissionMissing)
         }
-        guard hasPasteableScreenshot else {
-            ownedPasteboardChangeCount = nil
-            return .failure(.screenshotNoLongerOnClipboard)
+        guard let screenshotURL = pasteableScreenshotURL else {
+            return .failure(.screenshotNoLongerAvailable)
         }
-        return postPaste() ? .success(()) : .failure(.pasteEventCreationFailed)
+        guard let processIdentifier = frontmostProcessIdentifier() else {
+            return .failure(.pasteTargetUnavailable)
+        }
+
+        let snapshot: PasteboardSnapshot
+        if let activePasteLease, activePasteLease.isOwned(on: pasteboard) {
+            snapshot = activePasteLease.snapshot
+        } else {
+            let firstSnapshot = PasteboardSnapshot(capturing: pasteboard)
+            snapshot = firstSnapshot.sourceChangeCount == pasteboard.changeCount
+                ? firstSnapshot
+                : PasteboardSnapshot(capturing: pasteboard)
+        }
+        let identifier = UUID().uuidString
+        guard let changeCount = writeToPasteboard(pasteboard, screenshotURL, identifier) else {
+            pasteableScreenshotURL = nil
+            return .failure(.screenshotImageUnreadable)
+        }
+        let lease = PasteLease(
+            identifier: identifier,
+            changeCount: changeCount,
+            snapshot: snapshot
+        )
+        guard lease.isOwned(on: pasteboard) else {
+            return .failure(.screenshotNoLongerAvailable)
+        }
+        activePasteLease = lease
+        guard postPaste(processIdentifier) else {
+            restoreIfOwned(lease)
+            return .failure(.pasteEventCreationFailed)
+        }
+        scheduleRestore { [weak self] in self?.restoreIfOwned(lease) }
+        return .success(())
     }
 
     func cancel(clearOwnership: Bool) {
         scheduler.stop()
         preparedBaseline = nil
-        copyCompletion = nil
-        copyDeadline = nil
+        captureResolutionCompletion = nil
+        captureResolutionDeadline = nil
         lastCandidateFailure = nil
-        if clearOwnership { ownedPasteboardChangeCount = nil }
+        if let activePasteLease { restoreIfOwned(activePasteLease) }
+        if clearOwnership { pasteableScreenshotURL = nil }
     }
 
     private func pollForSavedScreenshot() {
         guard let baseline = preparedBaseline,
-              copyCompletion != nil,
-              let copyDeadline
+              captureResolutionCompletion != nil,
+              let captureResolutionDeadline
         else { return }
 
         let candidates = findCandidates(baseline)
@@ -232,29 +301,29 @@ final class NativeScreenshotClipboardCoordinator: ScreenshotClipboardCoordinatin
         }
 
         if let candidate {
-            guard let changeCount = writeToPasteboard(candidate) else {
-                lastCandidateFailure = .screenshotImageUnreadable
-                if clock.now < copyDeadline { return }
-                finishCopy(.failure(lastCandidateFailure ?? .screenshotImageUnreadable))
-                return
-            }
-            ownedPasteboardChangeCount = changeCount
-            finishCopy(.success(candidate))
+            pasteableScreenshotURL = candidate
+            finishCaptureResolution(.success(candidate))
             return
         }
 
-        guard clock.now >= copyDeadline else { return }
-        finishCopy(.failure(lastCandidateFailure ?? .screenshotFileNotFound))
+        guard clock.now >= captureResolutionDeadline else { return }
+        finishCaptureResolution(.failure(lastCandidateFailure ?? .screenshotFileNotFound))
     }
 
-    private func finishCopy(_ result: Result<URL, ScreenshotClipboardError>) {
+    private func finishCaptureResolution(_ result: Result<URL, ScreenshotClipboardError>) {
         scheduler.stop()
-        let completion = copyCompletion
-        copyCompletion = nil
-        copyDeadline = nil
+        let completion = captureResolutionCompletion
+        captureResolutionCompletion = nil
+        captureResolutionDeadline = nil
         preparedBaseline = nil
         lastCandidateFailure = nil
         completion?(result)
+    }
+
+    private func restoreIfOwned(_ lease: PasteLease) {
+        guard lease.isOwned(on: pasteboard) else { return }
+        lease.snapshot.restore(to: pasteboard)
+        if activePasteLease?.identifier == lease.identifier { activePasteLease = nil }
     }
 
     static func configuredScreenshotDirectory() -> URL? {
@@ -317,25 +386,28 @@ final class NativeScreenshotClipboardCoordinator: ScreenshotClipboardCoordinatin
         return (value as? NSNumber)?.boolValue == true
     }
 
-    static func writeImageToPasteboard(_ url: URL) -> Int? {
+    static func writeImageToPasteboard(
+        _ pasteboard: NSPasteboard,
+        _ url: URL,
+        _ identifier: String
+    ) -> Int? {
         guard let data = try? Data(contentsOf: url),
               let image = NSImage(data: data),
               let tiff = image.tiffRepresentation,
               let type = UTType(filenameExtension: url.pathExtension)
         else { return nil }
 
-        let pasteboard = NSPasteboard.general
+        let item = NSPasteboardItem()
+        item.setData(data, forType: NSPasteboard.PasteboardType(type.identifier))
+        item.setData(tiff, forType: .tiff)
+        item.setString(url.absoluteString, forType: .fileURL)
+        item.setString(identifier, forType: markerType)
         pasteboard.clearContents()
-        let originalWritten = pasteboard.setData(
-            data,
-            forType: NSPasteboard.PasteboardType(type.identifier)
-        )
-        let tiffWritten = pasteboard.setData(tiff, forType: .tiff)
-        guard originalWritten, tiffWritten else { return nil }
+        guard pasteboard.writeObjects([item]) else { return nil }
         return pasteboard.changeCount
     }
 
-    static func postCommandV() -> Bool {
+    static func postCommandV(to processIdentifier: pid_t) -> Bool {
         let commandKeyCode: CGKeyCode = 55
         let pasteKeyCode: CGKeyCode = 9
         let flags: CGEventFlags = [.maskCommand]
@@ -344,7 +416,7 @@ final class NativeScreenshotClipboardCoordinator: ScreenshotClipboardCoordinatin
             .key(keyCode: pasteKeyCode, flags: flags, isDown: true, at: 0.006),
             .key(keyCode: pasteKeyCode, flags: flags, isDown: false, at: 0.026),
             .modifier(keyCode: commandKeyCode, flags: [], at: 0.032),
-        ])
+        ], to: processIdentifier)
     }
 
     private static func canonicalPath(_ url: URL) -> String {
@@ -356,7 +428,7 @@ final class NativeScreenshotClipboardCoordinator: ScreenshotClipboardCoordinatin
 /// single/double-press classification for its shared physical button. A single
 /// press starts the native capture after the short classifier window. A rapid
 /// second press from the same mouse pastes the screenshot Agentic Mouse most
-/// recently copied. Once the native crosshair is running, the next press keeps
+/// recently saved. Once the native crosshair is running, the next press keeps
 /// its established meaning and sends Escape to cancel that exact interaction.
 @MainActor
 final class SelectedAreaScreenshotController {
@@ -389,12 +461,12 @@ final class SelectedAreaScreenshotController {
     private var activeProcess: InteractiveScreenshotProcess?
     private var activeSource: MouseSource?
     private var pendingSource: MouseSource?
-    private var pasteWhenCopyCompletesForSource: MouseSource?
+    private var pasteWhenCaptureResolvesForSource: MouseSource?
     private var generation: UInt64 = 0
     var onStateChange: (() -> Void)?
     var onCompletion: ((InteractiveScreenshotResult) -> Void)?
     var onAsynchronousResult: ((MouseSource, TriggerResult) -> Void)?
-    var onClipboardCopy: ((MouseSource, Result<URL, ScreenshotClipboardError>) -> Void)?
+    var onScreenshotReady: ((MouseSource, Result<URL, ScreenshotClipboardError>) -> Void)?
 
     init(
         makeProcess: ProcessFactory? = nil,
@@ -413,7 +485,7 @@ final class SelectedAreaScreenshotController {
 
     var buttonState: ButtonState {
         if isCapturing { return .cancelScreenshot }
-        if clipboardCoordinator.isCopyPending { return .copyingScreenshot }
+        if clipboardCoordinator.isCapturePending { return .copyingScreenshot }
         if clipboardCoordinator.hasPasteableScreenshot { return .screenshotReadyToPaste }
         return .screenshot
     }
@@ -450,8 +522,8 @@ final class SelectedAreaScreenshotController {
                 return .awaitingSinglePress
             }
 
-            if clipboardCoordinator.isCopyPending {
-                pasteWhenCopyCompletesForSource = source
+            if clipboardCoordinator.isCapturePending {
+                pasteWhenCaptureResolvesForSource = source
                 onStateChange?()
                 return .pasteQueued
             }
@@ -482,7 +554,7 @@ final class SelectedAreaScreenshotController {
         generation &+= 1
         gestureScheduler.stop()
         pendingSource = nil
-        pasteWhenCopyCompletesForSource = nil
+        pasteWhenCaptureResolvesForSource = nil
         let process = activeProcess
         activeProcess = nil
         activeSource = nil
@@ -506,24 +578,33 @@ final class SelectedAreaScreenshotController {
                 self.activeSource = nil
 
                 if result == .completed {
-                    self.clipboardCoordinator.copyCompletedCapture { [weak self] copyResult in
+                    self.clipboardCoordinator.resolveCompletedCapture { [weak self] resolutionResult in
                         guard let self, self.generation == token else { return }
-                        if case .success = copyResult,
-                           let pasteSource = self.pasteWhenCopyCompletesForSource {
-                            self.pasteWhenCopyCompletesForSource = nil
+                        if case .success = resolutionResult,
+                           let pasteSource = self.pasteWhenCaptureResolvesForSource {
+                            self.pasteWhenCaptureResolvesForSource = nil
                             let pasteResult = self.pasteScreenshot()
                             self.onAsynchronousResult?(pasteSource, pasteResult)
-                        } else if case .failure = copyResult {
-                            self.pasteWhenCopyCompletesForSource = nil
+                        } else if case .failure = resolutionResult {
+                            self.pasteWhenCaptureResolvesForSource = nil
                         }
                         self.onStateChange?()
-                        self.onClipboardCopy?(completedSource, copyResult)
+                        switch resolutionResult {
+                        case .success:
+                            self.onScreenshotReady?(completedSource, resolutionResult)
+                            self.onCompletion?(.completed)
+                        case .failure(.screenshotFileNotFound):
+                            self.onCompletion?(.cancelled)
+                        case .failure(let error):
+                            self.onScreenshotReady?(completedSource, resolutionResult)
+                            self.onCompletion?(.failed(error.localizedDescription))
+                        }
                     }
                 } else {
                     self.clipboardCoordinator.discardPreparedCapture()
+                    self.onCompletion?(result)
                 }
                 self.onStateChange?()
-                self.onCompletion?(result)
             }
         }
         activeProcess = process
@@ -569,8 +650,8 @@ enum NativeScreenshotShortcutError: Error, LocalizedError {
 
 /// Sends the exact system Shift-Command-4 shortcut so macOS owns the configured
 /// destination, sound and floating-thumbnail experience. A short-lived global
-/// monitor tracks the selection mouse-up or Escape; the next mouse toggle sends
-/// Escape to cancel only the interaction Agentic Mouse started.
+/// monitor tracks the selection mouse-up or Escape, while public window-owner
+/// polling detects native Screenshot UI that disappeared without either event.
 @MainActor
 final class NativeInteractiveScreenshotProcess: InteractiveScreenshotProcess {
     typealias EventPoster = @MainActor (
@@ -582,37 +663,60 @@ final class NativeInteractiveScreenshotProcess: InteractiveScreenshotProcess {
         _ handler: @escaping @MainActor (InteractiveScreenshotResult) -> Void
     ) -> Any?
     typealias MonitorRemover = @MainActor (_ monitor: Any) -> Void
+    typealias InteractionActiveProvider = @MainActor () -> Bool
 
     static let screenshotKeyCode: CGKeyCode = 21 // ANSI 4
     static let escapeKeyCode: CGKeyCode = 53
     static let screenshotFlags: CGEventFlags = [.maskCommand, .maskShift]
+    static let lifecyclePollInterval: TimeInterval = 0.25
+    static let activationPollLimit = 8
 
     private let postEvent: EventPoster
     private let startLifecycleMonitor: LifecycleMonitor
     private let removeLifecycleMonitor: MonitorRemover
+    private let lifecycleScheduler: TickScheduler
+    private let interactionIsActive: InteractionActiveProvider
     private var lifecycleMonitor: Any?
+    private var observedActiveInteraction = false
+    private var observedSelectionMouseUp = false
+    private var activationPollCount = 0
     var onTermination: ((InteractiveScreenshotResult) -> Void)?
     private(set) var isRunning = false
 
     init(
         postEvent: @escaping EventPoster = NativeInteractiveScreenshotProcess.postKeyboardEvent,
         startLifecycleMonitor: @escaping LifecycleMonitor = NativeInteractiveScreenshotProcess.installLifecycleMonitor,
-        removeLifecycleMonitor: @escaping MonitorRemover = NSEvent.removeMonitor
+        removeLifecycleMonitor: @escaping MonitorRemover = NSEvent.removeMonitor,
+        lifecycleScheduler: TickScheduler = DispatchTickScheduler(),
+        interactionIsActive: @escaping InteractionActiveProvider =
+            NativeInteractiveScreenshotProcess.screenshotInteractionIsActive
     ) {
         self.postEvent = postEvent
         self.startLifecycleMonitor = startLifecycleMonitor
         self.removeLifecycleMonitor = removeLifecycleMonitor
+        self.lifecycleScheduler = lifecycleScheduler
+        self.interactionIsActive = interactionIsActive
     }
 
     func run() throws {
         guard !isRunning else { return }
         guard let monitor = startLifecycleMonitor({ [weak self] result in
-            self?.finish(with: result)
+            guard let self else { return }
+            switch result {
+            case .completed:
+                self.observedSelectionMouseUp = true
+                self.pollInteractionState()
+            case .cancelled, .failed:
+                self.finish(with: result)
+            }
         }) else {
             throw NativeScreenshotShortcutError.lifecycleMonitorUnavailable
         }
         lifecycleMonitor = monitor
         isRunning = true
+        observedActiveInteraction = false
+        observedSelectionMouseUp = false
+        activationPollCount = 0
 
         let down = postEvent(Self.screenshotKeyCode, Self.screenshotFlags, true)
         let up = postEvent(Self.screenshotKeyCode, Self.screenshotFlags, false)
@@ -621,6 +725,10 @@ final class NativeInteractiveScreenshotProcess: InteractiveScreenshotProcess {
             isRunning = false
             throw NativeScreenshotShortcutError.eventCreationFailed
         }
+        lifecycleScheduler.start(interval: Self.lifecyclePollInterval) { [weak self] in
+            self?.pollInteractionState()
+        }
+        pollInteractionState()
     }
 
     func cancel() {
@@ -638,24 +746,71 @@ final class NativeInteractiveScreenshotProcess: InteractiveScreenshotProcess {
     }
 
     private func stopMonitoring() {
+        lifecycleScheduler.stop()
         if let lifecycleMonitor { removeLifecycleMonitor(lifecycleMonitor) }
         lifecycleMonitor = nil
+    }
+
+    private func pollInteractionState() {
+        guard isRunning else { return }
+        if interactionIsActive() {
+            observedActiveInteraction = true
+            return
+        }
+        if observedActiveInteraction || observedSelectionMouseUp {
+            finish(with: observedSelectionMouseUp ? .completed : .cancelled)
+            return
+        }
+        activationPollCount += 1
+        if activationPollCount >= Self.activationPollLimit {
+            finish(with: .failed(NativeScreenshotShortcutError.lifecycleMonitorUnavailable.localizedDescription))
+        }
     }
 
     private static func installLifecycleMonitor(
         handler: @escaping @MainActor (InteractiveScreenshotResult) -> Void
     ) -> Any? {
-        NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseUp, .keyDown]) { event in
-            let result: InteractiveScreenshotResult?
-            if event.type == .leftMouseUp {
-                result = .completed
-            } else if event.type == .keyDown, event.keyCode == Self.escapeKeyCode {
-                result = .cancelled
-            } else {
-                result = nil
-            }
+        var observedSelectionDrag = false
+        return NSEvent.addGlobalMonitorForEvents(
+            matching: [.leftMouseDown, .leftMouseDragged, .leftMouseUp, .keyDown]
+        ) { event in
+            let result = classifyLifecycleEvent(
+                event.type,
+                keyCode: event.keyCode,
+                observedSelectionDrag: &observedSelectionDrag
+            )
             guard let result else { return }
             Task { @MainActor in handler(result) }
+        }
+    }
+
+    static func classifyLifecycleEvent(
+        _ eventType: NSEvent.EventType,
+        keyCode: UInt16,
+        observedSelectionDrag: inout Bool
+    ) -> InteractiveScreenshotResult? {
+        switch eventType {
+        case .leftMouseDown:
+            observedSelectionDrag = false
+            return nil
+        case .leftMouseDragged:
+            observedSelectionDrag = true
+            return nil
+        case .leftMouseUp:
+            return observedSelectionDrag ? .completed : .cancelled // A plain click dismisses the native crosshair without saving; only a real dragged selection may enter the bounded saved-file resolver. (Codex task: 01a039f7-873c-7c30-b3dc-af8a6724ace5)
+        case .keyDown where keyCode == Self.escapeKeyCode:
+            return .cancelled
+        default:
+            return nil
+        }
+    }
+
+    private static func screenshotInteractionIsActive() -> Bool { // A click can dismiss selected-area capture without reaching the global NSEvent monitor; poll the public window list for macOS's exact `screencapture` tracking surface so the HUD cannot stay on Cancel screenshot. (Codex task: 01a039f7-873c-7c30-b3dc-af8a6724ace5)
+        let options: CGWindowListOption = [.optionAll, .excludeDesktopElements]
+        guard let windows = CGWindowListCopyWindowInfo(options, kCGNullWindowID)
+            as? [[String: Any]] else { return false }
+        return windows.contains { window in
+            window[kCGWindowOwnerName as String] as? String == "screencapture"
         }
     }
 

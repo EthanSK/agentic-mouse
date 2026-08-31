@@ -39,7 +39,7 @@ const PAIRS = [
   },
   {
     id: "c3", corsair: 3, razer: 1, row: 1, col: 1,
-    action: "Screenshot / 2× Paste", short: "Screenshot", description: "Save through the native selected-area crosshair, copy the image, or rapid-double-press to paste the current copied screenshot.",
+    action: "Screenshot / 2× Paste", short: "Screenshot", description: "Save through the native selected-area crosshair, or rapid-double-press to paste the last saved screenshot.",
     signal: "runtime", output: "native Shift-Command-4 interaction", status: "PHYSICALLY REPORTED WORKING · EXACT SOURCE NOT RECORDED",
   },
   {

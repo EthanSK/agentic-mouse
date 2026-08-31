@@ -119,7 +119,7 @@ The things worth confirming:
   triggers VoiceInk++ on release without changing DPI;
 - **5** = Forward, **8** = Back;
 - **2** opens the current frontmost app mode, **3** starts/cancels Screenshot
-  and rapid-double-pastes its copied result,
+  and rapid-double-pastes its last saved result,
   **6** rewinds the selected YouTube target by five seconds without focusing Chrome, and **7** = Enter;
 - **9** opens Keys; cell 6 keeps the same global YouTube action in VS Code;
   **10** toggles the Default

@@ -93,6 +93,12 @@ public final class AppKitModeHUDPresenter: NSObject, ModeHUDPresenting {
         displayScope = .target
     }
 
+    public func reattachToCurrentSpaces() {
+        guard model.isActive else { return }
+        reattachPanelsToCurrentSpaces()
+        scheduleSettledSpaceReattachment()
+    }
+
     public func flashProblem(_ message: String) {
         model.problem = message
         reconcilePanels(show: true)
@@ -135,8 +141,7 @@ public final class AppKitModeHUDPresenter: NSObject, ModeHUDPresenting {
     @objc private func activeSpaceDidChange(_ notification: Notification) {
         DispatchQueue.main.async { [weak self] in
             guard let self, self.model.isActive else { return }
-            self.reattachPanelsToCurrentSpaces()
-            self.scheduleSettledSpaceReattachment()
+            self.reattachToCurrentSpaces()
         }
     }
 

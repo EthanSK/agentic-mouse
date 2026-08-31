@@ -48,6 +48,34 @@ final class HUDSpaceLifecycleTests: XCTestCase {
         XCTAssertFalse(presenter.isVisible)
     }
 
+    func testExplicitSpaceReattachmentRecreatesActivePanelsAfterScreenshotOverlayCloses() async throws {
+        let presenter = AppKitModeHUDPresenter(source: .razer)
+        let baselinePanels = visibleHUDPanels()
+        presenter.show(DefaultMapLegend.snapshot(source: .razer))
+        await waitForMainQueueTurns()
+        let originalPanels = visibleHUDPanels().subtracting(baselinePanels)
+
+        presenter.reattachToCurrentSpaces()
+        try await Task.sleep(nanoseconds: 800_000_000)
+
+        let refreshedPanels = visibleHUDPanels().subtracting(baselinePanels)
+        XCTAssertEqual(refreshedPanels.count, NSScreen.screens.count)
+        XCTAssertTrue(originalPanels.isDisjoint(with: refreshedPanels))
+        XCTAssertTrue(presenter.isVisible)
+        presenter.hide()
+    }
+
+    func testExplicitSpaceReattachmentDoesNotReopenHiddenPanels() async throws {
+        let presenter = AppKitModeHUDPresenter(source: .razer)
+        presenter.show(DefaultMapLegend.snapshot(source: .razer))
+        presenter.hide()
+
+        presenter.reattachToCurrentSpaces()
+        try await Task.sleep(nanoseconds: 800_000_000)
+
+        XCTAssertFalse(presenter.isVisible)
+    }
+
     func testFeedbackDoesNotReopenExplicitlyHiddenModeHUD() async {
         let presenter = AppKitModeHUDPresenter(source: .corsair)
         presenter.show(DefaultMapLegend.snapshot(source: .corsair))

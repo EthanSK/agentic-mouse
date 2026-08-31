@@ -44,7 +44,7 @@ These are the currently authoritative Corsair assignments:
 | DPI button | VoiceInk++ speech-to-text; DPI remains fixed | Same global action |
 | Button 1 | Hold + wheel for horizontal scrolling | Same global action |
 | Button 2 | Open the current frontmost app mode | Same global action |
-| Button 3 | Screenshot; rapid double-press pastes the copied result | Same global action |
+| Button 3 | Screenshot; rapid double-press pastes the last saved result | Same global action |
 | Button 4 | Hold + wheel for Copy / Paste | Same global action |
 | Button 5 | Forward | Previous Change through F17 |
 | Button 6 | Click to rewind YouTube 5 sec; hold + wheel to scrub ±5 sec per ratchet through the VoiceInk bridge | Same global action |
@@ -289,17 +289,18 @@ The macOS menu-bar app adds several optional runtime behaviours:
   gates pass, then types directly without using the clipboard or plaintext
   configuration.
 
-- **Save, copy and paste selected-area Screenshot.** Outside modes, one press
+- **Save and paste selected-area Screenshot.** Outside modes, one press
   of physical cell 3 (Corsair 3 / Razer 1) starts the native macOS selection
   crosshair after a short double-press window. A press while that crosshair is
   active cancels it. Completing the selection still follows exact
   Shift-Command-4, so macOS owns the configured save destination, capture sound
-  and floating thumbnail. Agentic Mouse then finds only that new saved image in
-  the configured Screenshot folder and copies it to the clipboard. Rapidly
-  double-press the same mouse's button to send Paste while that screenshot is
-  still the current clipboard item; changing the clipboard disables the stale
-  paste rather than silently restoring it. The HUD shows capture, cancellation,
-  copy progress and the double-paste affordance truthfully.
+  and floating thumbnail. Agentic Mouse then remembers only that exact new file
+  in the configured Screenshot folder without changing the clipboard. Rapidly
+  double-press the same mouse's button to briefly supply that file and image to
+  the current app, send Paste, and restore the previous clipboard only if no
+  newer copy occurred. VoiceInk or any other newer clipboard write always wins.
+  The HUD shows capture, cancellation, save resolution and the double-paste
+  affordance truthfully.
 
 - **Runtime lighting and reusable mode HUD.** The accepted colour-validation
   mode is retired from the live mouse menu, so it consumes no button slot.
@@ -396,7 +397,7 @@ twelve side keys are held by the helper; the normal scroll, navigation and media
 actions stay suspended until you leave the mode.
 
 Outside a runtime mode, physical cell 3 starts or cancels selected-area Screenshot,
-then rapid-double-pastes its copied result: Corsair printed 3 / Razer printed 1.
+then rapid-double-pastes its last saved result: Corsair printed 3 / Razer printed 1.
 Shared physical cell 10 (Corsair 10 /
 Razer 12) toggles that mouse's persistent Default legend and exits an active
 mode. Shared physical cell 11 owns Switch App. Cell 12 (Corsair 12 / Razer 10)

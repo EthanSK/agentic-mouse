@@ -394,8 +394,13 @@ toggles each source's respective copy with one exact-device command and no lease
 change. Each source owns an independent legend; hiding
 one never retargets or closes the other. Mode entry suspends only that source's panel; exit restores it only
 if it was already visible. Outside modes, cell 3 single-presses one native
-selected-area screenshot interaction, copies the uniquely identified saved image,
-and rapid-double-pastes it while Agentic Mouse still owns the current clipboard item;
+selected-area screenshot interaction, retains the uniquely identified saved path
+without occupying the clipboard, and rapid-double-pastes it through a short
+ownership-marked pasteboard lease that restores only while still current;
+the lifecycle treats a plain click without a drag as cancellation and reserves
+the existing 60-second saved-file resolution window for a real dragged selection;
+when the native overlay closes, every still-active presenter recreates its panels
+immediately and after 500 ms so the HUD returns to each current display Space;
 it is not a universal in-mode legend
 control. Mode HUDs and Keypad panels appear on all connected displays, use a
 distinct accent per mode, keep the actual function prominent, and show only the
