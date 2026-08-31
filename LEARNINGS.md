@@ -2285,3 +2285,11 @@ remains evidence for why the earlier `-p` and explicit-child variants failed.
 **Guard:** Never infer local Spotify playback from the play/pause control alone. Preserve the second just-in-time check, never launch or activate Spotify merely to inspect it, and keep a missing or incomplete Accessibility result as an explicit refusal rather than a hidden fallback. A real radio transition remains unverified while the current Connect device is another Mac.
 **Verification:** Commit `91d8972` is pushed to `origin/main`; the focused Song Radio suite passes ten tests, including the exact `Play` plus remote-banner near-miss, refusal before capture, and refusal when the device changes between capture and command.
 ---
+
+---
+**Date:** 2026-08-31
+**Trigger:** Ethan requested a rekordbox-mode toggle between `Display Playlists` and `Display Spotify` while actively using rekordbox.
+**Observation:** In running rekordbox 7.2.17.0303, trusted read-only Accessibility inspection exposed native deck controls but not these library-source buttons. A complete window traversal across `AXChildren`, `AXChildrenInNavigationOrder`, and `AXDisclosedRows` returned 533 unique elements without either target; direct sidebar hit-testing returned the containing `rekordbox` group. `AXEnhancedUserInterface` was already true. Neither target appeared in the inspected native View/Playlist menus or existing keyboard mappings. Both exact strings and separate on/off icon assets exist in the installed app resources.
+**Boundary:** This proves the two targets were unavailable through the inspected Accessibility surface, not that every possible automation route is impossible. No click, key, Accessibility write, app restart, audio-device change, or playback command was performed. A visual icon-checked route has not been implemented or tested, and the physical cell remains unapproved.
+**Guard:** Preserve the live decks and routing. Do not confuse a rendered sidebar with a pressable Accessibility target, invent a keyboard shortcut, or install a blind coordinate toggle. Before proceeding, agree the physical cell and a safe browser-view-only test; re-inspect the exact live window and confirm selected-source state rather than alternating an unobserved Boolean. (Codex task: 01a039f7-873c-7c30-b3dc-af8a6724ace5)
+---
