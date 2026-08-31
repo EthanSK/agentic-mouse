@@ -1,5 +1,17 @@
 # Learnings
 
+## 2026-08-31 — Distinguish Hue animation owners before adding Extra Utilities
+
+**Request:** Add Stop Hue animations, Disco, and a tasteful slow palette fade to Extra Utilities. The proposed canonical cells 4/5/6 remain unapproved; no lighting commands, source implementation, or mapping installation occurred during this investigation.
+
+**Finding:** The Mini's recent implementation lives in its `hue-tap-dial` skill scripts: `dj-chase.py`, `auroral-substorm.py`, `uv-mineral-cabinet.py`, and `flame-tests.py`. Read that skill's current `PREFERENCES.md`, not only its older scene tables: the DJ Chase was explicitly calmed after feedback by reducing brightness contrast, moving every two beats, and replacing instant attacks with fades. Slow animations use distinct multi-colour palettes, long transitions, and a changed spatial arrangement on later laps. The fixed-tempo chase does not detect music beats.
+
+**Stop boundary:** The existing `hue-vibes-mcp` `stopAnimation()` aborts only an in-memory controller in that individual MCP process. Separate MCP processes were running on both the MacBook and Mini; standalone Python animation scripts are another independent owner. Clearing bridge-native effects alone cannot cancel later writes from those producers. There is no verified fleet-wide stop command to call unchanged. Implement and verify producer cancellation before claiming all animations stopped; do not kill general-purpose Python/Node processes or permanently disable unrelated Tap Dial schedules.
+
+**Transport boundary:** Philips explicitly advises against continuous fast REST updates for entertainment effects; use the Entertainment API for that use case, or deliberately choose bridge-native dynamic palettes with their more limited motion. See https://developers.meethue.com/new-hue-api/. The inspected Home zone has 12 members, while the existing Entertainment area has 10 channels. Neither inspected `.hue-config` contained an Entertainment client key. Those are setup facts, not permission to modify the area or pair a new client without the required interaction.
+
+**Guard:** Hue room-light utilities are separate from retired Hue-to-mouse mirroring. Keep bridge keys, endpoints, and resource IDs outside the public repo. Stop should stop current animation while preserving power, not black out the room or disable future intentional dial presses. Preserve the user's existing dial palettes and energy ladder. (Codex task: 01a039f7-873c-7c30-b3dc-af8a6724ace5)
+
 ## 2026-08-30 — Deliver Codex Voice Mode as exact-device native keyboard input
 
 **Trigger:** Ethan pressed Razer printed 10 in Codex mode and nothing happened, despite the prior synthetic Hyper-F17 diagnostic appearing to work.
