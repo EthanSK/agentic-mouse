@@ -157,7 +157,7 @@ The macOS menu-bar app adds several optional runtime behaviours:
 - **Modes and app-specific controls.** Press physical cell 12 (Corsair 12 or
   Razer 10) to open the all-display Utility mode HUD immediately; physical cell 10
   (Corsair 10 / Razer 12) exits Utility or any child mode. Hold Utility cell 1
-  and ratchet the wheel for Brightness or cell 2 for Zoom. Hold top-level cell 4
+  and ratchet the wheel for Brightness or cell 11 for Zoom. Hold top-level cell 4
   for Copy / Paste, or Utility cell 3 for Spaces: wheel up means decrease / zoom
   in / Paste / Space right and wheel down means increase / zoom out / Copy /
   Space left. Utility and other wheel families act once per accepted ratchet;
@@ -181,7 +181,7 @@ The macOS menu-bar app adds several optional runtime behaviours:
   until the page is exited so one physical press cannot quit twice. Universal cell 10 exits
   Extra Utilities directly back to the ordinary top-level map.
   Top-level cell 2 opens the current frontmost app's mode and refreshes it as
-  focus changes. Utility cell 11 opens the separate manual selector for Codex,
+  focus changes. Utility cell 2 opens the separate manual selector for Codex,
   Terminal, Claude, Chrome, iTerm, Spotify, VS Code, Notion, OBS, Telegram, and
   Safari and locks the chosen target. Automatic mode also recognizes Firefox,
   Opera, Restream Chat++, Preview, Mail, iCUE, Karabiner-Elements, System

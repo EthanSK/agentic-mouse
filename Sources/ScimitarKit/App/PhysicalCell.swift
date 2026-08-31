@@ -91,7 +91,7 @@ public struct PhysicalCell: RawRepresentable, Hashable, Codable, Sendable, Compa
     /// Two-way Utility controls. Hold the cell and move the ratcheted wheel;
     /// one wheel step produces one action in the corresponding direction.
     public static let brightnessWheelControl = PhysicalCell(rawValue: 1)!
-    public static let zoomWheelControl = PhysicalCell(rawValue: 2)!
+    public static let zoomWheelControl = PhysicalCell(rawValue: 11)!
     public static let spacesWheelControl = PhysicalCell(rawValue: 3)!
     public static let systemOverviewWheelControl = PhysicalCell(rawValue: 4)!
     public static let applicationWindowsWheelControl = PhysicalCell(rawValue: 5)!
@@ -119,7 +119,7 @@ public struct PhysicalCell: RawRepresentable, Hashable, Codable, Sendable, Compa
     public static let youtubeBackFiveSeconds = PhysicalCell(rawValue: 6)!
 
     /// Opens the configured-app selector from Utility.
-    public static let appSpecificModeSelector = PhysicalCell(rawValue: 11)!
+    public static let appSpecificModeSelector = PhysicalCell(rawValue: 2)!
 
     /// Opens the nested Extra Utilities page from Utility. This is Corsair
     /// printed 12 and Razer printed 10 through the canonical crosswalk. The

@@ -468,42 +468,76 @@ final class SelectedAreaScreenshotControllerTests: XCTestCase {
     }
 
     func testNativeLifecyclePlainClickIsCancellationButDragIsCompletion() {
+        var selectionMouseDownLocation: NSPoint?
         var observedSelectionDrag = false
 
         XCTAssertNil(NativeInteractiveScreenshotProcess.classifyLifecycleEvent(
             .leftMouseDown,
             keyCode: 0,
+            location: NSPoint(x: 100, y: 200),
+            selectionMouseDownLocation: &selectionMouseDownLocation,
             observedSelectionDrag: &observedSelectionDrag
         ))
         XCTAssertEqual(NativeInteractiveScreenshotProcess.classifyLifecycleEvent(
             .leftMouseUp,
             keyCode: 0,
+            location: NSPoint(x: 100, y: 200),
+            selectionMouseDownLocation: &selectionMouseDownLocation,
             observedSelectionDrag: &observedSelectionDrag
         ), .cancelled)
 
         XCTAssertNil(NativeInteractiveScreenshotProcess.classifyLifecycleEvent(
             .leftMouseDown,
             keyCode: 0,
+            location: NSPoint(x: 100, y: 200),
+            selectionMouseDownLocation: &selectionMouseDownLocation,
             observedSelectionDrag: &observedSelectionDrag
         ))
         XCTAssertNil(NativeInteractiveScreenshotProcess.classifyLifecycleEvent(
             .leftMouseDragged,
             keyCode: 0,
+            location: NSPoint(x: 150, y: 250),
+            selectionMouseDownLocation: &selectionMouseDownLocation,
             observedSelectionDrag: &observedSelectionDrag
         ))
         XCTAssertEqual(NativeInteractiveScreenshotProcess.classifyLifecycleEvent(
             .leftMouseUp,
             keyCode: 0,
+            location: NSPoint(x: 150, y: 250),
+            selectionMouseDownLocation: &selectionMouseDownLocation,
+            observedSelectionDrag: &observedSelectionDrag
+        ), .completed)
+    }
+
+    func testNativeLifecycleCompletesFromMovedMouseUpWhenScreenshotOverlaySwallowsDragEvents() {
+        var selectionMouseDownLocation: NSPoint?
+        var observedSelectionDrag = false
+
+        XCTAssertNil(NativeInteractiveScreenshotProcess.classifyLifecycleEvent(
+            .leftMouseDown,
+            keyCode: 0,
+            location: NSPoint(x: 100, y: 200),
+            selectionMouseDownLocation: &selectionMouseDownLocation,
+            observedSelectionDrag: &observedSelectionDrag
+        ))
+        XCTAssertEqual(NativeInteractiveScreenshotProcess.classifyLifecycleEvent(
+            .leftMouseUp,
+            keyCode: 0,
+            location: NSPoint(x: 220, y: 320),
+            selectionMouseDownLocation: &selectionMouseDownLocation,
             observedSelectionDrag: &observedSelectionDrag
         ), .completed)
     }
 
     func testNativeLifecycleEscapeIsCancellation() {
+        var selectionMouseDownLocation: NSPoint?
         var observedSelectionDrag = false
 
         XCTAssertEqual(NativeInteractiveScreenshotProcess.classifyLifecycleEvent(
             .keyDown,
             keyCode: NativeInteractiveScreenshotProcess.escapeKeyCode,
+            location: .zero,
+            selectionMouseDownLocation: &selectionMouseDownLocation,
             observedSelectionDrag: &observedSelectionDrag
         ), .cancelled)
     }

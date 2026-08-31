@@ -29,7 +29,7 @@ final class ModePickerTests: XCTestCase {
         XCTAssertEqual(hud.snapshots.last?.modeTitle, "Utility modes")
         XCTAssertEqual(ModePickerCoordinator.modesLegend.count, 12)
         XCTAssertEqual(ModePickerCoordinator.modesLegend[0].actionTitle, "Brightness + Wheel")
-        XCTAssertEqual(ModePickerCoordinator.modesLegend[1].actionTitle, "Zoom + Wheel")
+        XCTAssertEqual(ModePickerCoordinator.modesLegend[1].actionTitle, "Choose App Specific")
         XCTAssertEqual(ModePickerCoordinator.modesLegend[2].actionTitle, "Spaces + Wheel")
         XCTAssertEqual(ModePickerCoordinator.modesLegend[3].actionTitle, "Mission / Desktop + Wheel")
         XCTAssertEqual(ModePickerCoordinator.modesLegend[4].actionTitle, "App Exposé + Wheel")
@@ -37,7 +37,7 @@ final class ModePickerTests: XCTestCase {
         XCTAssertEqual(ModePickerCoordinator.modesLegend[6].actionTitle, "PP")
         XCTAssertEqual(ModePickerCoordinator.modesLegend[7].actionTitle, "Intelligence on demand")
         XCTAssertEqual(ModePickerCoordinator.modesLegend[8].actionTitle, "Keys mode")
-        XCTAssertEqual(ModePickerCoordinator.modesLegend[10].actionTitle, "Choose App Specific")
+        XCTAssertEqual(ModePickerCoordinator.modesLegend[10].actionTitle, "Zoom + Wheel")
         XCTAssertEqual(ModePickerCoordinator.modesLegend[9].actionTitle, "Exit Utility modes")
         XCTAssertEqual(ModePickerCoordinator.modesLegend[11].actionTitle, "Extra Utilities")
         XCTAssertFalse(ModePickerCoordinator.modesLegend.contains { $0.actionTitle == "Colour Proof" })
@@ -178,7 +178,8 @@ final class ModePickerTests: XCTestCase {
 
     func testUtilityWheelControlsUseOneCellForEachTwoWayFamily() {
         XCTAssertEqual(WheelChordControl.utilityControl(for: PhysicalCell(rawValue: 1)!), .brightness)
-        XCTAssertEqual(WheelChordControl.utilityControl(for: PhysicalCell(rawValue: 2)!), .zoom)
+        XCTAssertNil(WheelChordControl.utilityControl(for: PhysicalCell(rawValue: 2)!))
+        XCTAssertEqual(WheelChordControl.utilityControl(for: PhysicalCell(rawValue: 11)!), .zoom)
         XCTAssertEqual(WheelChordControl.utilityControl(for: PhysicalCell(rawValue: 3)!), .spaces)
         XCTAssertEqual(WheelChordControl.utilityControl(for: PhysicalCell(rawValue: 4)!), .systemOverview)
         XCTAssertEqual(
@@ -576,7 +577,7 @@ final class ModePickerTests: XCTestCase {
         XCTAssertEqual(inputs.map { $0.2 }, [.press, .release])
     }
 
-    func testCellElevenOpensTheSelectorThenLocksCodexAndRoutesItsActions() {
+    func testCellTwoOpensTheSelectorThenLocksCodexAndRoutesItsActions() {
         let hud = RecordingModeHUDPresenter()
         let coordinator = makeCoordinator(hud: hud)
         var selected: [(AppSpecificTarget, PhysicalCell)] = []
@@ -1394,7 +1395,7 @@ final class ModePickerTests: XCTestCase {
         XCTAssertEqual(hud.snapshots.last?.selection?.title, "Voice mode")
     }
 
-    func testUtilityCellElevenOpensTheManualConfiguredAppSelector() {
+    func testUtilityCellTwoOpensTheManualConfiguredAppSelector() {
         let hud = RecordingModeHUDPresenter()
         let coordinator = makeCoordinator(hud: hud)
 

@@ -312,7 +312,7 @@ Keys cell 6 selects Keypad. Outside modes,
 cell 6 emits the exact-device YouTube scrub press/release lifecycle. Top-level
 cell 2 opens a live frontmost-app child that refreshes on workspace activation;
 Utility cell 8 emits the hardware-shaped Option-Space Intelligence on Demand
-shortcut. Utility cell 11 opens the separate configured-app selector and locks the chosen
+shortcut. Utility cell 2 opens the separate configured-app selector and locks the chosen
 target without activation. App children keep cell 12 available for real app
 actions and use either their matching entry cell 2 or universal cell 10 to
 exit. The parent selector still uses cell 2 for Terminal. Top-level cell 9 and Utility cell 9

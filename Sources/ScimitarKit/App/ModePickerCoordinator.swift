@@ -201,7 +201,7 @@ public final class ModePickerCoordinator {
         log.info("Following frontmost app: \(context.displayName)")
     }
 
-    /// Opens the less-common configured-app selector from Utility cell 11. A
+    /// Opens the less-common configured-app selector from Utility cell 2. A
     /// selected target stays locked without activation until universal exit.
     public func enterAppSelector(source: MouseSource) {
         guard !isActive else { return }

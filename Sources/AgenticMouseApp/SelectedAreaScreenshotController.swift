@@ -770,6 +770,7 @@ final class NativeInteractiveScreenshotProcess: InteractiveScreenshotProcess {
     private static func installLifecycleMonitor(
         handler: @escaping @MainActor (InteractiveScreenshotResult) -> Void
     ) -> Any? {
+        var selectionMouseDownLocation: NSPoint?
         var observedSelectionDrag = false
         return NSEvent.addGlobalMonitorForEvents(
             matching: [.leftMouseDown, .leftMouseDragged, .leftMouseUp, .keyDown]
@@ -777,6 +778,8 @@ final class NativeInteractiveScreenshotProcess: InteractiveScreenshotProcess {
             let result = classifyLifecycleEvent(
                 event.type,
                 keyCode: event.keyCode,
+                location: event.locationInWindow,
+                selectionMouseDownLocation: &selectionMouseDownLocation,
                 observedSelectionDrag: &observedSelectionDrag
             )
             guard let result else { return }
@@ -787,18 +790,28 @@ final class NativeInteractiveScreenshotProcess: InteractiveScreenshotProcess {
     static func classifyLifecycleEvent(
         _ eventType: NSEvent.EventType,
         keyCode: UInt16,
+        location: NSPoint,
+        selectionMouseDownLocation: inout NSPoint?,
         observedSelectionDrag: inout Bool
     ) -> InteractiveScreenshotResult? {
         switch eventType {
         case .leftMouseDown:
+            selectionMouseDownLocation = location
             observedSelectionDrag = false
             return nil
         case .leftMouseDragged:
             observedSelectionDrag = true
             return nil
         case .leftMouseUp:
-            return observedSelectionDrag ? .completed : .cancelled // A plain click dismisses the native crosshair without saving; only a real dragged selection may enter the bounded saved-file resolver. (Codex task: 01a039f7-873c-7c30-b3dc-af8a6724ace5)
+            let moved = selectionMouseDownLocation.map {
+                abs(location.x - $0.x) >= 1 || abs(location.y - $0.y) >= 1
+            } ?? false
+            selectionMouseDownLocation = nil
+            defer { observedSelectionDrag = false }
+            return observedSelectionDrag || moved ? .completed : .cancelled // macOS can swallow every global drag event while still delivering the selection down/up; compare their positions so that real captures complete, while an unmoved click still cancels. (Codex task: 01a039f7-873c-7c30-b3dc-af8a6724ace5)
         case .keyDown where keyCode == Self.escapeKeyCode:
+            selectionMouseDownLocation = nil
+            observedSelectionDrag = false
             return .cancelled
         default:
             return nil

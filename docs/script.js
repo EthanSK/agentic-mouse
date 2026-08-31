@@ -54,7 +54,7 @@ const LAYERS = {
     label: "Utility",
     actions: [
       ["Brightness + Wheel", "Hold and ratchet: up decreases, down increases."],
-      ["Zoom + Wheel", "Hold and ratchet: up zooms in, down zooms out."],
+      ["Choose app", "Open the eleven-app manual selector."],
       ["Spaces + Wheel", "Hold; the first wheel-up moves right and wheel-down moves left, then release to re-arm."],
       ["Mission / Desktop + Wheel", "Hold and ratchet: up opens Mission Control, down shows the desktop."],
       ["App Exposé + Wheel", "Hold and ratchet down once for native App Exposé; wheel up is consumed."],
@@ -63,7 +63,7 @@ const LAYERS = {
       ["Intelligence on demand", "Open Codex's global Option-Space window."],
       ["Keys mode", "Move directly into the shared Keys page."],
       ["Exit Utility mode", "Clear the mode lease and return to Default."],
-      ["Choose app", "Open the eleven-app manual selector."],
+      ["Zoom + Wheel", "Hold and ratchet: up zooms in, down zooms out."],
       ["Extra Utilities", "Open the nested page for manual layout restore and safe app quit."],
     ],
   },
