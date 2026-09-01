@@ -399,7 +399,7 @@ final class ApplicationShortcutDispatcherTests: XCTestCase {
     func testSafariOpenDevToolsUsesNativeWebInspectorShortcut() {
         let action = StandardAppMode.action(
             for: .safari,
-            cell: PhysicalCell(rawValue: 3)!
+            cell: PhysicalCell(rawValue: 6)!
         )!
 
         XCTAssertEqual(action.title, "Open DevTools")

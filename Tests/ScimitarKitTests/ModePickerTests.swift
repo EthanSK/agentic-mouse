@@ -897,10 +897,10 @@ final class ModePickerTests: XCTestCase {
         }
     }
 
-    func testChromeCellThreeOpensDevToolsThroughBothAppSpecificJourneys() {
-        XCTAssertEqual(ChromeModeAction.openDevTools.cell.rawValue, 3)
+    func testChromeCellSixOpensDevToolsThroughBothAppSpecificJourneys() {
+        XCTAssertEqual(ChromeModeAction.openDevTools.cell.rawValue, 6)
         XCTAssertEqual(ChromeModeAction.openDevTools.title, "Open DevTools")
-        XCTAssertEqual(ChromeMode.definition.legend[2].actionTitle, "Open DevTools")
+        XCTAssertEqual(ChromeMode.definition.legend[5].actionTitle, "Open DevTools")
 
         for source in MouseSource.allCases {
             let hud = RecordingModeHUDPresenter()
@@ -922,22 +922,22 @@ final class ModePickerTests: XCTestCase {
             coordinator.handle(.init(
                 action: .select,
                 source: source,
-                physicalCell: .init(rawValue: 3)!,
+                physicalCell: .init(rawValue: 6)!,
                 phase: .press
             ))
 
             XCTAssertEqual(inputs.map(\.0), [source])
             XCTAssertEqual(inputs.map(\.1), [.chrome])
-            XCTAssertEqual(inputs.map(\.2), [.init(rawValue: 3)!])
+            XCTAssertEqual(inputs.map(\.2), [.init(rawValue: 6)!])
             XCTAssertEqual(inputs.map(\.3), [.press])
             XCTAssertEqual(hud.snapshots.last?.selection?.title, "Open DevTools")
         }
     }
 
-    func testChromeCellSixReloadsTheCurrentTabThroughBothAppSpecificJourneys() {
-        XCTAssertEqual(ChromeModeAction.reloadCurrentTab.cell.rawValue, 6)
+    func testChromeCellOneReloadsTheCurrentTabThroughBothAppSpecificJourneys() {
+        XCTAssertEqual(ChromeModeAction.reloadCurrentTab.cell.rawValue, 1)
         XCTAssertEqual(ChromeModeAction.reloadCurrentTab.title, "Reload current tab")
-        XCTAssertEqual(ChromeMode.definition.legend[5].actionTitle, "Reload current tab")
+        XCTAssertEqual(ChromeMode.definition.legend[0].actionTitle, "Reload current tab")
 
         for source in MouseSource.allCases {
             let hud = RecordingModeHUDPresenter()
@@ -1028,8 +1028,8 @@ final class ModePickerTests: XCTestCase {
     }
 
     func testChromeModeKeepsHistoryInDefaultAndDuplicatesNewTabOnCellEight() {
-        XCTAssertEqual(ChromeModeAction.closeCurrentTab.cell.rawValue, 1)
-        XCTAssertEqual(ChromeMode.definition.legend[0].actionTitle, "Close current tab")
+        XCTAssertEqual(ChromeModeAction.closeCurrentTab.cell.rawValue, 3)
+        XCTAssertEqual(ChromeMode.definition.legend[2].actionTitle, "Close current tab")
         XCTAssertEqual(ChromeModeAction.action(for: PhysicalCell(rawValue: 8)!), .newTab)
         XCTAssertEqual(ChromeMode.definition.legend[7].actionTitle, "New tab")
         XCTAssertEqual(ChromeModeAction.holdYouTubeDoubleSpeed.cell.rawValue, 7)
@@ -1067,8 +1067,8 @@ final class ModePickerTests: XCTestCase {
 
         XCTAssertEqual(automatic.appSpecificDefinition, ChromeMode.definition)
         XCTAssertEqual(manual.appSpecificDefinition, ChromeMode.definition)
-        XCTAssertEqual(automaticHUD.snapshots.last?.legend[0].actionTitle, "Close current tab")
-        XCTAssertEqual(manualHUD.snapshots.last?.legend[0].actionTitle, "Close current tab")
+        XCTAssertEqual(automaticHUD.snapshots.last?.legend[2].actionTitle, "Close current tab")
+        XCTAssertEqual(manualHUD.snapshots.last?.legend[2].actionTitle, "Close current tab")
         XCTAssertEqual(automaticHUD.snapshots.last?.legend[7].actionTitle, "New tab")
         XCTAssertEqual(manualHUD.snapshots.last?.legend[7].actionTitle, "New tab")
     }
@@ -1799,11 +1799,11 @@ final class ModePickerTests: XCTestCase {
     func testSafariLayoutDuplicatesChromeNewTabOnCellEight() {
         let actions = StandardAppMode.actions(for: .safari)
         let expectedTitlesByCell = [
-            1: "Close tab",
-            3: "Open DevTools",
+            1: "Reload",
+            3: "Close tab",
             4: "Previous tab",
             5: "New tab",
-            6: "Reload",
+            6: "Open DevTools",
             7: "Next tab",
             8: "New tab",
             9: "Forward",
@@ -1824,11 +1824,11 @@ final class ModePickerTests: XCTestCase {
                 "\($0.cell.rawValue)|\($0.title)|\($0.keyCode)|\($0.modifiers.rawValue)"
             },
             [
-                "1|Close tab|13|1",
-                "3|Open DevTools|34|5",
+                "1|Reload|15|1",
+                "3|Close tab|13|1",
                 "4|Previous tab|48|10",
                 "5|New tab|17|1",
-                "6|Reload|15|1",
+                "6|Open DevTools|34|5",
                 "7|Next tab|48|8",
                 "8|New tab|17|1",
                 "9|Forward|30|1",
@@ -1836,22 +1836,22 @@ final class ModePickerTests: XCTestCase {
                 "12|Find page|3|1",
             ]
         )
-        XCTAssertEqual(AppSpecificTarget.safari.definition.legend[0].actionTitle, "Close tab")
-        XCTAssertEqual(AppSpecificTarget.safari.definition.legend[2].actionTitle, "Open DevTools")
+        XCTAssertEqual(AppSpecificTarget.safari.definition.legend[0].actionTitle, "Reload")
+        XCTAssertEqual(AppSpecificTarget.safari.definition.legend[2].actionTitle, "Close tab")
         XCTAssertEqual(AppSpecificTarget.safari.definition.legend[4].actionTitle, "New tab")
-        XCTAssertEqual(AppSpecificTarget.safari.definition.legend[5].actionTitle, "Reload")
+        XCTAssertEqual(AppSpecificTarget.safari.definition.legend[5].actionTitle, "Open DevTools")
         XCTAssertEqual(AppSpecificTarget.safari.definition.legend[7].actionTitle, "New tab")
         XCTAssertEqual(AppSpecificTarget.safari.definition.legend[10].actionTitle, "Reopen tab")
         XCTAssertEqual(AppSpecificTarget.safari.definition.legend[11].actionTitle, "Find page")
 
         let devTools = StandardAppMode.action(
             for: .safari,
-            cell: PhysicalCell(rawValue: 3)!
+            cell: PhysicalCell(rawValue: 6)!
         )
         XCTAssertEqual(devTools?.keyCode, 34)
         XCTAssertEqual(devTools?.modifiers, [.command, .option])
-        XCTAssertEqual(devTools?.cell.displayLabel(on: .corsair), "Corsair 3")
-        XCTAssertEqual(devTools?.cell.displayLabel(on: .razer), "Razer 1")
+        XCTAssertEqual(devTools?.cell.displayLabel(on: .corsair), "Corsair 6")
+        XCTAssertEqual(devTools?.cell.displayLabel(on: .razer), "Razer 4")
         XCTAssertEqual(
             StandardAppMode.action(for: .safari, cell: PhysicalCell(rawValue: 12)!)?
                 .cell.displayLabel(on: .razer),

@@ -228,12 +228,12 @@ The macOS menu-bar app adds several optional runtime behaviours:
   exact Codex voice-control state transition across two complete, identically
   bounded scans of its visible windows; a partial scan is never called inactive. Edit
   is confirmed only when the exact newly exposed `Edit message` control is
-  pressed; ambiguous or stale candidates fail closed. Chrome cell 1 sends Command-W directly to the running Chrome
-  process to close its current tab, while cell 8 sends Shift-Command-W to close its current window. Chrome cell 3 sends Chrome's native Command-Option-I shortcut to
+  pressed; ambiguous or stale candidates fail closed. Chrome cell 3 sends Command-W directly to the running Chrome
+  process to close its current tab. Chrome cell 6 sends Chrome's native Command-Option-I shortcut to
   open DevTools. Holding Chrome cell 7 sets the bridge-selected, currently playing
   YouTube video to 2× and release restores that video's exact prior rate; a short renewed browser lease
   restores it automatically if release is lost. Chrome cell 4 controls tabs with the wheel without
-  focusing Chrome. Chrome cells 5 and 8 open a new tab, and cell 6 reloads the current tab. Chrome mode
+  focusing Chrome. Chrome cells 5 and 8 open a new tab, and cell 1 reloads the current tab. Chrome mode
   does not duplicate the Default map's Forward/Back controls. VS Code cell 1 closes the current editor
   tab, cell 7 opens the Command Palette, cell 4 toggles its integrated terminal,
   cell 11 goes to the selected symbol's definition with F12, and cell 12
@@ -257,8 +257,8 @@ The macOS menu-bar app adds several optional runtime behaviours:
   accepted personal preferences until Ethan tests them. The Chrome 2× transport
   and fail-safe lease are proven, but physical speed/restore acceptance on a
   playing video remains open.
-  Safari uses Chrome's cells for their shared actions: Close Tab, Open DevTools,
-  New Tab on both cells 5 and 8, Reload, Reopen Tab, and Find Page. Its separate
+  Safari uses Chrome's cells for their shared actions: cell 3 closes the current tab, cell 6 opens DevTools,
+  cell 1 reloads, cells 5 and 8 open a new tab, cell 11 reopens a tab, and cell 12 finds the page. Its separate
   tab-direction and Forward controls remain available; Downloads is retired from
   Safari mode only.
   Every mode has its own bold, saturated colour. If the Default mode legend was already open, it is restored

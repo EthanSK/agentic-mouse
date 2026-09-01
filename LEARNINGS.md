@@ -1,5 +1,17 @@
 # Learnings
 
+## 2026-09-01 — Rotate Chrome and Safari tab controls onto cells 1, 3, and 6
+
+**Trigger:** Ethan asked for Close current tab on Corsair 3, Open DevTools on Corsair 6, and Reload current tab on Corsair 1.
+
+**Finding:** Chrome and Safari already shared these three browser actions, but the prior canonical placement was Close on cell 1, DevTools on cell 3, and Reload on cell 6. The canonical physical-cell map is the single source of truth for Corsair and Razer printed numbers, so this is a semantic rotation rather than a new device transport.
+
+**Fix:** Put Reload on canonical cell 1 (Corsair 1 / Razer 3), Close current tab on canonical cell 3 (Corsair 3 / Razer 1), and Open DevTools on canonical cell 6 (Corsair 6 / Razer 4) in Chrome. Mirror the same shared-cell layout in Safari while preserving its own native shortcuts and all unrelated browser controls. (Codex task: 01a039f7-873c-7c30-b3dc-af8a6724ace5)
+
+**Guard:** Keep this as a three-action rotation only. Do not change Chrome cells 5 and 8 from New Tab, alter tab-wheel direction, change the physical-cell crosswalk, add a new Karabiner transport, or activate/focus either browser while dispatching the shortcut.
+
+**Verification:** Focused Mode Picker and application-shortcut suites passed 97 tests. The complete clean gate passed 690 Swift tests, six Musixmatch tests, six VS Code bridge tests, 17 Karabiner generator tests, generated-source freshness, both Karabiner lints, packaging/version contracts, and shell syntax. Developer-ID-signed Agentic Mouse v1.0.151 (build 157) is installed as main PID 5349 with supervisor PID 5651, executable SHA-256 `9af1154ff878e80bd7f7581094a95b08f1ed44f2b808b163581ecd28db6ddabe`, CDHash `dc4b7ecc44ee48c7a2856b701047e8694ebe210e`, Team ID `T34G959ZG8`, Accessibility granted, iCUE connected, self-recovery enabled, and exclusive mode-0600 command-socket ownership. The embedded iCUE SDK and live Karabiner configuration remain byte-identical at SHA-256 `48bbc94bed670d036af8e1acca0017449b36d7c6d1e15dafe0791b42b6be84fe` and `b2a3eea496fdbe7620ad5e975f1434be21308765d2fd8fd846395453c90e7fed`. Full-display pixel screenshots across all three connected displays proved one current-Space Chrome legend per display with `Reload current tab` on Corsair 1, `Close current tab` on Corsair 3, `Open DevTools` on Corsair 6, and the v1.0.151 (157) footer. The prior zero-HUD state was then restored and visually verified across all three displays. OBS++ recording mux PID 26937 and the Rekordbox sync watcher remained on their original work throughout installation and visual proof. Literal physical shortcut acceptance remains Ethan-owned.
+
 ## 2026-09-01 — Combine YouTube Scrub and Forward into a volume wheel chord
 
 **Trigger:** Ethan asked to hold top-level Corsair 6 and 5 together, then use the wheel to raise or lower the currently playing YouTube video's volume, with matching HUD guidance.

@@ -271,11 +271,11 @@ public enum StandardAppMode {
     /// New tab, while Safari-only Forward and tab-direction controls remain.
     private static func safariActions() -> [StandardAppModeAction] {
         [
-            a(1, "Close tab", 13, [.command]),
-            a(3, "Open DevTools", 34, [.command, .option]),
+            a(1, "Reload", 15, [.command]),
+            a(3, "Close tab", 13, [.command]),
             a(4, "Previous tab", 48, [.control, .shift]),
             a(5, "New tab", 17, [.command]),
-            a(6, "Reload", 15, [.command]),
+            a(6, "Open DevTools", 34, [.command, .option]),
             a(7, "Next tab", 48, [.control]),
             a(8, "New tab", 17, [.command]),
             a(9, "Forward", 30, [.command]),

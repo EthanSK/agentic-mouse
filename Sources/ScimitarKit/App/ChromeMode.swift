@@ -13,11 +13,11 @@ public enum ChromeModeAction: String, CaseIterable, Equatable, Sendable {
 
     public var cell: PhysicalCell {
         switch self {
-        case .closeCurrentTab: return PhysicalCell(rawValue: 1)!
+        case .closeCurrentTab: return PhysicalCell(rawValue: 3)!
         case .holdYouTubeDoubleSpeed: return PhysicalCell(rawValue: 7)!
-        case .openDevTools: return PhysicalCell(rawValue: 3)!
+        case .openDevTools: return PhysicalCell(rawValue: 6)!
         case .cycleTabsWithWheel: return PhysicalCell(rawValue: 4)!
-        case .reloadCurrentTab: return PhysicalCell(rawValue: 6)!
+        case .reloadCurrentTab: return PhysicalCell(rawValue: 1)!
         case .newTab: return PhysicalCell(rawValue: 5)!
         case .focusAddress: return PhysicalCell(rawValue: 9)!
         case .reopenClosedTab: return PhysicalCell(rawValue: 11)!
