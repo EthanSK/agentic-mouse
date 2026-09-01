@@ -246,7 +246,7 @@ final class SelectedAreaScreenshotControllerTests: XCTestCase {
         XCTAssertTrue(clipboard.lastCancelClearedOwnership)
     }
 
-    func testNativeClipboardCoordinatorRemembersOnlyTheBoundedNewCandidateUntilPaste() {
+    func testNativeClipboardCoordinatorCopiesTheResolvedScreenshotAndPastesItWithoutRewriting() {
         let scheduler = ManualTickScheduler()
         let clock = ManualClock(now: 10)
         let directory = URL(fileURLWithPath: "/tmp/screenshots", isDirectory: true)
@@ -258,6 +258,7 @@ final class SelectedAreaScreenshotControllerTests: XCTestCase {
         )
         pasteboard.clearContents()
         pasteboard.setString("VoiceInk text", forType: .string)
+        var writeCount = 0
         var postedProcessIdentifiers: [pid_t] = []
         var restorations: [@MainActor @Sendable () -> Void] = []
         let coordinator = NativeScreenshotClipboardCoordinator(
@@ -269,6 +270,14 @@ final class SelectedAreaScreenshotControllerTests: XCTestCase {
             findCandidates: { _ in candidates },
             metadataMarksScreenshot: { $0 == candidate },
             pasteboard: pasteboard,
+            writeToPasteboard: { pasteboard, url, identifier in
+                writeCount += 1
+                return NativeScreenshotClipboardCoordinator.writeImageToPasteboard(
+                    pasteboard,
+                    url,
+                    identifier
+                )
+            },
             postPaste: { postedProcessIdentifiers.append($0); return true },
             frontmostProcessIdentifier: { 4321 },
             scheduleRestore: { restorations.append($0) },
@@ -287,14 +296,62 @@ final class SelectedAreaScreenshotControllerTests: XCTestCase {
         XCTAssertEqual(try? result?.get(), candidate)
         XCTAssertTrue(coordinator.hasPasteableScreenshot)
         XCTAssertFalse(coordinator.isCapturePending)
-        XCTAssertEqual(pasteboard.string(forType: .string), "VoiceInk text")
+        XCTAssertNil(pasteboard.string(forType: .string))
+        XCTAssertNotNil(pasteboard.data(forType: .tiff))
+        XCTAssertEqual(writeCount, 1)
+        let copiedChangeCount = pasteboard.changeCount
 
         XCTAssertNoThrow(try coordinator.pasteScreenshot().get())
         XCTAssertEqual(postedProcessIdentifiers, [4321])
-        XCTAssertEqual(restorations.count, 1)
+        XCTAssertEqual(restorations.count, 0)
+        XCTAssertEqual(writeCount, 1)
+        XCTAssertEqual(pasteboard.changeCount, copiedChangeCount)
         XCTAssertNotNil(pasteboard.data(forType: .tiff))
-        restorations.first?()
-        XCTAssertEqual(pasteboard.string(forType: .string), "VoiceInk text")
+    }
+
+    func testNativeClipboardCoordinatorWaitsForTheSavedImageToBecomeReadableBeforeCopying() {
+        let scheduler = ManualTickScheduler()
+        let directory = URL(fileURLWithPath: "/tmp/screenshots", isDirectory: true)
+        let candidate = makeTemporaryScreenshot()
+        defer { try? FileManager.default.removeItem(at: candidate) }
+        let pasteboard = NSPasteboard(
+            name: NSPasteboard.Name("agentic-mouse-screenshot-tests-\(UUID().uuidString)")
+        )
+        pasteboard.clearContents()
+        pasteboard.setString("clipboard before capture", forType: .string)
+        var writeAttempts = 0
+        let coordinator = NativeScreenshotClipboardCoordinator(
+            scheduler: scheduler,
+            resolveDirectory: { directory },
+            snapshotDirectory: { _ in [] },
+            findCandidates: { _ in [candidate] },
+            metadataMarksScreenshot: { _ in true },
+            pasteboard: pasteboard,
+            writeToPasteboard: { pasteboard, url, identifier in
+                writeAttempts += 1
+                guard writeAttempts > 1 else { return nil }
+                return NativeScreenshotClipboardCoordinator.writeImageToPasteboard(
+                    pasteboard,
+                    url,
+                    identifier
+                )
+            },
+            accessibilityTrusted: { true }
+        )
+        var result: Result<URL, ScreenshotClipboardError>?
+
+        coordinator.prepareForCapture()
+        coordinator.resolveCompletedCapture { result = $0 }
+
+        XCTAssertTrue(coordinator.isCapturePending)
+        XCTAssertNil(result)
+        XCTAssertEqual(pasteboard.string(forType: .string), "clipboard before capture")
+
+        scheduler.fire()
+
+        XCTAssertEqual(try? result?.get(), candidate)
+        XCTAssertFalse(coordinator.isCapturePending)
+        XCTAssertNotNil(pasteboard.data(forType: .tiff))
     }
 
     func testVoiceInkClipboardChangeWinsOverScreenshotPasteRestoration() {
@@ -323,15 +380,17 @@ final class SelectedAreaScreenshotControllerTests: XCTestCase {
 
         coordinator.prepareForCapture()
         coordinator.resolveCompletedCapture { _ in }
-        XCTAssertNoThrow(try coordinator.pasteScreenshot().get())
         pasteboard.clearContents()
         pasteboard.setString("new VoiceInk result", forType: .string)
+        XCTAssertNoThrow(try coordinator.pasteScreenshot().get())
+        XCTAssertNotNil(pasteboard.data(forType: .tiff))
+        XCTAssertEqual(restorations.count, 1)
         restorations.first?()
 
         XCTAssertEqual(pasteboard.string(forType: .string), "new VoiceInk result")
     }
 
-    func testRepeatedScreenshotPastesRestoreClipboardFromBeforeTheFirstPaste() {
+    func testRepeatedScreenshotPastesReuseTheAlreadyCopiedClipboard() {
         let scheduler = ManualTickScheduler()
         let directory = URL(fileURLWithPath: "/tmp/screenshots", isDirectory: true)
         let candidate = makeTemporaryScreenshot()
@@ -357,14 +416,13 @@ final class SelectedAreaScreenshotControllerTests: XCTestCase {
 
         coordinator.prepareForCapture()
         coordinator.resolveCompletedCapture { _ in }
+        let copiedChangeCount = pasteboard.changeCount
         XCTAssertNoThrow(try coordinator.pasteScreenshot().get())
         XCTAssertNoThrow(try coordinator.pasteScreenshot().get())
 
-        XCTAssertEqual(restorations.count, 2)
-        restorations[0]()
-        XCTAssertNil(pasteboard.string(forType: .string))
-        restorations[1]()
-        XCTAssertEqual(pasteboard.string(forType: .string), "original clipboard")
+        XCTAssertEqual(restorations.count, 0)
+        XCTAssertEqual(pasteboard.changeCount, copiedChangeCount)
+        XCTAssertNotNil(pasteboard.data(forType: .tiff))
     }
 
     func testNativeClipboardCoordinatorFailsClosedOnAmbiguousNewImagesAtTimeout() {

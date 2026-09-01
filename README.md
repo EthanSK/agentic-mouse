@@ -294,11 +294,13 @@ The macOS menu-bar app adds several optional runtime behaviours:
   crosshair after a short double-press window. A press while that crosshair is
   active cancels it. Completing the selection still follows exact
   Shift-Command-4, so macOS owns the configured save destination, capture sound
-  and floating thumbnail. Agentic Mouse then remembers only that exact new file
-  in the configured Screenshot folder without changing the clipboard. Rapidly
-  double-press the same mouse's button to briefly supply that file and image to
-  the current app, send Paste, and restore the previous clipboard only if no
-  newer copy occurred. VoiceInk or any other newer clipboard write always wins.
+  and floating thumbnail. Agentic Mouse then copies that exact new file and
+  image to the normal clipboard and retains its saved path. Rapidly double-press
+  the same mouse's button to send Paste immediately while that screenshot still
+  owns the clipboard. If VoiceInk or another copy replaced it, Agentic Mouse
+  briefly supplies the retained screenshot, sends Paste, and restores the newer
+  clipboard content only while its temporary lease still owns the clipboard.
+  VoiceInk or any other newer clipboard write always wins.
   The HUD shows capture, cancellation, save resolution and the double-paste
   affordance truthfully.
 

@@ -73,9 +73,9 @@ protocol ScreenshotClipboardCoordinating: AnyObject {
 }
 
 /// Watches only the configured macOS Screenshot destination after the native
-/// Shift-Command-4 interaction completes. It remembers the exact saved path
-/// without occupying the pasteboard, then uses a short restoring paste lease
-/// only when the user explicitly double-presses the screenshot button.
+/// Shift-Command-4 interaction completes. It copies the resolved image to the
+/// normal pasteboard and retains its exact path so a double press can recover
+/// the screenshot after a newer clipboard write.
 @MainActor
 final class NativeScreenshotClipboardCoordinator: ScreenshotClipboardCoordinating {
     typealias DirectoryResolver = @MainActor () -> URL?
@@ -134,6 +134,8 @@ final class NativeScreenshotClipboardCoordinator: ScreenshotClipboardCoordinatin
     private var captureResolutionCompletion: ((Result<URL, ScreenshotClipboardError>) -> Void)?
     private var captureResolutionDeadline: TimeInterval?
     private var pasteableScreenshotURL: URL?
+    private var copiedScreenshotIdentifier: String?
+    private var copiedScreenshotChangeCount: Int?
     private var activePasteLease: PasteLease?
     private var lastCandidateFailure: ScreenshotClipboardError?
 
@@ -224,7 +226,7 @@ final class NativeScreenshotClipboardCoordinator: ScreenshotClipboardCoordinatin
         }
     }
 
-    func pasteScreenshot() -> Result<Void, ScreenshotClipboardError> { // Keeping only the saved path avoids VoiceInk or another copy replacing a long-lived screenshot clipboard; the double-click takes a short ownership-marked lease, pastes to the then-frontmost app, and restores only if nothing else changed the clipboard. (Codex task: 01a039f7-873c-7c30-b3dc-af8a6724ace5)
+    func pasteScreenshot() -> Result<Void, ScreenshotClipboardError> { // The old path-only flow reread and converted the image on every double press, which made Paste feel slow. A fresh screenshot now stays on the clipboard for immediate Command-V; if VoiceInk replaced it, this method temporarily restores the retained file and then returns the newer clipboard content. (Codex task: 01a039f7-873c-7c30-b3dc-af8a6724ace5)
         guard inputAllowed() else { return .failure(.inputBlocked) }
         guard accessibilityTrusted() else {
             return .failure(.accessibilityPermissionMissing)
@@ -234,6 +236,11 @@ final class NativeScreenshotClipboardCoordinator: ScreenshotClipboardCoordinatin
         }
         guard let processIdentifier = frontmostProcessIdentifier() else {
             return .failure(.pasteTargetUnavailable)
+        }
+        if copiedScreenshotStillOwnsPasteboard() {
+            return postPaste(processIdentifier)
+                ? .success(())
+                : .failure(.pasteEventCreationFailed)
         }
 
         let snapshot: PasteboardSnapshot
@@ -274,7 +281,11 @@ final class NativeScreenshotClipboardCoordinator: ScreenshotClipboardCoordinatin
         captureResolutionDeadline = nil
         lastCandidateFailure = nil
         if let activePasteLease { restoreIfOwned(activePasteLease) }
-        if clearOwnership { pasteableScreenshotURL = nil }
+        if clearOwnership {
+            pasteableScreenshotURL = nil
+            copiedScreenshotIdentifier = nil
+            copiedScreenshotChangeCount = nil
+        }
     }
 
     private func pollForSavedScreenshot() {
@@ -301,9 +312,16 @@ final class NativeScreenshotClipboardCoordinator: ScreenshotClipboardCoordinatin
         }
 
         if let candidate {
-            pasteableScreenshotURL = candidate
-            finishCaptureResolution(.success(candidate))
-            return
+            let identifier = UUID().uuidString
+            if let changeCount = writeToPasteboard(pasteboard, candidate, identifier) {
+                activePasteLease = nil
+                pasteableScreenshotURL = candidate
+                copiedScreenshotIdentifier = identifier
+                copiedScreenshotChangeCount = changeCount
+                finishCaptureResolution(.success(candidate))
+                return
+            }
+            lastCandidateFailure = .screenshotImageUnreadable
         }
 
         guard clock.now >= captureResolutionDeadline else { return }
@@ -324,6 +342,14 @@ final class NativeScreenshotClipboardCoordinator: ScreenshotClipboardCoordinatin
         guard lease.isOwned(on: pasteboard) else { return }
         lease.snapshot.restore(to: pasteboard)
         if activePasteLease?.identifier == lease.identifier { activePasteLease = nil }
+    }
+
+    private func copiedScreenshotStillOwnsPasteboard() -> Bool {
+        guard let copiedScreenshotIdentifier,
+              let copiedScreenshotChangeCount,
+              pasteboard.changeCount == copiedScreenshotChangeCount
+        else { return false }
+        return pasteboard.string(forType: Self.markerType) == copiedScreenshotIdentifier
     }
 
     static func configuredScreenshotDirectory() -> URL? {
