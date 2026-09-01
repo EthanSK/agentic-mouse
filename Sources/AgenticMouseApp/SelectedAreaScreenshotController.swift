@@ -648,9 +648,96 @@ enum NativeScreenshotShortcutError: Error, LocalizedError {
     }
 }
 
+/// Observes the native Screenshot selection before its overlay can consume
+/// the mouse events. The tap is listen-only, so it cannot alter user input.
+final class ScreenshotLifecycleEventTap: @unchecked Sendable {
+    typealias Handler = @MainActor @Sendable (InteractiveScreenshotResult) -> Void
+
+    static let eventMask = [
+        CGEventType.leftMouseDown,
+        .leftMouseDragged,
+        .leftMouseUp,
+        .keyDown,
+    ].reduce(CGEventMask(0)) { $0 | (1 << $1.rawValue) }
+
+    private let handler: Handler
+    private let runLoop: CFRunLoop
+    private let stateLock = NSLock()
+    private var tap: CFMachPort?
+    private var runLoopSource: CFRunLoopSource?
+    private var selectionMouseDownLocation: NSPoint?
+    private var observedSelectionDrag = false
+
+    init(
+        handler: @escaping Handler,
+        runLoop: CFRunLoop = CFRunLoopGetMain()
+    ) {
+        self.handler = handler
+        self.runLoop = runLoop
+    }
+
+    func start() -> Bool {
+        let context = Unmanaged.passUnretained(self).toOpaque()
+        guard let port = CGEvent.tapCreate(
+            tap: .cgSessionEventTap,
+            place: .headInsertEventTap,
+            options: .listenOnly,
+            eventsOfInterest: Self.eventMask,
+            callback: { _, type, event, refcon in
+                guard let refcon else { return Unmanaged.passUnretained(event) }
+                let monitor = Unmanaged<ScreenshotLifecycleEventTap>
+                    .fromOpaque(refcon)
+                    .takeUnretainedValue()
+                monitor.observe(type: type, event: event)
+                return Unmanaged.passUnretained(event)
+            },
+            userInfo: context
+        ), let source = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, port, 0) else {
+            return false
+        }
+
+        CFRunLoopAddSource(runLoop, source, .commonModes)
+        CGEvent.tapEnable(tap: port, enable: true)
+        tap = port
+        runLoopSource = source
+        return true
+    }
+
+    func stop() {
+        if let tap {
+            CGEvent.tapEnable(tap: tap, enable: false)
+            CFMachPortInvalidate(tap)
+        }
+        if let runLoopSource {
+            CFRunLoopRemoveSource(runLoop, runLoopSource, .commonModes)
+        }
+        tap = nil
+        runLoopSource = nil
+    }
+
+    private func observe(type: CGEventType, event: CGEvent) {
+        if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
+            if let tap { CGEvent.tapEnable(tap: tap, enable: true) }
+            return
+        }
+
+        stateLock.lock()
+        let result = NativeInteractiveScreenshotProcess.classifyLifecycleEvent(
+            type,
+            keyCode: UInt16(event.getIntegerValueField(.keyboardEventKeycode)),
+            location: event.location,
+            selectionMouseDownLocation: &selectionMouseDownLocation,
+            observedSelectionDrag: &observedSelectionDrag
+        )
+        stateLock.unlock()
+        guard let result else { return }
+        Task { @MainActor [handler] in handler(result) }
+    }
+}
+
 /// Sends the exact system Shift-Command-4 shortcut so macOS owns the configured
 /// destination, sound and floating-thumbnail experience. A short-lived global
-/// monitor tracks the selection mouse-up or Escape, while public window-owner
+/// event tap tracks the selection mouse-up or Escape, while public window-owner
 /// polling detects native Screenshot UI that disappeared without either event.
 @MainActor
 final class NativeInteractiveScreenshotProcess: InteractiveScreenshotProcess {
@@ -660,13 +747,13 @@ final class NativeInteractiveScreenshotProcess: InteractiveScreenshotProcess {
         _ isDown: Bool
     ) -> Bool
     typealias LifecycleMonitor = @MainActor (
-        _ handler: @escaping @MainActor (InteractiveScreenshotResult) -> Void
+        _ handler: @escaping @MainActor @Sendable (InteractiveScreenshotResult) -> Void
     ) -> Any?
     typealias MonitorRemover = @MainActor (_ monitor: Any) -> Void
     typealias InteractionActiveProvider = @MainActor () -> Bool
 
     static let screenshotKeyCode: CGKeyCode = 21 // ANSI 4
-    static let escapeKeyCode: CGKeyCode = 53
+    nonisolated static let escapeKeyCode: CGKeyCode = 53
     static let screenshotFlags: CGEventFlags = [.maskCommand, .maskShift]
     static let lifecyclePollInterval: TimeInterval = 0.25
     static let activationPollLimit = 8
@@ -686,7 +773,7 @@ final class NativeInteractiveScreenshotProcess: InteractiveScreenshotProcess {
     init(
         postEvent: @escaping EventPoster = NativeInteractiveScreenshotProcess.postKeyboardEvent,
         startLifecycleMonitor: @escaping LifecycleMonitor = NativeInteractiveScreenshotProcess.installLifecycleMonitor,
-        removeLifecycleMonitor: @escaping MonitorRemover = NSEvent.removeMonitor,
+        removeLifecycleMonitor: @escaping MonitorRemover = NativeInteractiveScreenshotProcess.removeLifecycleMonitor,
         lifecycleScheduler: TickScheduler = DispatchTickScheduler(),
         interactionIsActive: @escaping InteractionActiveProvider =
             NativeInteractiveScreenshotProcess.screenshotInteractionIsActive
@@ -768,27 +855,18 @@ final class NativeInteractiveScreenshotProcess: InteractiveScreenshotProcess {
     }
 
     private static func installLifecycleMonitor(
-        handler: @escaping @MainActor (InteractiveScreenshotResult) -> Void
+        handler: @escaping @MainActor @Sendable (InteractiveScreenshotResult) -> Void
     ) -> Any? {
-        var selectionMouseDownLocation: NSPoint?
-        var observedSelectionDrag = false
-        return NSEvent.addGlobalMonitorForEvents(
-            matching: [.leftMouseDown, .leftMouseDragged, .leftMouseUp, .keyDown]
-        ) { event in
-            let result = classifyLifecycleEvent(
-                event.type,
-                keyCode: event.keyCode,
-                location: event.locationInWindow,
-                selectionMouseDownLocation: &selectionMouseDownLocation,
-                observedSelectionDrag: &observedSelectionDrag
-            )
-            guard let result else { return }
-            Task { @MainActor in handler(result) }
-        }
+        let monitor = ScreenshotLifecycleEventTap(handler: handler)
+        return monitor.start() ? monitor : nil // Build 154 could save a screenshot while AppKit's global monitor saw no mouse-up, so observe the pre-consumption Quartz stream instead and keep the HUD's paste-ready state. (Codex task: 01a039f7-873c-7c30-b3dc-af8a6724ace5)
     }
 
-    static func classifyLifecycleEvent(
-        _ eventType: NSEvent.EventType,
+    private static func removeLifecycleMonitor(_ monitor: Any) {
+        (monitor as? ScreenshotLifecycleEventTap)?.stop()
+    }
+
+    nonisolated static func classifyLifecycleEvent(
+        _ eventType: CGEventType,
         keyCode: UInt16,
         location: NSPoint,
         selectionMouseDownLocation: inout NSPoint?,

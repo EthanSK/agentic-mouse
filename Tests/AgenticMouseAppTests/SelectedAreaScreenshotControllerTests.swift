@@ -399,7 +399,7 @@ final class SelectedAreaScreenshotControllerTests: XCTestCase {
 
     func testNativeProcessSendsExactShiftCommandFourAndCompletesOnObservedSelection() throws {
         var events: [(CGKeyCode, CGEventFlags, Bool)] = []
-        var handler: (@MainActor (InteractiveScreenshotResult) -> Void)?
+        var handler: (@MainActor @Sendable (InteractiveScreenshotResult) -> Void)?
         let monitor = NSObject()
         let lifecycleScheduler = ManualTickScheduler()
         var interactionIsActive = true
@@ -507,6 +507,20 @@ final class SelectedAreaScreenshotControllerTests: XCTestCase {
             selectionMouseDownLocation: &selectionMouseDownLocation,
             observedSelectionDrag: &observedSelectionDrag
         ), .completed)
+    }
+
+    func testNativeLifecycleTapObservesEverySelectionBoundaryBeforeTheOverlayConsumesIt() {
+        for type in [
+            CGEventType.leftMouseDown,
+            .leftMouseDragged,
+            .leftMouseUp,
+            .keyDown,
+        ] {
+            XCTAssertNotEqual(
+                ScreenshotLifecycleEventTap.eventMask & (1 << type.rawValue),
+                0
+            )
+        }
     }
 
     func testNativeLifecycleCompletesFromMovedMouseUpWhenScreenshotOverlaySwallowsDragEvents() {
