@@ -88,6 +88,10 @@ public struct PhysicalCell: RawRepresentable, Hashable, Codable, Sendable, Compa
     /// Selects Keypad from Keys mode.
     public static let keypadModeSelector = PhysicalCell(rawValue: 6)!
 
+    /// Two-way media-track wheel chord inside Keys mode. This is Corsair
+    /// printed 9 and Razer printed 7 through the canonical crosswalk.
+    public static let mediaTracksWheelControl = PhysicalCell(rawValue: 9)!
+
     /// Two-way Utility controls. Hold the cell and move the ratcheted wheel;
     /// one wheel step produces one action in the corresponding direction.
     public static let brightnessWheelControl = PhysicalCell(rawValue: 1)!

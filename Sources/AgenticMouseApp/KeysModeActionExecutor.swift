@@ -58,12 +58,6 @@ struct KeysModeActionExecutor {
         guard accessibilityTrusted() else {
             return .failure(.accessibilityPermissionMissing)
         }
-        if action == .nextTrack {
-            let keyType = Int32(NX_KEYTYPE_NEXT)
-            let down = postSystemEvent(keyType, true)
-            let up = postSystemEvent(keyType, false)
-            return down && up ? .success(()) : .failure(.eventCreationFailed)
-        }
         let keyCode: CGKeyCode
         let flags: CGEventFlags
         switch action {
@@ -72,8 +66,6 @@ struct KeysModeActionExecutor {
         case .arrowDown: keyCode = 125; flags = []
         case .arrowUp: keyCode = 126; flags = []
         case .undo: keyCode = 6; flags = .maskCommand
-        case .nextTrack:
-            preconditionFailure("handled before native key-code selection")
         case .insertSpace: keyCode = 49; flags = []
         case .pressBackspace: keyCode = 51; flags = []
         case .pressEnter: keyCode = 36; flags = []
@@ -81,6 +73,15 @@ struct KeysModeActionExecutor {
 
         let down = postEvent(keyCode, flags, true)
         let up = postEvent(keyCode, flags, false)
+        return down && up ? .success(()) : .failure(.eventCreationFailed)
+    }
+
+    func perform(_ action: MediaTrackAction) -> Result<Void, KeysModeActionError> {
+        guard inputAllowed() else { return .failure(.inputBlocked) }
+        guard accessibilityTrusted() else { return .failure(.accessibilityPermissionMissing) }
+        let keyType = Int32(action == .next ? NX_KEYTYPE_NEXT : NX_KEYTYPE_PREVIOUS)
+        let down = postSystemEvent(keyType, true)
+        let up = postSystemEvent(keyType, false)
         return down && up ? .success(()) : .failure(.eventCreationFailed)
     }
 

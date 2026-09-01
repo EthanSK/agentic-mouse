@@ -57,8 +57,26 @@ final class KeysModeActionExecutorTests: XCTestCase {
                 true, false,
             ]
         )
-        XCTAssertEqual(systemEvents.map(\.1), [true, false])
-        XCTAssertEqual(Set(systemEvents.map(\.0)).count, 1)
+        XCTAssertTrue(systemEvents.isEmpty)
+    }
+
+    func testMediaTracksPostOneNativeConsumerKeyCycleInEachDirection() {
+        var systemEvents: [(Int32, Bool)] = []
+        let executor = KeysModeActionExecutor(
+            postSystemEvent: { keyType, isDown in
+                systemEvents.append((keyType, isDown))
+                return true
+            },
+            accessibilityTrusted: { true }
+        )
+
+        guard case .success = executor.perform(MediaTrackAction.next),
+              case .success = executor.perform(MediaTrackAction.previous)
+        else { return XCTFail("both media directions should post") }
+        XCTAssertEqual(systemEvents.map(\.1), [true, false, true, false])
+        XCTAssertEqual(systemEvents[0].0, systemEvents[1].0)
+        XCTAssertEqual(systemEvents[2].0, systemEvents[3].0)
+        XCTAssertNotEqual(systemEvents[0].0, systemEvents[2].0)
     }
 
     func testPasswordUsesDirectTextWithoutPostingAKeyCode() {
@@ -116,6 +134,22 @@ final class KeysModeActionExecutorTests: XCTestCase {
 
         guard case .failure(.eventCreationFailed) = executor.perform(.arrowUp) else {
             return XCTFail("failed key-down must report failure")
+        }
+        XCTAssertEqual(phases, [true, false])
+    }
+
+    func testMediaKeyUpIsAttemptedEvenWhenKeyDownFails() {
+        var phases: [Bool] = []
+        let executor = KeysModeActionExecutor(
+            postSystemEvent: { _, isDown in
+                phases.append(isDown)
+                return !isDown
+            },
+            accessibilityTrusted: { true }
+        )
+
+        guard case .failure(.eventCreationFailed) = executor.perform(MediaTrackAction.next) else {
+            return XCTFail("failed media key-down must report failure")
         }
         XCTAssertEqual(phases, [true, false])
     }

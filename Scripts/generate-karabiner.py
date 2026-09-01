@@ -44,7 +44,6 @@ KEYS_MODE_OUTPUT_BY_PHYSICAL_CELL = {
     5: {"key_code": "up_arrow", "repeat": False},
     7: {"key_code": "right_arrow", "repeat": False},
     8: {"key_code": "spacebar", "repeat": False},
-    9: {"consumer_key_code": "scan_next_track", "repeat": False},
     11: {"key_code": "delete_or_backspace", "repeat": False},
     12: {"key_code": "return_or_enter", "repeat": False},
 }

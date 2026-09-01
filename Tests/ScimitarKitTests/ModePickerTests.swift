@@ -1097,7 +1097,7 @@ final class ModePickerTests: XCTestCase {
         XCTAssertEqual(lease.deactivateCount, 1)
     }
 
-    func testKeysModeMapsArrowsUndoMediaSpaceBackspaceAndEnterOnPressOnly() {
+    func testKeysModeMapsArrowsUndoSpaceBackspaceAndEnterOnPressOnly() {
         let hud = RecordingModeHUDPresenter()
         let coordinator = makeCoordinator(hud: hud)
         var actions: [(MouseSource, KeysModeAction)] = []
@@ -1116,7 +1116,7 @@ final class ModePickerTests: XCTestCase {
             )
         }
 
-        XCTAssertEqual(actions.map(\.0), Array(repeating: .corsair, count: 9))
+        XCTAssertEqual(actions.map(\.0), Array(repeating: .corsair, count: 8))
         XCTAssertEqual(
             actions.map(\.1),
             [
@@ -1125,7 +1125,6 @@ final class ModePickerTests: XCTestCase {
                 .arrowLeft,
                 .arrowRight,
                 .undo,
-                .nextTrack,
                 .insertSpace,
                 .pressBackspace,
                 .pressEnter,
@@ -1137,7 +1136,6 @@ final class ModePickerTests: XCTestCase {
         XCTAssertEqual(KeysModeAction.arrowRight.cell.rawValue, 7)
         XCTAssertEqual(KeysModeAction.undo.cell.rawValue, 3)
         XCTAssertEqual(KeysModeAction.undo.cell(for: .razer).printedSide(on: .razer), 1)
-        XCTAssertEqual(KeysModeAction.nextTrack.cell.rawValue, 9)
         XCTAssertEqual(KeysModeAction.insertSpace.cell.rawValue, 8)
         XCTAssertEqual(KeysModeAction.pressBackspace.cell.rawValue, 11)
         XCTAssertEqual(KeysModeAction.pressEnter.cell.rawValue, 12)
@@ -1146,7 +1144,7 @@ final class ModePickerTests: XCTestCase {
         XCTAssertEqual(ModePickerCoordinator.keysLegend[7].actionTitle, "Space")
         XCTAssertEqual(ModePickerCoordinator.keysLegend[1].actionTitle, "Spare")
         XCTAssertEqual(ModePickerCoordinator.keysLegend[2].actionTitle, "Undo")
-        XCTAssertEqual(ModePickerCoordinator.keysLegend[8].actionTitle, "Next Track")
+        XCTAssertEqual(ModePickerCoordinator.keysLegend[8].actionTitle, "Tracks + Wheel")
         XCTAssertEqual(ModePickerCoordinator.keysLegend[10].actionTitle, "Backspace")
         XCTAssertEqual(ModePickerCoordinator.keysLegend[11].actionTitle, "Enter")
         let arrowAccents = [
@@ -1160,6 +1158,39 @@ final class ModePickerTests: XCTestCase {
         XCTAssertEqual(Set(arrowAccents).count, 1)
         XCTAssertNotEqual(KeysModeAction.insertSpace.hudAccent, KeysModeAction.pressBackspace.hudAccent)
         XCTAssertNotEqual(KeysModeAction.pressBackspace.hudAccent, KeysModeAction.pressEnter.hudAccent)
+    }
+
+    func testKeysCellNineArmsTracksWheelUntilRelease() {
+        for source in MouseSource.allCases {
+            let hud = RecordingModeHUDPresenter()
+            let coordinator = makeCoordinator(hud: hud)
+            var controls: [(MouseSource, WheelChordControl?)] = []
+            var keysActions: [KeysModeAction] = []
+            coordinator.onWheelControlChange = { controls.append(($0, $1)) }
+            coordinator.onKeysInput = { _, action in keysActions.append(action); return true }
+            coordinator.enterKeys(source: source)
+
+            coordinator.handle(.init(
+                action: .select,
+                source: source,
+                physicalCell: .mediaTracksWheelControl,
+                phase: .press
+            ))
+            XCTAssertEqual(coordinator.activeWheelControl, .mediaTracks)
+            XCTAssertEqual(hud.snapshots.last?.selection?.title, "Tracks + Wheel")
+            XCTAssertTrue(keysActions.isEmpty)
+
+            coordinator.handle(.init(
+                action: .select,
+                source: source,
+                physicalCell: .mediaTracksWheelControl,
+                phase: .release
+            ))
+            XCTAssertNil(coordinator.activeWheelControl)
+            XCTAssertEqual(controls.map(\.0), [source, source])
+            XCTAssertEqual(controls.map(\.1), [.mediaTracks, nil])
+            XCTAssertTrue(keysActions.isEmpty)
+        }
     }
 
     func testTopLevelWheelChordsAreSharedWhileKeysArrowsRemainHanded() {

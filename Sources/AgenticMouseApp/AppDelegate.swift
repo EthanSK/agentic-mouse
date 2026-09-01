@@ -1359,6 +1359,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 self.scheduleSpotifyVolumeAction(action, step: step)
                 return true
             }
+            if let action = step.control.mediaTrackAction(for: step.direction) {
+                guard let coordinator = self.modePickerCoordinators[step.source],
+                      coordinator.isActive,
+                      coordinator.page == .keys,
+                      coordinator.activeWheelControl == .mediaTracks
+                else { return false }
+                self.scheduleMediaTrackAction(action, step: step)
+                return true
+            }
             if let command = step.control.vsCodeCursorHistoryCommand(for: step.direction) {
                 guard let coordinator = self.modePickerCoordinators[step.source],
                       coordinator.isActive,
@@ -1581,6 +1590,28 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     step,
                     outcome: .couldNotBeSent
                 )
+            }
+        }
+    }
+
+    private func scheduleMediaTrackAction(
+        _ action: MediaTrackAction,
+        step: WheelChordStateMachine.Step
+    ) {
+        DispatchQueue.main.async { [weak self] in
+            guard let self,
+                  self.mouseCommandsAllowed,
+                  self.wheelChordMonitor?.activeControl(for: step.source) == .mediaTracks
+            else { return }
+            switch self.keysModeActionExecutor.perform(action) {
+            case .success:
+                self.log.info(
+                    "\(action.actionTitle) ratchet \(step.detentCount) posted from "
+                        + "\(step.source.displayName) Keys wheel chord"
+                )
+                self.flashWheelActionFeedback(step)
+            case .failure:
+                self.flashWheelActionFeedback(step, outcome: .couldNotBeSent)
             }
         }
     }

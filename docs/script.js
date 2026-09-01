@@ -78,7 +78,7 @@ const LAYERS = {
       ["Keypad", "Open classic phone-keypad text entry."],
       ["Right Arrow", "Emit one native, non-repeating Right Arrow."],
       ["Space", "Emit one native Space key."],
-      ["Next Track", "Emit the native system Next Track media key."],
+      ["Tracks + Wheel", "Hold, then ratchet up for Next Track or down for Previous Track."],
       ["Exit Keys mode", "Clear the mode lease and return to Default."],
       ["Backspace", "Emit one native Delete/Backspace key."],
       ["Enter", "Emit one native, non-repeating Return."],

@@ -318,9 +318,11 @@ actions and use either their matching entry cell 2 or universal cell 10 to
 exit. The parent selector still uses cell 2 for Terminal. Top-level cell 9 and Utility cell 9
 open Keys mode. Within Keys, Corsair physical cells 5/4/7/1
 emit Up/Down/Right/Left; the left-handed Razer swaps the horizontal meanings
-of cells 1 and 7. Cell 3 emits Undo as Command-Z, cell 6 enters Keypad, cell 9 emits Next Track,
-cell 8 emits Space, cell 11 emits Backspace, and cell 12 emits Enter through non-repeating exact-device
-Karabiner output. Cell 2 is spare; the optional Keychain password moved to Utility cell 7.
+of cells 1 and 7. Cell 3 emits Undo as Command-Z, cell 6 enters Keypad, and cell 9 arms the shared
+Next/Previous Track wheel chord: physical up sends Next and physical down sends Previous through one
+native consumer-key cycle per reconstructed ratchet. Cell 8 emits Space, cell 11 emits Backspace, and
+cell 12 emits Enter through non-repeating exact-device Karabiner output. Cell 2 is spare; the optional
+Keychain password moved to Utility cell 7.
 Within Keypad, cell 1 owns the complete punctuation cycle, cells 2–9 use the
 classic phone letter groups with digit holds, cell 11 sends Space, and cell 12
 taps Backspace or holds Return. The HUD wraps long cycles rather than clipping

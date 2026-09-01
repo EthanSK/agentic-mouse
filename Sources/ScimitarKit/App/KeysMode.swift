@@ -11,7 +11,6 @@ public enum KeysModeAction: CaseIterable, Equatable, Sendable {
     case arrowLeft
     case arrowRight
     case undo
-    case nextTrack
     case insertSpace
     case pressBackspace
     case pressEnter
@@ -23,7 +22,6 @@ public enum KeysModeAction: CaseIterable, Equatable, Sendable {
         case .arrowLeft: return PhysicalCell(rawValue: 1)!
         case .arrowRight: return PhysicalCell(rawValue: 7)!
         case .undo: return PhysicalCell(rawValue: 3)!
-        case .nextTrack: return PhysicalCell(rawValue: 9)!
         case .insertSpace: return PhysicalCell(rawValue: 8)!
         case .pressBackspace: return PhysicalCell(rawValue: 11)!
         case .pressEnter: return PhysicalCell(rawValue: 12)!
@@ -46,7 +44,6 @@ public enum KeysModeAction: CaseIterable, Equatable, Sendable {
         case .arrowLeft: return "Left Arrow"
         case .arrowRight: return "Right Arrow"
         case .undo: return "Undo"
-        case .nextTrack: return "Next Track"
         case .insertSpace: return "Space"
         case .pressBackspace: return "Backspace"
         case .pressEnter: return "Enter"
@@ -61,8 +58,6 @@ public enum KeysModeAction: CaseIterable, Equatable, Sendable {
             return ModeHUDActionFamilyPalette.arrowKeys
         case .undo:
             return ModeHUDActionFamilyPalette.historyNavigation
-        case .nextTrack:
-            return ModeHUDActionFamilyPalette.media
         case .insertSpace:
             return ModeHUDActionFamilyPalette.space
         case .pressBackspace:

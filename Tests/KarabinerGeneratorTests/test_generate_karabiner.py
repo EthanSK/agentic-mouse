@@ -126,7 +126,7 @@ class KarabinerGeneratorTests(unittest.TestCase):
             item for item in generated["rules"]
             if item["description"] == "Agentic Mouse — Modes (expiring, exact-device)"
         )
-        self.assertEqual(len(rule["manipulators"]), 66)
+        self.assertEqual(len(rule["manipulators"]), 64)
         actions = []
         legend_toggles = []
         for manipulator in rule["manipulators"]:
@@ -182,7 +182,7 @@ class KarabinerGeneratorTests(unittest.TestCase):
 
         self.assertEqual(actions[:2], ["close", "close"])
         self.assertEqual(actions.count("select"), 38)
-        self.assertEqual(actions.count("selectNative"), 22)
+        self.assertEqual(actions.count("selectNative"), 20)
         self.assertEqual(actions[-2:], ["open", "open"])
         self.assertEqual(
             {(item["source"], item["physical_cell"]) for item in legend_toggles},
@@ -349,7 +349,6 @@ class KarabinerGeneratorTests(unittest.TestCase):
                 "keypad_5": {"key_code": "up_arrow"},
                 "keypad_7": {"key_code": "right_arrow"},
                 "keypad_8": {"key_code": "spacebar"},
-                "keypad_9": {"consumer_key_code": "scan_next_track"},
                 "keypad_hyphen": {"key_code": "delete_or_backspace"},
                 "keypad_plus": {"key_code": "return_or_enter"},
             },
@@ -360,7 +359,6 @@ class KarabinerGeneratorTests(unittest.TestCase):
                 "5": {"key_code": "up_arrow"},
                 "9": {"key_code": "left_arrow"},
                 "8": {"key_code": "spacebar"},
-                "7": {"consumer_key_code": "scan_next_track"},
                 "hyphen": {"key_code": "delete_or_backspace"},
                 "0": {"key_code": "return_or_enter"},
             },
@@ -400,6 +398,32 @@ class KarabinerGeneratorTests(unittest.TestCase):
                     },
                     native["conditions"],
                 )
+
+        for source_name, transport in {"corsair": "keypad_9", "razer": "7"}.items():
+            page_variable = page_variables[source_name]
+            tracks_wheel = next(
+                manipulator
+                for manipulator in rule["manipulators"]
+                if manipulator.get("from", {}).get("key_code") == transport
+                and any(
+                    event.get("send_user_command", {}).get("payload", {}).get("action")
+                    == "select"
+                    and event["send_user_command"]["payload"]["physical_cell"] == 9
+                    for event in manipulator.get("to", [])
+                )
+                and {
+                    "type": "expression_unless",
+                    "expression": f"{page_variable} == 1",
+                }
+                in manipulator.get("conditions", [])
+            )
+            self.assertFalse(
+                any("consumer_key_code" in event for event in tracks_wheel["to"]),
+                "Keys cell 9 must arm the wheel without skipping a track on press",
+            )
+            release = tracks_wheel["to_after_key_up"][0]["send_user_command"]["payload"]
+            self.assertEqual(release["physical_cell"], 9)
+            self.assertEqual(release["phase"], "release")
 
         for source_name, transports in {
             "corsair": ("keypad_3", "keypad_6"),

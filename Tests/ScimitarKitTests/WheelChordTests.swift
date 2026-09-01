@@ -662,6 +662,9 @@ final class WheelChordTests: XCTestCase {
             )
         )
         XCTAssertNil(WheelChordControl.zoom.spotifyVolumeAction(for: .up))
+        XCTAssertEqual(WheelChordControl.mediaTracks.mediaTrackAction(for: .down), .next)
+        XCTAssertEqual(WheelChordControl.mediaTracks.mediaTrackAction(for: .up), .previous)
+        XCTAssertNil(WheelChordControl.zoom.mediaTrackAction(for: .up))
         XCTAssertEqual(WheelChordDirection.up.horizontalWheelDelta, -1)
         XCTAssertEqual(WheelChordDirection.down.horizontalWheelDelta, 1)
     }
@@ -690,6 +693,8 @@ final class WheelChordTests: XCTestCase {
             (.chromeTabs, .down, "Next Tab"),
             (.spotifyVolume, .up, "Volume up"),
             (.spotifyVolume, .down, "Volume down"),
+            (.mediaTracks, .up, "Previous Track"),
+            (.mediaTracks, .down, "Next Track"),
             (.vsCodeCursorHistory, .up, "Cursor History Forward"),
             (.vsCodeCursorHistory, .down, "Cursor History Back"),
         ]
@@ -763,6 +768,7 @@ final class WheelChordTests: XCTestCase {
         XCTAssertNil(WheelChordControl.magnetWindow.topLevelCell)
         XCTAssertNil(WheelChordControl.chromeTabs.topLevelCell)
         XCTAssertNil(WheelChordControl.spotifyVolume.topLevelCell)
+        XCTAssertNil(WheelChordControl.mediaTracks.topLevelCell)
         XCTAssertNil(WheelChordControl.vsCodeCursorHistory.topLevelCell)
         XCTAssertEqual(WheelChordControl.topLevelControl(for: PhysicalCell(rawValue: 1)!), .horizontalScroll)
         XCTAssertEqual(WheelChordControl.topLevelControl(for: PhysicalCell(rawValue: 4)!), .clipboard)
@@ -774,6 +780,30 @@ final class WheelChordTests: XCTestCase {
         XCTAssertNil(WheelChordControl.spaces.topLevelSystemAction(for: .up))
         XCTAssertNil(WheelChordControl.brightness.topLevelSystemAction(for: .up))
         XCTAssertNil(WheelChordControl.horizontalScroll.topLevelSystemAction(for: .up))
+    }
+
+    func testKeysTracksWheelUsesCellNineAndFixedRatchetDebounce() {
+        let cell = PhysicalCell.mediaTracksWheelControl
+
+        XCTAssertEqual(WheelChordControl.keysControl(for: cell), .mediaTracks)
+        XCTAssertNil(WheelChordControl.keysControl(for: PhysicalCell(rawValue: 8)!))
+        XCTAssertEqual(WheelChordControl.mediaTracks.diagnosticCell, cell)
+        XCTAssertEqual(WheelChordControl.mediaTracks.dispatchPolicy, .debounced(minimumInterval: 0.08))
+
+        let clock = ManualClock(now: 10)
+        let state = WheelChordStateMachine(clock: clock)
+        state.setActive(.mediaTracks, for: .corsair)
+        guard case .consume(let first) = state.route(verticalDelta: -1, isContinuous: false),
+              case .consumeDebounced = state.route(verticalDelta: -1, isContinuous: false)
+        else { return XCTFail("one media ratchet should dispatch once") }
+        XCTAssertEqual(first.direction, .down)
+
+        clock.advance(by: 0.081)
+        guard case .consume(let nextRatchet) = state.route(verticalDelta: -1, isContinuous: false),
+              case .consume(let reversed) = state.route(verticalDelta: 1, isContinuous: false)
+        else { return XCTFail("a later ratchet and immediate reversal should dispatch") }
+        XCTAssertEqual(nextRatchet.direction, .down)
+        XCTAssertEqual(reversed.direction, .up)
     }
 
     func testChromeTabsAndCodexReasoningUseTheirOwnDefinitionsOnSharedCellFour() {

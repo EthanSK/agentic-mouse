@@ -82,7 +82,7 @@ iCUE database or profile file behind the app's back.
    without a separate in-mode legend toggle. Confirm Utility cards have no
    explanatory subtitle beneath any action title.
 7. Enter Keys with physical cell 9 and prove Keypad entry on physical cell 6,
-   Undo on cell 3, Space on cell 8, Next Track on cell 9, one Backspace on cell 11, and
+   Undo on cell 3, Space on cell 8, hold cell 9 and prove one Next Track per wheel-up ratchet plus one Previous Track per wheel-down ratchet, one Backspace on cell 11, and
    Enter on cell 12, with cell 2 remaining spare,
    with no repeat or raw transport leakage. Prove Corsair cells 5/4/7/1 are
    Up/Down/Right/Left while the Razer mirrors the horizontal gestures, then use

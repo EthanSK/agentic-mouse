@@ -198,5 +198,5 @@ cell 8 to non-repeating F13 Next Change. Top-level cell 6 remains the global
 source-specific YouTube scrub action. Matching exclusions preserve Forward/Back
 everywhere else without duplicating other controls. Top-level cell 2 opens the
 frontmost app's mode and top-level cell 9 opens Keys. In Keys, cell 3 emits
-Undo as Command-Z, cell 6 enters Keypad, and cell 9 emits Next Track; the Razer swaps the horizontal-arrow
+Undo as Command-Z, cell 6 enters Keypad, and cell 9 holds the Next/Previous Track wheel chord; the Razer swaps the horizontal-arrow
 meanings of physical cells 1 and 7 for its left-handed layout.

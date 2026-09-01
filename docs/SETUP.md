@@ -125,7 +125,7 @@ The things worth confirming:
   **10** toggles the Default
   legend outside modes, **11** holds open Switch App, and **12** opens Utility;
 - while any runtime mode is active, **10** exits it;
-- inside Keys, **3** = Undo, **6** = Keypad, **9** = Next Track, **8** = Space,
+- inside Keys, **3** = Undo, **6** = Keypad, hold **9** and ratchet up/down for Next/Previous Track, **8** = Space,
   **11** = Backspace, and **12** = Enter; **2** is spare;
 - inside Utility, hold **3** and ratchet the wheel for Paste/Copy, hold **4**
   for Mission Control/Show Desktop, hold **5** and ratchet down for App Exposé,

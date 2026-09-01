@@ -474,6 +474,19 @@ public final class ModePickerCoordinator {
                 recordSelection(cell: cell)
             }
         case .keys:
+            if let control = WheelChordControl.keysControl(for: cell) {
+                switch phase {
+                case .press:
+                    activeWheelControl = control
+                    onWheelControlChange?(source, control)
+                    recordSelection(cell: cell)
+                    log.info("\(control.actionTitle) wheel control held on \(source.displayName)")
+                case .release:
+                    guard activeWheelControl == control else { return }
+                    clearWheelControl()
+                }
+                return
+            }
             guard phase == .press else { return }
             if cell == .keypadModeSelector {
                 guard onKeypadModeRequested?(source) == true else {
@@ -669,6 +682,14 @@ public final class ModePickerCoordinator {
 
     public static func keysLegend(for source: MouseSource) -> [ModeHUDLegendItem] {
         PhysicalCell.all.map { cell in
+            if let control = WheelChordControl.keysControl(for: cell) {
+                return ModeHUDLegendItem(
+                    cell: cell,
+                    actionTitle: "\(control.actionTitle) + Wheel",
+                    accent: control.hudAccent,
+                    controlStatus: control.hudControlStatus
+                )
+            }
             if cell == .keypadModeSelector {
                 return ModeHUDLegendItem(
                     cell: cell,

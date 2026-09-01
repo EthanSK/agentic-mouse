@@ -35,7 +35,7 @@ unaccepted until that mouse is reconnected and tested.
 
 Button 6 rewinds the selected YouTube target by five seconds on a plain click without focusing Chrome; any wheel input during the hold keeps the existing scrub gesture and suppresses that click action. Button 2 opens the current
 frontmost app's mode, and button 9 opens shared Keys mode.
-Inside Keys, cell 3 sends Undo, cell 6 enters Keypad, and cell 9 owns Next Track.
+Inside Keys, cell 3 sends Undo, cell 6 enters Keypad, and holding cell 9 maps wheel up/down to Next/Previous Track.
 Normal behavior
 stays normal unless a mode is deliberately entered or the two approved VS Code
 overrides apply to physical cells 5 and 8.

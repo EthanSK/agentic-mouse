@@ -15,6 +15,7 @@ public enum WheelChordControl: String, Codable, CaseIterable, Sendable {
     case applicationWindows
     case magnetWindow
     case spaces
+    case mediaTracks
     case chromeTabs
     case spotifyVolume
     case vsCodeCursorHistory
@@ -32,6 +33,7 @@ public enum WheelChordControl: String, Codable, CaseIterable, Sendable {
         case .applicationWindows: return "App Exposé"
         case .magnetWindow: return "Magnet"
         case .spaces: return "Spaces"
+        case .mediaTracks: return "Tracks"
         case .chromeTabs: return "Tabs"
         case .spotifyVolume: return "Volume"
         case .vsCodeCursorHistory: return "Cursor History"
@@ -51,6 +53,7 @@ public enum WheelChordControl: String, Codable, CaseIterable, Sendable {
         case .applicationWindows: return ModeHUDActionFamilyPalette.windowManagement
         case .magnetWindow: return ModeHUDActionFamilyPalette.windowManagement
         case .spaces: return ModeHUDActionFamilyPalette.desktopSpaces
+        case .mediaTracks: return ModeHUDActionFamilyPalette.media
         case .chromeTabs: return ModeHUDActionFamilyPalette.browserTabs
         case .spotifyVolume: return ModeHUDActionFamilyPalette.media
         case .vsCodeCursorHistory: return ModeHUDActionFamilyPalette.historyNavigation
@@ -76,7 +79,7 @@ public enum WheelChordControl: String, Codable, CaseIterable, Sendable {
         case .systemOverview: return .systemOverviewWheelControl
         case .applicationWindows: return .applicationWindowsWheelControl
         case .magnetWindow: return .magnetWheelControl
-        case .clipboard, .horizontalScroll, .youtubeScrub, .chromeTabs, .spotifyVolume,
+        case .clipboard, .horizontalScroll, .youtubeScrub, .mediaTracks, .chromeTabs, .spotifyVolume,
              .vsCodeCursorHistory, .codexReasoningEffort, .codexChatHistory: return nil
         }
     }
@@ -93,13 +96,17 @@ public enum WheelChordControl: String, Codable, CaseIterable, Sendable {
         case .horizontalScroll: return .horizontalScrollWheelControl
         case .youtubeScrub: return .youtubeScrubWheelControl
         case .brightness, .zoom, .spaces, .systemOverview, .applicationWindows,
-             .magnetWindow, .chromeTabs, .spotifyVolume,
+             .magnetWindow, .mediaTracks, .chromeTabs, .spotifyVolume,
              .vsCodeCursorHistory, .codexReasoningEffort, .codexChatHistory: return nil
         }
     }
 
     public static func topLevelControl(for cell: PhysicalCell) -> WheelChordControl? {
         allCases.first { $0.topLevelCell == cell }
+    }
+
+    public static func keysControl(for cell: PhysicalCell) -> WheelChordControl? {
+        cell == .mediaTracksWheelControl ? .mediaTracks : nil
     }
 
     /// Stateful app controls resolve through the same canonical cell in both
@@ -139,6 +146,8 @@ public enum WheelChordControl: String, Codable, CaseIterable, Sendable {
             return PhysicalCell(rawValue: 4)!
         case .codexChatHistory:
             return PhysicalCell(rawValue: 11)!
+        case .mediaTracks:
+            return .mediaTracksWheelControl
         default:
             return topLevelCell ?? utilityCell!
         }
@@ -171,7 +180,7 @@ public enum WheelChordControl: String, Codable, CaseIterable, Sendable {
         case (.magnetWindow, .down): return .moveWindowRightWithMagnet
         case (.spaces, .up): return .moveToSpaceRight
         case (.spaces, .down): return .moveToSpaceLeft
-        case (.horizontalScroll, _), (.youtubeScrub, _), (.chromeTabs, _), (.spotifyVolume, _),
+        case (.horizontalScroll, _), (.youtubeScrub, _), (.mediaTracks, _), (.chromeTabs, _), (.spotifyVolume, _),
              (.vsCodeCursorHistory, _), (.codexReasoningEffort, _),
              (.codexChatHistory, _): return nil
         }
@@ -201,6 +210,11 @@ public enum WheelChordControl: String, Codable, CaseIterable, Sendable {
     ) -> StandardAppModeAction? {
         guard self == .spotifyVolume else { return nil }
         return StandardAppMode.spotifyVolumeAction(for: direction)
+    }
+
+    public func mediaTrackAction(for direction: WheelChordDirection) -> MediaTrackAction? {
+        guard self == .mediaTracks else { return nil }
+        return direction == .down ? .next : .previous // `WheelChordDirection` is the normalized Quartz sign: both accepted mice deliver a physical upward ratchet as `.down`, so keep the requested physical up = Next mapping local to media tracks. (Codex task: 01a039f7-873c-7c30-b3dc-af8a6724ace5)
     }
 
     public func vsCodeCursorHistoryCommand(
@@ -251,6 +265,8 @@ public enum WheelChordControl: String, Codable, CaseIterable, Sendable {
             return chromeTabAction(for: direction) == .nextTab ? "Next Tab" : "Previous Tab"
         case .spotifyVolume:
             return spotifyVolumeAction(for: direction)?.title
+        case .mediaTracks:
+            return mediaTrackAction(for: direction)?.actionTitle
         case .vsCodeCursorHistory:
             return vsCodeCursorHistoryCommand(for: direction) == .navigateForward
                 ? "Cursor History Forward"
@@ -303,7 +319,7 @@ public enum WheelChordControl: String, Codable, CaseIterable, Sendable {
             return .oncePerHold
         case .clipboard:
             return .debounced(minimumInterval: 0.12)
-        case .horizontalScroll, .youtubeScrub, .chromeTabs, .spotifyVolume, .codexChatHistory:
+        case .horizontalScroll, .youtubeScrub, .mediaTracks, .chromeTabs, .spotifyVolume, .codexChatHistory:
             // Chats Selection deliberately uses this fixed leading-edge window:
             // collapse one detent's duplicate raw events, but do not let those
             // duplicates extend a quiet gap and swallow later ratchets.
@@ -316,6 +332,18 @@ public enum WheelChordControl: String, Codable, CaseIterable, Sendable {
             return .coalescedRatchet(quietGap: 0.15)
         case .magnetWindow:
             return .debounced(minimumInterval: 0.15)
+        }
+    }
+}
+
+public enum MediaTrackAction: Equatable, Sendable {
+    case next
+    case previous
+
+    public var actionTitle: String {
+        switch self {
+        case .next: return "Next Track"
+        case .previous: return "Previous Track"
         }
     }
 }
