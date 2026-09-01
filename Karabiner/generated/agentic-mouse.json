@@ -1526,7 +1526,32 @@
           },
           "to": [
             {
-              "pointing_button": "button5",
+              "send_user_command": {
+                "payload": {
+                  "command": "agentic_mouse_youtube_volume_modifier",
+                  "source": "corsair",
+                  "phase": "press"
+                }
+              },
+              "repeat": false,
+              "conditions": [
+                {
+                  "type": "expression_if",
+                  "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+                }
+              ]
+            }
+          ],
+          "to_after_key_up": [
+            {
+              "send_user_command": {
+                "payload": {
+                  "command": "agentic_mouse_youtube_volume_modifier",
+                  "source": "corsair",
+                  "phase": "release"
+                }
+              },
+              "repeat": false,
               "conditions": [
                 {
                   "type": "expression_if",
@@ -2556,7 +2581,32 @@
           },
           "to": [
             {
-              "pointing_button": "button5",
+              "send_user_command": {
+                "payload": {
+                  "command": "agentic_mouse_youtube_volume_modifier",
+                  "source": "razer",
+                  "phase": "press"
+                }
+              },
+              "repeat": false,
+              "conditions": [
+                {
+                  "type": "expression_if",
+                  "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+                }
+              ]
+            }
+          ],
+          "to_after_key_up": [
+            {
+              "send_user_command": {
+                "payload": {
+                  "command": "agentic_mouse_youtube_volume_modifier",
+                  "source": "razer",
+                  "phase": "release"
+                }
+              },
+              "repeat": false,
               "conditions": [
                 {
                   "type": "expression_if",

@@ -83,7 +83,11 @@ public struct ScimitarNormalMapping: Equatable, Sendable {
                 action: "Copy / Paste + Wheel",
                 implementation: "Hold the exact-device cell; Agentic Mouse sends Paste or Copy for each accepted ratchet"
             ),
-            Assignment(button: 5, action: "Forward"),
+            Assignment(
+                button: 5,
+                action: "Forward · Hold + 6 for Volume",
+                implementation: "Release without a cell-6 volume ratchet to send ordinary Forward; a same-source 6+5 wheel hold adjusts YouTube volume instead"
+            ),
             Assignment(
                 button: 6,
                 action: "YouTube Scrub + Wheel",

@@ -53,8 +53,13 @@ struct ModeUtilityActionExecutor {
         Notification.Name("com.ethansk.agenticmouse.youtube.seekBackwardFiveSeconds")
     static let youtubeSeekForwardFiveSecondsNotification =
         Notification.Name("com.ethansk.agenticmouse.youtube.seekForwardFiveSeconds")
+    static let youtubeVolumeDecreaseFivePercentNotification =
+        Notification.Name("com.ethansk.agenticmouse.youtube.volumeDecreaseFivePercent")
+    static let youtubeVolumeIncreaseFivePercentNotification =
+        Notification.Name("com.ethansk.agenticmouse.youtube.volumeIncreaseFivePercent")
 
     typealias YouTubeNotifier = @MainActor (_ action: YouTubeSeekAction) -> Bool
+    typealias YouTubeVolumeNotifier = @MainActor (_ action: YouTubeVolumeAction) -> Bool
     typealias KeyboardChordPoster = @MainActor (
         _ events: [SyntheticKeyboardChordPoster.Event]
     ) -> Bool
@@ -77,6 +82,7 @@ struct ModeUtilityActionExecutor {
     private let magnet: MagnetWindowActionExecutor
     private let systemOverview: SystemOverviewActionExecutor
     private let notifyYouTube: YouTubeNotifier
+    private let notifyYouTubeVolume: YouTubeVolumeNotifier
     private let postKeyboardChord: KeyboardChordPoster
     private let accessibilityTrusted: AccessibilityTrustProvider
     private let inputAllowed: InputAllowedProvider
@@ -91,6 +97,7 @@ struct ModeUtilityActionExecutor {
         magnet: MagnetWindowActionExecutor? = nil,
         systemOverview: SystemOverviewActionExecutor? = nil,
         notifyYouTube: YouTubeNotifier? = nil,
+        notifyYouTubeVolume: YouTubeVolumeNotifier? = nil,
         postKeyboardChord: @escaping KeyboardChordPoster = SyntheticKeyboardChordPoster.shared.post,
         accessibilityTrusted: @escaping AccessibilityTrustProvider = AXIsProcessTrusted,
         inputAllowed: @escaping InputAllowedProvider = { true },
@@ -109,6 +116,7 @@ struct ModeUtilityActionExecutor {
         )
         self.systemOverview = systemOverview ?? SystemOverviewActionExecutor()
         self.notifyYouTube = notifyYouTube ?? Self.postYouTubeNotification
+        self.notifyYouTubeVolume = notifyYouTubeVolume ?? Self.postYouTubeVolumeNotification
         self.postKeyboardChord = postKeyboardChord
         self.accessibilityTrusted = accessibilityTrusted
         self.inputAllowed = inputAllowed
@@ -262,10 +270,31 @@ struct ModeUtilityActionExecutor {
             : .failure(.youtubeBridgeNotificationFailed)
     }
 
+    func performYouTubeVolume(
+        _ action: YouTubeVolumeAction
+    ) -> Result<Void, ModeUtilityActionError> {
+        notifyYouTubeVolume(action)
+            ? .success(())
+            : .failure(.youtubeBridgeNotificationFailed)
+    }
+
     private static func postYouTubeNotification(_ action: YouTubeSeekAction) -> Bool {
         let notification = action == .forwardFiveSeconds
             ? youtubeSeekForwardFiveSecondsNotification
             : youtubeSeekBackwardFiveSecondsNotification
+        DistributedNotificationCenter.default().postNotificationName(
+            notification,
+            object: nil,
+            userInfo: nil,
+            deliverImmediately: true
+        )
+        return true
+    }
+
+    private static func postYouTubeVolumeNotification(_ action: YouTubeVolumeAction) -> Bool {
+        let notification = action == .increaseFivePercent
+            ? youtubeVolumeIncreaseFivePercentNotification
+            : youtubeVolumeDecreaseFivePercentNotification
         DistributedNotificationCenter.default().postNotificationName(
             notification,
             object: nil,

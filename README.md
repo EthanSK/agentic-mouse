@@ -46,7 +46,7 @@ These are the currently authoritative Corsair assignments:
 | Button 2 | Open the current frontmost app mode | Same global action |
 | Button 3 | Screenshot; rapid double-press pastes the last saved result | Same global action |
 | Button 4 | Hold + wheel for Copy / Paste | Same global action |
-| Button 5 | Forward | Previous Change through F17 |
+| Button 5 | Forward; hold with button 6 + wheel for YouTube volume ±5% | Previous Change through F17 |
 | Button 6 | Click to rewind YouTube 5 sec; hold + wheel to scrub ±5 sec per ratchet through the VoiceInk bridge | Same global action |
 | Button 7 | Enter | Enter |
 | Button 8 | Back | Next Change through F13 |
@@ -63,8 +63,8 @@ Copy / Paste. Each accepted cell-1 horizontal detent emits four horizontal
 line units by default; set
 `input.horizontalScrollLinesPerRatchet` from 1 through 12 to tune the travel
 without weakening the fixed duplicate-ratchet filter. Click button 6 without moving the wheel to rewind the selected
-YouTube target five seconds. Hold it and ratchet up to move forward five seconds or down to move backward five seconds without focusing Chrome; button 2 opens the current
-frontmost app mode, and button 9 opens shared Keys mode. On the left-handed Razer, YouTube Scrub + Wheel is printed 4, Keys is printed
+YouTube target five seconds. Hold it and ratchet up to move forward five seconds or down to move backward five seconds without focusing Chrome. Hold buttons 6 and 5 together, then ratchet up to raise or down to lower the currently playing YouTube video's volume by five percentage points. A used volume chord suppresses both Forward and the click-to-rewind action; releasing either unused button keeps its ordinary action. Button 2 opens the current
+frontmost app mode, and button 9 opens shared Keys mode. On the left-handed Razer, YouTube Scrub / Volume + Wheel is printed 4 while the Forward modifier remains printed 5, Keys is printed
 7, and Enter is printed 9. Switch App uses shared physical cell 11. Cell 10 toggles that
 source mouse's independent Default legend outside modes and exits any active
 mode. Cell 12 opens Utility immediately.

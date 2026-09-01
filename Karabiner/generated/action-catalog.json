@@ -253,6 +253,70 @@
       }
     },
     {
+      "id": "hold-youtube-volume-modifier-corsair",
+      "title": "Forward / YouTube Volume modifier (Corsair)",
+      "description": "Track Corsair physical cell 5 until release so Agentic Mouse can suppress Forward only after a 6+5 YouTube volume ratchet.",
+      "source": "productivity/hold-youtube-volume-modifier-corsair.jsonc",
+      "manipulator": {
+        "to": [
+          {
+            "send_user_command": {
+              "payload": {
+                "command": "agentic_mouse_youtube_volume_modifier",
+                "source": "corsair",
+                "phase": "press"
+              }
+            },
+            "repeat": false
+          }
+        ],
+        "to_after_key_up": [
+          {
+            "send_user_command": {
+              "payload": {
+                "command": "agentic_mouse_youtube_volume_modifier",
+                "source": "corsair",
+                "phase": "release"
+              }
+            },
+            "repeat": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "hold-youtube-volume-modifier-razer",
+      "title": "Forward / YouTube Volume modifier (Razer)",
+      "description": "Track Razer physical cell 5 until release so Agentic Mouse can suppress Forward only after a 6+5 YouTube volume ratchet.",
+      "source": "productivity/hold-youtube-volume-modifier-razer.jsonc",
+      "manipulator": {
+        "to": [
+          {
+            "send_user_command": {
+              "payload": {
+                "command": "agentic_mouse_youtube_volume_modifier",
+                "source": "razer",
+                "phase": "press"
+              }
+            },
+            "repeat": false
+          }
+        ],
+        "to_after_key_up": [
+          {
+            "send_user_command": {
+              "payload": {
+                "command": "agentic_mouse_youtube_volume_modifier",
+                "source": "razer",
+                "phase": "release"
+              }
+            },
+            "repeat": false
+          }
+        ]
+      }
+    },
+    {
       "id": "open-app-specific-mode-corsair",
       "title": "Open app-specific mode (Corsair)",
       "description": "Send one exact-device Corsair app-specific mode request to Agentic Mouse.",

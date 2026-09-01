@@ -151,6 +151,102 @@ final class WheelChordTests: XCTestCase {
         )
     }
 
+    func testSameSourceYouTubeScrubAndForwardHoldRoutesVolumeInEitherPressOrder() {
+        for source in MouseSource.allCases {
+            for modifierFirst in [false, true] {
+                let state = WheelChordStateMachine()
+                if modifierFirst {
+                    XCTAssertNil(state.setYouTubeVolumeModifierActive(true, for: source))
+                    state.setActive(.youtubeScrub, for: source)
+                } else {
+                    state.setActive(.youtubeScrub, for: source)
+                    XCTAssertNil(state.setYouTubeVolumeModifierActive(true, for: source))
+                }
+
+                XCTAssertEqual(state.soleActiveChord?.control, .youtubeVolume)
+                XCTAssertEqual(
+                    state.route(verticalDelta: -1, isContinuous: false),
+                    .consume(.init(
+                        source: source,
+                        control: .youtubeVolume,
+                        direction: .down,
+                        detentCount: 1
+                    ))
+                )
+                XCTAssertEqual(
+                    state.setYouTubeVolumeModifierActive(false, for: source),
+                    .init(source: source, didUseVolumeWheel: true)
+                )
+                XCTAssertEqual(
+                    state.release(.youtubeScrub, for: source)?.didObserveWheelInput,
+                    true
+                )
+            }
+        }
+    }
+
+    func testUnusedForwardModifierAndYouTubeScrubKeepTheirIndividualReleaseActions() {
+        for releaseScrubFirst in [false, true] {
+            let state = WheelChordStateMachine()
+            state.setActive(.youtubeScrub, for: .corsair)
+            XCTAssertNil(state.setYouTubeVolumeModifierActive(true, for: .corsair))
+
+            if releaseScrubFirst {
+                XCTAssertEqual(
+                    state.release(.youtubeScrub, for: .corsair),
+                    .init(source: .corsair, control: .youtubeScrub, didObserveWheelInput: false)
+                )
+                XCTAssertTrue(state.isYouTubeVolumeModifierActive(for: .corsair))
+                XCTAssertEqual(
+                    state.setYouTubeVolumeModifierActive(false, for: .corsair),
+                    .init(source: .corsair, didUseVolumeWheel: false)
+                )
+            } else {
+                XCTAssertEqual(
+                    state.setYouTubeVolumeModifierActive(false, for: .corsair),
+                    .init(source: .corsair, didUseVolumeWheel: false)
+                )
+                XCTAssertEqual(
+                    state.release(.youtubeScrub, for: .corsair),
+                    .init(source: .corsair, control: .youtubeScrub, didObserveWheelInput: false)
+                )
+            }
+        }
+    }
+
+    func testForwardModifierAloneDoesNotOwnTheWheelAndDifferentMiceDoNotCombine() {
+        let state = WheelChordStateMachine()
+        XCTAssertNil(state.setYouTubeVolumeModifierActive(true, for: .corsair))
+        XCTAssertEqual(state.route(verticalDelta: -1, isContinuous: false), .passThrough)
+        XCTAssertEqual(
+            state.setYouTubeVolumeModifierActive(false, for: .corsair),
+            .init(source: .corsair, didUseVolumeWheel: false)
+        )
+
+        state.setActive(.youtubeScrub, for: .razer)
+        XCTAssertNil(state.setYouTubeVolumeModifierActive(true, for: .corsair))
+        guard case .consume(let step) = state.route(verticalDelta: -1, isContinuous: false) else {
+            return XCTFail("different mice must not form a YouTube volume chord")
+        }
+        XCTAssertEqual(step.control, .youtubeScrub)
+        XCTAssertEqual(
+            state.setYouTubeVolumeModifierActive(false, for: .corsair),
+            .init(source: .corsair, didUseVolumeWheel: false)
+        )
+    }
+
+    func testClearingADeviceDropsBothYouTubeHoldStatesWithoutSyntheticReleases() {
+        let state = WheelChordStateMachine()
+        state.setActive(.youtubeScrub, for: .razer)
+        XCTAssertNil(state.setYouTubeVolumeModifierActive(true, for: .razer))
+
+        state.clear(source: .razer)
+
+        XCTAssertNil(state.release(.youtubeScrub, for: .razer))
+        XCTAssertNil(state.setYouTubeVolumeModifierActive(false, for: .razer))
+        XCTAssertFalse(state.isYouTubeVolumeModifierActive(for: .razer))
+    }
+
     func testPassedThroughAndAmbiguousWheelInputAlsoSuppressYouTubeClick() {
         let state = WheelChordStateMachine()
         state.setActive(.youtubeScrub, for: .razer)
@@ -639,6 +735,17 @@ final class WheelChordTests: XCTestCase {
         XCTAssertNil(WheelChordControl.zoom.youtubeSeekAction(for: .up))
         XCTAssertEqual(YouTubeSeekAction.forwardFiveSeconds.seconds, 5)
         XCTAssertEqual(YouTubeSeekAction.backwardFiveSeconds.seconds, -5)
+        XCTAssertEqual(
+            WheelChordControl.youtubeVolume.youtubeVolumeAction(for: .down),
+            .increaseFivePercent
+        )
+        XCTAssertEqual(
+            WheelChordControl.youtubeVolume.youtubeVolumeAction(for: .up),
+            .decreaseFivePercent
+        )
+        XCTAssertEqual(YouTubeVolumeAction.increaseFivePercent.percentagePoints, 5)
+        XCTAssertEqual(YouTubeVolumeAction.decreaseFivePercent.percentagePoints, -5)
+        XCTAssertNil(WheelChordControl.youtubeScrub.youtubeVolumeAction(for: .down))
         XCTAssertNil(WheelChordControl.chromeTabs.utilityAction(for: .up))
         XCTAssertEqual(WheelChordControl.chromeTabs.chromeTabAction(for: .up), .previousTab)
         XCTAssertEqual(WheelChordControl.chromeTabs.chromeTabAction(for: .down), .nextTab)
@@ -675,6 +782,8 @@ final class WheelChordTests: XCTestCase {
             (.horizontalScroll, .down, "Scroll Left"),
             (.youtubeScrub, .up, "YouTube −5 sec"),
             (.youtubeScrub, .down, "YouTube +5 sec"),
+            (.youtubeVolume, .up, "YouTube Volume −5%"),
+            (.youtubeVolume, .down, "YouTube Volume +5%"),
             (.brightness, .up, "Brightness Down"),
             (.brightness, .down, "Brightness Up"),
             (.zoom, .up, "Zoom In"),

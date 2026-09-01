@@ -16,6 +16,10 @@ import ScimitarKit
 final class ScrollWheelChordMonitor {
     typealias StepHandler = (WheelChordStateMachine.Step) -> Bool
     typealias ReleaseHandler = (WheelChordStateMachine.Release) -> Void
+    typealias YouTubeVolumeModifierReleaseHandler = (
+        WheelChordStateMachine.YouTubeVolumeModifierRelease
+    ) -> Void
+    typealias YouTubeVolumeModifierChangeHandler = (_ source: MouseSource) -> Void
     typealias ProblemHandler = (String) -> Void
     typealias DiagnosticHandler = (_ source: MouseSource, _ message: String) -> Void
     typealias InputAllowed = () -> Bool
@@ -29,6 +33,8 @@ final class ScrollWheelChordMonitor {
 
     var onStep: StepHandler?
     var onRelease: ReleaseHandler?
+    var onYouTubeVolumeModifierRelease: YouTubeVolumeModifierReleaseHandler?
+    var onYouTubeVolumeModifierChange: YouTubeVolumeModifierChangeHandler?
     var onProblem: ProblemHandler?
     var onDiagnostic: DiagnosticHandler?
 
@@ -130,6 +136,17 @@ final class ScrollWheelChordMonitor {
         }
     }
 
+    func handle(_ command: YouTubeVolumeModifierCommand) {
+        let release = state.setYouTubeVolumeModifierActive(
+            command.phase == .press,
+            for: command.source
+        )
+        onYouTubeVolumeModifierChange?(command.source)
+        if let release {
+            onYouTubeVolumeModifierRelease?(release)
+        }
+    }
+
     private func finishHold(
         _ expectedControl: WheelChordControl? = nil,
         for source: MouseSource
@@ -152,6 +169,10 @@ final class ScrollWheelChordMonitor {
 
     func activeControl(for source: MouseSource) -> WheelChordControl? {
         state.activeControl(for: source)
+    }
+
+    func isYouTubeVolumeModifierActive(for source: MouseSource) -> Bool {
+        state.isYouTubeVolumeModifierActive(for: source)
     }
 
     private func handle(type: CGEventType, event: CGEvent) -> Unmanaged<CGEvent>? {

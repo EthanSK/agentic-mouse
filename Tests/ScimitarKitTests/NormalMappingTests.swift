@@ -38,7 +38,14 @@ final class NormalMappingTests: XCTestCase {
     }
 
     func testForwardAndBackAreFiveAndEight() {
-        XCTAssertEqual(ScimitarNormalMapping.normal.assignment(for: 5)?.action, "Forward")
+        XCTAssertEqual(
+            ScimitarNormalMapping.normal.assignment(for: 5)?.action,
+            "Forward · Hold + 6 for Volume"
+        )
+        XCTAssertEqual(
+            ScimitarNormalMapping.normal.assignment(for: 5)?.implementation,
+            "Release without a cell-6 volume ratchet to send ordinary Forward; a same-source 6+5 wheel hold adjusts YouTube volume instead"
+        )
         XCTAssertEqual(ScimitarNormalMapping.normal.assignment(for: 8)?.action, "Back")
     }
 
@@ -122,7 +129,7 @@ final class NormalMappingTests: XCTestCase {
         // Karabiner owns the narrow VS Code override; this helper records the
         // ordinary default-map semantics rather than a second app profile.
         for profile in ScimitarNormalMapping.allProfiles {
-            XCTAssertEqual(profile.assignment(for: 5)?.action, "Forward")
+            XCTAssertEqual(profile.assignment(for: 5)?.action, "Forward · Hold + 6 for Volume")
             XCTAssertEqual(profile.assignment(for: 8)?.action, "Back")
         }
     }

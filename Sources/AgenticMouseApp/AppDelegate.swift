@@ -78,6 +78,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private lazy var vsCodeCommandBridge = VSCodeCommandBridge(
         inputAllowed: { [weak self] in self?.mouseCommandsAllowed == true }
     )
+    private lazy var forwardNavigationActionExecutor = ForwardNavigationActionExecutor(
+        inputAllowed: { [weak self] in self?.mouseCommandsAllowed == true }
+    )
     private let notificationCenterToggleVerifier = NotificationCenterToggleVerifier()
     private var screenshotInteractionWasActive = false
     private lazy var chromeYouTubeSpeedHoldController: ChromeYouTubeSpeedHoldController = {
@@ -824,6 +827,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 frontmostAppContext: { [weak self] in
                     self?.currentFrontmostAppModeContext()
                 },
+                youtubeVolumeModifierActive: { [weak self] in
+                    self?.wheelChordMonitor?.isYouTubeVolumeModifierActive(for: source) == true
+                },
                 displayDuration: configuration.defaultMapHint.displayDuration
             )
         }
@@ -1339,6 +1345,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 self.scheduleYouTubeSeekAction(action, step: step)
                 return true
             }
+            if let action = step.control.youtubeVolumeAction(for: step.direction) {
+                self.scheduleYouTubeVolumeAction(action, step: step)
+                return true
+            }
             if let tabAction = step.control.chromeTabAction(for: step.direction) {
                 guard let coordinator = self.modePickerCoordinators[step.source],
                       coordinator.isActive,
@@ -1444,6 +1454,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             else { return }
             self?.performTopLevelYouTubeRewind(from: release.source)
         }
+        monitor.onYouTubeVolumeModifierChange = { [weak self] source in
+            self?.defaultMapHintCoordinators[source]?.refresh()
+        }
+        monitor.onYouTubeVolumeModifierRelease = { [weak self] release in
+            guard !release.didUseVolumeWheel else { return }
+            self?.performTopLevelForward(from: release.source)
+        }
         monitor.onProblem = { [weak self] message in
             guard let self else { return }
             let activeSources = self.modePickerCoordinators
@@ -1523,6 +1540,30 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             case .success:
                 self.log.info(
                     "YouTube \(action.seconds > 0 ? "+5" : "−5") sec ratchet "
+                        + "\(step.detentCount) requested through the VoiceInk bridge from "
+                        + step.source.displayName
+                )
+                self.flashWheelActionFeedback(step)
+            case .failure:
+                self.flashWheelActionFeedback(step, outcome: .couldNotBeSent)
+            }
+        }
+    }
+
+    private func scheduleYouTubeVolumeAction(
+        _ action: YouTubeVolumeAction,
+        step: WheelChordStateMachine.Step
+    ) {
+        DispatchQueue.main.async { [weak self] in
+            guard let self,
+                  self.mouseCommandsAllowed,
+                  self.wheelChordMonitor?.activeControl(for: step.source) == .youtubeScrub,
+                  self.wheelChordMonitor?.isYouTubeVolumeModifierActive(for: step.source) == true
+            else { return }
+            switch self.modeUtilityActionExecutor.performYouTubeVolume(action) {
+            case .success:
+                self.log.info(
+                    "YouTube volume \(action.percentagePoints > 0 ? "+5" : "−5")% ratchet "
                         + "\(step.detentCount) requested through the VoiceInk bridge from "
                         + step.source.displayName
                 )
@@ -1937,6 +1978,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     self.wheelChordMonitor?.handle(command)
                     return
                 }
+                if let command = try? YouTubeVolumeModifierCommand.decode(data) {
+                    self.wheelChordMonitor?.handle(command)
+                    return
+                }
                 if let command = try? DefaultMapHintCommand.decode(data) {
                     self.defaultMapHintCoordinators[command.source]?.handleToggle(source: command.source)
                     return
@@ -1998,6 +2043,29 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             source: source,
             feedback: feedback
         )
+    }
+
+    private func performTopLevelForward(from source: MouseSource) {
+        guard modePickerCoordinators[source]?.isActive != true else {
+            log.notice("ignored delayed top-level Forward during a mode")
+            return
+        }
+        switch forwardNavigationActionExecutor.perform() {
+        case .success:
+            log.info("ordinary Forward click posted from top-level " + source.displayName)
+        case .failure(.accessibilityPermissionMissing):
+            defaultMapHintCoordinators[source]?.flashActionProblem(
+                source: source,
+                message: "Accessibility permission is required for Forward"
+            )
+        case .failure(.inputBlocked):
+            break
+        case .failure(.eventCreationFailed):
+            defaultMapHintCoordinators[source]?.flashActionProblem(
+                source: source,
+                message: "Forward could not be posted"
+            )
+        }
     }
 
     private func handleScreenshotTriggerResult(

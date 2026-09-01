@@ -72,6 +72,34 @@ final class ModeUtilityActionExecutorTests: XCTestCase {
         )
     }
 
+    func testYouTubeVolumePostsOnlyTheFixedFivePercentBridgeNotificationPath() {
+        var notifications: [YouTubeVolumeAction] = []
+        let executor = ModeUtilityActionExecutor(
+            notifyYouTubeVolume: { action in
+                notifications.append(action)
+                return true
+            }
+        )
+
+        guard case .success = executor.performYouTubeVolume(.increaseFivePercent),
+              case .success = executor.performYouTubeVolume(.decreaseFivePercent)
+        else { return XCTFail("both YouTube volume directions should reach the bridge") }
+        XCTAssertEqual(notifications, [.increaseFivePercent, .decreaseFivePercent])
+        XCTAssertEqual(
+            ModeUtilityActionExecutor.youtubeVolumeIncreaseFivePercentNotification.rawValue,
+            "com.ethansk.agenticmouse.youtube.volumeIncreaseFivePercent"
+        )
+        XCTAssertEqual(
+            ModeUtilityActionExecutor.youtubeVolumeDecreaseFivePercentNotification.rawValue,
+            "com.ethansk.agenticmouse.youtube.volumeDecreaseFivePercent"
+        )
+
+        let failed = ModeUtilityActionExecutor(notifyYouTubeVolume: { _ in false })
+        guard case .failure(.youtubeBridgeNotificationFailed) =
+            failed.performYouTubeVolume(.increaseFivePercent)
+        else { return XCTFail("a failed YouTube volume notification should be surfaced") }
+    }
+
     func testYouTubeBridgeFailureIsReported() {
         let executor = ModeUtilityActionExecutor(notifyYouTube: { _ in false })
 

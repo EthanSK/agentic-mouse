@@ -808,7 +808,7 @@ class KarabinerGeneratorTests(unittest.TestCase):
             2: "open-app-specific-mode-corsair",
             3: "toggle-selected-screen-area-corsair",
             4: "hold-copy-paste-wheel-corsair",
-            5: "go-forward",
+            5: "hold-youtube-volume-modifier-corsair",
             6: "hold-youtube-scrub-wheel-corsair",
             7: "press-enter",
             8: "go-back",
@@ -869,7 +869,7 @@ class KarabinerGeneratorTests(unittest.TestCase):
             2: ["open-app-specific-mode-razer"],
             3: ["hold-horizontal-scroll-wheel-razer"],
             4: ["hold-youtube-scrub-wheel-razer"],
-            5: ["go-forward"],
+            5: ["hold-youtube-volume-modifier-razer"],
             6: ["hold-copy-paste-wheel-razer"],
             7: ["open-keys-mode-razer"],
             8: ["go-back"],
@@ -1145,25 +1145,50 @@ class KarabinerGeneratorTests(unittest.TestCase):
             (
                 "Agentic Mouse — Corsair base layer",
                 exact_corsair_keyboard_condition(),
-                {"keypad_5": "button5", "keypad_8": "button4"},
+                "keypad_5",
+                "button4",
+                "corsair",
             ),
             (
                 "Agentic Mouse — Razer base layer",
                 exact_test_device_condition(),
-                {"5": "button5", "8": "button4"},
+                "5",
+                "button4",
+                "razer",
             ),
         )
-        for rule_name, device_condition, expected in base_cases:
+        for rule_name, device_condition, forward_source, back_button, mouse_source in base_cases:
             rule = rules[rule_name]
-            actual = {}
-            for manipulator in rule["manipulators"]:
-                source = manipulator["from"].get("key_code")
-                if source not in expected:
-                    continue
+            forward = next(
+                manipulator
+                for manipulator in rule["manipulators"]
+                if manipulator["from"].get("key_code") == forward_source
+            )
+            back = next(
+                manipulator
+                for manipulator in rule["manipulators"]
+                if manipulator["from"].get("key_code") in {"keypad_8", "8"}
+            )
+            for manipulator in [forward, back]:
                 self.assertIn(device_condition, manipulator["conditions"])
                 self.assertIn(vscode_unless_condition(), manipulator["conditions"])
-                actual[source] = manipulator["to"][0]["pointing_button"]
-            self.assertEqual(actual, expected)
+            self.assertEqual(back["to"][0]["pointing_button"], back_button)
+            self.assertEqual(
+                forward["to"][0]["send_user_command"]["payload"],
+                {
+                    "command": "agentic_mouse_youtube_volume_modifier",
+                    "source": mouse_source,
+                    "phase": "press",
+                },
+            )
+            self.assertEqual(
+                forward["to_after_key_up"][0]["send_user_command"]["payload"],
+                {
+                    "command": "agentic_mouse_youtube_volume_modifier",
+                    "source": mouse_source,
+                    "phase": "release",
+                },
+            )
 
         youtube_scrub_cases = (
             (

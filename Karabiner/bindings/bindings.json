@@ -170,8 +170,8 @@
     },
     {
       "id": "corsair-side-05-forward",
-      "description": "Corsair side 5 performs ordinary Forward navigation",
-      "action": "go-forward",
+      "description": "Corsair side 5 sends ordinary Forward on release unless a same-source side-6 wheel hold uses YouTube volume",
+      "action": "hold-youtube-volume-modifier-corsair",
       "rule": "Corsair base layer",
       "from": {
         "key_code": "keypad_5",
@@ -502,8 +502,8 @@
     },
     {
       "id": "razer-side-05-forward",
-      "description": "Razer side 5 shares Corsair side 5's physical cell and performs ordinary Forward navigation",
-      "action": "go-forward",
+      "description": "Razer side 5 shares physical cell 5 and sends ordinary Forward on release unless a same-source physical-cell-6 wheel hold uses YouTube volume",
+      "action": "hold-youtube-volume-modifier-razer",
       "rule": "Razer base layer",
       "from": {
         "key_code": "5",

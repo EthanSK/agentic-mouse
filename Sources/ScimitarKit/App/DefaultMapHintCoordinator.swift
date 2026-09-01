@@ -14,6 +14,7 @@ public final class DefaultMapHintCoordinator {
     private let isAvailable: () -> Bool
     private let screenshotActionState: () -> ScreenshotActionPresentationState
     private let frontmostAppContext: () -> FrontmostAppModeContext?
+    private let youtubeVolumeModifierActive: () -> Bool
     private let displayDuration: TimeInterval
     private let ownedSource: MouseSource
 
@@ -25,6 +26,7 @@ public final class DefaultMapHintCoordinator {
         isAvailable: @escaping () -> Bool = { true },
         screenshotActionState: @escaping () -> ScreenshotActionPresentationState = { .idle },
         frontmostAppContext: @escaping () -> FrontmostAppModeContext? = { nil },
+        youtubeVolumeModifierActive: @escaping () -> Bool = { false },
         displayDuration: TimeInterval = 0
     ) {
         self.hud = hud
@@ -34,6 +36,7 @@ public final class DefaultMapHintCoordinator {
         self.isAvailable = isAvailable
         self.screenshotActionState = screenshotActionState
         self.frontmostAppContext = frontmostAppContext
+        self.youtubeVolumeModifierActive = youtubeVolumeModifierActive
         self.displayDuration = max(0, displayDuration)
     }
 
@@ -137,7 +140,8 @@ public final class DefaultMapHintCoordinator {
             DefaultMapLegend.snapshot(
                 source: source,
                 screenshotActionState: screenshotActionState(),
-                frontmostAppContext: frontmostAppContext()
+                frontmostAppContext: frontmostAppContext(),
+                youtubeVolumeModifierActive: youtubeVolumeModifierActive()
             )
         )
     }
@@ -149,7 +153,8 @@ public final class DefaultMapHintCoordinator {
             DefaultMapLegend.snapshot(
                 source: source,
                 screenshotActionState: screenshotActionState(),
-                frontmostAppContext: frontmostAppContext()
+                frontmostAppContext: frontmostAppContext(),
+                youtubeVolumeModifierActive: youtubeVolumeModifierActive()
             )
         )
         if displayDuration > 0 {
@@ -190,7 +195,8 @@ public enum DefaultMapLegend {
     public static func snapshot(
         source: MouseSource,
         screenshotActionState: ScreenshotActionPresentationState = .idle,
-        frontmostAppContext: FrontmostAppModeContext? = nil
+        frontmostAppContext: FrontmostAppModeContext? = nil,
+        youtubeVolumeModifierActive: Bool = false
     ) -> ModeHUDSnapshot {
         ModeHUDSnapshot(
             isActive: true,
@@ -200,7 +206,8 @@ public enum DefaultMapLegend {
             legend: legend(
                 source: source,
                 screenshotActionState: screenshotActionState,
-                frontmostAppContext: frontmostAppContext
+                frontmostAppContext: frontmostAppContext,
+                youtubeVolumeModifierActive: youtubeVolumeModifierActive
             ),
             accent: accent,
             footerTitle: "Default mode",
@@ -212,7 +219,8 @@ public enum DefaultMapLegend {
     private static func legend(
         source: MouseSource,
         screenshotActionState: ScreenshotActionPresentationState,
-        frontmostAppContext: FrontmostAppModeContext? = nil
+        frontmostAppContext: FrontmostAppModeContext? = nil,
+        youtubeVolumeModifierActive: Bool = false
     ) -> [ModeHUDLegendItem] {
         PhysicalCell.all.map { cell in
             let assignment = DefaultMouseMapping.assignment(for: cell, source: source)
@@ -223,6 +231,12 @@ public enum DefaultMapLegend {
                 title = ModeHUDCopy.screenshotActionTitle(state: screenshotActionState)
             } else if cell == .frontmostAppModeSelector {
                 title = frontmostAppContext?.definition.title ?? "App mode"
+            } else if youtubeVolumeModifierActive && cell == YouTubeVolumeModifierCommand.triggerCell {
+                title = "YouTube Volume held"
+            } else if youtubeVolumeModifierActive && cell == .youtubeScrubWheelControl {
+                title = "YouTube Volume + Wheel"
+            } else if cell == YouTubeVolumeModifierCommand.triggerCell {
+                title = "Forward · Hold + \(PhysicalCell.youtubeScrubWheelControl.printedSide(on: source)!) for Volume"
             } else {
                 title = assignment?.action ?? "Spare"
             }
@@ -271,7 +285,7 @@ public enum DefaultMapLegend {
         if lowered.contains("spaces") { return ModeHUDActionFamilyPalette.desktopSpaces }
         if lowered.contains("switch") { return RGBColor(red: 168, green: 118, blue: 255) }
         if lowered.contains("track") { return RGBColor(red: 82, green: 214, blue: 132) }
-        if lowered == "forward" || lowered == "back" {
+        if lowered.hasPrefix("forward") || lowered == "back" {
             return ModeHUDActionFamilyPalette.historyNavigation
         }
         if lowered.contains("screenshot") { return RGBColor(red: 255, green: 188, blue: 74) }

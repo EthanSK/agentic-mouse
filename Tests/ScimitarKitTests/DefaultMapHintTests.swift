@@ -44,6 +44,27 @@ final class DefaultMapHintCommandTests: XCTestCase {
         }
     }
 
+    func testYouTubeVolumeModifierDecoderAcceptsOnlyTheExactLifecycleCommand() throws {
+        for source in MouseSource.allCases {
+            for phase in [ModePickerCommand.Phase.press, .release] {
+                let command = YouTubeVolumeModifierCommand(source: source, phase: phase)
+                XCTAssertEqual(
+                    try YouTubeVolumeModifierCommand.decode(JSONEncoder().encode(command)),
+                    command
+                )
+            }
+        }
+
+        for payload in [
+            #"{"command":"another_command","source":"corsair","phase":"press"}"#,
+            #"{"command":"agentic_mouse_youtube_volume_modifier","source":"unknown","phase":"press"}"#,
+            #"{"command":"agentic_mouse_youtube_volume_modifier","source":"razer","phase":"tap"}"#,
+        ] {
+            XCTAssertThrowsError(try YouTubeVolumeModifierCommand.decode(Data(payload.utf8)))
+        }
+        XCTAssertEqual(YouTubeVolumeModifierCommand.triggerCell, PhysicalCell(rawValue: 5))
+    }
+
     func testLegendReflectsTheCurrentTopLevelMapAndExactSource() {
         XCTAssertEqual(DefaultMapLegend.legend.map(\.cell), PhysicalCell.all)
         XCTAssertEqual(DefaultMapLegend.legend[0].actionTitle, "Horizontal Scroll + Wheel")
@@ -52,6 +73,7 @@ final class DefaultMapHintCommandTests: XCTestCase {
         XCTAssertEqual(DefaultMapLegend.legend[1].actionTitle, "App mode")
         XCTAssertEqual(DefaultMapLegend.legend[1].destinationModeAccent, AppSpecificMode.selectorAccent)
         XCTAssertEqual(DefaultMapLegend.legend[5].actionTitle, "YouTube Scrub + Wheel")
+        XCTAssertEqual(DefaultMapLegend.legend[4].actionTitle, "Forward · Hold + 6 for Volume")
         XCTAssertEqual(DefaultMapLegend.legend[8].actionTitle, "Keys mode")
         XCTAssertEqual(DefaultMapLegend.legend[8].accent, ModePickerCoordinator.keysAccent)
         XCTAssertEqual(DefaultMapLegend.legend[8].destinationModeAccent, ModePickerCoordinator.keysAccent)
@@ -83,6 +105,15 @@ final class DefaultMapHintCommandTests: XCTestCase {
         XCTAssertEqual(snapshot.legend[2].printedControlLabel(on: .corsair), "Corsair 3")
         XCTAssertEqual(snapshot.presentationStyle, .neutral)
 
+        let volumeSnapshot = DefaultMapLegend.snapshot(
+            source: .corsair,
+            youtubeVolumeModifierActive: true
+        )
+        XCTAssertEqual(volumeSnapshot.legend[4].actionTitle, "YouTube Volume held")
+        XCTAssertEqual(volumeSnapshot.legend[5].actionTitle, "YouTube Volume + Wheel")
+        XCTAssertEqual(volumeSnapshot.legend[4].accent, DefaultMapLegend.legend[5].accent)
+        XCTAssertEqual(volumeSnapshot.legend[5].accent, DefaultMapLegend.legend[5].accent)
+
         let capturingSnapshot = DefaultMapLegend.snapshot(
             source: .corsair,
             screenshotActionState: .capturing
@@ -98,6 +129,7 @@ final class DefaultMapHintCommandTests: XCTestCase {
 
         let razerSnapshot = DefaultMapLegend.snapshot(source: .razer)
         XCTAssertEqual(razerSnapshot.source, .razer)
+        XCTAssertEqual(razerSnapshot.legend[4].actionTitle, "Forward · Hold + 4 for Volume")
         XCTAssertEqual(razerSnapshot.legend[9].actionTitle, "Legend toggle")
         XCTAssertEqual(razerSnapshot.legend[11].actionTitle, "Utility modes")
         XCTAssertEqual(razerSnapshot.legend[10].actionTitle, "Switch App")

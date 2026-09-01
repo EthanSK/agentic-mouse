@@ -8,6 +8,7 @@ import Foundation
 public enum WheelChordControl: String, Codable, CaseIterable, Sendable {
     case horizontalScroll
     case youtubeScrub
+    case youtubeVolume
     case brightness
     case zoom
     case clipboard
@@ -26,6 +27,7 @@ public enum WheelChordControl: String, Codable, CaseIterable, Sendable {
         switch self {
         case .horizontalScroll: return "Horizontal Scroll"
         case .youtubeScrub: return "YouTube Scrub"
+        case .youtubeVolume: return "YouTube Volume"
         case .brightness: return "Brightness"
         case .zoom: return "Zoom"
         case .clipboard: return "Copy / Paste"
@@ -45,7 +47,7 @@ public enum WheelChordControl: String, Codable, CaseIterable, Sendable {
     public var hudAccent: RGBColor {
         switch self {
         case .horizontalScroll: return ModeHUDActionFamilyPalette.horizontalScroll
-        case .youtubeScrub: return ModeHUDActionFamilyPalette.media
+        case .youtubeScrub, .youtubeVolume: return ModeHUDActionFamilyPalette.media
         case .brightness: return ModeHUDActionFamilyPalette.brightness
         case .zoom: return ModeHUDActionFamilyPalette.applicationZoom
         case .clipboard: return ModeHUDActionFamilyPalette.clipboard
@@ -79,7 +81,7 @@ public enum WheelChordControl: String, Codable, CaseIterable, Sendable {
         case .systemOverview: return .systemOverviewWheelControl
         case .applicationWindows: return .applicationWindowsWheelControl
         case .magnetWindow: return .magnetWheelControl
-        case .clipboard, .horizontalScroll, .youtubeScrub, .mediaTracks, .chromeTabs, .spotifyVolume,
+        case .clipboard, .horizontalScroll, .youtubeScrub, .youtubeVolume, .mediaTracks, .chromeTabs, .spotifyVolume,
              .vsCodeCursorHistory, .codexReasoningEffort, .codexChatHistory: return nil
         }
     }
@@ -95,7 +97,7 @@ public enum WheelChordControl: String, Codable, CaseIterable, Sendable {
         case .clipboard: return .clipboardWheelControl
         case .horizontalScroll: return .horizontalScrollWheelControl
         case .youtubeScrub: return .youtubeScrubWheelControl
-        case .brightness, .zoom, .spaces, .systemOverview, .applicationWindows,
+        case .brightness, .zoom, .spaces, .systemOverview, .applicationWindows, .youtubeVolume,
              .magnetWindow, .mediaTracks, .chromeTabs, .spotifyVolume,
              .vsCodeCursorHistory, .codexReasoningEffort, .codexChatHistory: return nil
         }
@@ -180,7 +182,7 @@ public enum WheelChordControl: String, Codable, CaseIterable, Sendable {
         case (.magnetWindow, .down): return .moveWindowRightWithMagnet
         case (.spaces, .up): return .moveToSpaceRight
         case (.spaces, .down): return .moveToSpaceLeft
-        case (.horizontalScroll, _), (.youtubeScrub, _), (.mediaTracks, _), (.chromeTabs, _), (.spotifyVolume, _),
+        case (.horizontalScroll, _), (.youtubeScrub, _), (.youtubeVolume, _), (.mediaTracks, _), (.chromeTabs, _), (.spotifyVolume, _),
              (.vsCodeCursorHistory, _), (.codexReasoningEffort, _),
              (.codexChatHistory, _): return nil
         }
@@ -203,6 +205,13 @@ public enum WheelChordControl: String, Codable, CaseIterable, Sendable {
         // inversion local to YouTube Scrub so physical up advances and
         // physical down returns without changing another wheel family.
         return direction == .down ? .forwardFiveSeconds : .backwardFiveSeconds
+    }
+
+    public func youtubeVolumeAction(
+        for direction: WheelChordDirection
+    ) -> YouTubeVolumeAction? {
+        guard self == .youtubeVolume else { return nil }
+        return direction == .down ? .increaseFivePercent : .decreaseFivePercent // Both accepted mice report a physical upward ratchet as `.down`, so keep standard wheel up = louder local to YouTube volume. (Codex task: 01a039f7-873c-7c30-b3dc-af8a6724ace5)
     }
 
     public func spotifyVolumeAction(
@@ -261,6 +270,10 @@ public enum WheelChordControl: String, Codable, CaseIterable, Sendable {
             return youtubeSeekAction(for: direction) == .forwardFiveSeconds
                 ? "YouTube +5 sec"
                 : "YouTube −5 sec"
+        case .youtubeVolume:
+            return youtubeVolumeAction(for: direction) == .increaseFivePercent
+                ? "YouTube Volume +5%"
+                : "YouTube Volume −5%"
         case .chromeTabs:
             return chromeTabAction(for: direction) == .nextTab ? "Next Tab" : "Previous Tab"
         case .spotifyVolume:
@@ -319,7 +332,7 @@ public enum WheelChordControl: String, Codable, CaseIterable, Sendable {
             return .oncePerHold
         case .clipboard:
             return .debounced(minimumInterval: 0.12)
-        case .horizontalScroll, .youtubeScrub, .mediaTracks, .chromeTabs, .spotifyVolume, .codexChatHistory:
+        case .horizontalScroll, .youtubeScrub, .youtubeVolume, .mediaTracks, .chromeTabs, .spotifyVolume, .codexChatHistory:
             // Chats Selection deliberately uses this fixed leading-edge window:
             // collapse one detent's duplicate raw events, but do not let those
             // duplicates extend a quiet gap and swallow later ratchets.
@@ -356,6 +369,18 @@ public enum YouTubeSeekAction: Equatable, Sendable {
         switch self {
         case .backwardFiveSeconds: return -5
         case .forwardFiveSeconds: return 5
+        }
+    }
+}
+
+public enum YouTubeVolumeAction: Equatable, Sendable {
+    case decreaseFivePercent
+    case increaseFivePercent
+
+    public var percentagePoints: Int {
+        switch self {
+        case .decreaseFivePercent: return -5
+        case .increaseFivePercent: return 5
         }
     }
 }
@@ -523,6 +548,16 @@ public final class WheelChordStateMachine {
         }
     }
 
+    public struct YouTubeVolumeModifierRelease: Equatable, Sendable {
+        public let source: MouseSource
+        public let didUseVolumeWheel: Bool
+
+        public init(source: MouseSource, didUseVolumeWheel: Bool) {
+            self.source = source
+            self.didUseVolumeWheel = didUseVolumeWheel
+        }
+    }
+
     public enum Routing: Equatable, Sendable {
         case passThrough
         case consume(Step)
@@ -544,6 +579,8 @@ public final class WheelChordStateMachine {
     private var didActBySource: [MouseSource: Bool] = [:]
     private var didObserveWheelInputBySource: [MouseSource: Bool] = [:]
     private var lastActionBySource: [MouseSource: (WheelChordDirection, TimeInterval)] = [:]
+    private var youtubeVolumeModifierSources: Set<MouseSource> = []
+    private var didUseYouTubeVolumeBySource: [MouseSource: Bool] = [:]
 
     public init(clock: MonotonicClock = SystemMonotonicClock()) {
         self.clock = clock
@@ -567,6 +604,25 @@ public final class WheelChordStateMachine {
         }
     }
 
+    public func setYouTubeVolumeModifierActive(
+        _ active: Bool,
+        for source: MouseSource
+    ) -> YouTubeVolumeModifierRelease? {
+        if active {
+            if youtubeVolumeModifierSources.insert(source).inserted {
+                didUseYouTubeVolumeBySource[source] = false
+            }
+            return nil
+        }
+        guard youtubeVolumeModifierSources.remove(source) != nil else { return nil }
+        let release = YouTubeVolumeModifierRelease(
+            source: source,
+            didUseVolumeWheel: didUseYouTubeVolumeBySource[source] == true
+        )
+        didUseYouTubeVolumeBySource[source] = nil
+        return release
+    }
+
     /// Releases one source and returns its completed hold only when the
     /// optional expected control still owns that source. This prevents a stale
     /// release from ending a newer top-level chord.
@@ -583,11 +639,17 @@ public final class WheelChordStateMachine {
             control: control,
             didObserveWheelInput: didObserveWheelInputBySource[source] == true
         )
-        clear(source: source)
+        clearActiveControl(source: source)
         return release
     }
 
     public func clear(source: MouseSource) {
+        clearActiveControl(source: source)
+        youtubeVolumeModifierSources.remove(source)
+        didUseYouTubeVolumeBySource[source] = nil
+    }
+
+    private func clearActiveControl(source: MouseSource) {
         activeBySource[source] = nil
         acceptedDetentCountBySource[source] = nil
         didActBySource[source] = nil
@@ -601,17 +663,28 @@ public final class WheelChordStateMachine {
         didActBySource.removeAll()
         didObserveWheelInputBySource.removeAll()
         lastActionBySource.removeAll()
+        youtubeVolumeModifierSources.removeAll()
+        didUseYouTubeVolumeBySource.removeAll()
     }
 
     public func activeControl(for source: MouseSource) -> WheelChordControl? {
         activeBySource[source]
     }
 
+    public func isYouTubeVolumeModifierActive(for source: MouseSource) -> Bool {
+        youtubeVolumeModifierSources.contains(source)
+    }
+
     public var soleActiveChord: (source: MouseSource, control: WheelChordControl)? {
         guard activeBySource.count == 1,
               let (source, control) = activeBySource.first
         else { return nil }
-        return (source, control)
+        return (
+            source,
+            control == .youtubeScrub && youtubeVolumeModifierSources.contains(source)
+                ? .youtubeVolume
+                : control
+        )
     }
 
     public func route(
@@ -640,8 +713,15 @@ public final class WheelChordStateMachine {
         guard !isGestureScroll else {
             return .passThrough
         }
-        guard activeBySource.count == 1, let (source, control) = activeBySource.first else {
+        guard activeBySource.count == 1, let (source, armedControl) = activeBySource.first else {
             return activeBySource.isEmpty ? .passThrough : .consumeAmbiguous
+        }
+        let control: WheelChordControl
+        if armedControl == .youtubeScrub && youtubeVolumeModifierSources.contains(source) {
+            control = .youtubeVolume
+            didUseYouTubeVolumeBySource[source] = true
+        } else {
+            control = armedControl
         }
         let detentCount = acceptedDetentCountBySource[source, default: 0] + 1
         acceptedDetentCountBySource[source] = detentCount
