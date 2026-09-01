@@ -1,5 +1,29 @@
 # Learnings
 
+## 2026-09-02 — A modifier-only wheel control still needs an explicit diagnostic cell
+
+**Trigger:** The first v1.0.153 live install crashed twice as Ethan used the existing same-source YouTube Volume wheel chord.
+
+**Root cause:** `WheelChordControl.diagnosticCell` fell back to `topLevelCell ?? utilityCell!`. `.youtubeVolume` reinterprets the top-level YouTube Scrub cell while Forward is held, so it deliberately owns neither a separate top-level cell nor a Utility cell. The first accepted volume ratchet therefore force-unwrapped nil before bridge dispatch.
+
+**Fix:** Resolve every wheel-control category explicitly with an exhaustive switch, map `.youtubeVolume` to `.youtubeScrubWheelControl`, and leave no generic default branch. Preserve the shared `topLevelCell` and `utilityCell` sources for their real owners. (Codex task: 01a039f7-873c-7c30-b3dc-af8a6724ace5)
+
+**Guard:** Any stateful modifier that reinterprets another held-wheel control must name the owning diagnostic cell explicitly and pin that lookup in a test. Do not assume every `WheelChordControl` has a standalone top-level or Utility entry.
+
+**Verification:** Both v1.0.153 crash reports identify `WheelChordControl.diagnosticCell.getter` line 154 and enum payload 2 (`youtubeVolume`) as the main-thread SIGTRAP. The focused 35-test wheel suite and the corrected complete gate pass, including 693 Swift tests, six Musixmatch tests, six VS Code bridge tests, 17 Karabiner generator tests, generated-source freshness, both Karabiner lints, packaging/version contracts, and shell syntax. Developer-ID-signed Agentic Mouse v1.0.154 (build 160) is installed as main PID 59098 with supervisor PID 59128, executable SHA-256 `be86162e80e4ecb830706b0daf2fcc9ac342f45fbfa03175f66a0259864f80b8`, CDHash `082c362063624fb7ce7f8f63a507418f8b4c2a4d`, Team ID `T34G959ZG8`, Accessibility granted, the audited iCUE SDK loaded, and exclusive command-socket ownership. The exact crashing v1.0.153 bundle is preserved at `Rollbacks/AgenticMouse-v1.0.153-build159-crashing-before-v1.0.154.app`. OBS++ recording mux PID 26937 and Rekordbox PID 28066 remained unchanged throughout both replacements.
+
+## 2026-09-02 — Chrome tab wheel traverses activation history, not tab-strip position
+
+**Trigger:** Ethan asked Chrome mode to remember the order in which he used tabs and let the held wheel move backward and forward through that history.
+
+**Root cause:** The old route sent Chrome's Command-Option-Left/Right shortcuts, which move spatially through the tab strip and have no knowledge of the user's activation sequence.
+
+**Fix:** Rename the HUD action to `Tab History + Wheel` and replace the synthetic Chrome shortcuts with two fixed no-payload bridge notifications. The unpacked extension owns one bounded persisted activation timeline per normal Chrome window, keeps a real Back/Forward cursor, truncates the forward branch after a new manual selection, suppresses its own activation event, and removes closed tabs. Wheel up remains Back and wheel down remains Forward only for this Chrome control. (Codex task: 01a039f7-873c-7c30-b3dc-af8a6724ace5)
+
+**Guard:** Keep history window-local and never focus Chrome, cross to another Chrome window, store URLs/titles, or restore spatial previous/next-tab shortcuts. Swift tests pin the HUD title, direction, feedback, and fixed notifications; the bridge lifecycle test pins per-window isolation, branch truncation, stale-tab cleanup, and MV3 rehydration. Source and candidate proof do not replace reloading the unpacked extension, installing Agentic Mouse, and physically checking several Back/Forward ratchets.
+
+**Verification:** The complete corrected Agentic Mouse gate passes with 693 Swift tests plus every extension, VS Code bridge, Karabiner, packaging, generated-source, lint, and shell check. v1.0.154 (build 160) is installed with its prior zero-HUD state, live config SHA-256 `aa1499d88bd34875dc11f9a2873165d09cd2323c590126f425da4fd72e3189be`, live Karabiner SHA-256 `b2a3eea496fdbe7620ad5e975f1434be21308765d2fd8fd846395453c90e7fed`, and embedded iCUE SDK SHA-256 `48bbc94bed670d036af8e1acca0017449b36d7c6d1e15dafe0791b42b6be84fe`. The signed YouTube bridge helper and native host are installed, but a second isolated automation Chrome root makes personal-Chrome UI ownership ambiguous; the safety helper correctly refused to open `chrome://extensions`. Ethan must click Reload once on the existing unpacked `VoiceInk YouTube Bridge` before tab history is live. Physical Back/Forward direction and feel remain Ethan-owned acceptance after that reload.
+
 ## 2026-09-01 — Prime Screenshot on the clipboard and keep path-based recovery
 
 **Trigger:** Ethan confirmed that rapid-double-press Screenshot paste worked but felt slow, and asked for every completed screenshot to remain available for ordinary manual Paste while retaining the recovery path when VoiceInk replaces the clipboard.

@@ -138,6 +138,18 @@ public enum WheelChordControl: String, Codable, CaseIterable, Sendable {
     /// need their owning page's shared cell instead of falling through to B0.
     public var diagnosticCell: PhysicalCell {
         switch self {
+        case .horizontalScroll, .youtubeScrub, .clipboard:
+            guard let topLevelCell else {
+                preconditionFailure("top-level wheel control is missing its canonical cell")
+            }
+            return topLevelCell
+        case .youtubeVolume:
+            return .youtubeScrubWheelControl // Holding Forward changes the existing YouTube Scrub wheel into Volume, so diagnostics still belong to the scrub control's physical cell; leaving this in the generic fallback crashed on the first volume ratchet because neither generic cell exists. (Codex task: 01a039f7-873c-7c30-b3dc-af8a6724ace5)
+        case .brightness, .zoom, .systemOverview, .applicationWindows, .magnetWindow, .spaces:
+            guard let utilityCell else {
+                preconditionFailure("Utility wheel control is missing its canonical cell")
+            }
+            return utilityCell
         case .chromeTabs:
             return ChromeModeAction.cycleTabsWithWheel.cell
         case .spotifyVolume:
@@ -150,8 +162,6 @@ public enum WheelChordControl: String, Codable, CaseIterable, Sendable {
             return PhysicalCell(rawValue: 11)!
         case .mediaTracks:
             return .mediaTracksWheelControl
-        default:
-            return topLevelCell ?? utilityCell!
         }
     }
 
@@ -188,11 +198,11 @@ public enum WheelChordControl: String, Codable, CaseIterable, Sendable {
         }
     }
 
-    public func chromeTabAction(
+    public func chromeTabHistoryAction(
         for direction: WheelChordDirection
-    ) -> ChromeTabNavigationAction? {
+    ) -> ChromeTabHistoryAction? {
         guard self == .chromeTabs else { return nil }
-        return direction == .up ? .previousTab : .nextTab // Chrome intentionally uses wheel up for Previous and wheel down for Next after Ethan reversed only this family; do not infer its polarity from other wheel controls. (Codex task: 01a039f7-873c-7c30-b3dc-af8a6724ace5)
+        return direction == .up ? .back : .forward // Chrome intentionally uses wheel up for older activation history and wheel down for newer history; do not infer its polarity from another wheel control. (Codex task: 01a039f7-873c-7c30-b3dc-af8a6724ace5)
     }
 
     public func youtubeSeekAction(
@@ -275,7 +285,9 @@ public enum WheelChordControl: String, Codable, CaseIterable, Sendable {
                 ? "YouTube Volume +5%"
                 : "YouTube Volume −5%"
         case .chromeTabs:
-            return chromeTabAction(for: direction) == .nextTab ? "Next Tab" : "Previous Tab"
+            return chromeTabHistoryAction(for: direction) == .forward
+                ? "Tab History Forward"
+                : "Tab History Back"
         case .spotifyVolume:
             return spotifyVolumeAction(for: direction)?.title
         case .mediaTracks:
@@ -429,9 +441,9 @@ public enum WheelChordDispatchPolicy: Equatable, Sendable {
     case coalescedRatchet(quietGap: TimeInterval)
 }
 
-public enum ChromeTabNavigationAction: Equatable, Sendable {
-    case previousTab
-    case nextTab
+public enum ChromeTabHistoryAction: Equatable, Sendable {
+    case back
+    case forward
 }
 
 public enum WheelChordDirection: Equatable, Sendable {

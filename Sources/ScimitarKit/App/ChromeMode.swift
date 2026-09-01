@@ -30,7 +30,7 @@ public enum ChromeModeAction: String, CaseIterable, Equatable, Sendable {
         case .closeCurrentTab: return "Close current tab"
         case .holdYouTubeDoubleSpeed: return "Hold 2× speed"
         case .openDevTools: return "Open DevTools"
-        case .cycleTabsWithWheel: return "Tabs + Wheel"
+        case .cycleTabsWithWheel: return "Tab History + Wheel"
         case .reloadCurrentTab: return "Reload current tab"
         case .newTab: return "New tab"
         case .focusAddress: return "Address / Search"

@@ -100,6 +100,34 @@ final class ModeUtilityActionExecutorTests: XCTestCase {
         else { return XCTFail("a failed YouTube volume notification should be surfaced") }
     }
 
+    func testChromeTabHistoryPostsOnlyTheStrictBackForwardBridgeNotifications() {
+        var notifications: [ChromeTabHistoryAction] = []
+        let executor = ModeUtilityActionExecutor(
+            notifyChromeTabHistory: { action in
+                notifications.append(action)
+                return true
+            }
+        )
+
+        guard case .success = executor.performChromeTabHistory(.back),
+              case .success = executor.performChromeTabHistory(.forward)
+        else { return XCTFail("both Chrome tab-history directions should reach the bridge") }
+        XCTAssertEqual(notifications, [.back, .forward])
+        XCTAssertEqual(
+            ModeUtilityActionExecutor.chromeTabHistoryBackNotification.rawValue,
+            "com.ethansk.agenticmouse.chrome.tabHistoryBack"
+        )
+        XCTAssertEqual(
+            ModeUtilityActionExecutor.chromeTabHistoryForwardNotification.rawValue,
+            "com.ethansk.agenticmouse.chrome.tabHistoryForward"
+        )
+
+        let failed = ModeUtilityActionExecutor(notifyChromeTabHistory: { _ in false })
+        guard case .failure(.chromeTabHistoryBridgeNotificationFailed) =
+            failed.performChromeTabHistory(.back)
+        else { return XCTFail("a failed Chrome tab-history notification should be surfaced") }
+    }
+
     func testYouTubeBridgeFailureIsReported() {
         let executor = ModeUtilityActionExecutor(notifyYouTube: { _ in false })
 

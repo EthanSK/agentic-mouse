@@ -21,6 +21,7 @@ enum ModeUtilityActionError: Error, Equatable {
     case quitAppTargetUnavailable
     case quitAppEventCreationFailed
     case youtubeBridgeNotificationFailed
+    case chromeTabHistoryBridgeNotificationFailed
     case intelligenceOnDemandInputBlocked
     case intelligenceOnDemandAccessibilityPermissionMissing
     case intelligenceOnDemandEventCreationFailed
@@ -57,9 +58,14 @@ struct ModeUtilityActionExecutor {
         Notification.Name("com.ethansk.agenticmouse.youtube.volumeDecreaseFivePercent")
     static let youtubeVolumeIncreaseFivePercentNotification =
         Notification.Name("com.ethansk.agenticmouse.youtube.volumeIncreaseFivePercent")
+    static let chromeTabHistoryBackNotification =
+        Notification.Name("com.ethansk.agenticmouse.chrome.tabHistoryBack")
+    static let chromeTabHistoryForwardNotification =
+        Notification.Name("com.ethansk.agenticmouse.chrome.tabHistoryForward")
 
     typealias YouTubeNotifier = @MainActor (_ action: YouTubeSeekAction) -> Bool
     typealias YouTubeVolumeNotifier = @MainActor (_ action: YouTubeVolumeAction) -> Bool
+    typealias ChromeTabHistoryNotifier = @MainActor (_ action: ChromeTabHistoryAction) -> Bool
     typealias KeyboardChordPoster = @MainActor (
         _ events: [SyntheticKeyboardChordPoster.Event]
     ) -> Bool
@@ -83,6 +89,7 @@ struct ModeUtilityActionExecutor {
     private let systemOverview: SystemOverviewActionExecutor
     private let notifyYouTube: YouTubeNotifier
     private let notifyYouTubeVolume: YouTubeVolumeNotifier
+    private let notifyChromeTabHistory: ChromeTabHistoryNotifier
     private let postKeyboardChord: KeyboardChordPoster
     private let accessibilityTrusted: AccessibilityTrustProvider
     private let inputAllowed: InputAllowedProvider
@@ -98,6 +105,7 @@ struct ModeUtilityActionExecutor {
         systemOverview: SystemOverviewActionExecutor? = nil,
         notifyYouTube: YouTubeNotifier? = nil,
         notifyYouTubeVolume: YouTubeVolumeNotifier? = nil,
+        notifyChromeTabHistory: ChromeTabHistoryNotifier? = nil,
         postKeyboardChord: @escaping KeyboardChordPoster = SyntheticKeyboardChordPoster.shared.post,
         accessibilityTrusted: @escaping AccessibilityTrustProvider = AXIsProcessTrusted,
         inputAllowed: @escaping InputAllowedProvider = { true },
@@ -117,6 +125,7 @@ struct ModeUtilityActionExecutor {
         self.systemOverview = systemOverview ?? SystemOverviewActionExecutor()
         self.notifyYouTube = notifyYouTube ?? Self.postYouTubeNotification
         self.notifyYouTubeVolume = notifyYouTubeVolume ?? Self.postYouTubeVolumeNotification
+        self.notifyChromeTabHistory = notifyChromeTabHistory ?? Self.postChromeTabHistoryNotification
         self.postKeyboardChord = postKeyboardChord
         self.accessibilityTrusted = accessibilityTrusted
         self.inputAllowed = inputAllowed
@@ -278,6 +287,14 @@ struct ModeUtilityActionExecutor {
             : .failure(.youtubeBridgeNotificationFailed)
     }
 
+    func performChromeTabHistory(
+        _ action: ChromeTabHistoryAction
+    ) -> Result<Void, ModeUtilityActionError> {
+        notifyChromeTabHistory(action)
+            ? .success(())
+            : .failure(.chromeTabHistoryBridgeNotificationFailed)
+    }
+
     private static func postYouTubeNotification(_ action: YouTubeSeekAction) -> Bool {
         let notification = action == .forwardFiveSeconds
             ? youtubeSeekForwardFiveSecondsNotification
@@ -295,6 +312,21 @@ struct ModeUtilityActionExecutor {
         let notification = action == .increaseFivePercent
             ? youtubeVolumeIncreaseFivePercentNotification
             : youtubeVolumeDecreaseFivePercentNotification
+        DistributedNotificationCenter.default().postNotificationName(
+            notification,
+            object: nil,
+            userInfo: nil,
+            deliverImmediately: true
+        )
+        return true
+    }
+
+    private static func postChromeTabHistoryNotification(
+        _ action: ChromeTabHistoryAction
+    ) -> Bool {
+        let notification = action == .back
+            ? chromeTabHistoryBackNotification
+            : chromeTabHistoryForwardNotification
         DistributedNotificationCenter.default().postNotificationName(
             notification,
             object: nil,

@@ -701,7 +701,7 @@ final class ModePickerTests: XCTestCase {
                 phase: .press
             ))
             XCTAssertEqual(coordinator.activeWheelControl, .chromeTabs)
-            XCTAssertEqual(hud.snapshots.last?.selection?.title, "Tabs + Wheel")
+            XCTAssertEqual(hud.snapshots.last?.selection?.title, "Tab History + Wheel")
             XCTAssertTrue(onePressActions.isEmpty)
 
             coordinator.handle(.init(

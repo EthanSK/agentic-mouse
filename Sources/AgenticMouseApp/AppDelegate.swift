@@ -1349,7 +1349,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 self.scheduleYouTubeVolumeAction(action, step: step)
                 return true
             }
-            if let tabAction = step.control.chromeTabAction(for: step.direction) {
+            if let tabAction = step.control.chromeTabHistoryAction(for: step.direction) {
                 guard let coordinator = self.modePickerCoordinators[step.source],
                       coordinator.isActive,
                       coordinator.page == .appSpecific,
@@ -1575,30 +1575,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func scheduleChromeTabAction(
-        _ tabAction: ChromeTabNavigationAction,
+        _ tabAction: ChromeTabHistoryAction,
         step: WheelChordStateMachine.Step
     ) {
         DispatchQueue.main.async { [weak self] in
             guard let self, self.mouseCommandsAllowed else { return }
-            let keyCode: CGKeyCode = tabAction == .nextTab ? 124 : 123
-            let result = self.applicationShortcutDispatcher.perform(
-                .init(
-                    keyCode: keyCode,
-                    flags: .maskCommand.union(.maskAlternate)
-                ),
-                targetBundleIdentifier: AppSpecificTarget.chrome.bundleIdentifier,
-                targetDisplayName: AppSpecificTarget.chrome.displayName
-            )
+            let result = self.modeUtilityActionExecutor.performChromeTabHistory(tabAction)
             switch result {
             case .success:
-                let direction = tabAction == .nextTab ? "right" : "left"
+                let direction = tabAction == .forward ? "forward" : "back"
                 self.log.info(
-                    "Chrome tab \(direction) ratchet \(step.detentCount) posted from "
+                    "Chrome tab-history \(direction) ratchet \(step.detentCount) posted from "
                         + "\(step.source.displayName) wheel chord"
                 )
                 self.flashWheelActionFeedback(step)
-            case .failure(let error):
-                self.modeHUDPresenters[step.source]?.flashProblem(error.description)
+            case .failure:
+                self.modeHUDPresenters[step.source]?.flashProblem(
+                    "Could not send Chrome tab-history request"
+                )
                 self.flashWheelActionFeedback(
                     step,
                     outcome: .couldNotBeSent

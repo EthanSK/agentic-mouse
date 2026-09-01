@@ -579,6 +579,13 @@ final class WheelChordTests: XCTestCase {
         XCTAssertNil(WheelChordControl.zoom.codexChatHistoryAction(for: .up))
     }
 
+    func testYouTubeVolumeDiagnosticsUseTheScrubControlCell() {
+        XCTAssertEqual(
+            WheelChordControl.youtubeVolume.diagnosticCell,
+            .youtubeScrubWheelControl
+        )
+    }
+
     func testCodexReasoningEffortCoalescesOneRawBurstPerRatchet() {
         let clock = ManualClock(now: 10)
         let state = WheelChordStateMachine(clock: clock)
@@ -747,9 +754,9 @@ final class WheelChordTests: XCTestCase {
         XCTAssertEqual(YouTubeVolumeAction.decreaseFivePercent.percentagePoints, -5)
         XCTAssertNil(WheelChordControl.youtubeScrub.youtubeVolumeAction(for: .down))
         XCTAssertNil(WheelChordControl.chromeTabs.utilityAction(for: .up))
-        XCTAssertEqual(WheelChordControl.chromeTabs.chromeTabAction(for: .up), .previousTab)
-        XCTAssertEqual(WheelChordControl.chromeTabs.chromeTabAction(for: .down), .nextTab)
-        XCTAssertNil(WheelChordControl.zoom.chromeTabAction(for: .up))
+        XCTAssertEqual(WheelChordControl.chromeTabs.chromeTabHistoryAction(for: .up), .back)
+        XCTAssertEqual(WheelChordControl.chromeTabs.chromeTabHistoryAction(for: .down), .forward)
+        XCTAssertNil(WheelChordControl.zoom.chromeTabHistoryAction(for: .up))
         XCTAssertEqual(
             WheelChordControl.spotifyVolume.spotifyVolumeAction(for: .up),
             StandardAppModeAction(
@@ -798,8 +805,8 @@ final class WheelChordTests: XCTestCase {
             (.magnetWindow, .down, "Magnet Right"),
             (.spaces, .up, "Space Right"),
             (.spaces, .down, "Space Left"),
-            (.chromeTabs, .up, "Previous Tab"),
-            (.chromeTabs, .down, "Next Tab"),
+            (.chromeTabs, .up, "Tab History Back"),
+            (.chromeTabs, .down, "Tab History Forward"),
             (.spotifyVolume, .up, "Volume up"),
             (.spotifyVolume, .down, "Volume down"),
             (.mediaTracks, .up, "Previous Track"),
@@ -842,7 +849,7 @@ final class WheelChordTests: XCTestCase {
                 outcome: .couldNotBeSent
             ),
             ModeHUDFeedback(
-                message: "Previous Tab could not be sent · 1 ratchet",
+                message: "Tab History Back could not be sent · 1 ratchet",
                 tone: .notConfirmed
             )
         )
