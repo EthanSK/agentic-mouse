@@ -10,8 +10,6 @@ final class ScaledHUDHostingView<Content: View>: NSView {
         hostingView = NSHostingView(rootView: rootView)
         self.scale = scale
         super.init(frame: .zero)
-        wantsLayer = true
-        hostingView.wantsLayer = true
         addSubview(hostingView)
     }
 
@@ -36,9 +34,7 @@ final class ScaledHUDHostingView<Content: View>: NSView {
     override func layout() {
         super.layout()
         let unscaledSize = hostingView.fittingSize
-        hostingView.frame = NSRect(origin: .zero, size: unscaledSize)
-        hostingView.layer?.anchorPoint = .zero
-        hostingView.layer?.position = .zero
-        hostingView.layer?.setAffineTransform(CGAffineTransform(scaleX: scale, y: scale))
+        bounds = NSRect(origin: .zero, size: unscaledSize) // A layer transform clipped SwiftUI to the already-small window frame. Map the full source bounds into that frame so the complete HUD shrinks instead. (Codex task: 01a039f7-873c-7c30-b3dc-af8a6724ace5)
+        hostingView.frame = bounds
     }
 }

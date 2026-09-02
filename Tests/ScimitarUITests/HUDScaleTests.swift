@@ -37,6 +37,26 @@ final class HUDScaleTests: XCTestCase {
         XCTAssertEqual(scaled.fittingSize.height, original.fittingSize.height / 2, accuracy: 0.01)
     }
 
+    func testScaledHostingViewMapsTheFullContentIntoTheSmallerFrame() {
+        let scaled = ScaledHUDHostingView(
+            rootView: Color.clear.frame(width: 200, height: 100),
+            scale: 0.5
+        )
+        scaled.frame = NSRect(origin: .zero, size: scaled.fittingSize)
+
+        scaled.layoutSubtreeIfNeeded()
+        guard let renderedHUD = scaled.subviews.first else {
+            return XCTFail("the scaled host must keep its complete rendered HUD")
+        }
+
+        XCTAssertEqual(scaled.frame.width, 100, accuracy: 0.01)
+        XCTAssertEqual(scaled.frame.height, 50, accuracy: 0.01)
+        XCTAssertEqual(scaled.bounds.width, 200, accuracy: 0.01)
+        XCTAssertEqual(scaled.bounds.height, 100, accuracy: 0.01)
+        XCTAssertEqual(renderedHUD.frame.width, 200, accuracy: 0.01)
+        XCTAssertEqual(renderedHUD.frame.height, 100, accuracy: 0.01)
+    }
+
     func testScalePersistsAcrossStoreInstances() {
         let firstStore = HUDScaleStore(defaults: defaults)
         firstStore.setScale(0.73)
