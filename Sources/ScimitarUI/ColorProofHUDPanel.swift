@@ -1,4 +1,5 @@
 import AppKit
+import Combine
 import ScimitarKit
 import SwiftUI
 
@@ -7,7 +8,8 @@ import SwiftUI
 public final class AppKitModeHUDPresenter: NSObject, ModeHUDPresenting {
     private struct PanelInstance {
         let panel: HUDPanel
-        let hostingView: NSHostingView<ModeHUDView>
+        let hostingView: ScaledHUDHostingView<ModeHUDView>
+        let scaleControlPanel: HUDScaleControlPanel
     }
 
     private enum DisplayScope {
@@ -19,7 +21,9 @@ public final class AppKitModeHUDPresenter: NSObject, ModeHUDPresenting {
     private let model: ModeHUDViewModel
     private let source: MouseSource
     private let configuration: AppConfiguration.HUDConfiguration
+    private let scaleStore: HUDScaleStore
     private let workspaceNotificationCenter: NotificationCenter
+    private var scaleObservation: AnyCancellable?
     private var problemDismissWorkItem: DispatchWorkItem?
     private var feedbackDismissWorkItem: DispatchWorkItem?
     private var delayedScreenReconcileWorkItem: DispatchWorkItem?
@@ -31,6 +35,7 @@ public final class AppKitModeHUDPresenter: NSObject, ModeHUDPresenting {
         source: MouseSource,
         configuration: AppConfiguration.HUDConfiguration = .init(),
         appIconProvider: WorkspaceModeHUDAppIconProvider = .init(),
+        scaleStore: HUDScaleStore = .shared,
         workspaceNotificationCenter: NotificationCenter = NSWorkspace.shared.notificationCenter
     ) {
         self.source = source
@@ -39,6 +44,7 @@ public final class AppKitModeHUDPresenter: NSObject, ModeHUDPresenting {
             appIconProvider: appIconProvider
         )
         self.configuration = configuration
+        self.scaleStore = scaleStore
         self.workspaceNotificationCenter = workspaceNotificationCenter
         self.panelOpacity = CGFloat(configuration.opacity)
         super.init()
@@ -54,6 +60,11 @@ public final class AppKitModeHUDPresenter: NSObject, ModeHUDPresenting {
             name: NSWorkspace.activeSpaceDidChangeNotification,
             object: nil
         )
+        scaleObservation = scaleStore.$scale.dropFirst().sink { [weak self] scale in
+            guard let self else { return }
+            self.panels.values.forEach { $0.hostingView.setScale(CGFloat(scale)) }
+            if self.isVisible { self.reconcilePanels(show: true) }
+        }
     }
 
     deinit {
@@ -188,7 +199,10 @@ public final class AppKitModeHUDPresenter: NSObject, ModeHUDPresenting {
 
         let staleKeys = panels.keys.filter { !targetKeys.contains($0) }
         for key in staleKeys {
-            panels.removeValue(forKey: key)?.panel.orderOut(nil)
+            guard let instance = panels.removeValue(forKey: key) else { continue }
+            HUDScaleHoverCoordinator.shared.unregister(hudPanel: instance.panel)
+            instance.scaleControlPanel.orderOut(nil)
+            instance.panel.orderOut(nil)
         }
 
         for screen in screens {
@@ -199,7 +213,11 @@ public final class AppKitModeHUDPresenter: NSObject, ModeHUDPresenting {
     }
 
     private func discardPanels() {
-        panels.values.forEach { $0.panel.orderOut(nil) }
+        panels.values.forEach {
+            HUDScaleHoverCoordinator.shared.unregister(hudPanel: $0.panel)
+            $0.scaleControlPanel.orderOut(nil)
+            $0.panel.orderOut(nil)
+        }
         panels.removeAll()
     }
 
@@ -207,12 +225,24 @@ public final class AppKitModeHUDPresenter: NSObject, ModeHUDPresenting {
         let key = ObjectIdentifier(screen)
         if let existing = panels[key] { return existing }
 
-        let hosting = NSHostingView(rootView: ModeHUDView(model: model))
+        let hosting = ScaledHUDHostingView(
+            rootView: ModeHUDView(model: model),
+            scale: CGFloat(scaleStore.scale)
+        )
         let size = hosting.fittingSize
         let panel = HUDPanel(contentRect: NSRect(origin: .zero, size: size))
         panel.contentView = hosting
         panel.alphaValue = panelOpacity
-        let instance = PanelInstance(panel: panel, hostingView: hosting)
+        let scaleControlPanel = HUDScaleControlPanel(scaleStore: scaleStore)
+        HUDScaleHoverCoordinator.shared.register(
+            hudPanel: panel,
+            controlPanel: scaleControlPanel
+        )
+        let instance = PanelInstance(
+            panel: panel,
+            hostingView: hosting,
+            scaleControlPanel: scaleControlPanel
+        )
         panels[key] = instance
         return instance
     }
@@ -244,6 +274,23 @@ public final class AppKitModeHUDPresenter: NSObject, ModeHUDPresenting {
             origin = NSPoint(x: visible.midX - size.width / 2, y: visible.midY - size.height / 2)
         }
         instance.panel.setFrame(NSRect(origin: origin, size: size), display: true)
+        positionScaleControl(instance)
+        HUDScaleHoverCoordinator.shared.refresh()
+    }
+
+    private func positionScaleControl(_ instance: PanelInstance) {
+        let inset: CGFloat = 8
+        let x: CGFloat
+        switch AppConfiguration.HUDConfiguration.sourceCorner(for: source) {
+        case .topLeft, .bottomLeft:
+            x = instance.panel.frame.minX + inset
+        case .topRight, .bottomRight, .center:
+            x = instance.panel.frame.maxX - HUDScaleControlPanel.size.width - inset
+        }
+        instance.scaleControlPanel.setFrameOrigin(NSPoint(
+            x: x,
+            y: instance.panel.frame.minY + inset
+        ))
     }
 
     private func targetScreens() -> [NSScreen] {

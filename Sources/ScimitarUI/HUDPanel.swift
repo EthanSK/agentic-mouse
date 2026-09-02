@@ -1,4 +1,5 @@
 import AppKit
+import Combine
 import ScimitarKit
 import SwiftUI
 
@@ -65,25 +66,30 @@ final class HUDPanel: NSPanel {
 public final class AppKitHUDPresenter: NSObject, HUDPresenting {
     private struct PanelInstance {
         let panel: HUDPanel
-        let hostingView: NSHostingView<HUDView>
+        let hostingView: ScaledHUDHostingView<HUDView>
+        let scaleControlPanel: HUDScaleControlPanel
     }
 
     private var panels: [ObjectIdentifier: PanelInstance] = [:]
     private let model: HUDViewModel
     private let source: MouseSource
     private let configuration: AppConfiguration.HUDConfiguration
+    private let scaleStore: HUDScaleStore
     private let workspaceNotificationCenter: NotificationCenter
+    private var scaleObservation: AnyCancellable?
     private var problemDismissWorkItem: DispatchWorkItem?
     private var delayedSpaceReattachWorkItem: DispatchWorkItem?
 
     public init(
         source: MouseSource,
         configuration: AppConfiguration.HUDConfiguration = .init(),
+        scaleStore: HUDScaleStore = .shared,
         workspaceNotificationCenter: NotificationCenter = NSWorkspace.shared.notificationCenter
     ) {
         self.source = source
         self.model = HUDViewModel(source: source)
         self.configuration = configuration
+        self.scaleStore = scaleStore
         self.workspaceNotificationCenter = workspaceNotificationCenter
         super.init()
         NotificationCenter.default.addObserver(
@@ -98,6 +104,11 @@ public final class AppKitHUDPresenter: NSObject, HUDPresenting {
             name: NSWorkspace.activeSpaceDidChangeNotification,
             object: nil
         )
+        scaleObservation = scaleStore.$scale.dropFirst().sink { [weak self] scale in
+            guard let self else { return }
+            self.panels.values.forEach { $0.hostingView.setScale(CGFloat(scale)) }
+            if self.isVisible { self.reconcilePanels(show: true) }
+        }
     }
 
     deinit {
@@ -188,7 +199,11 @@ public final class AppKitHUDPresenter: NSObject, HUDPresenting {
     }
 
     private func discardPanels() {
-        panels.values.forEach { $0.panel.orderOut(nil) }
+        panels.values.forEach {
+            HUDScaleHoverCoordinator.shared.unregister(hudPanel: $0.panel)
+            $0.scaleControlPanel.orderOut(nil)
+            $0.panel.orderOut(nil)
+        }
         panels.removeAll()
     }
 
@@ -199,13 +214,25 @@ public final class AppKitHUDPresenter: NSObject, HUDPresenting {
             model: model,
             showsTapProgressRing: configuration.showsTapProgressRing
         )
-        let hosting = NSHostingView(rootView: view)
+        let hosting = ScaledHUDHostingView(
+            rootView: view,
+            scale: CGFloat(scaleStore.scale)
+        )
         let size = hosting.fittingSize
         let panel = HUDPanel(contentRect: NSRect(origin: .zero, size: size))
         panel.contentView = hosting
         panel.alphaValue = CGFloat(configuration.opacity)
+        let scaleControlPanel = HUDScaleControlPanel(scaleStore: scaleStore)
+        HUDScaleHoverCoordinator.shared.register(
+            hudPanel: panel,
+            controlPanel: scaleControlPanel
+        )
 
-        let instance = PanelInstance(panel: panel, hostingView: hosting)
+        let instance = PanelInstance(
+            panel: panel,
+            hostingView: hosting,
+            scaleControlPanel: scaleControlPanel
+        )
         panels[key] = instance
         return instance
     }
@@ -214,7 +241,10 @@ public final class AppKitHUDPresenter: NSObject, HUDPresenting {
         let screens = NSScreen.screens
         let targetKeys = Set(screens.map(ObjectIdentifier.init))
         for key in panels.keys.filter({ !targetKeys.contains($0) }) {
-            panels.removeValue(forKey: key)?.panel.orderOut(nil)
+            guard let instance = panels.removeValue(forKey: key) else { continue }
+            HUDScaleHoverCoordinator.shared.unregister(hudPanel: instance.panel)
+            instance.scaleControlPanel.orderOut(nil)
+            instance.panel.orderOut(nil)
         }
         for screen in screens {
             let instance = ensurePanel(for: screen)
@@ -249,5 +279,22 @@ public final class AppKitHUDPresenter: NSObject, HUDPresenting {
             )
         }
         instance.panel.setFrame(NSRect(origin: origin, size: size), display: true)
+        positionScaleControl(instance)
+        HUDScaleHoverCoordinator.shared.refresh()
+    }
+
+    private func positionScaleControl(_ instance: PanelInstance) {
+        let inset: CGFloat = 8
+        let x: CGFloat
+        switch AppConfiguration.HUDConfiguration.sourceCorner(for: source) {
+        case .topLeft, .bottomLeft:
+            x = instance.panel.frame.minX + inset
+        case .topRight, .bottomRight, .center:
+            x = instance.panel.frame.maxX - HUDScaleControlPanel.size.width - inset
+        }
+        instance.scaleControlPanel.setFrameOrigin(NSPoint(
+            x: x,
+            y: instance.panel.frame.minY + inset
+        ))
     }
 }

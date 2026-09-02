@@ -1,5 +1,17 @@
 # Learnings
 
+## 2026-09-02 — Scale one rendered HUD instead of maintaining a second compact layout
+
+**Trigger:** Ethan asked every Agentic Mouse HUD to occupy one quarter of its prior area, with a bottom vertical size control that appears only on hover and persists across relaunches.
+
+**Finding:** The accepted HUD source already centralizes typography, card geometry, spacing, borders, material, and dynamic status content. Rebuilding a separate compact layout would create a second geometry source and let Default, runtime-mode, and Keypad HUDs drift. Making the reference panel itself mouse-interactive would also break its established click-through contract and could take input from the application Ethan is using.
+
+**Fix:** Keep the accepted 705-point layout as the 100% source, render it through one scaled hosting view, and default the shared scale to 50% in each axis so the visible panel occupies one quarter of the former area. Persist one clamped 35–100% scale in `UserDefaults` and observe it from both HUD presenter families. Keep every reference panel click-through and non-activating; attach one separate non-activating vertical control panel to each visible HUD's handed bottom corner, reveal only the control belonging to the hovered HUD, and interpret upward drag as larger and downward drag as smaller. (Codex task: 01a039f7-873c-7c30-b3dc-af8a6724ace5)
+
+**Guard:** Never maintain parallel compact card metrics, scale only the outer frame while leaving content unscaled, make the reference panel accept clicks, or store separate sizes per mode, mouse, or display. Reconcile every visible panel from the shared store, keep the scale control hover-only, and prove persistence from a fresh store instance rather than relying on an in-memory resize.
+
+**Verification:** Four focused scale tests prove exact half-width and half-height defaults, persistence across store instances, bounded invalid input, and that only the non-activating scale control accepts pointer events. Six focused Space lifecycle tests still pass. The complete gate passes with 697 Swift tests, six Musixmatch tests, six VS Code bridge tests, 17 Karabiner generator tests, generated-source freshness, both Karabiner lints, packaging/version contracts, and shell syntax. Developer-ID-signed Agentic Mouse v1.0.155 (build 161) is installed with the same embedded iCUE SDK, live application configuration, live Karabiner configuration, command-socket mode, and zero-HUD open state as the preceding build. Full-display pixel, hover, and live drag acceptance remain pending the installed runtime's required first real physical input after relaunch; synthetic mouse movement and socket commands correctly cannot satisfy that security boundary.
+
 ## 2026-09-02 — A modifier-only wheel control still needs an explicit diagnostic cell
 
 **Trigger:** The first v1.0.153 live install crashed twice as Ethan used the existing same-source YouTube Volume wheel chord.
