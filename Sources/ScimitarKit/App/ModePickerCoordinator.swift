@@ -115,6 +115,7 @@ public final class ModePickerCoordinator {
     public var resolveAppSelectorDefinition: (() -> AppSpecificModeDefinition)?
     public var onUtilityAction: ((MouseSource, ModeUtilityAction) -> ModeUtilityActionOutcome)?
     public var onWheelControlChange: ((MouseSource, WheelChordControl?) -> Void)?
+    public var onWheelControlRelease: ((MouseSource, WheelChordControl) -> Void)?
     public var onKeysInput: ((MouseSource, KeysModeAction) -> Bool)?
     private var lastSelection: ModeHUDSelection?
     /// Stay can take several seconds to restore a multi-display layout. Treat
@@ -359,6 +360,7 @@ public final class ModePickerCoordinator {
                     log.info("\(control.actionTitle) wheel control held on \(source.displayName)")
                 case .release:
                     guard activeWheelControl == control else { return }
+                    onWheelControlRelease?(source, control)
                     clearWheelControl()
                 }
                 return
@@ -461,6 +463,7 @@ public final class ModePickerCoordinator {
                     log.info("\(control.actionTitle) wheel control held on \(source.displayName)")
                 case .release:
                     guard activeWheelControl == control else { return }
+                    onWheelControlRelease?(source, control)
                     clearWheelControl()
                 }
                 return
@@ -483,6 +486,7 @@ public final class ModePickerCoordinator {
                     log.info("\(control.actionTitle) wheel control held on \(source.displayName)")
                 case .release:
                     guard activeWheelControl == control else { return }
+                    onWheelControlRelease?(source, control)
                     clearWheelControl()
                 }
                 return

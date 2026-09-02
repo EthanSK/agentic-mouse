@@ -32,6 +32,31 @@ final class HorizontalScrollOutputTests: XCTestCase {
         )
     }
 
+    func testKeysTracksPressAndReleaseReachOneWheelFreeRelease() {
+        let monitor = ScrollWheelChordMonitor(
+            inputAllowed: { true },
+            log: Log(category: "wheel-chord-release-test", sink: RecordingLogSink())
+        )
+        var releases: [WheelChordStateMachine.Release] = []
+        monitor.onRelease = { releases.append($0) }
+
+        monitor.setActive(.mediaTracks, for: .corsair)
+        monitor.handle(WheelChordCommand(
+            control: .mediaTracks,
+            source: .corsair,
+            phase: .release
+        ))
+
+        XCTAssertEqual(
+            releases,
+            [.init(
+                source: .corsair,
+                control: .mediaTracks,
+                didObserveWheelInput: false
+            )]
+        )
+    }
+
     func testStaleTopLevelReleaseDoesNotEndANewerHold() {
         let monitor = ScrollWheelChordMonitor(
             inputAllowed: { true },

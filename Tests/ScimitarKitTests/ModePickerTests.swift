@@ -1165,8 +1165,10 @@ final class ModePickerTests: XCTestCase {
             let hud = RecordingModeHUDPresenter()
             let coordinator = makeCoordinator(hud: hud)
             var controls: [(MouseSource, WheelChordControl?)] = []
+            var releases: [(MouseSource, WheelChordControl)] = []
             var keysActions: [KeysModeAction] = []
             coordinator.onWheelControlChange = { controls.append(($0, $1)) }
+            coordinator.onWheelControlRelease = { releases.append(($0, $1)) }
             coordinator.onKeysInput = { _, action in keysActions.append(action); return true }
             coordinator.enterKeys(source: source)
 
@@ -1189,8 +1191,28 @@ final class ModePickerTests: XCTestCase {
             XCTAssertNil(coordinator.activeWheelControl)
             XCTAssertEqual(controls.map(\.0), [source, source])
             XCTAssertEqual(controls.map(\.1), [.mediaTracks, nil])
+            XCTAssertEqual(releases.map(\.0), [source])
+            XCTAssertEqual(releases.map(\.1), [.mediaTracks])
             XCTAssertTrue(keysActions.isEmpty)
         }
+    }
+
+    func testKeysExitDisarmsTracksWheelWithoutReportingAPhysicalRelease() {
+        let coordinator = makeCoordinator()
+        var releases: [WheelChordControl] = []
+        coordinator.onWheelControlRelease = { _, control in releases.append(control) }
+        coordinator.enterKeys(source: .corsair)
+        coordinator.handle(.init(
+            action: .select,
+            source: .corsair,
+            physicalCell: .mediaTracksWheelControl,
+            phase: .press
+        ))
+
+        coordinator.exit(reason: .userRequested)
+
+        XCTAssertTrue(releases.isEmpty)
+        XCTAssertNil(coordinator.activeWheelControl)
     }
 
     func testTopLevelWheelChordsAreSharedWhileKeysArrowsRemainHanded() {

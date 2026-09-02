@@ -920,6 +920,13 @@ final class WheelChordTests: XCTestCase {
         else { return XCTFail("a later ratchet and immediate reversal should dispatch") }
         XCTAssertEqual(nextRatchet.direction, .down)
         XCTAssertEqual(reversed.direction, .up)
+        XCTAssertTrue(state.release(.mediaTracks, for: .corsair)?.didObserveWheelInput == true)
+
+        state.setActive(.mediaTracks, for: .razer)
+        XCTAssertEqual(
+            state.release(.mediaTracks, for: .razer),
+            .init(source: .razer, control: .mediaTracks, didObserveWheelInput: false)
+        )
     }
 
     func testChromeTabsAndCodexReasoningUseTheirOwnDefinitionsOnSharedCellFour() {

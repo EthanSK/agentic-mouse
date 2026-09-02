@@ -1261,8 +1261,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 guard requestedSource == source else { return }
                 if control == nil {
                     self?.magnetWheelActionSequencer.cancel(source: source)
+                    self?.wheelChordMonitor?.clear(source: source)
+                    return
                 }
                 self?.wheelChordMonitor?.setActive(control, for: source)
+            }
+            coordinator.onWheelControlRelease = { [weak self] requestedSource, control in
+                guard requestedSource == source else { return }
+                self?.wheelChordMonitor?.handle(WheelChordCommand(
+                    control: control,
+                    source: source,
+                    phase: .release
+                ))
             }
             coordinator.onKeysInput = { [weak self] requestedSource, action in
                 guard let self, requestedSource == source else { return false }
@@ -1449,10 +1459,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return true
         }
         monitor.onRelease = { [weak self] release in
-            guard release.control == .youtubeScrub,
-                  !release.didObserveWheelInput
-            else { return }
-            self?.performTopLevelYouTubeRewind(from: release.source)
+            guard !release.didObserveWheelInput else { return }
+            switch release.control {
+            case .youtubeScrub:
+                self?.performTopLevelYouTubeRewind(from: release.source)
+            case .mediaTracks:
+                self?.performKeysMediaTrackClick(from: release.source)
+            case .horizontalScroll, .youtubeVolume, .brightness, .zoom, .clipboard,
+                 .systemOverview, .applicationWindows, .magnetWindow, .spaces,
+                 .chromeTabs, .spotifyVolume, .vsCodeCursorHistory,
+                 .codexReasoningEffort, .codexChatHistory:
+                return
+            }
         }
         monitor.onYouTubeVolumeModifierChange = { [weak self] source in
             self?.defaultMapHintCoordinators[source]?.refresh()
@@ -1648,6 +1666,28 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             case .failure:
                 self.flashWheelActionFeedback(step, outcome: .couldNotBeSent)
             }
+        }
+    }
+
+    private func performKeysMediaTrackClick(from source: MouseSource) {
+        guard mouseCommandsAllowed,
+              let coordinator = modePickerCoordinators[source],
+              coordinator.isActive,
+              coordinator.page == .keys,
+              coordinator.activeWheelControl == .mediaTracks
+        else { return }
+        switch keysModeActionExecutor.perform(.next) {
+        case .success:
+            log.info("Next Track posted from \(source.displayName) Keys click")
+            modeHUDPresenters[source]?.flashFeedback(ModeHUDFeedback(
+                message: "Next Track sent",
+                tone: .informational
+            ))
+        case .failure:
+            modeHUDPresenters[source]?.flashFeedback(ModeHUDFeedback(
+                message: "Next Track could not be sent",
+                tone: .notConfirmed
+            ))
         }
     }
 
