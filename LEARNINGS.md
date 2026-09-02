@@ -1,5 +1,19 @@
 # Learnings
 
+## 2026-09-02 — Disable the global floating screenshot thumbnail instead of timing it
+
+**Trigger:** Ethan wanted Agentic Mouse's saved screenshot path to resolve sooner now that the same mouse button can paste the retained screenshot directly.
+
+**Finding:** Current macOS exposes a supported on/off preference for the floating screenshot thumbnail but no supported duration control. The native `/usr/sbin/screencapture` interface likewise exposes no thumbnail-duration option. Keeping the preview enabled therefore forces the normal preview delay before the configured Screenshot destination receives its final file.
+
+**Fix:** Keep Agentic Mouse's exact native Shift-Command-4 route and set the user-level `com.apple.screencapture show-thumbnail` preference to false. This preserves macOS's selection UI, configured destination, and sound while removing the preview delay for subsequent captures. (Codex task: 01a039f7-873c-7c30-b3dc-af8a6724ace5)
+
+**Guard:** Do not re-enable the thumbnail, invent or write an unsupported hidden duration key, dismiss the floating UI through Accessibility, replace the native shortcut with a second capture, or restart SystemUIServer merely to apply this preference. An already-running screenshot interaction keeps the state it launched with; verify the next physical capture separately.
+
+**Verification:** `defaults read com.apple.screencapture show-thumbnail` returned `0` after the change. A screenshot interaction was already active and was deliberately left untouched, so immediate-path behavior on the next physical Agentic Mouse capture remains Ethan-owned acceptance.
+
+---
+
 ## 2026-09-02 — Source Safari's shared card labels from Chrome
 
 **Trigger:** Ethan asked for Safari's app-specific buttons to be brought up to date with Chrome so the two modes look the same.
