@@ -1818,11 +1818,11 @@ final class ModePickerTests: XCTestCase {
         }
     }
 
-    func testSafariLayoutDuplicatesChromeNewTabOnCellEight() {
+    func testSafariLayoutMatchesChromeLabelsAndDuplicatesNewTabOnCellEight() {
         let actions = StandardAppMode.actions(for: .safari)
         let expectedTitlesByCell = [
-            1: "Reload",
-            3: "Close tab",
+            1: "Reload current tab",
+            3: "Close current tab",
             4: "Previous tab",
             5: "New tab",
             6: "Open DevTools",
@@ -1846,8 +1846,8 @@ final class ModePickerTests: XCTestCase {
                 "\($0.cell.rawValue)|\($0.title)|\($0.keyCode)|\($0.modifiers.rawValue)"
             },
             [
-                "1|Reload|15|1",
-                "3|Close tab|13|1",
+                "1|Reload current tab|15|1",
+                "3|Close current tab|13|1",
                 "4|Previous tab|48|10",
                 "5|New tab|17|1",
                 "6|Open DevTools|34|5",
@@ -1858,8 +1858,22 @@ final class ModePickerTests: XCTestCase {
                 "12|Find page|3|1",
             ]
         )
-        XCTAssertEqual(AppSpecificTarget.safari.definition.legend[0].actionTitle, "Reload")
-        XCTAssertEqual(AppSpecificTarget.safari.definition.legend[2].actionTitle, "Close tab")
+        let sharedChromeActions: [ChromeModeAction] = [
+            .reloadCurrentTab,
+            .closeCurrentTab,
+            .newTab,
+            .openDevTools,
+            .reopenClosedTab,
+            .findPage,
+        ]
+        for chromeAction in sharedChromeActions {
+            XCTAssertEqual(
+                StandardAppMode.action(for: .safari, cell: chromeAction.cell)?.title,
+                chromeAction.title
+            )
+        }
+        XCTAssertEqual(AppSpecificTarget.safari.definition.legend[0].actionTitle, "Reload current tab")
+        XCTAssertEqual(AppSpecificTarget.safari.definition.legend[2].actionTitle, "Close current tab")
         XCTAssertEqual(AppSpecificTarget.safari.definition.legend[4].actionTitle, "New tab")
         XCTAssertEqual(AppSpecificTarget.safari.definition.legend[5].actionTitle, "Open DevTools")
         XCTAssertEqual(AppSpecificTarget.safari.definition.legend[7].actionTitle, "New tab")

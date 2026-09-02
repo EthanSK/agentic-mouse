@@ -266,22 +266,35 @@ public enum StandardAppMode {
         ]
     }
 
-    /// Safari places equivalent actions on the same canonical cells as Chrome
-    /// wherever Chrome exposes that action. Cell 8 deliberately duplicates
-    /// New tab, while Safari-only Forward and tab-direction controls remain.
+    /// Safari takes each shared browser card's cell and title from Chrome so
+    /// the two HUDs stay visually aligned. Cell 8 deliberately duplicates New
+    /// tab, while Safari-only Forward and tab-direction controls remain.
     private static func safariActions() -> [StandardAppModeAction] {
         [
-            a(1, "Reload", 15, [.command]),
-            a(3, "Close tab", 13, [.command]),
+            safariChromeAction(.reloadCurrentTab, keyCode: 15, modifiers: [.command]),
+            safariChromeAction(.closeCurrentTab, keyCode: 13, modifiers: [.command]),
             a(4, "Previous tab", 48, [.control, .shift]),
-            a(5, "New tab", 17, [.command]),
-            a(6, "Open DevTools", 34, [.command, .option]),
+            safariChromeAction(.newTab, keyCode: 17, modifiers: [.command]),
+            safariChromeAction(.openDevTools, keyCode: 34, modifiers: [.command, .option]),
             a(7, "Next tab", 48, [.control]),
-            a(8, "New tab", 17, [.command]),
+            a(8, ChromeModeAction.newTab.title, 17, [.command]),
             a(9, "Forward", 30, [.command]),
-            a(11, "Reopen tab", 17, [.command, .shift]),
-            a(12, "Find page", 3, [.command]),
+            safariChromeAction(.reopenClosedTab, keyCode: 17, modifiers: [.command, .shift]),
+            safariChromeAction(.findPage, keyCode: 3, modifiers: [.command]),
         ]
+    }
+
+    private static func safariChromeAction(
+        _ action: ChromeModeAction,
+        keyCode: UInt16,
+        modifiers: AppModeShortcutModifiers
+    ) -> StandardAppModeAction {
+        StandardAppModeAction(
+            cell: action.cell,
+            title: action.title,
+            keyCode: keyCode,
+            modifiers: modifiers
+        )
     }
 
     private static func a(

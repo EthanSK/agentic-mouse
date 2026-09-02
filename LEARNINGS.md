@@ -1,5 +1,17 @@
 # Learnings
 
+## 2026-09-02 — Source Safari's shared card labels from Chrome
+
+**Trigger:** Ethan asked for Safari's app-specific buttons to be brought up to date with Chrome so the two modes look the same.
+
+**Finding:** The shared physical cells and shortcuts were already aligned, including the duplicated New tab on cells 5 and 8. Only two visible strings had drifted: Safari still rendered `Reload` and `Close tab`, while Chrome rendered `Reload current tab` and `Close current tab`. Copying Chrome-only Tab History or YouTube speed behavior would have removed useful Safari controls without improving the genuinely shared cards.
+
+**Fix:** Build each genuinely shared Safari card from the corresponding `ChromeModeAction` cell and title, while keeping Safari's native shortcut, Previous/Next Tab controls, and Forward control. Keep the deliberate cell-8 New tab duplicate tied to Chrome's New tab title. (Codex task: 01a039f7-873c-7c30-b3dc-af8a6724ace5)
+
+**Guard:** Do not duplicate shared Chrome titles or cells as Safari string literals. Keep Safari's own accent and browser-only controls, and do not copy Chrome's extension-backed Tab History or YouTube speed action into Safari merely to make every cell identical.
+
+**Verification:** The focused Mode Picker and application-shortcut suites passed 98 tests. The first complete run hit the existing timing-sensitive HUD Space assertion once; its immediate isolated rerun passed all 701 Swift tests, then a fresh complete clean gate passed all 701 Swift tests plus six Musixmatch tests, six VS Code bridge tests, 17 Karabiner generator tests, generated-source freshness, both Karabiner lints, packaging/version contracts, and shell syntax. Developer-ID-signed Agentic Mouse v1.0.160 (build 166) is installed as main PID 48960 with supervisor PID 49244, executable SHA-256 `a30545f6d3f49ccc881370f29ee3bece169667e9fc77c6b6975315f89a18911f`, supervisor SHA-256 `9278860c0cfc1c667a69c20499801d10835aceb8a33601b6050d28c4394b1f1e`, main CDHash `8ee6228ac930e1ef01faaa42bed93b4ba25b17e2`, supervisor CDHash `05711d65899eea80335e4724e4ef503f497660d0`, Team ID `T34G959ZG8`, Accessibility granted, the audited iCUE SDK loaded, and exclusive mode-0600 command-socket ownership. The live application configuration, Karabiner configuration, and embedded iCUE SDK remain byte-identical at SHA-256 `aa1499d88bd34875dc11f9a2873165d09cd2323c590126f425da4fd72e3189be`, `b2a3eea496fdbe7620ad5e975f1434be21308765d2fd8fd846395453c90e7fed`, and `48bbc94bed670d036af8e1acca0017449b36d7c6d1e15dafe0791b42b6be84fe`. Full-display pixel screenshots across the AVT GC553G2, Built-in Retina Display, and LS27A800U current Spaces proved one complete Safari legend per display with `Reload current tab`, `Close current tab`, and every other shared Chrome title in v1.0.160; the pre-test zero-HUD state was then restored and visually verified on all three displays. OBS++ main PID 23157 and recording mux PID 29084 remained unchanged throughout the replacement and live proof. Literal physical shortcut acceptance on each mouse remains Ethan-owned.
+
 ## 2026-09-02 — Anchor each source HUD flush with its handed bottom corner
 
 **Trigger:** Ethan clarified that the left-mouse and right-mouse HUDs must touch both edges of their respective bottom corners rather than float inward.

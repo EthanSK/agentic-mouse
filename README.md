@@ -257,8 +257,8 @@ The macOS menu-bar app adds several optional runtime behaviours:
   accepted personal preferences until Ethan tests them. The Chrome 2× transport
   and fail-safe lease are proven, but physical speed/restore acceptance on a
   playing video remains open.
-  Safari uses Chrome's cells for their shared actions: cell 3 closes the current tab, cell 6 opens DevTools,
-  cell 1 reloads, cells 5 and 8 open a new tab, cell 11 reopens a tab, and cell 12 finds the page. Its separate
+  Safari uses Chrome's cells and exact HUD titles for their shared actions: cell 3 closes the current tab, cell 6 opens DevTools,
+  cell 1 reloads the current tab, cells 5 and 8 open a new tab, cell 11 reopens a tab, and cell 12 finds the page. Its separate
   tab-direction and Forward controls remain available; Downloads is retired from
   Safari mode only.
   Every mode has its own bold, saturated colour. If the Default mode legend was already open, it is restored
