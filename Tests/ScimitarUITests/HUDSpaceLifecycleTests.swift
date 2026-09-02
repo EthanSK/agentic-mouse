@@ -5,6 +5,38 @@ import XCTest
 
 @MainActor
 final class HUDSpaceLifecycleTests: XCTestCase {
+    func testMouseHUDsTouchTheirHandedBottomCornersOnEveryDisplay() async {
+        let baselinePanels = visibleHUDPanels()
+        let corsairPresenter = AppKitModeHUDPresenter(source: .corsair)
+        let razerPresenter = AppKitModeHUDPresenter(source: .razer)
+        corsairPresenter.show(DefaultMapLegend.snapshot(source: .corsair))
+        razerPresenter.show(DefaultMapLegend.snapshot(source: .razer))
+        await waitForMainQueueTurns()
+
+        let panels = NSApplication.shared.windows.compactMap { window -> HUDPanel? in
+            guard let panel = window as? HUDPanel,
+                  panel.isVisible,
+                  !baselinePanels.contains(ObjectIdentifier(panel)) else { return nil }
+            return panel
+        }
+        XCTAssertEqual(panels.count, NSScreen.screens.count * 2)
+        for screen in NSScreen.screens {
+            let screenPanels = panels.filter { screen.frame.contains(NSPoint(x: $0.frame.midX, y: $0.frame.midY)) }
+            XCTAssertEqual(screenPanels.count, 2)
+            XCTAssertTrue(screenPanels.contains { panel in
+                abs(panel.frame.minX - screen.visibleFrame.minX) < 0.01
+                    && abs(panel.frame.minY - screen.visibleFrame.minY) < 0.01
+            })
+            XCTAssertTrue(screenPanels.contains { panel in
+                abs(panel.frame.maxX - screen.visibleFrame.maxX) < 0.01
+                    && abs(panel.frame.minY - screen.visibleFrame.minY) < 0.01
+            })
+        }
+
+        corsairPresenter.hide()
+        razerPresenter.hide()
+    }
+
     func testActiveModeHUDRecreatesEveryDisplayPanelAfterSpaceChange() async throws {
         let workspaceNotificationCenter = NotificationCenter()
         let presenter = AppKitModeHUDPresenter(

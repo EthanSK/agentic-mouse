@@ -253,7 +253,7 @@ public struct AppConfiguration: Codable, Equatable, Sendable {
 
         public init(
             corner: Corner = .bottomLeft,
-            margin: Double = 28,
+            margin: Double = 0,
             opacity: Double = 0.96,
             followsPointerScreen: Bool = true,
             showsTapProgressRing: Bool = true

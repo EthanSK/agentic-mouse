@@ -293,6 +293,7 @@ final class ConfigurationTests: XCTestCase {
         XCTAssertTrue(configuration.defaultMapHint.enabled)
         XCTAssertEqual(configuration.defaultMapHint.doubleClickInterval, 0.34)
         XCTAssertEqual(configuration.defaultMapHint.displayDuration, 0)
+        XCTAssertEqual(configuration.hud.margin, 0)
     }
 
     func testEverySourceOwnedHUDUsesTheMouseHandedCorner() {

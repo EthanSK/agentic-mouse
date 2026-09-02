@@ -1,5 +1,17 @@
 # Learnings
 
+## 2026-09-02 — Anchor each source HUD flush with its handed bottom corner
+
+**Trigger:** Ethan clarified that the left-mouse and right-mouse HUDs must touch both edges of their respective bottom corners rather than float inward.
+
+**Finding:** Source ownership and handed placement were already correct: Corsair used bottom-right and Razer used bottom-left. The visible gap came entirely from the shared 28-point outer HUD margin, which both presenter families added on the horizontal and bottom axes. Changing the screen or source mapping would have fixed the wrong layer and risked reversing the mice again.
+
+**Fix:** Default the shared HUD margin to zero in both runtime configuration and the public example while retaining `NSScreen.visibleFrame`, so Corsair touches the usable right and bottom edges and Razer touches the usable left and bottom edges on every display. Keep the hover-only scale control inset inside the panel. Add a real AppKit lifecycle test that opens both source presenters together and proves exactly one left-bottom and one right-bottom panel per connected display. (Codex task: 01a039f7-873c-7c30-b3dc-af8a6724ace5)
+
+**Guard:** Do not restore an aesthetic outer gap, use `screen.frame` and overlap the Dock, move the scale control outside the HUD, or duplicate corner geometry in source-specific branches. Preserve one shared margin and the established `MouseSource` corner mapping; pin both edges of both handed corners in the same multi-display presenter test.
+
+**Verification:** The focused default-configuration and real AppKit placement tests pass. The complete clean gate passes with 701 Swift tests, six Musixmatch tests, six VS Code bridge tests, 17 Karabiner generator tests, generated-source freshness, both Karabiner lints, packaging/version contracts, and shell syntax. Developer-ID-signed Agentic Mouse v1.0.159 (build 165) is installed as main PID 49045 with supervisor PID 49055, executable SHA-256 `148f486cf185588e130d49d8252a745b3f5ebc2939a9b015522a9829d7736a42`, CDHash `5255bf43f1f5e7e8f76a5f9e381caf450157571e`, Team ID `T34G959ZG8`, Accessibility granted, the audited iCUE SDK loaded, and exclusive command-socket ownership. The live application configuration and Karabiner configuration remain byte-identical at SHA-256 `aa1499d88bd34875dc11f9a2873165d09cd2323c590126f425da4fd72e3189be` and `b2a3eea496fdbe7620ad5e975f1434be21308765d2fd8fd846395453c90e7fed`. After one real physical input cleared the post-launch security gate, full-display pixel captures across the AVT GC553G2, Built-in Retina Display, and LS27A800U current Spaces proved the Razer Default legend flush with every bottom-left corner and the Corsair Default legend flush with every bottom-right corner. Both temporary proof legends were then hidden, zero Agentic Mouse windows remained on-screen, and OBS++ recording mux PID 29084 remained on the same recording throughout the replacement and visual checks.
+
 ## 2026-09-02 — Scale one rendered HUD instead of maintaining a second compact layout
 
 **Trigger:** Ethan asked every Agentic Mouse HUD to occupy one quarter of its prior area, with a bottom vertical size control that appears only on hover and persists across relaunches.

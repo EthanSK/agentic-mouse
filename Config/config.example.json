@@ -133,7 +133,7 @@
   "hud": {
     "_comment": "corner: topLeft | topRight | bottomLeft | bottomRight | center",
     "corner": "bottomLeft",
-    "margin": 28,
+    "margin": 0,
     "opacity": 0.96,
     "followsPointerScreen": true,
     "showsTapProgressRing": true
