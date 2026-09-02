@@ -16,6 +16,12 @@ final class HUDSpaceLifecycleTests: XCTestCase {
         await waitForMainQueueTurns()
         let originalPanels = visibleHUDPanels().subtracting(baselinePanels)
         XCTAssertEqual(originalPanels.count, NSScreen.screens.count)
+        if ProcessInfo.processInfo.environment["AGENTIC_MOUSE_HUD_VISUAL_HOLD"] == "1" {
+            for _ in 0 ..< 600 { // The clipped build passed geometry-only checks, so keep the real click-through presenter visible and refresh hover state for full-display pixel inspection when explicitly requested. (Codex task: 01a039f7-873c-7c30-b3dc-af8a6724ace5)
+                HUDScaleHoverCoordinator.shared.refresh()
+                try await Task.sleep(nanoseconds: 100_000_000)
+            }
+        }
 
         workspaceNotificationCenter.post(
             name: NSWorkspace.activeSpaceDidChangeNotification,
