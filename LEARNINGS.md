@@ -1,5 +1,19 @@
 # Learnings
 
+## 2026-09-03 — Keep Keys cell 12 spare without removing the other Return routes
+
+**Trigger:** Ethan asked to remove Enter from the shared Keys mode while keeping the rest of the mouse maps intact.
+
+**Finding:** Keys mode had two separate sources for cell 12: the Swift page definition/executor that drew and handled the HUD card, and the generated exact-device Karabiner native map that emitted Return. Removing only the Swift action would leave a hidden native Return route, while removing only the generator entry would leave a false Enter card.
+
+**Fix:** Remove the Keys-only Enter action from both sources and render canonical cell 12 as Spare for both mouse projections: Corsair 12 and Razer 10. Preserve top-level cell 7 Enter, Keypad cell 12 Backspace with hold-for-Return, and app-specific Return routes. (Codex task: 01a039f7-873c-7c30-b3dc-af8a6724ace5)
+
+**Guard:** Keep cell 12 absent from `KeysModeAction`, the Keys executor, and `KEYS_MODE_OUTPUT_BY_PHYSICAL_CELL`. Pin the visible Spare cards and the absence of any Keys-page `return_or_enter` manipulator for both exact mice in tests; do not infer that a HUD omission also disables Karabiner output.
+
+**Verification:** The focused suites passed 126 Swift tests and 16 direct generator tests, including the retained Keypad Backspace/Return route. The complete clean gate passed 701 Swift tests, six Musixmatch tests, six VS Code bridge tests, 17 Karabiner generator tests, generated-source freshness, both Karabiner lints, packaging/version contracts, and shell syntax. Developer-ID-signed Agentic Mouse v1.0.162 (build 168) is installed as main PID 75115 with executable SHA-256 `5d11a8843a68b1e879fd1f7f4d82c50c8d8355f25a5ed2f7bf3776fef5329018`, CDHash `1cbb5cd0718c4b76be91ab8bbd08b78f6cd187d7`, Team ID `T34G959ZG8`, Accessibility granted, iCUE connected, self-recovery enabled, and exclusive mode-0600 command-socket ownership. The installed iCUE SDK and live app configuration remain byte-identical at SHA-256 `48bbc94bed670d036af8e1acca0017449b36d7c6d1e15dafe0791b42b6be84fe` and `aa1499d88bd34875dc11f9a2873165d09cd2323c590126f425da4fd72e3189be`. The live Karabiner profile is SHA-256 `dc32d95de0c3718b4201e726f605212139cbb9b1237fc4b19d72147da430bd6d`: its generated six-rule Agentic Mouse block matches the source exactly and all three non-Agentic rules match the pre-install profile exactly. Full-display pixel captures on the AVT GC553G2, Built-in Retina Display, and LS27A800U current Spaces proved `Spare · Corsair 12` and `Spare · Razer 10` in their complete v1.0.162 Keys legends; the pre-install zero-HUD state was then restored and visually verified on all three displays. OBS++ main PID 98893 and active recording mux PID 6842 remained unchanged. The exact v1.0.161 bundle and prior Karabiner profile are preserved in `Rollbacks/`; literal physical cell-12 no-op acceptance remains Ethan-owned.
+
+---
+
 ## 2026-09-03 — Release VS Code navigation immediately and reserve same-source 8 + 7 for staging
 
 **Trigger:** Ethan found the top-level VS Code double-click staging gesture slowed down ordinary Previous/Next navigation and asked to stage by holding physical cell 8 while pressing physical cell 7 instead.

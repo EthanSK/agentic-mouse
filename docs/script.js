@@ -81,7 +81,7 @@ const LAYERS = {
       ["Tracks + Wheel", "Click for Next Track, or hold and ratchet up for Next Track or down for Previous Track."],
       ["Exit Keys mode", "Clear the mode lease and return to Default."],
       ["Backspace", "Emit one native Delete/Backspace key."],
-      ["Enter", "Emit one native, non-repeating Return."],
+      SPARE,
     ],
     sourceOverrides: {
       razer: {

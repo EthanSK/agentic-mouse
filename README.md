@@ -285,8 +285,8 @@ The macOS menu-bar app adds several optional runtime behaviours:
   Keys mode sends native non-repeating arrows from physical cells 1/4/5/7,
   with the Razer's left/right meanings mirrored for its left-handed layout.
   Cell 3 sends Undo as Command-Z, cell 6 enters Keypad, and holding cell 9 turns each wheel-up ratchet into Next Track and each wheel-down ratchet into Previous Track. Cell 8 sends Space,
-  cell 11 sends Backspace, and cell 12 sends Enter through the active exact-device Karabiner layer.
-  Cell 2 is spare. Utility cell 7 reads the optional device-local,
+  cell 11 sends Backspace, and cells 2 and 12 are spare.
+  Utility cell 7 reads the optional device-local,
   When-Unlocked Keychain item only after the unlocked-session and Accessibility
   gates pass, then types directly without using the clipboard or plaintext
   configuration.

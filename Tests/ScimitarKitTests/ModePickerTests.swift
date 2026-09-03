@@ -1097,7 +1097,7 @@ final class ModePickerTests: XCTestCase {
         XCTAssertEqual(lease.deactivateCount, 1)
     }
 
-    func testKeysModeMapsArrowsUndoSpaceBackspaceAndEnterOnPressOnly() {
+    func testKeysModeMapsArrowsUndoSpaceAndBackspaceOnPressOnly() {
         let hud = RecordingModeHUDPresenter()
         let coordinator = makeCoordinator(hud: hud)
         var actions: [(MouseSource, KeysModeAction)] = []
@@ -1116,7 +1116,7 @@ final class ModePickerTests: XCTestCase {
             )
         }
 
-        XCTAssertEqual(actions.map(\.0), Array(repeating: .corsair, count: 8))
+        XCTAssertEqual(actions.map(\.0), Array(repeating: .corsair, count: 7))
         XCTAssertEqual(
             actions.map(\.1),
             [
@@ -1127,7 +1127,6 @@ final class ModePickerTests: XCTestCase {
                 .undo,
                 .insertSpace,
                 .pressBackspace,
-                .pressEnter,
             ]
         )
         XCTAssertEqual(KeysModeAction.arrowUp.cell.rawValue, 5)
@@ -1138,7 +1137,6 @@ final class ModePickerTests: XCTestCase {
         XCTAssertEqual(KeysModeAction.undo.cell(for: .razer).printedSide(on: .razer), 1)
         XCTAssertEqual(KeysModeAction.insertSpace.cell.rawValue, 8)
         XCTAssertEqual(KeysModeAction.pressBackspace.cell.rawValue, 11)
-        XCTAssertEqual(KeysModeAction.pressEnter.cell.rawValue, 12)
         XCTAssertEqual(ModePickerCoordinator.keysLegend[9].actionTitle, "Exit Keys mode")
         XCTAssertEqual(ModePickerCoordinator.keysLegend[5].actionTitle, "Keypad")
         XCTAssertEqual(ModePickerCoordinator.keysLegend[7].actionTitle, "Space")
@@ -1146,7 +1144,15 @@ final class ModePickerTests: XCTestCase {
         XCTAssertEqual(ModePickerCoordinator.keysLegend[2].actionTitle, "Undo")
         XCTAssertEqual(ModePickerCoordinator.keysLegend[8].actionTitle, "Tracks + Wheel")
         XCTAssertEqual(ModePickerCoordinator.keysLegend[10].actionTitle, "Backspace")
-        XCTAssertEqual(ModePickerCoordinator.keysLegend[11].actionTitle, "Enter")
+        XCTAssertEqual(ModePickerCoordinator.keysLegend[11].actionTitle, "Spare")
+        XCTAssertEqual(
+            ModePickerCoordinator.keysLegend(for: .corsair)[11].printedControlLabel(on: .corsair),
+            "Corsair 12"
+        )
+        XCTAssertEqual(
+            ModePickerCoordinator.keysLegend(for: .razer)[11].printedControlLabel(on: .razer),
+            "Razer 10"
+        )
         let arrowAccents = [
             KeysModeAction.arrowUp,
             .arrowDown,
@@ -1157,7 +1163,6 @@ final class ModePickerTests: XCTestCase {
         }
         XCTAssertEqual(Set(arrowAccents).count, 1)
         XCTAssertNotEqual(KeysModeAction.insertSpace.hudAccent, KeysModeAction.pressBackspace.hudAccent)
-        XCTAssertNotEqual(KeysModeAction.pressBackspace.hudAccent, KeysModeAction.pressEnter.hudAccent)
     }
 
     func testKeysCellNineArmsTracksWheelUntilRelease() {
@@ -2305,7 +2310,7 @@ final class ModePickerTests: XCTestCase {
         }
     }
 
-    func testKeysCellTwelveIsEnterRatherThanUtilityNavigation() {
+    func testKeysCellTwelveIsSpareRatherThanUtilityNavigation() {
         let hud = RecordingModeHUDPresenter()
         let coordinator = makeCoordinator(hud: hud)
 
@@ -2331,7 +2336,8 @@ final class ModePickerTests: XCTestCase {
         XCTAssertEqual(coordinator.page, .keys)
         XCTAssertEqual(coordinator.navigationPath, [.modes, .keys])
         XCTAssertEqual(hud.snapshots.last?.modeTitle, "Keys mode")
-        XCTAssertEqual(keysActions, [.pressEnter])
+        XCTAssertEqual(hud.snapshots.last?.legend[11].actionTitle, "Spare")
+        XCTAssertTrue(keysActions.isEmpty)
     }
 
     func testKeypadFailureExitsInsteadOfLeavingTheKarabinerPageDesynchronized() {

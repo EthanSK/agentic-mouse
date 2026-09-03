@@ -126,7 +126,7 @@ class KarabinerGeneratorTests(unittest.TestCase):
             item for item in generated["rules"]
             if item["description"] == "Agentic Mouse — Modes (expiring, exact-device)"
         )
-        self.assertEqual(len(rule["manipulators"]), 64)
+        self.assertEqual(len(rule["manipulators"]), 62)
         actions = []
         legend_toggles = []
         for manipulator in rule["manipulators"]:
@@ -182,7 +182,7 @@ class KarabinerGeneratorTests(unittest.TestCase):
 
         self.assertEqual(actions[:2], ["close", "close"])
         self.assertEqual(actions.count("select"), 38)
-        self.assertEqual(actions.count("selectNative"), 20)
+        self.assertEqual(actions.count("selectNative"), 18)
         self.assertEqual(actions[-2:], ["open", "open"])
         self.assertEqual(
             {(item["source"], item["physical_cell"]) for item in legend_toggles},
@@ -283,18 +283,16 @@ class KarabinerGeneratorTests(unittest.TestCase):
                 {"type": "expression_if", "expression": f"{page_variable} == 1"},
                 utility_to_keys["conditions"],
             )
-            keys_enter = next(
-                item for item in source_manipulators
-                if any(
-                    event.get("send_user_command", {}).get("payload", {}).get("physical_cell")
-                    == 12
-                    for event in item["to"]
-                )
-                and any(event.get("key_code") == "return_or_enter" for event in item["to"])
-            )
-            self.assertIn(
-                {"type": "expression_if", "expression": f"{page_variable} == 2"},
-                keys_enter["conditions"],
+            self.assertFalse(
+                any(
+                    any(event.get("key_code") == "return_or_enter" for event in item["to"])
+                    and any(
+                        condition.get("expression") == f"{page_variable} == 2"
+                        for condition in item["conditions"]
+                    )
+                    for item in source_manipulators
+                ),
+                "Keys cell 12 is spare; only Keypad retains Return",
             )
             for target_cell in (1, 4, 7):
                 target = next(
@@ -350,7 +348,6 @@ class KarabinerGeneratorTests(unittest.TestCase):
                 "keypad_7": {"key_code": "right_arrow"},
                 "keypad_8": {"key_code": "spacebar"},
                 "keypad_hyphen": {"key_code": "delete_or_backspace"},
-                "keypad_plus": {"key_code": "return_or_enter"},
             },
             "razer": {
                 "3": {"key_code": "right_arrow"},
@@ -360,7 +357,6 @@ class KarabinerGeneratorTests(unittest.TestCase):
                 "9": {"key_code": "left_arrow"},
                 "8": {"key_code": "spacebar"},
                 "hyphen": {"key_code": "delete_or_backspace"},
-                "0": {"key_code": "return_or_enter"},
             },
         }
         for source_name, expected in native_keys.items():

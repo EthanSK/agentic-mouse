@@ -96,7 +96,7 @@ returns; later ratchets stay consumed until release. A temporary,
 rate-limited legend footer exposes the raw wheel fields, routing verdict,
 keyboard post, and observed Space-change notification during diagnosis.
 Keys uses cell 3 for Undo as Command-Z, cell 6 for Keypad, cell 9 for the held Next/Previous Track wheel chord,
-cell 8 for Space, cell 11 for Backspace, and cell 12 for Enter; cell 2 is spare. Its four arrows
+cell 8 for Space, and cell 11 for Backspace; cells 2 and 12 are spare. Its four arrows
 use cells 5/4/7/1 on Corsair, with horizontal meanings mirrored on the
 left-handed Razer. Active-mode legends remain visible until cell 10 exits;
 Keypad cell 1 cycles punctuation, cell 3 is the familiar DEF key, cell 11 sends

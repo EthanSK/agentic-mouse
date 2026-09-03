@@ -83,7 +83,7 @@ iCUE database or profile file behind the app's back.
    explanatory subtitle beneath any action title.
 7. Enter Keys with physical cell 9 and prove Keypad entry on physical cell 6,
    Undo on cell 3, Space on cell 8, hold cell 9 and prove one Next Track per wheel-up ratchet plus one Previous Track per wheel-down ratchet, one Backspace on cell 11, and
-   Enter on cell 12, with cell 2 remaining spare,
+   no action or key leakage from spare cells 2 and 12,
    with no repeat or raw transport leakage. Prove Corsair cells 5/4/7/1 are
    Up/Down/Right/Left while the Razer mirrors the horizontal gestures, then use
    physical cell 10 to exit and restore the ordinary map.
