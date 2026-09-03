@@ -139,8 +139,8 @@ The things worth confirming:
 - the generated Karabiner map gives **5** and **8** matching base exclusions
   plus exact-device release-only VS Code overrides: F17 Previous Change and F13
   Next Change; while same-source **8** is held, **7** emits F18 Stage + Next and
-  suppresses Enter and the pending Next action; after **8** releases, same-source
-  **7** is inert for one second so a near-miss cannot send Enter;
+  suppresses Enter and the pending Next action; after **8** releases, one same-source
+  **7** press emits F18 Stage + Next for one second instead of sending Enter;
 - every other physical cell inherits the same base action in VS Code unless that
   exact 8-held + 7 chord is active;
 - the wheel click on each mouse arrives as ordinary `pointing_button: button3`

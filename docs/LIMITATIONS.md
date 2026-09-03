@@ -196,8 +196,8 @@ all twelve buttons while multi-tap is active and releases them on exit. In VS
 Code, Karabiner maps physical cell 5 release to non-repeating F17 Previous Change
 and cell 8 release to non-repeating F13 Next Change. Pressing same-source cell 7
 while cell 8 is held emits F18 Stage + Next and suppresses Enter and the pending
-Next action. For one second after cell 8 releases, same-source cell 7 is consumed
-without output so a near-miss cannot send Enter. Top-level cell 6 remains the global
+Next action. For one second after cell 8 releases, one same-source cell-7 press emits
+F18 Stage + Next instead of Enter. Top-level cell 6 remains the global
 source-specific YouTube scrub action. Matching exclusions preserve Forward/Back
 everywhere else without duplicating other controls. Top-level cell 2 opens the
 frontmost app's mode and top-level cell 9 opens Keys. In Keys, cell 3 emits

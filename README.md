@@ -236,7 +236,7 @@ The macOS menu-bar app adds several optional runtime behaviours:
   open DevTools. Holding Chrome cell 7 sets the bridge-selected, currently playing
   YouTube video to 2× and release restores that video's exact prior rate; a short renewed browser lease
   restores it automatically if release is lost. Chrome cell 4 moves backward and forward through that
-  Chrome window's actual tab-activation history without focusing Chrome. Chrome cells 5 and 8 open a new tab, and cell 1 reloads the current tab. Chrome mode
+  Chrome window's actual tab-activation history without focusing Chrome. Chrome cell 5 opens a new tab, cell 8 opens the fixed website submenu, and cell 1 reloads the current tab. Website choices open immediately to the right of the active tab in Chrome's last-focused normal window. Chrome mode
   does not duplicate the Default map's Forward/Back controls. VS Code cell 1 closes the current editor
   tab, cell 7 opens the Command Palette, cell 4 toggles its integrated terminal,
   cell 11 goes to the selected symbol's definition with F12, and cell 12

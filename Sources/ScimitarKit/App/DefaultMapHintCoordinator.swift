@@ -236,7 +236,7 @@ public enum DefaultMapLegend {
                 title = "Previous Change"
             } else if frontmostAppContext?.target == .vsCode,
                       cell == PhysicalCell(rawValue: 7)! {
-                title = "Enter · 1s guard after 8"
+                title = "Enter · Stage + Next after 8"
             } else if frontmostAppContext?.target == .vsCode,
                       cell == VSCodeModeAction.nextChange.cell {
                 title = "Next Change · Hold + \(PhysicalCell(rawValue: 7)!.printedSide(on: source)!) to Stage"

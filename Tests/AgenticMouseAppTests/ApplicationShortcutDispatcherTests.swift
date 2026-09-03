@@ -335,6 +335,7 @@ final class ApplicationShortcutDispatcherTests: XCTestCase {
         )
         XCTAssertNil(ChromeModeShortcutResolver.shortcut(for: .holdYouTubeDoubleSpeed))
         XCTAssertNil(ChromeModeShortcutResolver.shortcut(for: .cycleTabsWithWheel))
+        XCTAssertNil(ChromeModeShortcutResolver.shortcut(for: .openWebsites))
     }
 
     func testStandardAppShortcutResolverPreservesEveryModifier() {

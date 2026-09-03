@@ -128,6 +128,34 @@ final class ModeUtilityActionExecutorTests: XCTestCase {
         else { return XCTFail("a failed Chrome tab-history notification should be surfaced") }
     }
 
+    func testChromeWebsitePostsOnlyTheAllowListedWebsiteIdentifier() {
+        var notifications: [ChromeWebsiteAction] = []
+        let executor = ModeUtilityActionExecutor(
+            notifyChromeWebsite: { action in
+                notifications.append(action)
+                return true
+            }
+        )
+
+        for action in ChromeWebsiteAction.allCases {
+            guard case .success = executor.performChromeWebsite(action) else {
+                return XCTFail("\(action) should reach the Chrome website bridge")
+            }
+        }
+
+        XCTAssertEqual(notifications, ChromeWebsiteAction.allCases)
+        XCTAssertEqual(
+            ModeUtilityActionExecutor.chromeWebsiteOpenNotification.rawValue,
+            "com.ethansk.agenticmouse.chrome.openWebsite"
+        )
+        XCTAssertEqual(ModeUtilityActionExecutor.chromeWebsiteKey, "website")
+
+        let failed = ModeUtilityActionExecutor(notifyChromeWebsite: { _ in false })
+        guard case .failure(.chromeWebsiteBridgeNotificationFailed) =
+            failed.performChromeWebsite(.youtube)
+        else { return XCTFail("a failed Chrome website notification should be surfaced") }
+    }
+
     func testYouTubeBridgeFailureIsReported() {
         let executor = ModeUtilityActionExecutor(notifyYouTube: { _ in false })
 

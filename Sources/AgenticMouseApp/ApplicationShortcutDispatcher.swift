@@ -22,7 +22,7 @@ enum ChromeModeShortcutResolver {
             return .init(keyCode: 17, flags: [.maskCommand, .maskShift])
         case .findPage:
             return .init(keyCode: 3, flags: .maskCommand)
-        case .holdYouTubeDoubleSpeed, .cycleTabsWithWheel:
+        case .holdYouTubeDoubleSpeed, .cycleTabsWithWheel, .openWebsites:
             return nil
         }
     }

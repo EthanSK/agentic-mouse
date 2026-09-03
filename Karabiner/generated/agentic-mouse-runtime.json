@@ -5431,7 +5431,13 @@
           },
           "to": [
             {
-              "key_code": "vk_none",
+              "set_variable": {
+                "name": "agentic_mouse_corsair_vscode_side_08_next_change_pending",
+                "value": 0
+              }
+            },
+            {
+              "key_code": "f18",
               "repeat": false,
               "conditions": [
                 {
@@ -6503,7 +6509,13 @@
           },
           "to": [
             {
-              "key_code": "vk_none",
+              "set_variable": {
+                "name": "agentic_mouse_razer_vscode_side_08_next_change_pending",
+                "value": 0
+              }
+            },
+            {
+              "key_code": "f18",
               "repeat": false,
               "conditions": [
                 {

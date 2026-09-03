@@ -66,8 +66,8 @@ const PAIRS = [
     action: "Enter", short: "Enter", description: "Insert exactly one newline in the frontmost application.",
     signal: "keyboard", output: "return_or_enter · repeat false", status: "CONFIGURED · EXACT-DEVICE OUTPUT",
     vscodeAction: {
-      action: "Enter · 1s guard after 8", short: "Enter · Guard", description: "Press normally for Enter, press while the same mouse's cell 8 is held to emit F18 Stage + Next, or release cell 8 first to suppress Enter for one second.",
-      signal: "keyboard", output: "return_or_enter normally · F18 while cell 8 is held · no output for 1 sec after release", status: "IMPLEMENTED · PHYSICAL ACCEPTANCE PENDING",
+      action: "Enter · Stage + Next after 8", short: "Enter · Stage", description: "Press normally for Enter, or emit F18 Stage + Next while the same mouse's cell 8 is held and for one second after it releases.",
+      signal: "keyboard", output: "return_or_enter normally · F18 while cell 8 is held or for 1 sec after release", status: "IMPLEMENTED · PHYSICAL ACCEPTANCE PENDING",
     },
   },
   {
@@ -75,8 +75,8 @@ const PAIRS = [
     action: "Back", short: "Back", description: "Go back one page or step.",
     signal: "pointing", output: "pointing_button button4", status: "CONFIGURED · NATIVE POINTER OUTPUT",
     vscodeAction: {
-      action: "Next · Hold + Enter to Stage", short: "Next · Stage", description: "Release sends F13 Next Change and starts the one-second Enter guard; hold and press the same mouse's Enter cell for F18 Stage + Next.",
-      signal: "keyboard", output: "F13 on release · same-source 8+7 emits F18 · release starts Enter guard", status: "IMPLEMENTED · PHYSICAL ACCEPTANCE PENDING",
+      action: "Next · Enter stages for +1s", short: "Next · Stage", description: "Release sends F13 Next Change; the same mouse's Enter cell emits F18 Stage + Next while held and for one second after release.",
+      signal: "keyboard", output: "F13 on release · same-source Enter emits F18 while held or for +1 sec", status: "IMPLEMENTED · PHYSICAL ACCEPTANCE PENDING",
     },
   },
   {

@@ -1027,11 +1027,15 @@ final class ModePickerTests: XCTestCase {
         }
     }
 
-    func testChromeModeKeepsHistoryInDefaultAndDuplicatesNewTabOnCellEight() {
+    func testChromeModeKeepsHistoryInDefaultAndUsesCellEightForWebsites() {
         XCTAssertEqual(ChromeModeAction.closeCurrentTab.cell.rawValue, 3)
         XCTAssertEqual(ChromeMode.definition.legend[2].actionTitle, "Close current tab")
-        XCTAssertEqual(ChromeModeAction.action(for: PhysicalCell(rawValue: 8)!), .newTab)
-        XCTAssertEqual(ChromeMode.definition.legend[7].actionTitle, "New tab")
+        XCTAssertEqual(ChromeModeAction.action(for: PhysicalCell(rawValue: 8)!), .openWebsites)
+        XCTAssertEqual(ChromeMode.definition.legend[7].actionTitle, "Open website")
+        XCTAssertEqual(
+            ChromeMode.definition.legend[7].destinationModeAccent,
+            ChromeWebsitesMode.accent
+        )
         XCTAssertEqual(ChromeModeAction.holdYouTubeDoubleSpeed.cell.rawValue, 7)
         XCTAssertEqual(ChromeMode.definition.legend[6].actionTitle, "Hold 2× speed")
         XCTAssertFalse(ChromeModeAction.allCases.contains { $0.title == "Close current window" })
@@ -1039,7 +1043,7 @@ final class ModePickerTests: XCTestCase {
         XCTAssertFalse(ChromeModeAction.allCases.contains { $0.title == "Forward" })
     }
 
-    func testChromeNewTabDuplicateSharesOneDefinitionAcrossAutomaticAndManualJourneys() {
+    func testChromeWebsiteEntrySharesOneDefinitionAcrossAutomaticAndManualJourneys() {
         let automaticHUD = RecordingModeHUDPresenter()
         let automatic = makeCoordinator(hud: automaticHUD)
         automatic.resolveFrontmostApp = {
@@ -1069,8 +1073,122 @@ final class ModePickerTests: XCTestCase {
         XCTAssertEqual(manual.appSpecificDefinition, ChromeMode.definition)
         XCTAssertEqual(automaticHUD.snapshots.last?.legend[2].actionTitle, "Close current tab")
         XCTAssertEqual(manualHUD.snapshots.last?.legend[2].actionTitle, "Close current tab")
-        XCTAssertEqual(automaticHUD.snapshots.last?.legend[7].actionTitle, "New tab")
-        XCTAssertEqual(manualHUD.snapshots.last?.legend[7].actionTitle, "New tab")
+        XCTAssertEqual(automaticHUD.snapshots.last?.legend[7].actionTitle, "Open website")
+        XCTAssertEqual(manualHUD.snapshots.last?.legend[7].actionTitle, "Open website")
+    }
+
+    func testChromeWebsiteSubmenuRoutesEveryAllowListedWebsiteAndReturnsToChrome() {
+        let hud = RecordingModeHUDPresenter()
+        let coordinator = makeCoordinator(hud: hud)
+        let dynamicAccent = ScimitarKit.RGBColor(red: 58, green: 222, blue: 144)
+        let dynamicChromeDefinition = ChromeMode.definition.replacingIdentityAccent(
+            with: dynamicAccent
+        )
+        var actions: [(MouseSource, ChromeWebsiteAction)] = []
+        coordinator.resolveFrontmostApp = {
+            FrontmostAppModeContext(
+                target: .chrome,
+                displayName: "Google Chrome",
+                bundleIdentifier: AppSpecificTarget.chrome.bundleIdentifier,
+                iconAccent: dynamicAccent
+            )
+        }
+        coordinator.onChromeWebsiteInput = { source, action in
+            actions.append((source, action))
+            return true
+        }
+
+        coordinator.enterAppSpecific(source: .razer)
+        coordinator.handle(.init(
+            action: .select,
+            source: .razer,
+            physicalCell: ChromeWebsitesMode.parentCell,
+            phase: .press
+        ))
+        coordinator.handle(.init(
+            action: .select,
+            source: .razer,
+            physicalCell: ChromeWebsitesMode.parentCell,
+            phase: .release
+        ))
+
+        XCTAssertEqual(coordinator.page, .chromeWebsites)
+        XCTAssertEqual(coordinator.navigationPath, [.appSpecific, .chromeWebsites])
+        XCTAssertEqual(coordinator.appSpecificTarget, .chrome)
+        XCTAssertTrue(coordinator.followsFrontmostApp)
+        XCTAssertEqual(hud.snapshots.last?.modeTitle, "Chrome websites")
+        XCTAssertEqual(hud.snapshots.last?.accent, dynamicAccent)
+        XCTAssertEqual(hud.snapshots.last?.legend[7].actionTitle, "Back to Chrome")
+
+        for action in ChromeWebsiteAction.allCases {
+            coordinator.handle(.init(
+                action: .select,
+                source: .razer,
+                physicalCell: action.cell,
+                phase: .press
+            ))
+        }
+
+        XCTAssertEqual(actions.map(\.0), Array(repeating: .razer, count: 7))
+        XCTAssertEqual(actions.map(\.1), ChromeWebsiteAction.allCases)
+        XCTAssertEqual(hud.snapshots.last?.selection?.title, "Grok")
+
+        coordinator.handle(.init(
+            action: .select,
+            source: .razer,
+            physicalCell: ChromeWebsitesMode.parentCell,
+            phase: .press
+        ))
+
+        XCTAssertEqual(coordinator.page, .appSpecific)
+        XCTAssertEqual(coordinator.navigationPath, [.appSpecific])
+        XCTAssertEqual(coordinator.appSpecificDefinition, dynamicChromeDefinition)
+        XCTAssertEqual(hud.snapshots.last?.modeTitle, "Chrome mode")
+    }
+
+    func testChromeWebsiteSubmenuUsesSevenSitesAndBothChromeExitCells() {
+        XCTAssertEqual(
+            Dictionary(uniqueKeysWithValues: ChromeWebsiteAction.allCases.map {
+                ($0.cell.rawValue, $0.title)
+            }),
+            [
+                1: "YouTube",
+                3: "X",
+                4: "Facebook",
+                5: "GitHub",
+                6: "LinkedIn",
+                7: "Gemini",
+                9: "Grok",
+            ]
+        )
+        XCTAssertEqual(ChromeWebsitesMode.definition.legend[1].actionTitle, "Exit Chrome mode")
+        XCTAssertEqual(ChromeWebsitesMode.definition.legend[9].actionTitle, "Exit Chrome mode")
+        XCTAssertEqual(ChromeWebsitesMode.definition.legend[7].actionTitle, "Back to Chrome")
+
+        for exitCell in [PhysicalCell.frontmostAppModeSelector, .modeExit] {
+            let coordinator = makeCoordinator()
+            coordinator.resolveFrontmostApp = {
+                FrontmostAppModeContext(
+                    target: .chrome,
+                    displayName: "Google Chrome",
+                    bundleIdentifier: AppSpecificTarget.chrome.bundleIdentifier
+                )
+            }
+            coordinator.enterAppSpecific(source: .corsair)
+            coordinator.handle(.init(
+                action: .select,
+                source: .corsair,
+                physicalCell: ChromeWebsitesMode.parentCell,
+                phase: .press
+            ))
+            coordinator.handle(.init(
+                action: .select,
+                source: .corsair,
+                physicalCell: exitCell,
+                phase: .press
+            ))
+            XCTAssertFalse(coordinator.isActive)
+        }
     }
 
     func testTopLevelCellNineOpensKeysModeAndCellTenExits() {
@@ -2288,6 +2406,7 @@ final class ModePickerTests: XCTestCase {
                     source: .razer,
                     physicalCell: .extraUtilitiesSelector
                 ))
+            case .chromeWebsites: XCTFail("Chrome websites is covered separately")
             }
 
             let expectedCellThreeTitle: String
@@ -2295,6 +2414,7 @@ final class ModePickerTests: XCTestCase {
             case .appSpecific: expectedCellThreeTitle = "Pin / unpin"
             case .appSelector: expectedCellThreeTitle = "Claude"
             case .keys: expectedCellThreeTitle = "Undo"
+            case .chromeWebsites: expectedCellThreeTitle = "X"
             default: expectedCellThreeTitle = "Spare"
             }
             XCTAssertEqual(hud.snapshots.last?.legend[2].actionTitle, expectedCellThreeTitle)

@@ -1184,10 +1184,12 @@ class KarabinerGeneratorTests(unittest.TestCase):
                 },
                 cooldown["conditions"],
             )
-            self.assertEqual(len(cooldown["to"]), 1)
-            self.assertEqual(cooldown["to"][0]["key_code"], "vk_none")
-            self.assertIs(cooldown["to"][0]["repeat"], False)
-            self.assertNotIn('"key_code": "f18"', json.dumps(cooldown))
+            self.assertEqual(
+                cooldown["to"][0],
+                {"set_variable": {"name": held_variable, "value": 0}},
+            )
+            self.assertEqual(cooldown["to"][1]["key_code"], "f18")
+            self.assertIs(cooldown["to"][1]["repeat"], False)
             held_variables.add(held_variable)
             self.assertNotIn('"key_code": "f19"', json.dumps(rule["manipulators"]))
 

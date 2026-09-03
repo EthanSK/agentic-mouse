@@ -1073,6 +1073,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                         )
                     case .cycleTabsWithWheel:
                         return false
+                    case .openWebsites:
+                        return false
                     }
                 case .vsCode:
                     guard phase == .press else { return true }
@@ -1183,6 +1185,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 case .success: return true
                 case .failure(let error):
                     self.modeHUDPresenters[source]?.flashProblem(error.description)
+                    return false
+                }
+            }
+            coordinator.onChromeWebsiteInput = { [weak self] requestedSource, action in
+                guard let self, requestedSource == source else { return false }
+                switch self.modeUtilityActionExecutor.performChromeWebsite(action) {
+                case .success:
+                    return true
+                case .failure:
+                    self.modeHUDPresenters[source]?.flashProblem(
+                        "\(action.title) could not be opened"
+                    )
                     return false
                 }
             }
@@ -2460,6 +2474,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             case .keypad: name = "Keypad"
             case .appSelector: name = "Choose app"
             case .appSpecific: name = "App-specific"
+            case .chromeWebsites: name = "Chrome websites"
             case .keys: name = "Keys"
             }
             return "\(source.displayName) \(name)"

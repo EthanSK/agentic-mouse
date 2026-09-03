@@ -7,6 +7,7 @@ public enum ModePickerPage: Int, Equatable, Sendable {
     case appSpecific = 4
     case keypad = 5
     case extraUtilities = 6
+    case chromeWebsites = 7
 }
 
 public enum ModePickerExitReason: Equatable, Sendable {
@@ -110,6 +111,7 @@ public final class ModePickerCoordinator {
     public var onKeypadInput: ((MouseSource, PhysicalCell, ModePickerCommand.Phase) -> Void)?
     public var onAppSpecificInput: ((MouseSource, AppSpecificTarget, PhysicalCell, ModePickerCommand.Phase) -> Bool)?
     public var onNativeAppSpecificInput: ((MouseSource, AppSpecificTarget, PhysicalCell, ModePickerCommand.Phase) -> Bool)?
+    public var onChromeWebsiteInput: ((MouseSource, ChromeWebsiteAction) -> Bool)?
     public var resolveFrontmostApp: (() -> FrontmostAppModeContext)?
     public var resolveAppSpecificDefinition: ((AppSpecificTarget) -> AppSpecificModeDefinition)?
     public var resolveAppSelectorDefinition: (() -> AppSpecificModeDefinition)?
@@ -118,6 +120,7 @@ public final class ModePickerCoordinator {
     public var onWheelControlRelease: ((MouseSource, WheelChordControl) -> Void)?
     public var onKeysInput: ((MouseSource, KeysModeAction) -> Bool)?
     private var lastSelection: ModeHUDSelection?
+    private var chromeWebsitesParentDefinition: AppSpecificModeDefinition?
     /// Stay can take several seconds to restore a multi-display layout. Treat
     /// Organize Windows as one request per Extra Utilities visit so uncertainty
     /// cannot turn repeated physical presses into a queue of Stay restores.
@@ -241,6 +244,7 @@ public final class ModePickerCoordinator {
         appSpecificTarget = nil
         followsFrontmostApp = false
         lastSelection = nil
+        chromeWebsitesParentDefinition = nil
         organizeWindowsRequested = false
         quitAppRequested = false
         let appearance: RGBColor
@@ -254,6 +258,7 @@ public final class ModePickerCoordinator {
             case .keypad: appearance = Self.keypadAccent
             case .appSelector: appearance = AppSpecificMode.selectorAccent
             case .appSpecific: appearance = Self.appSpecificAccent
+            case .chromeWebsites: appearance = ChromeWebsitesMode.accent
             }
         }
         lightingTargets = onAppearanceChange?(appearance, nil) ?? []
@@ -271,6 +276,7 @@ public final class ModePickerCoordinator {
             case .keypad: title = "Keypad mode"
             case .appSelector: title = "Choose app"
             case .appSpecific: title = "App mode"
+            case .chromeWebsites: title = "Chrome websites"
             }
         }
         log.info("\(title) ON from \(source.displayName)")
@@ -290,6 +296,7 @@ public final class ModePickerCoordinator {
         appSpecificTarget = nil
         followsFrontmostApp = false
         lastSelection = nil
+        chromeWebsitesParentDefinition = nil
         organizeWindowsRequested = false
         quitAppRequested = false
         lightingTargets = onAppearanceChange?(nil, nil) ?? []
@@ -342,7 +349,8 @@ public final class ModePickerCoordinator {
             return
         }
         let isExitCell = cell == .modeExit
-            || (page == .appSpecific && cell == .frontmostAppModeSelector)
+            || ((page == .appSpecific || page == .chromeWebsites)
+                && cell == .frontmostAppModeSelector)
         if isExitCell {
             if phase == .press {
                 exit(reason: .userRequested)
@@ -453,6 +461,22 @@ public final class ModePickerCoordinator {
             )
             log.info("\(target.displayName) mode selected from \(source.displayName)")
         case .appSpecific:
+            if appSpecificTarget == .chrome,
+               phase == .press,
+               ChromeModeAction.action(for: cell) == .openWebsites {
+                chromeWebsitesParentDefinition = appSpecificDefinition
+                let websitesDefinition = ChromeWebsitesMode.definition.replacingIdentityAccent(
+                    with: appSpecificDefinition?.accent ?? ChromeMode.accent
+                )
+                navigate(
+                    to: .chromeWebsites,
+                    definition: websitesDefinition,
+                    target: .chrome,
+                    followsFrontmostApp: followsFrontmostApp
+                )
+                log.info("Chrome websites opened from \(source.displayName)")
+                return
+            }
             if let target = appSpecificTarget,
                let control = WheelChordControl.appSpecificControl(for: target, cell: cell) {
                 switch phase {
@@ -476,6 +500,25 @@ public final class ModePickerCoordinator {
                phase == .press {
                 recordSelection(cell: cell)
             }
+        case .chromeWebsites:
+            guard phase == .press else { return }
+            if cell == ChromeWebsitesMode.parentCell {
+                let chromeDefinition = chromeWebsitesParentDefinition ?? ChromeMode.definition
+                chromeWebsitesParentDefinition = nil
+                navigate(
+                    to: .appSpecific,
+                    definition: chromeDefinition,
+                    target: .chrome,
+                    followsFrontmostApp: followsFrontmostApp
+                )
+                log.info("Chrome mode reopened from websites on \(source.displayName)")
+                return
+            }
+            guard let action = ChromeWebsiteAction.action(for: cell),
+                  onChromeWebsiteInput?(source, action) == true
+            else { return }
+            recordSelection(cell: cell)
+            log.info("\(action.title) requested from Chrome websites on \(source.displayName)")
         case .keys:
             if let control = WheelChordControl.keysControl(for: cell) {
                 switch phase {
@@ -540,7 +583,7 @@ public final class ModePickerCoordinator {
             appSpecificDefinition = resolveAppSelectorDefinition?()
                 ?? AppSpecificMode.selectorDefinition
             appSpecificTarget = nil
-        case .appSpecific:
+        case .appSpecific, .chromeWebsites:
             appSpecificDefinition = definition
             appSpecificTarget = target
         default:
@@ -556,6 +599,7 @@ public final class ModePickerCoordinator {
         case .keypad: appearance = Self.keypadAccent
         case .appSelector: appearance = AppSpecificMode.selectorAccent
         case .appSpecific: appearance = definition?.accent ?? Self.appSpecificAccent
+        case .chromeWebsites: appearance = definition?.accent ?? ChromeWebsitesMode.accent
         }
         lightingTargets = onAppearanceChange?(appearance, nil) ?? []
         isLegendVisible = true
@@ -577,6 +621,8 @@ public final class ModePickerCoordinator {
         case .appSelector:
             item = appSpecificDefinition?.legend.first { $0.cell == cell }
         case .appSpecific:
+            item = appSpecificDefinition?.legend.first { $0.cell == cell }
+        case .chromeWebsites:
             item = appSpecificDefinition?.legend.first { $0.cell == cell }
         case .keys:
             item = Self.keysLegend(for: source ?? .corsair).first { $0.cell == cell }
@@ -603,7 +649,8 @@ public final class ModePickerCoordinator {
     }
 
     private var activeAccent: RGBColor {
-        if (page == .appSelector || page == .appSpecific), let accent = appSpecificDefinition?.accent {
+        if (page == .appSelector || page == .appSpecific || page == .chromeWebsites),
+           let accent = appSpecificDefinition?.accent {
             return accent
         }
         if page == .keypad { return Self.keypadAccent }
@@ -624,7 +671,8 @@ public final class ModePickerCoordinator {
     }
 
     private func snapshot() -> ModeHUDSnapshot {
-        if (page == .appSelector || page == .appSpecific), let definition = appSpecificDefinition {
+        if (page == .appSelector || page == .appSpecific || page == .chromeWebsites),
+           let definition = appSpecificDefinition {
             return ModeHUDSnapshot(
                 isActive: true,
                 modeTitle: definition.title,

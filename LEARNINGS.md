@@ -2502,6 +2502,16 @@ remains evidence for why the earlier `-p` and explicit-child variants failed.
 ---
 
 ---
+**Date:** 2026-09-03
+**Trigger:** Ethan wanted Chrome cell 8 to open a fixed website submenu and wanted a slightly late VS Code 8-then-7 gesture to stage instead of swallowing Enter.
+**Symptom:** Chrome cell 8 still duplicated New Tab, and the one-second post-cell-8 VS Code safety window discarded cell 7 even when staging was the likely intent.
+**Root cause:** Chrome had no strict cross-process website action, while the VS Code cooldown manipulator deliberately emitted no output after Next Change had already fired.
+**Fix:** Add a nested Chrome websites page with strict enum-backed actions for YouTube, X, Facebook, Ethan's GitHub, LinkedIn, Gemini, and Grok. Agentic Mouse relays only that identifier to the existing media bridge; the extension owns the fixed URL allow-list and adjacent-tab creation. During the existing same-source one-second VS Code expiry, clear the expiry and emit one non-repeating F18 Stage + Next instead of Enter.
+**Guard:** Never accept an arbitrary URL or restore cell 8's duplicate New Tab. The late VS Code route is one-shot: F13 has already moved to the next review position, so F18 stages from that newly displayed position and may advance again; do not describe it as staging the file that was just left.
+**Verification:** The clean gate passed 704 Swift tests, six Musixmatch tests, six VS Code bridge tests, 17 Karabiner generator tests, generated-source/lint checks, and packaging contracts. A real isolated Chromium 150 profile opened all seven fixed URLs at consecutive indexes immediately after the active tab. Developer-ID-signed Agentic Mouse v1.0.164 (build 170) is installed with executable SHA-256 `e89ceddff9ffef9797cfb98db96b19562bf85483669248589f3179aa1ef5380d`; Accessibility, both mice, iCUE, self-recovery, and the installed Karabiner rule block are healthy. Full-display screenshots proved the Chrome websites HUD on all three current display Spaces. OBS recording PID 6842 remained unchanged. Personal Chrome's unpacked extension still requires a user-authorized reload before the new bridge command becomes live there.
+---
+
+---
 **Date:** 2026-08-31
 **Trigger:** Ethan requested a rekordbox-mode toggle between `Display Playlists` and `Display Spotify` while actively using rekordbox.
 **Observation:** In running rekordbox 7.2.17.0303, trusted read-only Accessibility inspection exposed native deck controls but not these library-source buttons. A complete window traversal across `AXChildren`, `AXChildrenInNavigationOrder`, and `AXDisclosedRows` returned 533 unique elements without either target; direct sidebar hit-testing returned the containing `rekordbox` group. `AXEnhancedUserInterface` was already true. Neither target appeared in the inspected native View/Playlist menus or existing keyboard mappings. Both exact strings and separate on/off icon assets exist in the installed app resources.

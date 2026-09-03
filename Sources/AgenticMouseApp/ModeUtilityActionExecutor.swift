@@ -22,6 +22,7 @@ enum ModeUtilityActionError: Error, Equatable {
     case quitAppEventCreationFailed
     case youtubeBridgeNotificationFailed
     case chromeTabHistoryBridgeNotificationFailed
+    case chromeWebsiteBridgeNotificationFailed
     case intelligenceOnDemandInputBlocked
     case intelligenceOnDemandAccessibilityPermissionMissing
     case intelligenceOnDemandEventCreationFailed
@@ -62,10 +63,14 @@ struct ModeUtilityActionExecutor {
         Notification.Name("com.ethansk.agenticmouse.chrome.tabHistoryBack")
     static let chromeTabHistoryForwardNotification =
         Notification.Name("com.ethansk.agenticmouse.chrome.tabHistoryForward")
+    static let chromeWebsiteOpenNotification =
+        Notification.Name("com.ethansk.agenticmouse.chrome.openWebsite")
+    static let chromeWebsiteKey = "website"
 
     typealias YouTubeNotifier = @MainActor (_ action: YouTubeSeekAction) -> Bool
     typealias YouTubeVolumeNotifier = @MainActor (_ action: YouTubeVolumeAction) -> Bool
     typealias ChromeTabHistoryNotifier = @MainActor (_ action: ChromeTabHistoryAction) -> Bool
+    typealias ChromeWebsiteNotifier = @MainActor (_ action: ChromeWebsiteAction) -> Bool
     typealias KeyboardChordPoster = @MainActor (
         _ events: [SyntheticKeyboardChordPoster.Event]
     ) -> Bool
@@ -90,6 +95,7 @@ struct ModeUtilityActionExecutor {
     private let notifyYouTube: YouTubeNotifier
     private let notifyYouTubeVolume: YouTubeVolumeNotifier
     private let notifyChromeTabHistory: ChromeTabHistoryNotifier
+    private let notifyChromeWebsite: ChromeWebsiteNotifier
     private let postKeyboardChord: KeyboardChordPoster
     private let accessibilityTrusted: AccessibilityTrustProvider
     private let inputAllowed: InputAllowedProvider
@@ -106,6 +112,7 @@ struct ModeUtilityActionExecutor {
         notifyYouTube: YouTubeNotifier? = nil,
         notifyYouTubeVolume: YouTubeVolumeNotifier? = nil,
         notifyChromeTabHistory: ChromeTabHistoryNotifier? = nil,
+        notifyChromeWebsite: ChromeWebsiteNotifier? = nil,
         postKeyboardChord: @escaping KeyboardChordPoster = SyntheticKeyboardChordPoster.shared.post,
         accessibilityTrusted: @escaping AccessibilityTrustProvider = AXIsProcessTrusted,
         inputAllowed: @escaping InputAllowedProvider = { true },
@@ -126,6 +133,7 @@ struct ModeUtilityActionExecutor {
         self.notifyYouTube = notifyYouTube ?? Self.postYouTubeNotification
         self.notifyYouTubeVolume = notifyYouTubeVolume ?? Self.postYouTubeVolumeNotification
         self.notifyChromeTabHistory = notifyChromeTabHistory ?? Self.postChromeTabHistoryNotification
+        self.notifyChromeWebsite = notifyChromeWebsite ?? Self.postChromeWebsiteNotification
         self.postKeyboardChord = postKeyboardChord
         self.accessibilityTrusted = accessibilityTrusted
         self.inputAllowed = inputAllowed
@@ -295,6 +303,14 @@ struct ModeUtilityActionExecutor {
             : .failure(.chromeTabHistoryBridgeNotificationFailed)
     }
 
+    func performChromeWebsite(
+        _ action: ChromeWebsiteAction
+    ) -> Result<Void, ModeUtilityActionError> {
+        notifyChromeWebsite(action)
+            ? .success(())
+            : .failure(.chromeWebsiteBridgeNotificationFailed)
+    }
+
     private static func postYouTubeNotification(_ action: YouTubeSeekAction) -> Bool {
         let notification = action == .forwardFiveSeconds
             ? youtubeSeekForwardFiveSecondsNotification
@@ -331,6 +347,16 @@ struct ModeUtilityActionExecutor {
             notification,
             object: nil,
             userInfo: nil,
+            deliverImmediately: true
+        )
+        return true
+    }
+
+    private static func postChromeWebsiteNotification(_ action: ChromeWebsiteAction) -> Bool {
+        DistributedNotificationCenter.default().postNotificationName(
+            chromeWebsiteOpenNotification,
+            object: nil,
+            userInfo: [chromeWebsiteKey: action.rawValue],
             deliverImmediately: true
         )
         return true

@@ -134,7 +134,7 @@
     },
     {
       "id": "corsair-vscode-side-07-stage-next-chord",
-      "description": "Corsair side 7 stages and advances only while same-source side 8 is held in VS Code",
+      "description": "Corsair side 7 stages and advances while same-source side 8 is held or for one second after its release in VS Code",
       "action": "vscode-stage-next-while-corsair-next-held",
       "rule": "Corsair VS Code layer",
       "from": {
@@ -596,7 +596,7 @@
     },
     {
       "id": "razer-vscode-side-09-stage-next-chord",
-      "description": "Razer side 9 shares physical cell 7 and stages and advances only while same-source side 8 is held in VS Code",
+      "description": "Razer side 9 shares physical cell 7 and stages and advances while same-source side 8 is held or for one second after its release in VS Code",
       "action": "vscode-stage-next-while-razer-next-held",
       "rule": "Razer VS Code layer",
       "from": {

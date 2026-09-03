@@ -1,8 +1,8 @@
-// In Visual Studio Code, Corsair physical cell 7 stages while cell 8 is held and is inert for one second after cell 8 releases.
+// In Visual Studio Code, Corsair physical cell 7 stages while cell 8 is held or for one second after cell 8 releases.
 {
   "id": "vscode-stage-next-while-corsair-next-held",
   "title": "VS Code: stage and go next while Corsair Next is held",
-  "description": "Consumes Corsair physical cell 7 as F18 while that same mouse's physical cell 8 hold is active, or as no output during the one-second post-release Enter dead zone.",
+  "description": "Consumes Corsair physical cell 7 as F18 while that same mouse's physical cell 8 hold is active or during the one-second post-release staging window.",
   "manipulators": [
     {
       "conditions": [
@@ -20,7 +20,8 @@
         { "type": "frontmost_application_if", "bundle_identifiers": ["^com\\.microsoft\\.VSCode(?:Insiders)?$"] }
       ],
       "to": [
-        { "key_code": "vk_none", "repeat": false }
+        { "set_variable": { "name": "agentic_mouse_corsair_vscode_side_08_next_change_pending", "value": 0 } },
+        { "key_code": "f18", "repeat": false }
       ]
     }
   ]
