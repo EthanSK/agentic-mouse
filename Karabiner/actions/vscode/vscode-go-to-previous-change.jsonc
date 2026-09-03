@@ -1,37 +1,14 @@
-// In Visual Studio Code, emits F17 for the existing Better Git Previous Change keybinding.
+// In Visual Studio Code, emits F17 on physical release for the existing Better Git Previous Change keybinding.
 {
   "id": "vscode-go-to-previous-change",
   "title": "VS Code: go to previous change",
-  "description": "Single-click moves to the previous change with F17; double-click stages and moves back with F19, matching the proven G502 behavior.",
-  "manipulators": [
-    {
-      "conditions": [
-        { "type": "variable_if", "name": "$binding_variable", "value": true },
-        { "type": "frontmost_application_if", "bundle_identifiers": ["^com\\.microsoft\\.VSCode(?:Insiders)?$"] }
-      ],
-      "to": [
-        { "set_variable": { "name": "$binding_variable", "value": false } },
-        { "key_code": "f19", "repeat": false }
-      ]
-    },
-    {
-      "conditions": [
-        { "type": "frontmost_application_if", "bundle_identifiers": ["^com\\.microsoft\\.VSCode(?:Insiders)?$"] }
-      ],
-      "parameters": { "basic.to_delayed_action_delay_milliseconds": 300 },
-      "to": [
-        { "set_variable": { "name": "$binding_variable", "value": true } }
-      ],
-      "to_delayed_action": {
-        "to_if_canceled": [
-          { "key_code": "f17", "repeat": false, "conditions": [{ "type": "variable_if", "name": "$binding_variable", "value": true }] },
-          { "set_variable": { "name": "$binding_variable", "value": false } }
-        ],
-        "to_if_invoked": [
-          { "key_code": "f17", "repeat": false, "conditions": [{ "type": "variable_if", "name": "$binding_variable", "value": true }] },
-          { "set_variable": { "name": "$binding_variable", "value": false } }
-        ]
-      }
-    }
-  ]
+  "description": "Release moves to the previous change with one non-repeating F17 event and no double-click decision window.",
+  "manipulator": {
+    "conditions": [
+      { "type": "frontmost_application_if", "bundle_identifiers": ["^com\\.microsoft\\.VSCode(?:Insiders)?$"] }
+    ],
+    "to_after_key_up": [
+      { "key_code": "f17", "repeat": false }
+    ]
+  }
 }

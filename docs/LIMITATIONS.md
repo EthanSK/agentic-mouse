@@ -193,8 +193,10 @@ chord is cleared on lock, sleep, device loss, lease failure, or app shutdown.
 
 **App overrides are Karabiner's business, not the helper's.** The helper suspends
 all twelve buttons while multi-tap is active and releases them on exit. In VS
-Code, Karabiner maps physical cell 5 to non-repeating F17 Previous Change and
-cell 8 to non-repeating F13 Next Change. Top-level cell 6 remains the global
+Code, Karabiner maps physical cell 5 release to non-repeating F17 Previous Change
+and cell 8 release to non-repeating F13 Next Change. Pressing same-source cell 7
+while cell 8 is held emits F18 Stage + Next and suppresses Enter and the pending
+Next action. Top-level cell 6 remains the global
 source-specific YouTube scrub action. Matching exclusions preserve Forward/Back
 everywhere else without duplicating other controls. Top-level cell 2 opens the
 frontmost app's mode and top-level cell 9 opens Keys. In Keys, cell 3 emits

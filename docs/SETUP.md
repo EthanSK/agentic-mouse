@@ -137,8 +137,11 @@ The things worth confirming:
   C from the active keyboard layout and sends Ctrl-C to that app;
 - every visible DPI stage, Sniper included, reads **2,750**;
 - the generated Karabiner map gives **5** and **8** matching base exclusions
-  plus exact-device VS Code overrides: F17 Previous Change and F13 Next Change;
-- every other physical cell inherits the same base action in VS Code;
+  plus exact-device release-only VS Code overrides: F17 Previous Change and F13
+  Next Change; while same-source **8** is held, **7** emits F18 Stage + Next and
+  suppresses Enter and the pending Next action;
+- every other physical cell inherits the same base action in VS Code unless that
+  exact 8-held + 7 chord is active;
 - the wheel click on each mouse arrives as ordinary `pointing_button: button3`
   from its exact pointing interface and becomes `play_or_pause` in Karabiner;
 - every binding contains the exact Corsair `device_if` and optional-any

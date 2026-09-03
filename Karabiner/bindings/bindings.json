@@ -116,11 +116,29 @@
     },
     {
       "id": "corsair-vscode-side-08-next-change",
-      "description": "Corsair side 8 emits the Better Git Next Change transport only in VS Code",
+      "description": "Corsair side 8 emits Better Git Next Change on release unless same-source side 7 consumes the hold for Stage + Next",
       "action": "vscode-go-to-next-change",
       "rule": "Corsair VS Code layer",
       "from": {
         "key_code": "keypad_8",
+        "modifiers": { "optional": ["any"] }
+      },
+      "conditions": [
+        {
+          "type": "device_if",
+          "identifiers": [
+            { "vendor_id": 6940, "product_id": 65535, "is_keyboard": true }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "corsair-vscode-side-07-stage-next-chord",
+      "description": "Corsair side 7 stages and advances only while same-source side 8 is held in VS Code",
+      "action": "vscode-stage-next-while-corsair-next-held",
+      "rule": "Corsair VS Code layer",
+      "from": {
+        "key_code": "keypad_7",
         "modifiers": { "optional": ["any"] }
       },
       "conditions": [
@@ -560,11 +578,29 @@
     },
     {
       "id": "razer-vscode-side-08-next-change",
-      "description": "Razer side 8 emits the Better Git Next Change transport only in VS Code",
+      "description": "Razer side 8 emits Better Git Next Change on release unless same-source physical cell 7 consumes the hold for Stage + Next",
       "action": "vscode-go-to-next-change",
       "rule": "Razer VS Code layer",
       "from": {
         "key_code": "8",
+        "modifiers": { "optional": ["any"] }
+      },
+      "conditions": [
+        {
+          "type": "device_if",
+          "identifiers": [
+            { "vendor_id": 5426, "product_id": 141, "is_keyboard": true }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "razer-vscode-side-09-stage-next-chord",
+      "description": "Razer side 9 shares physical cell 7 and stages and advances only while same-source side 8 is held in VS Code",
+      "action": "vscode-stage-next-while-razer-next-held",
+      "rule": "Razer VS Code layer",
+      "from": {
+        "key_code": "9",
         "modifiers": { "optional": ["any"] }
       },
       "conditions": [

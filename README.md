@@ -46,10 +46,10 @@ These are the currently authoritative Corsair assignments:
 | Button 2 | Open the current frontmost app mode | Same global action |
 | Button 3 | Screenshot; rapid double-press pastes the last saved result | Same global action |
 | Button 4 | Hold + wheel for Copy / Paste | Same global action |
-| Button 5 | Forward; hold with button 6 + wheel for YouTube volume ±5% | Previous Change through F17 |
+| Button 5 | Forward; hold with button 6 + wheel for YouTube volume ±5% | Previous Change on release through F17 |
 | Button 6 | Click to rewind YouTube 5 sec; hold + wheel to scrub ±5 sec per ratchet through the VoiceInk bridge | Same global action |
-| Button 7 | Enter | Enter |
-| Button 8 | Back | Next Change through F13 |
+| Button 7 | Enter | Enter; while holding button 8, Stage + Next through F18 |
+| Button 8 | Back | Next Change on release through F13; hold with button 7 to stage |
 | Button 9 | Open Keys mode | Same global action |
 | Button 10 | Toggle this mouse's Default legend; universal Exit in modes | Same global action |
 | Button 11 | Hold-open Switch App | Same global action |
@@ -73,9 +73,11 @@ While a top-level wheel chord is active, an already-visible source legend may
 show bounded action feedback. The trace never opens a hidden legend or changes
 the persistent legend toggle.
 
-VS Code has two exact-device overrides: physical cell 5 emits non-repeating F17
-for Better Git Previous Change, cell 8 emits non-repeating F13 for Next Change,
-while top-level cell 6 remains the global YouTube scrub action. Inside the
+VS Code has exact-device top-level overrides: physical cell 5 emits non-repeating
+F17 for Better Git Previous Change on release, cell 8 emits non-repeating F13 for
+Next Change on release, and pressing same-source cell 7 while cell 8 is held emits
+F18 Stage + Next instead of Enter or the pending Next action. There is no top-level
+double-click decision window. Cell 6 remains the global YouTube scrub action. Inside the
 explicitly entered VS Code child, cell 9 uses one 300 ms gesture: a single sends
 Stage + Next and a rapid double sends exact Undo Stage. Hold cell 6 and ratchet
 down for Back or up for Forward through the bundled, allow-listed VS Code
@@ -239,8 +241,8 @@ The macOS menu-bar app adds several optional runtime behaviours:
   cell 11 goes to the selected symbol's definition with F12, and cell 12
   interrupts it. Better Git gestures use cells 5, 8, and 9; cell 6 owns Cursor
   History + Wheel through VS Code's direct command API. Those child-page
-  controls reuse the same 300 ms single/double gestures as the ordinary VS Code
-  layer rather than a second immediate-only shortcut map. Spotify and Notion
+  controls keep their 300 ms single/double gestures; the top-level VS Code layer
+  instead uses release-only navigation and the same-source 8-held + 7 chord. Spotify and Notion
   have full starter grids for playback/library navigation and page/tab/search
   work respectively. OBS, Telegram, Safari, Firefox, Opera, Restream Chat++,
   Preview, Mail, Finder, Terminal, and iTerm likewise expose a useful starter

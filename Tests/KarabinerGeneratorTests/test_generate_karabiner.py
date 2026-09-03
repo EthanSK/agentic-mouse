@@ -718,7 +718,7 @@ class KarabinerGeneratorTests(unittest.TestCase):
 
     def test_committed_adapters_match_the_proven_device_namespaces(self):
         bindings = json.loads(BINDINGS.read_text())["bindings"]
-        self.assertEqual(len(bindings), 33)
+        self.assertEqual(len(bindings), 35)
 
         corsair_bindings = [
             binding for binding in bindings if binding["id"].startswith("corsair-")
@@ -726,8 +726,8 @@ class KarabinerGeneratorTests(unittest.TestCase):
         razer_bindings = [
             binding for binding in bindings if binding["id"].startswith("razer-")
         ]
-        self.assertEqual(len(corsair_bindings), 16)
-        self.assertEqual(len(razer_bindings), 17)
+        self.assertEqual(len(corsair_bindings), 17)
+        self.assertEqual(len(razer_bindings), 18)
 
         corsair_dpi = next(
             binding
@@ -1099,47 +1099,72 @@ class KarabinerGeneratorTests(unittest.TestCase):
             (
                 "Agentic Mouse — Corsair VS Code layer",
                 exact_corsair_keyboard_condition(),
-                {"keypad_5": ("f17", "f19"), "keypad_8": ("f13", "f18")},
+                "keypad_5",
+                "keypad_8",
+                "keypad_7",
+                "agentic_mouse_corsair_vscode_side_08_next_change_pending",
             ),
             (
                 "Agentic Mouse — Razer VS Code layer",
                 exact_test_device_condition(),
-                {"5": ("f17", "f19"), "8": ("f13", "f18")},
+                "5",
+                "8",
+                "9",
+                "agentic_mouse_razer_vscode_side_08_next_change_pending",
             ),
         )
-        all_variables = set()
-        for rule_name, device_condition, expected in cases:
+        held_variables = set()
+        for rule_name, device_condition, previous_source, next_source, chord_source, held_variable in cases:
             rule = rules[rule_name]
-            self.assertEqual(len(rule["manipulators"]), 4)
-            navigation_manipulators = [
-                manipulator
+            self.assertEqual(len(rule["manipulators"]), 3)
+            by_source = {
+                manipulator["from"]["key_code"]: manipulator
                 for manipulator in rule["manipulators"]
-                if manipulator["from"]["key_code"] in expected
-            ]
-            self.assertEqual(len(navigation_manipulators), 4)
-            for manipulator in navigation_manipulators:
+            }
+            self.assertEqual(set(by_source), {previous_source, next_source, chord_source})
+            for manipulator in by_source.values():
                 self.assertIn(device_condition, manipulator["conditions"])
                 self.assertIn(vscode_if_condition(), manipulator["conditions"])
                 self.assertNotIn(vscode_unless_condition(), manipulator["conditions"])
-                source = manipulator["from"]["key_code"]
-                single_key, double_key = expected[source]
-                if "to_delayed_action" in manipulator:
-                    self.assertEqual(
-                        manipulator["parameters"]["basic.to_delayed_action_delay_milliseconds"],
-                        300,
-                    )
-                    variable = manipulator["to"][0]["set_variable"]["name"]
-                    self.assertTrue(variable.startswith("agentic_mouse_"))
-                    self.assertNotIn("-", variable)
-                    all_variables.add(variable)
-                    for phase in ("to_if_canceled", "to_if_invoked"):
-                        output = manipulator["to_delayed_action"][phase][0]
-                        self.assertEqual(output["key_code"], single_key)
-                        self.assertIs(output["repeat"], False)
-                else:
-                    self.assertEqual(manipulator["to"][1]["key_code"], double_key)
-                    self.assertIs(manipulator["to"][1]["repeat"], False)
-            self.assertEqual(len(all_variables), 2 if "Corsair" in rule_name else 4)
+                self.assertNotIn("to_delayed_action", manipulator)
+                self.assertNotIn("to_if_alone", manipulator)
+
+            previous = by_source[previous_source]
+            self.assertNotIn("to", previous)
+            self.assertEqual(previous["to_after_key_up"][0]["key_code"], "f17")
+            self.assertIs(previous["to_after_key_up"][0]["repeat"], False)
+
+            next_change = by_source[next_source]
+            self.assertEqual(
+                next_change["to"],
+                [{"set_variable": {"name": held_variable, "value": 1}}],
+            )
+            self.assertEqual(next_change["to_after_key_up"][0]["key_code"], "f13")
+            self.assertIs(next_change["to_after_key_up"][0]["repeat"], False)
+            self.assertIn(
+                {"type": "variable_if", "name": held_variable, "value": 1},
+                next_change["to_after_key_up"][0]["conditions"],
+            )
+            self.assertEqual(
+                next_change["to_after_key_up"][1],
+                {"set_variable": {"name": held_variable, "value": 0}},
+            )
+
+            chord = by_source[chord_source]
+            self.assertIn(
+                {"type": "variable_if", "name": held_variable, "value": 1},
+                chord["conditions"],
+            )
+            self.assertEqual(
+                chord["to"][0],
+                {"set_variable": {"name": held_variable, "value": 2}},
+            )
+            self.assertEqual(chord["to"][1]["key_code"], "f18")
+            self.assertIs(chord["to"][1]["repeat"], False)
+            held_variables.add(held_variable)
+            self.assertNotIn('"key_code": "f19"', json.dumps(rule["manipulators"]))
+
+        self.assertEqual(len(held_variables), 2, "the two mice must not form one cross-source chord")
 
         base_cases = (
             (

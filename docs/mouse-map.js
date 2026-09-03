@@ -52,8 +52,8 @@ const PAIRS = [
     action: "Forward", short: "Forward", description: "Go forward one page or step.",
     signal: "pointing", output: "pointing_button button5", status: "CONFIGURED · NATIVE POINTER OUTPUT",
     vscodeAction: {
-      action: "Previous / Stage + Previous ×2", short: "Previous", description: "Single sends F17 Previous Change; rapid double sends F19 Stage + Previous.",
-      signal: "keyboard", output: "F17 single · F19 double · repeat false", status: "PHYSICALLY ACCEPTED · BOTH EXACT MICE",
+      action: "Previous Change", short: "Previous", description: "Release sends one non-repeating F17 Previous Change with no double-click wait.",
+      signal: "keyboard", output: "F17 on release · repeat false", status: "IMPLEMENTED · PHYSICAL ACCEPTANCE PENDING",
     },
   },
   {
@@ -65,14 +65,18 @@ const PAIRS = [
     id: "c7", corsair: 7, razer: 9, row: 3, col: 3,
     action: "Enter", short: "Enter", description: "Insert exactly one newline in the frontmost application.",
     signal: "keyboard", output: "return_or_enter · repeat false", status: "CONFIGURED · EXACT-DEVICE OUTPUT",
+    vscodeAction: {
+      action: "Enter · 8 held: Stage + Next", short: "Enter · Stage", description: "Press normally for Enter, or press while the same mouse's cell 8 is held to emit F18 Stage + Next and suppress Next.",
+      signal: "keyboard", output: "return_or_enter normally · F18 during same-source cell-8 hold", status: "IMPLEMENTED · PHYSICAL ACCEPTANCE PENDING",
+    },
   },
   {
     id: "c8", corsair: 8, razer: 8, row: 2, col: 3,
     action: "Back", short: "Back", description: "Go back one page or step.",
     signal: "pointing", output: "pointing_button button4", status: "CONFIGURED · NATIVE POINTER OUTPUT",
     vscodeAction: {
-      action: "Next / Stage + Next ×2", short: "Next", description: "Single sends F13 Next Change; rapid double sends F18 Stage + Next.",
-      signal: "keyboard", output: "F13 single · F18 double · repeat false", status: "PHYSICALLY ACCEPTED · BOTH EXACT MICE",
+      action: "Next · Hold + Enter to Stage", short: "Next · Stage", description: "Release sends F13 Next Change; hold and press the same mouse's Enter cell for F18 Stage + Next.",
+      signal: "keyboard", output: "F13 on release · same-source 8+7 emits F18", status: "IMPLEMENTED · PHYSICAL ACCEPTANCE PENDING",
     },
   },
   {

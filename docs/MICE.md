@@ -47,14 +47,15 @@ accepted this hold-open behavior on the exact Corsair and Razer rules on
 10 August 2026. It needs no Agentic Mouse command receiver or Accessibility
 permission.
 
-In VS Code only, physical cell 5 emits non-repeating F17 for Better Git Previous
-Change or F19 for rapid-double Stage + Previous; physical cell 8 emits F13 Next
-Change or rapid-double F18 Stage + Next. Top-level physical cell 6 remains
-YouTube Scrub + Wheel. Inside the VS Code child page, cell 9 sends
+In VS Code only, top-level physical cell 5 emits non-repeating F17 for Better Git
+Previous Change on release, and physical cell 8 emits F13 Next Change on release.
+While same-source cell 8 is held, pressing physical cell 7 emits F18 Stage + Next
+instead of Enter and suppresses the pending Next action. Top-level navigation has
+no double-click delay. Physical cell 6 remains YouTube Scrub + Wheel. Inside the VS Code child page, cell 9 sends
 F18 Stage + Next on a single press or F16 exact Undo on a rapid double. Hold
 cell 6 and ratchet down for cursor-history Back or up for Forward; delivery uses
 the current VS Code keybindings without changing them. Cells 5 and 8 retain
-their 300 ms navigation gestures. Cell 1 closes
+their 300 ms navigation gestures only inside that explicitly entered child. Cell 1 closes
 the current editor tab with Command-W, cell 7 opens the Command Palette with
 Command-Shift-P, and cell 11 sends F12 for Go to Definition. The child does not duplicate the
 Default Back/Forward pair. Matching base

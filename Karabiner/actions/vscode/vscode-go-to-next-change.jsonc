@@ -1,37 +1,18 @@
-// In Visual Studio Code, emits F13 for the existing Better Git Next Change keybinding.
+// In Visual Studio Code, emits F13 on physical release unless the held button is consumed by Stage + Next.
 {
   "id": "vscode-go-to-next-change",
   "title": "VS Code: go to next change",
-  "description": "Single-click moves to the next change with F13; double-click stages and advances with F18, matching the proven G502 behavior.",
-  "manipulators": [
-    {
-      "conditions": [
-        { "type": "variable_if", "name": "$binding_variable", "value": true },
-        { "type": "frontmost_application_if", "bundle_identifiers": ["^com\\.microsoft\\.VSCode(?:Insiders)?$"] }
-      ],
-      "to": [
-        { "set_variable": { "name": "$binding_variable", "value": false } },
-        { "key_code": "f18", "repeat": false }
-      ]
-    },
-    {
-      "conditions": [
-        { "type": "frontmost_application_if", "bundle_identifiers": ["^com\\.microsoft\\.VSCode(?:Insiders)?$"] }
-      ],
-      "parameters": { "basic.to_delayed_action_delay_milliseconds": 300 },
-      "to": [
-        { "set_variable": { "name": "$binding_variable", "value": true } }
-      ],
-      "to_delayed_action": {
-        "to_if_canceled": [
-          { "key_code": "f13", "repeat": false, "conditions": [{ "type": "variable_if", "name": "$binding_variable", "value": true }] },
-          { "set_variable": { "name": "$binding_variable", "value": false } }
-        ],
-        "to_if_invoked": [
-          { "key_code": "f13", "repeat": false, "conditions": [{ "type": "variable_if", "name": "$binding_variable", "value": true }] },
-          { "set_variable": { "name": "$binding_variable", "value": false } }
-        ]
-      }
-    }
-  ]
+  "description": "Press marks the exact mouse's Next button held; release emits F13 only when the same hold was not consumed by the Stage + Next chord.",
+  "manipulator": {
+    "conditions": [
+      { "type": "frontmost_application_if", "bundle_identifiers": ["^com\\.microsoft\\.VSCode(?:Insiders)?$"] }
+    ],
+    "to": [
+      { "set_variable": { "name": "$binding_variable", "value": 1 } }
+    ],
+    "to_after_key_up": [
+      { "key_code": "f13", "repeat": false, "conditions": [{ "type": "variable_if", "name": "$binding_variable", "value": 1 }] },
+      { "set_variable": { "name": "$binding_variable", "value": 0 } }
+    ]
+  }
 }

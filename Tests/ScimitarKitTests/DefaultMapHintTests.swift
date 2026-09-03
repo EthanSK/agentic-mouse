@@ -251,12 +251,22 @@ final class DefaultMapHintCoordinatorTests: XCTestCase {
         coordinator.refresh()
 
         XCTAssertEqual(hud.snapshots.last?.legend[1].actionTitle, "VS Code mode")
+        XCTAssertEqual(hud.snapshots.last?.legend[4].actionTitle, "Previous Change")
+        XCTAssertEqual(hud.snapshots.last?.legend[6].actionTitle, "Enter · 8 held: Stage + Next")
+        XCTAssertEqual(hud.snapshots.last?.legend[7].actionTitle, "Next Change · Hold + 7 to Stage")
         XCTAssertEqual(
             hud.snapshots.last?.legend[1].appBackdrop,
             ModeHUDAppBackdrop(bundleIdentifier: AppSpecificTarget.vsCode.bundleIdentifier)
         )
         XCTAssertEqual(hud.snapshots.last?.legend[5].actionTitle, "YouTube Scrub + Wheel")
         XCTAssertTrue(coordinator.isShowingHint)
+
+        let razerSnapshot = DefaultMapLegend.snapshot(
+            source: .razer,
+            frontmostAppContext: frontmostAppContext
+        )
+        XCTAssertEqual(razerSnapshot.legend[6].actionTitle, "Enter · 8 held: Stage + Next")
+        XCTAssertEqual(razerSnapshot.legend[7].actionTitle, "Next Change · Hold + 9 to Stage")
     }
 
     func testYouTubeScrubCopyDoesNotDependOnFrontmostAppSupport() {

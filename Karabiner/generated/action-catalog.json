@@ -629,194 +629,67 @@
     {
       "id": "vscode-go-to-next-change",
       "title": "VS Code: go to next change",
-      "description": "Single-click moves to the next change with F13; double-click stages and advances with F18, matching the proven G502 behavior.",
+      "description": "Press marks the exact mouse's Next button held; release emits F13 only when the same hold was not consumed by the Stage + Next chord.",
       "source": "vscode/vscode-go-to-next-change.jsonc",
-      "manipulators": [
-        {
-          "conditions": [
-            {
-              "type": "variable_if",
-              "name": "$binding_variable",
-              "value": true
-            },
-            {
-              "type": "frontmost_application_if",
-              "bundle_identifiers": [
-                "^com\\.microsoft\\.VSCode(?:Insiders)?$"
-              ]
-            }
-          ],
-          "to": [
-            {
-              "set_variable": {
-                "name": "$binding_variable",
-                "value": false
-              }
-            },
-            {
-              "key_code": "f18",
-              "repeat": false
-            }
-          ]
-        },
-        {
-          "conditions": [
-            {
-              "type": "frontmost_application_if",
-              "bundle_identifiers": [
-                "^com\\.microsoft\\.VSCode(?:Insiders)?$"
-              ]
-            }
-          ],
-          "parameters": {
-            "basic.to_delayed_action_delay_milliseconds": 300
-          },
-          "to": [
-            {
-              "set_variable": {
-                "name": "$binding_variable",
-                "value": true
-              }
-            }
-          ],
-          "to_delayed_action": {
-            "to_if_canceled": [
-              {
-                "key_code": "f13",
-                "repeat": false,
-                "conditions": [
-                  {
-                    "type": "variable_if",
-                    "name": "$binding_variable",
-                    "value": true
-                  }
-                ]
-              },
-              {
-                "set_variable": {
-                  "name": "$binding_variable",
-                  "value": false
-                }
-              }
-            ],
-            "to_if_invoked": [
-              {
-                "key_code": "f13",
-                "repeat": false,
-                "conditions": [
-                  {
-                    "type": "variable_if",
-                    "name": "$binding_variable",
-                    "value": true
-                  }
-                ]
-              },
-              {
-                "set_variable": {
-                  "name": "$binding_variable",
-                  "value": false
-                }
-              }
+      "manipulator": {
+        "conditions": [
+          {
+            "type": "frontmost_application_if",
+            "bundle_identifiers": [
+              "^com\\.microsoft\\.VSCode(?:Insiders)?$"
             ]
           }
-        }
-      ]
+        ],
+        "to": [
+          {
+            "set_variable": {
+              "name": "$binding_variable",
+              "value": 1
+            }
+          }
+        ],
+        "to_after_key_up": [
+          {
+            "key_code": "f13",
+            "repeat": false,
+            "conditions": [
+              {
+                "type": "variable_if",
+                "name": "$binding_variable",
+                "value": 1
+              }
+            ]
+          },
+          {
+            "set_variable": {
+              "name": "$binding_variable",
+              "value": 0
+            }
+          }
+        ]
+      }
     },
     {
       "id": "vscode-go-to-previous-change",
       "title": "VS Code: go to previous change",
-      "description": "Single-click moves to the previous change with F17; double-click stages and moves back with F19, matching the proven G502 behavior.",
+      "description": "Release moves to the previous change with one non-repeating F17 event and no double-click decision window.",
       "source": "vscode/vscode-go-to-previous-change.jsonc",
-      "manipulators": [
-        {
-          "conditions": [
-            {
-              "type": "variable_if",
-              "name": "$binding_variable",
-              "value": true
-            },
-            {
-              "type": "frontmost_application_if",
-              "bundle_identifiers": [
-                "^com\\.microsoft\\.VSCode(?:Insiders)?$"
-              ]
-            }
-          ],
-          "to": [
-            {
-              "set_variable": {
-                "name": "$binding_variable",
-                "value": false
-              }
-            },
-            {
-              "key_code": "f19",
-              "repeat": false
-            }
-          ]
-        },
-        {
-          "conditions": [
-            {
-              "type": "frontmost_application_if",
-              "bundle_identifiers": [
-                "^com\\.microsoft\\.VSCode(?:Insiders)?$"
-              ]
-            }
-          ],
-          "parameters": {
-            "basic.to_delayed_action_delay_milliseconds": 300
-          },
-          "to": [
-            {
-              "set_variable": {
-                "name": "$binding_variable",
-                "value": true
-              }
-            }
-          ],
-          "to_delayed_action": {
-            "to_if_canceled": [
-              {
-                "key_code": "f17",
-                "repeat": false,
-                "conditions": [
-                  {
-                    "type": "variable_if",
-                    "name": "$binding_variable",
-                    "value": true
-                  }
-                ]
-              },
-              {
-                "set_variable": {
-                  "name": "$binding_variable",
-                  "value": false
-                }
-              }
-            ],
-            "to_if_invoked": [
-              {
-                "key_code": "f17",
-                "repeat": false,
-                "conditions": [
-                  {
-                    "type": "variable_if",
-                    "name": "$binding_variable",
-                    "value": true
-                  }
-                ]
-              },
-              {
-                "set_variable": {
-                  "name": "$binding_variable",
-                  "value": false
-                }
-              }
+      "manipulator": {
+        "conditions": [
+          {
+            "type": "frontmost_application_if",
+            "bundle_identifiers": [
+              "^com\\.microsoft\\.VSCode(?:Insiders)?$"
             ]
           }
-        }
-      ]
+        ],
+        "to_after_key_up": [
+          {
+            "key_code": "f17",
+            "repeat": false
+          }
+        ]
+      }
     },
     {
       "id": "vscode-stage-and-go-to-next-change",
@@ -935,6 +808,72 @@
           }
         }
       ]
+    },
+    {
+      "id": "vscode-stage-next-while-corsair-next-held",
+      "title": "VS Code: stage and go next while Corsair Next is held",
+      "description": "Consumes Corsair physical cell 7 as F18 while that same mouse's physical cell 8 hold is active, and suppresses the held button's ordinary Next release.",
+      "source": "vscode/vscode-stage-next-while-corsair-next-held.jsonc",
+      "manipulator": {
+        "conditions": [
+          {
+            "type": "variable_if",
+            "name": "agentic_mouse_corsair_vscode_side_08_next_change_pending",
+            "value": 1
+          },
+          {
+            "type": "frontmost_application_if",
+            "bundle_identifiers": [
+              "^com\\.microsoft\\.VSCode(?:Insiders)?$"
+            ]
+          }
+        ],
+        "to": [
+          {
+            "set_variable": {
+              "name": "agentic_mouse_corsair_vscode_side_08_next_change_pending",
+              "value": 2
+            }
+          },
+          {
+            "key_code": "f18",
+            "repeat": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "vscode-stage-next-while-razer-next-held",
+      "title": "VS Code: stage and go next while Razer Next is held",
+      "description": "Consumes Razer physical cell 7 as F18 while that same mouse's physical cell 8 hold is active, and suppresses the held button's ordinary Next release.",
+      "source": "vscode/vscode-stage-next-while-razer-next-held.jsonc",
+      "manipulator": {
+        "conditions": [
+          {
+            "type": "variable_if",
+            "name": "agentic_mouse_razer_vscode_side_08_next_change_pending",
+            "value": 1
+          },
+          {
+            "type": "frontmost_application_if",
+            "bundle_identifiers": [
+              "^com\\.microsoft\\.VSCode(?:Insiders)?$"
+            ]
+          }
+        ],
+        "to": [
+          {
+            "set_variable": {
+              "name": "agentic_mouse_razer_vscode_side_08_next_change_pending",
+              "value": 2
+            }
+          },
+          {
+            "key_code": "f18",
+            "repeat": false
+          }
+        ]
+      }
     }
   ]
 }
