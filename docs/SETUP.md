@@ -161,18 +161,19 @@ Launch it once. It appears in the menu bar and has **no Dock icon**.
 
 ### Install the VS Code command bridge
 
-Cursor History + Wheel and the Hide-first Toggle Terminal control use VS Code's
-own commands instead of simulating keyboard shortcuts. Package and install the
-small local bridge once:
+Cursor History + Wheel, the Hide-first Toggle Terminal control, and Codex mode's
+Add to Chat control use VS Code's own commands instead of simulating keyboard
+shortcuts. Package and install the small local bridge once:
 
 ```bash
 make vscode-bridge
-code --install-extension build/agentic-mouse-vscode-bridge-0.1.1.vsix --force
+code --install-extension build/agentic-mouse-vscode-bridge-0.1.2.vsix --force
 ```
 
-The bridge accepts only the exact Agentic Mouse Cursor History and Terminal
-routes and refuses them unless its VS Code window is focused. It does not add
-or replace any user keybinding. The VSIX is also included in the packaged app at
+The bridge accepts only the exact Agentic Mouse Cursor History, Terminal, and
+Add to Chat routes. Cursor History and Terminal require their VS Code window to
+be focused; Add to Chat uses its retained editor selection while Codex is
+frontmost. It does not add or replace any user keybinding. The VSIX is also included in the packaged app at
 `Contents/Resources/AgenticMouseVSCodeBridge.vsix` for a matching local install.
 If VS Code does not discover the newly installed bridge in the current process,
 reload VS Code once at a safe time; the Agentic Mouse installer must not restart

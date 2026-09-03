@@ -12,6 +12,7 @@ final class VSCodeCommandBridge {
         case cursorHistoryBack = "cursor-history/back"
         case cursorHistoryForward = "cursor-history/forward"
         case toggleTerminal = "terminal/toggle"
+        case addToChat = "codex/add-to-chat"
 
         var displayName: String {
             switch self {
@@ -19,6 +20,17 @@ final class VSCodeCommandBridge {
                 return "Cursor History"
             case .toggleTerminal:
                 return "Toggle Terminal"
+            case .addToChat:
+                return "Add to chat"
+            }
+        }
+
+        var requiresFrontmostVSCode: Bool {
+            switch self {
+            case .cursorHistoryBack, .cursorHistoryForward, .toggleTerminal:
+                return true
+            case .addToChat:
+                return false // Codex is frontmost when its mouse mode is open, while VS Code must keep the editor selection that gets added to chat. (Codex task: 01a068dc-c698-7312-bc0b-6221c39286e4)
             }
         }
     }
@@ -73,7 +85,7 @@ final class VSCodeCommandBridge {
             completion(.failure(BridgeError(description: "VS Code is not running")))
             return
         }
-        guard target.isActive else {
+        guard !action.requiresFrontmostVSCode || target.isActive else {
             completion(.failure(BridgeError(
                 description: "VS Code must be frontmost for \(action.displayName)"
             )))

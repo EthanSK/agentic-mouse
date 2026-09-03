@@ -123,8 +123,7 @@ final class CodexActionVerificationTests: XCTestCase {
         let executor = CodexModeActionExecutor(
             targetProcessResolver: { 42 },
             postEvent: { _, _, _, _ in true },
-            accessibilityTrusted: { true },
-            editQueuedMessage: { .success(()) }
+            accessibilityTrusted: { true }
         )
 
         guard case .success = executor.perform(.steerQueuedMessage, feedback: {
@@ -135,17 +134,6 @@ final class CodexActionVerificationTests: XCTestCase {
         XCTAssertEqual(
             feedback,
             [.sentUnverified("Steer queued message sent — result not exposed by Codex")]
-        )
-
-        feedback.removeAll()
-        guard case .success = executor.perform(.editQueuedMessage, feedback: {
-            feedback.append($0)
-        }) else {
-            return XCTFail("edit action should dispatch")
-        }
-        XCTAssertEqual(
-            feedback,
-            [.sentUnverified("Edit queued message pressed — result not confirmed by Codex")]
         )
     }
 

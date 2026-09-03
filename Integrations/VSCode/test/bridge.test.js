@@ -40,6 +40,10 @@ test('accepts only the exact extension authority and allow-listed paths', () => 
   assert.deepEqual(routeForUri(uri('/terminal/toggle')), {
     kind: 'terminalToggle',
   });
+  assert.deepEqual(routeForUri(uri('/codex/add-to-chat')), {
+    kind: 'command',
+    command: 'chatgpt.addToThread',
+  });
 });
 
 test('health activates the bridge without executing an editor command', async () => {
@@ -76,6 +80,12 @@ test('fails closed when the receiving VS Code window is not focused', async () =
   assert.equal(await handleUri(h.vscode, h.channel, uri('/cursor-history/back')), false);
   assert.deepEqual(h.commands, []);
   assert.match(h.output[0], /not focused/);
+});
+
+test('adds the retained editor selection to Codex while VS Code is in the background', async () => {
+  const h = harness(false);
+  assert.equal(await handleUri(h.vscode, h.channel, uri('/codex/add-to-chat')), true);
+  assert.deepEqual(h.commands, ['chatgpt.addToThread']);
 });
 
 test('rejects unknown actions without executing arbitrary command ids', async () => {

@@ -19,6 +19,10 @@ final class VSCodeCommandBridgeTests: XCTestCase {
             VSCodeCommandBridge.url(for: .toggleTerminal)?.absoluteString,
             "vscode://ethansk.agentic-mouse-vscode-bridge/terminal/toggle"
         )
+        XCTAssertEqual(
+            VSCodeCommandBridge.url(for: .addToChat)?.absoluteString,
+            "vscode://ethansk.agentic-mouse-vscode-bridge/codex/add-to-chat"
+        )
     }
 
     func testOpensBackThroughTheRunningFrontmostVSCodeWithoutActivationRequest() async {
@@ -107,6 +111,38 @@ final class VSCodeCommandBridgeTests: XCTestCase {
             return XCTFail("background VS Code must reject Toggle Terminal")
         }
         XCTAssertEqual(terminalError.description, "VS Code must be frontmost for Toggle Terminal")
+    }
+
+    func testAddToChatUsesTheRetainedVSCodeSelectionWithoutActivatingVSCode() async {
+        var openedURL: URL?
+        var result: Result<Void, VSCodeCommandBridge.BridgeError>?
+        let completed = expectation(description: "background Add to chat completed")
+        let bridge = VSCodeCommandBridge(
+            targetResolver: { .init(
+                processIdentifier: 314,
+                applicationURL: self.appURL,
+                isActive: false
+            ) },
+            openURL: { url, _, completion in
+                openedURL = url
+                completion(nil)
+            },
+            inputAllowed: { true }
+        )
+
+        bridge.perform(.addToChat) {
+            result = $0
+            completed.fulfill()
+        }
+        await fulfillment(of: [completed], timeout: 1)
+
+        XCTAssertEqual(
+            openedURL?.absoluteString,
+            "vscode://ethansk.agentic-mouse-vscode-bridge/codex/add-to-chat"
+        )
+        guard case .success = result else {
+            return XCTFail("Add to chat should preserve the background VS Code selection")
+        }
     }
 
     func testReportsMissingVSCodeAndWorkspaceOpenFailuresHonestly() async {

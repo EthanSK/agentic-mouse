@@ -144,7 +144,7 @@ const LAYERS = {
       ["New chat", "Send the configured Codex New Chat action."],
       ["Mute / unmute voice mic", "Toggle the mic only during an active Codex Voice Mode session."],
       ["Enter", "Emit one native Return."],
-      ["Edit queued message ❌", "Known broken in the latest physical report; no successful action is claimed."],
+      ["Add to chat", "Add the editor selection retained in VS Code to the current Codex chat."],
       ["Open side chat", "Use Codex's Command-Option-S action while Codex is frontmost."],
       ["Exit Codex mode", "Return directly to Default."],
       ["Chats Selection + Wheel", "Hold and ratchet: up moves to the next chat, down to the previous chat."],

@@ -74,7 +74,6 @@ final class ModePickerTests: XCTestCase {
     func testCodexAndVSCodeMarkersFollowLatestPhysicalReports() {
         let brokenCodexActions: [CodexModeAction] = [
             .toggleVoiceMode,
-            .editQueuedMessage,
         ]
         for action in CodexModeAction.allCases {
             let expected: ModeHUDControlStatus = brokenCodexActions.contains(action)
@@ -83,11 +82,12 @@ final class ModePickerTests: XCTestCase {
             XCTAssertEqual(action.hudControlStatus, expected, "Codex action \(action)")
         }
 
-        let edit = CodexMode.definition.legend.first {
-            $0.cell == CodexModeAction.editQueuedMessage.cell
+        let addToChat = CodexMode.definition.legend.first {
+            $0.cell == CodexModeAction.addToChat.cell
         }!
-        XCTAssertEqual(edit.printedControlLabel(on: .corsair), "Corsair 8 ❌")
-        XCTAssertEqual(edit.printedControlLabel(on: .razer), "Razer 8 ❌")
+        XCTAssertEqual(addToChat.actionTitle, "Add to chat")
+        XCTAssertEqual(addToChat.printedControlLabel(on: .corsair), "Corsair 8")
+        XCTAssertEqual(addToChat.printedControlLabel(on: .razer), "Razer 8")
 
         let steer = CodexMode.definition.legend.first {
             $0.cell == CodexModeAction.steerQueuedMessage.cell
@@ -2220,8 +2220,8 @@ final class ModePickerTests: XCTestCase {
         XCTAssertEqual(CodexModeAction.steerQueuedMessage.cell.rawValue, 1)
         XCTAssertEqual(CodexModeAction.steerQueuedMessage.cell.printedSide(on: .corsair), 1)
         XCTAssertEqual(CodexModeAction.steerQueuedMessage.cell.printedSide(on: .razer), 3)
-        XCTAssertEqual(CodexModeAction.editQueuedMessage.cell.rawValue, 8)
-        XCTAssertEqual(CodexModeAction.editQueuedMessage.title, "Edit queued message")
+        XCTAssertEqual(CodexModeAction.addToChat.cell.rawValue, 8)
+        XCTAssertEqual(CodexModeAction.addToChat.title, "Add to chat")
         XCTAssertEqual(CodexModeAction.pressEnter.cell.rawValue, 7)
         XCTAssertEqual(CodexModeAction.pressEnter.cell.printedSide(on: .razer), 9)
         XCTAssertEqual(CodexModeAction.pressEnter.cell.printedSide(on: .corsair), 7)

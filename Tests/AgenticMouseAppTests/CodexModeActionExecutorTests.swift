@@ -164,63 +164,22 @@ final class CodexModeActionExecutorTests: XCTestCase {
         XCTAssertEqual(events.map(\.3), [true, false])
     }
 
-    func testEditPressesCodexQueuedMessageActionInsteadOfInventingAShortcut() {
+    func testAddToChatCannotFallThroughToCodexShortcutTransport() {
         var keyboardEventCount = 0
-        var editCount = 0
         let executor = CodexModeActionExecutor(
             targetProcessResolver: { 4242 },
             postEvent: { _, _, _, _ in keyboardEventCount += 1; return true },
-            accessibilityTrusted: { true },
-            editQueuedMessage: {
-                editCount += 1
-                return .success(())
-            }
+            accessibilityTrusted: { true }
         )
 
-        guard case .success = executor.perform(.editQueuedMessage) else {
-            return XCTFail("queued Edit button should be pressed")
-        }
-        XCTAssertEqual(editCount, 1)
-        XCTAssertEqual(keyboardEventCount, 0)
-    }
-
-    func testQueuedEditCanBeCancelledIndependentlyOfOtherCodexVerification() {
-        var cancellationCount = 0
-        let executor = CodexModeActionExecutor(
-            targetProcessResolver: { 4242 },
-            accessibilityTrusted: { true },
-            editQueuedMessage: { .success(()) },
-            cancelQueuedMessageEditor: { cancellationCount += 1 }
-        )
-
-        executor.cancelQueuedMessageEdit()
-        XCTAssertEqual(cancellationCount, 1)
-    }
-
-    func testVoiceCannotNestInsideAnEditAccessibilityJourney() {
-        var executor: CodexModeActionExecutor!
-        var nestedResult: Result<Void, CodexModeActionExecutor.ActionError>?
-        executor = CodexModeActionExecutor(
-            targetProcessResolver: { 4242 },
-            targetProcessIsActive: { _ in true },
-            postHardwareSystemShortcut: { _ in true },
-            accessibilityTrusted: { true },
-            editQueuedMessage: {
-                nestedResult = executor.perform(.toggleVoiceMode)
-                return .success(())
-            }
-        )
-
-        guard case .success = executor.perform(.editQueuedMessage) else {
-            return XCTFail("the outer Edit journey should complete")
-        }
-        guard case .failure(let error)? = nestedResult else {
-            return XCTFail("Voice must not start a nested AX traversal inside Edit")
+        guard case .failure(let error) = executor.perform(.addToChat) else {
+            return XCTFail("Add to chat must use the VS Code command bridge")
         }
         XCTAssertEqual(
             error.description,
-            "Another Codex Accessibility action is already in progress"
+            "Add to chat must use the VS Code command bridge"
         )
+        XCTAssertEqual(keyboardEventCount, 0)
     }
 
     func testActionsTargetRunningCodexEvenWhenAnotherAppIsFrontmost() {

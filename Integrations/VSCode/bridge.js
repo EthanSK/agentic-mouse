@@ -7,6 +7,7 @@ const TERMINAL_SHOW_COMMAND = 'workbench.action.terminal.focus';
 const routes = new Map([
   ['/cursor-history/back', 'workbench.action.navigateBack'],
   ['/cursor-history/forward', 'workbench.action.navigateForward'],
+  ['/codex/add-to-chat', 'chatgpt.addToThread'],
 ]);
 let nextTerminalCommand = TERMINAL_HIDE_COMMAND;
 
@@ -35,7 +36,8 @@ async function handleUri(vscode, output, uri, options = {}) {
     return true;
   }
 
-  const focusRequired = options.focusRequired !== false;
+  const focusRequired = options.focusRequired
+    ?? route.command !== 'chatgpt.addToThread'; // Codex is frontmost for this mouse card, so only Add to chat may use VS Code's retained background editor selection. (Codex task: 01a068dc-c698-7312-bc0b-6221c39286e4)
   if (focusRequired && !vscode.window.state.focused) {
     output.appendLine(`Rejected ${route.command}: this VS Code window is not focused.`);
     return false;

@@ -7,7 +7,7 @@ public enum CodexModeAction: String, CaseIterable, Equatable, Sendable {
     case toggleVoiceMode
     case openSideChat
     case steerQueuedMessage
-    case editQueuedMessage
+    case addToChat
     case pressEnter
 
     public var cell: PhysicalCell {
@@ -18,7 +18,7 @@ public enum CodexModeAction: String, CaseIterable, Equatable, Sendable {
         case .toggleVoiceMode: return PhysicalCell(rawValue: 12)!
         case .openSideChat: return PhysicalCell(rawValue: 9)!
         case .steerQueuedMessage: return PhysicalCell(rawValue: 1)!
-        case .editQueuedMessage: return PhysicalCell(rawValue: 8)!
+        case .addToChat: return PhysicalCell(rawValue: 8)!
         case .pressEnter: return PhysicalCell(rawValue: 7)!
         }
     }
@@ -31,7 +31,7 @@ public enum CodexModeAction: String, CaseIterable, Equatable, Sendable {
         case .toggleVoiceMode: return "Voice mode"
         case .openSideChat: return "Open side chat"
         case .steerQueuedMessage: return "Steer queued message"
-        case .editQueuedMessage: return "Edit queued message"
+        case .addToChat: return "Add to chat"
         case .pressEnter: return "Enter"
         }
     }
@@ -44,7 +44,7 @@ public enum CodexModeAction: String, CaseIterable, Equatable, Sendable {
         case .toggleVoiceMode: return RGBColor(red: 29, green: 211, blue: 211)
         case .openSideChat: return RGBColor(red: 72, green: 189, blue: 255)
         case .steerQueuedMessage: return RGBColor(red: 255, green: 121, blue: 48)
-        case .editQueuedMessage: return RGBColor(red: 255, green: 149, blue: 64)
+        case .addToChat: return RGBColor(red: 255, green: 149, blue: 64)
         case .pressEnter: return ModeHUDActionFamilyPalette.enter
         }
     }
@@ -54,10 +54,10 @@ public enum CodexModeAction: String, CaseIterable, Equatable, Sendable {
     /// acceptance is the clearing boundary.
     public var hudControlStatus: ModeHUDControlStatus {
         switch self {
-        case .toggleVoiceMode, .editQueuedMessage:
+        case .toggleVoiceMode:
             return .reportedBroken
         case .newTask, .togglePin, .toggleMicrophoneMute, .openSideChat,
-             .steerQueuedMessage, .pressEnter:
+             .steerQueuedMessage, .addToChat, .pressEnter:
             return .normal
         }
     }

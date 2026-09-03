@@ -71,7 +71,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private lazy var codexModeActionExecutor = CodexModeActionExecutor(
         inputAllowed: { [weak self] in self?.mouseCommandsAllowed == true }
     )
-    private var codexEditOwner: MouseSource?
     private lazy var applicationShortcutDispatcher = ApplicationShortcutDispatcher(
         inputAllowed: { [weak self] in self?.mouseCommandsAllowed == true }
     )
@@ -232,7 +231,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         runtimeHealthMonitor = nil
         notificationCenterToggleVerifier.cancel()
         codexModeActionExecutor.cancelPendingActions()
-        codexEditOwner = nil
         sessionReconnectGeneration &+= 1
         sessionReconnectAttempt = 0
         defaultMapHintCoordinators.values.forEach { $0.shutdown() }
@@ -330,7 +328,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func handleSessionLocked() {
         codexModeActionExecutor.cancelPendingActions()
-        codexEditOwner = nil
         wheelChordMonitor?.clearAll()
         magnetWheelActionSequencer.cancelAll()
         chromeYouTubeSpeedHoldController.cancelAll()
@@ -387,7 +384,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func systemWillSleep(_ notification: Notification) {
         codexModeActionExecutor.cancelPendingActions()
-        codexEditOwner = nil
         wheelChordMonitor?.clearAll()
         magnetWheelActionSequencer.cancelAll()
         chromeYouTubeSpeedHoldController.cancelAll()
@@ -985,9 +981,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     } else if !self.mouseCommandsAllowed {
                         self.suspendedDefaultMapSources.remove(source)
                     }
-                    if self.codexEditOwner == source {
-                        self.codexModeActionExecutor.cancelQueuedMessageEdit()
-                    }
                     let anotherCodexModeIsActive = self.modePickerCoordinators.values.contains {
                         $0.isActive && $0.page == .appSpecific && $0.appSpecificTarget == .codex
                     }
@@ -1026,14 +1019,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 case .codex:
                     guard phase == .press else { return true }
                     guard let action = CodexModeAction.action(for: cell) else { return false }
-                    let previousEditOwner = self.codexEditOwner
-                    if action == .editQueuedMessage {
-                        self.codexEditOwner = source
-                    }
-                    defer {
-                        if action == .editQueuedMessage {
-                            self.codexEditOwner = previousEditOwner
+                    if action == .addToChat {
+                        self.vsCodeCommandBridge.perform(.addToChat) { [weak self] bridgeResult in
+                            guard let self,
+                                  self.modePickerCoordinators[source]?.isActive == true,
+                                  self.modePickerCoordinators[source]?.page == .appSpecific,
+                                  self.modePickerCoordinators[source]?.appSpecificTarget == .codex
+                            else { return }
+                            switch bridgeResult {
+                            case .success:
+                                self.modeHUDPresenters[source]?.flashFeedback(ModeHUDFeedback(
+                                    message: "Add to chat requested",
+                                    tone: .informational
+                                ))
+                            case .failure(let error):
+                                self.modeHUDPresenters[source]?.flashProblem(error.description)
+                            }
                         }
+                        return true
                     }
                     result = self.codexModeActionExecutor.perform(action) { [weak self] feedback in
                         guard let self,

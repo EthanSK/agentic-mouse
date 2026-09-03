@@ -203,11 +203,11 @@ The macOS menu-bar app adds several optional runtime behaviours:
   Mute/Unmute Voice
   Mic on cell 6 (Corsair 6 / Razer 4), and Enter on shared cell 7
   (Corsair 7 / Razer 9). Open in Side Chat is cell 9 (Corsair 9 / Razer 7), New
-  Chat is cell 5, and Edit Queued Message is cell 8. Cell 11 owns Chats Selection +
+  Chat is cell 5, and Add to Chat is cell 8. Cell 11 owns Chats Selection +
   Wheel (up next, down previous); cell 12 owns Voice Mode. Reasoning Effort
-  ratchets up to increase and down to decrease. Voice Mode and Edit Queued Message retain red repair
-  markers because their latest physical reports are still failed; their
-  presence in the map is not a success claim. The redundant broken New Voice Chat card is
+  ratchets up to increase and down to decrease. Voice Mode retains its red repair
+  marker because its latest physical report is still failed; its presence in
+  the map is not a success claim. The redundant broken New Voice Chat card is
   retired. ChatGPT's global `realtimeVoice` shortcut remains Ethan's unchanged
   Control-Shift-V. The earlier PID-targeted Hyper-F17 synthetic route never fired
   from real mouse input, so the exact-device Karabiner rule now emits the chord
@@ -222,16 +222,12 @@ The macOS menu-bar app adds several optional runtime behaviours:
   closed for a background Codex instead of sending a global chord to
   another app. Other keyboard-backed actions send Codex's
   own configured shortcuts directly to its running process without bringing it
-  to the front. Steer uses Codex's built-in Command-Return shortcut; Edit alone
-  presses the exact action on Codex's real queued-message row because no
-  keyboard shortcut edits an already queued item. The row is validated through
-  its exact visible Steer, Delete, and Actions
-  control cluster because Chromium omits its wrapper groups from the macOS
-  Accessibility hierarchy. Voice confirmation is based only on an observed
+  to the front. Steer uses Codex's built-in Command-Return shortcut. Add to Chat
+  calls VS Code's installed `chatgpt.addToThread` command through the bundled,
+  allow-listed bridge while preserving the background editor selection; it does
+  not synthesize Ethan's keybinding or reuse Chats Selection. Voice confirmation is based only on an observed
   exact Codex voice-control state transition across two complete, identically
-  bounded scans of its visible windows; a partial scan is never called inactive. Edit
-  is confirmed only when the exact newly exposed `Edit message` control is
-  pressed; ambiguous or stale candidates fail closed. Chrome cell 3 sends Command-W directly to the running Chrome
+  bounded scans of its visible windows; a partial scan is never called inactive. Chrome cell 3 sends Command-W directly to the running Chrome
   process to close its current tab. Chrome cell 6 sends Chrome's native Command-Option-I shortcut to
   open DevTools. Holding Chrome cell 7 sets the bridge-selected, currently playing
   YouTube video to 2× and release restores that video's exact prior rate; a short renewed browser lease
