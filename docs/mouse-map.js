@@ -66,8 +66,8 @@ const PAIRS = [
     action: "Enter", short: "Enter", description: "Insert exactly one newline in the frontmost application.",
     signal: "keyboard", output: "return_or_enter · repeat false", status: "CONFIGURED · EXACT-DEVICE OUTPUT",
     vscodeAction: {
-      action: "Enter · 8 held: Stage + Next", short: "Enter · Stage", description: "Press normally for Enter, or press while the same mouse's cell 8 is held to emit F18 Stage + Next and suppress Next.",
-      signal: "keyboard", output: "return_or_enter normally · F18 during same-source cell-8 hold", status: "IMPLEMENTED · PHYSICAL ACCEPTANCE PENDING",
+      action: "Enter · 1s guard after 8", short: "Enter · Guard", description: "Press normally for Enter, press while the same mouse's cell 8 is held to emit F18 Stage + Next, or release cell 8 first to suppress Enter for one second.",
+      signal: "keyboard", output: "return_or_enter normally · F18 while cell 8 is held · no output for 1 sec after release", status: "IMPLEMENTED · PHYSICAL ACCEPTANCE PENDING",
     },
   },
   {
@@ -75,8 +75,8 @@ const PAIRS = [
     action: "Back", short: "Back", description: "Go back one page or step.",
     signal: "pointing", output: "pointing_button button4", status: "CONFIGURED · NATIVE POINTER OUTPUT",
     vscodeAction: {
-      action: "Next · Hold + Enter to Stage", short: "Next · Stage", description: "Release sends F13 Next Change; hold and press the same mouse's Enter cell for F18 Stage + Next.",
-      signal: "keyboard", output: "F13 on release · same-source 8+7 emits F18", status: "IMPLEMENTED · PHYSICAL ACCEPTANCE PENDING",
+      action: "Next · Hold + Enter to Stage", short: "Next · Stage", description: "Release sends F13 Next Change and starts the one-second Enter guard; hold and press the same mouse's Enter cell for F18 Stage + Next.",
+      signal: "keyboard", output: "F13 on release · same-source 8+7 emits F18 · release starts Enter guard", status: "IMPLEMENTED · PHYSICAL ACCEPTANCE PENDING",
     },
   },
   {

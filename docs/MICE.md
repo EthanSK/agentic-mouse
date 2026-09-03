@@ -50,7 +50,8 @@ permission.
 In VS Code only, top-level physical cell 5 emits non-repeating F17 for Better Git
 Previous Change on release, and physical cell 8 emits F13 Next Change on release.
 While same-source cell 8 is held, pressing physical cell 7 emits F18 Stage + Next
-instead of Enter and suppresses the pending Next action. Top-level navigation has
+instead of Enter and suppresses the pending Next action. For one second after cell 8
+releases, same-source cell 7 is inert so a near-miss cannot send Enter. Top-level navigation has
 no double-click delay. Physical cell 6 remains YouTube Scrub + Wheel. Inside the VS Code child page, cell 9 sends
 F18 Stage + Next on a single press or F16 exact Undo on a rapid double. Hold
 cell 6 and ratchet down for cursor-history Back or up for Forward; delivery uses

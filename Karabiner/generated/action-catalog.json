@@ -629,7 +629,7 @@
     {
       "id": "vscode-go-to-next-change",
       "title": "VS Code: go to next change",
-      "description": "Press marks the exact mouse's Next button held; release emits F13 only when the same hold was not consumed by the Stage + Next chord.",
+      "description": "Press marks the exact mouse's Next button held; release emits F13 only when the same hold was not consumed, then starts that mouse's one-second Enter dead zone.",
       "source": "vscode/vscode-go-to-next-change.jsonc",
       "manipulator": {
         "conditions": [
@@ -663,7 +663,7 @@
           {
             "set_variable": {
               "name": "$binding_variable",
-              "value": 0
+              "expression": "system.now.milliseconds + 1000"
             }
           }
         ]
@@ -812,68 +812,112 @@
     {
       "id": "vscode-stage-next-while-corsair-next-held",
       "title": "VS Code: stage and go next while Corsair Next is held",
-      "description": "Consumes Corsair physical cell 7 as F18 while that same mouse's physical cell 8 hold is active, and suppresses the held button's ordinary Next release.",
+      "description": "Consumes Corsair physical cell 7 as F18 while that same mouse's physical cell 8 hold is active, or as no output during the one-second post-release Enter dead zone.",
       "source": "vscode/vscode-stage-next-while-corsair-next-held.jsonc",
-      "manipulator": {
-        "conditions": [
-          {
-            "type": "variable_if",
-            "name": "agentic_mouse_corsair_vscode_side_08_next_change_pending",
-            "value": 1
-          },
-          {
-            "type": "frontmost_application_if",
-            "bundle_identifiers": [
-              "^com\\.microsoft\\.VSCode(?:Insiders)?$"
-            ]
-          }
-        ],
-        "to": [
-          {
-            "set_variable": {
+      "manipulators": [
+        {
+          "conditions": [
+            {
+              "type": "variable_if",
               "name": "agentic_mouse_corsair_vscode_side_08_next_change_pending",
-              "value": 2
+              "value": 1
+            },
+            {
+              "type": "frontmost_application_if",
+              "bundle_identifiers": [
+                "^com\\.microsoft\\.VSCode(?:Insiders)?$"
+              ]
             }
-          },
-          {
-            "key_code": "f18",
-            "repeat": false
-          }
-        ]
-      }
+          ],
+          "to": [
+            {
+              "set_variable": {
+                "name": "agentic_mouse_corsair_vscode_side_08_next_change_pending",
+                "value": 2
+              }
+            },
+            {
+              "key_code": "f18",
+              "repeat": false
+            }
+          ]
+        },
+        {
+          "conditions": [
+            {
+              "type": "expression_if",
+              "expression": "(agentic_mouse_corsair_vscode_side_08_next_change_pending > system.now.milliseconds) and (agentic_mouse_corsair_vscode_side_08_next_change_pending <= system.now.milliseconds + 1000)"
+            },
+            {
+              "type": "frontmost_application_if",
+              "bundle_identifiers": [
+                "^com\\.microsoft\\.VSCode(?:Insiders)?$"
+              ]
+            }
+          ],
+          "to": [
+            {
+              "key_code": "vk_none",
+              "repeat": false
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "vscode-stage-next-while-razer-next-held",
       "title": "VS Code: stage and go next while Razer Next is held",
-      "description": "Consumes Razer physical cell 7 as F18 while that same mouse's physical cell 8 hold is active, and suppresses the held button's ordinary Next release.",
+      "description": "Consumes Razer physical cell 7 as F18 while that same mouse's physical cell 8 hold is active, or as no output during the one-second post-release Enter dead zone.",
       "source": "vscode/vscode-stage-next-while-razer-next-held.jsonc",
-      "manipulator": {
-        "conditions": [
-          {
-            "type": "variable_if",
-            "name": "agentic_mouse_razer_vscode_side_08_next_change_pending",
-            "value": 1
-          },
-          {
-            "type": "frontmost_application_if",
-            "bundle_identifiers": [
-              "^com\\.microsoft\\.VSCode(?:Insiders)?$"
-            ]
-          }
-        ],
-        "to": [
-          {
-            "set_variable": {
+      "manipulators": [
+        {
+          "conditions": [
+            {
+              "type": "variable_if",
               "name": "agentic_mouse_razer_vscode_side_08_next_change_pending",
-              "value": 2
+              "value": 1
+            },
+            {
+              "type": "frontmost_application_if",
+              "bundle_identifiers": [
+                "^com\\.microsoft\\.VSCode(?:Insiders)?$"
+              ]
             }
-          },
-          {
-            "key_code": "f18",
-            "repeat": false
-          }
-        ]
-      }
+          ],
+          "to": [
+            {
+              "set_variable": {
+                "name": "agentic_mouse_razer_vscode_side_08_next_change_pending",
+                "value": 2
+              }
+            },
+            {
+              "key_code": "f18",
+              "repeat": false
+            }
+          ]
+        },
+        {
+          "conditions": [
+            {
+              "type": "expression_if",
+              "expression": "(agentic_mouse_razer_vscode_side_08_next_change_pending > system.now.milliseconds) and (agentic_mouse_razer_vscode_side_08_next_change_pending <= system.now.milliseconds + 1000)"
+            },
+            {
+              "type": "frontmost_application_if",
+              "bundle_identifiers": [
+                "^com\\.microsoft\\.VSCode(?:Insiders)?$"
+              ]
+            }
+          ],
+          "to": [
+            {
+              "key_code": "vk_none",
+              "repeat": false
+            }
+          ]
+        }
+      ]
     }
   ]
 }

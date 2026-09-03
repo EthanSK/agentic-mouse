@@ -48,8 +48,8 @@ These are the currently authoritative Corsair assignments:
 | Button 4 | Hold + wheel for Copy / Paste | Same global action |
 | Button 5 | Forward; hold with button 6 + wheel for YouTube volume ±5% | Previous Change on release through F17 |
 | Button 6 | Click to rewind YouTube 5 sec; hold + wheel to scrub ±5 sec per ratchet through the VoiceInk bridge | Same global action |
-| Button 7 | Enter | Enter; while holding button 8, Stage + Next through F18 |
-| Button 8 | Back | Next Change on release through F13; hold with button 7 to stage |
+| Button 7 | Enter | Enter; while holding button 8, Stage + Next through F18; inert for 1 sec after button 8 releases |
+| Button 8 | Back | Next Change on release through F13; hold with button 7 to stage; release starts the 1 sec Enter guard |
 | Button 9 | Open Keys mode | Same global action |
 | Button 10 | Toggle this mouse's Default legend; universal Exit in modes | Same global action |
 | Button 11 | Hold-open Switch App | Same global action |
@@ -76,7 +76,8 @@ the persistent legend toggle.
 VS Code has exact-device top-level overrides: physical cell 5 emits non-repeating
 F17 for Better Git Previous Change on release, cell 8 emits non-repeating F13 for
 Next Change on release, and pressing same-source cell 7 while cell 8 is held emits
-F18 Stage + Next instead of Enter or the pending Next action. There is no top-level
+F18 Stage + Next instead of Enter or the pending Next action. After cell 8 releases,
+same-source cell 7 is consumed for one second instead of sending an accidental Enter. There is no top-level
 double-click decision window. Cell 6 remains the global YouTube scrub action. Inside the
 explicitly entered VS Code child, cell 9 uses one 300 ms gesture: a single sends
 Stage + Next and a rapid double sends exact Undo Stage. Hold cell 6 and ratchet

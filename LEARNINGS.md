@@ -1,5 +1,19 @@
 # Learnings
 
+## 2026-09-03 — Suppress near-miss Enter for one second after VS Code Next releases
+
+**Trigger:** Ethan kept sending Enter accidentally when physical cell 8 came up just before cell 7 went down while he was trying to use the same-source Stage + Next chord.
+
+**Finding:** The held-state chord correctly consumes cell 7 only while cell 8 is physically down. A nearly simultaneous release-first gesture therefore fell through to the unfiltered base Enter rule. Delaying every Enter would slow normal work, while treating the post-release press as Stage + Next would be unsafe because F13 Next Change has already moved to another file.
+
+**Fix:** On every top-level VS Code cell-8 release, replace the held/consumed state with a source-specific absolute expiry one second in the future. Keep the immediate F18 Stage + Next route while the state is held, then let a higher-priority exact-device cell-7 manipulator emit `vk_none` only while that expiry remains live. Keep Corsair 8 + 7 and mirrored Razer 8 + 9 independent. Show `Enter · 1s guard after 8` in the live VS Code-aware Default HUD. (Codex task: 01a039f7-873c-7c30-b3dc-af8a6724ace5)
+
+**Guard:** Do not add a permanent one-second delay to Enter, use a delayed timer, or let a late cell-7 press stage after Next has already fired. Preserve ordinary Enter before cell 8 is used, after the expiry, outside VS Code, and from the other mouse. Keep F13 conditional on the unconsumed held state, store the expiry on every release, and pin rule order, both exact source variables, the no-output sink, and the unchanged base Enter output in generator tests.
+
+**Verification:** The focused exact-device generator and live-HUD-copy tests passed. The complete clean gate passed 701 Swift tests, six Musixmatch tests, six VS Code bridge tests, 17 Karabiner generator tests, generated-source freshness, both generated Karabiner lints, packaging/version contracts, and shell syntax. Developer-ID-signed Agentic Mouse v1.0.163 (build 169) is installed as main PID 41582 with executable SHA-256 `ac419f5d997b8ba5665252bd3a2efd7228ed398e5ae30754f3be5b330ca547d5`, CDHash `71f1519d63d5c4a7f995ba71497d209e5a528614`, Team ID `T34G959ZG8`, Accessibility granted, iCUE connected, self-recovery enabled, and exclusive mode-0600 command-socket ownership. The installed iCUE SDK and live app configuration remain byte-identical at SHA-256 `48bbc94bed670d036af8e1acca0017449b36d7c6d1e15dafe0791b42b6be84fe` and `aa1499d88bd34875dc11f9a2873165d09cd2323c590126f425da4fd72e3189be`. The live Karabiner profile is SHA-256 `e81d905aa3cc1efc58aa5cc69b4bd86772dc17dc3c5a4f95561afdd62029ede8`: its generated six-rule Agentic Mouse block matches the source exactly and all three non-Agentic rules were preserved. OBS++ main PID 98893 and active recording mux PID 6842 remained unchanged. The exact v1.0.162 bundle and prior Karabiner profile are preserved in `Rollbacks/`; literal physical timing acceptance and post-launch HUD pixels remain Ethan-owned because the installed runtime correctly waits for one real user input before enabling commands.
+
+---
+
 ## 2026-09-03 — Keep Keys cell 12 spare without removing the other Return routes
 
 **Trigger:** Ethan asked to remove Enter from the shared Keys mode while keeping the rest of the mouse maps intact.

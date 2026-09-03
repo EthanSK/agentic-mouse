@@ -1,8 +1,8 @@
-// In Visual Studio Code, emits F13 on physical release unless the held button is consumed by Stage + Next.
+// In Visual Studio Code, emits F13 on physical release unless consumed, then protects Enter from near-miss presses for one second.
 {
   "id": "vscode-go-to-next-change",
   "title": "VS Code: go to next change",
-  "description": "Press marks the exact mouse's Next button held; release emits F13 only when the same hold was not consumed by the Stage + Next chord.",
+  "description": "Press marks the exact mouse's Next button held; release emits F13 only when the same hold was not consumed, then starts that mouse's one-second Enter dead zone.",
   "manipulator": {
     "conditions": [
       { "type": "frontmost_application_if", "bundle_identifiers": ["^com\\.microsoft\\.VSCode(?:Insiders)?$"] }
@@ -12,7 +12,7 @@
     ],
     "to_after_key_up": [
       { "key_code": "f13", "repeat": false, "conditions": [{ "type": "variable_if", "name": "$binding_variable", "value": 1 }] },
-      { "set_variable": { "name": "$binding_variable", "value": 0 } }
+      { "set_variable": { "name": "$binding_variable", "expression": "system.now.milliseconds + 1000" } }
     ]
   }
 }

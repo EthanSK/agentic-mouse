@@ -1090,6 +1090,15 @@ class KarabinerGeneratorTests(unittest.TestCase):
             (ROOT / "Karabiner/generated/agentic-mouse.json").read_text()
         )
         rules = {rule["description"]: rule for rule in generated["rules"]}
+        rule_order = [rule["description"] for rule in generated["rules"]]
+        self.assertLess(
+            rule_order.index("Agentic Mouse — Corsair VS Code layer"),
+            rule_order.index("Agentic Mouse — Corsair base layer"),
+        )
+        self.assertLess(
+            rule_order.index("Agentic Mouse — Razer VS Code layer"),
+            rule_order.index("Agentic Mouse — Razer base layer"),
+        )
 
         cases = (
             (
@@ -1112,25 +1121,28 @@ class KarabinerGeneratorTests(unittest.TestCase):
         held_variables = set()
         for rule_name, device_condition, previous_source, next_source, chord_source, held_variable in cases:
             rule = rules[rule_name]
-            self.assertEqual(len(rule["manipulators"]), 3)
-            by_source = {
-                manipulator["from"]["key_code"]: manipulator
-                for manipulator in rule["manipulators"]
-            }
+            self.assertEqual(len(rule["manipulators"]), 4)
+            by_source = {}
+            for manipulator in rule["manipulators"]:
+                by_source.setdefault(manipulator["from"]["key_code"], []).append(manipulator)
             self.assertEqual(set(by_source), {previous_source, next_source, chord_source})
-            for manipulator in by_source.values():
-                self.assertIn(device_condition, manipulator["conditions"])
-                self.assertIn(vscode_if_condition(), manipulator["conditions"])
-                self.assertNotIn(vscode_unless_condition(), manipulator["conditions"])
-                self.assertNotIn("to_delayed_action", manipulator)
-                self.assertNotIn("to_if_alone", manipulator)
+            self.assertEqual(len(by_source[previous_source]), 1)
+            self.assertEqual(len(by_source[next_source]), 1)
+            self.assertEqual(len(by_source[chord_source]), 2)
+            for manipulators in by_source.values():
+                for manipulator in manipulators:
+                    self.assertIn(device_condition, manipulator["conditions"])
+                    self.assertIn(vscode_if_condition(), manipulator["conditions"])
+                    self.assertNotIn(vscode_unless_condition(), manipulator["conditions"])
+                    self.assertNotIn("to_delayed_action", manipulator)
+                    self.assertNotIn("to_if_alone", manipulator)
 
-            previous = by_source[previous_source]
+            previous = by_source[previous_source][0]
             self.assertNotIn("to", previous)
             self.assertEqual(previous["to_after_key_up"][0]["key_code"], "f17")
             self.assertIs(previous["to_after_key_up"][0]["repeat"], False)
 
-            next_change = by_source[next_source]
+            next_change = by_source[next_source][0]
             self.assertEqual(
                 next_change["to"],
                 [{"set_variable": {"name": held_variable, "value": 1}}],
@@ -1143,10 +1155,15 @@ class KarabinerGeneratorTests(unittest.TestCase):
             )
             self.assertEqual(
                 next_change["to_after_key_up"][1],
-                {"set_variable": {"name": held_variable, "value": 0}},
+                {
+                    "set_variable": {
+                        "name": held_variable,
+                        "expression": "system.now.milliseconds + 1000",
+                    }
+                },
             )
 
-            chord = by_source[chord_source]
+            chord, cooldown = by_source[chord_source]
             self.assertIn(
                 {"type": "variable_if", "name": held_variable, "value": 1},
                 chord["conditions"],
@@ -1157,6 +1174,20 @@ class KarabinerGeneratorTests(unittest.TestCase):
             )
             self.assertEqual(chord["to"][1]["key_code"], "f18")
             self.assertIs(chord["to"][1]["repeat"], False)
+            self.assertIn(
+                {
+                    "type": "expression_if",
+                    "expression": (
+                        f"({held_variable} > system.now.milliseconds) and "
+                        f"({held_variable} <= system.now.milliseconds + 1000)"
+                    ),
+                },
+                cooldown["conditions"],
+            )
+            self.assertEqual(len(cooldown["to"]), 1)
+            self.assertEqual(cooldown["to"][0]["key_code"], "vk_none")
+            self.assertIs(cooldown["to"][0]["repeat"], False)
+            self.assertNotIn('"key_code": "f18"', json.dumps(cooldown))
             held_variables.add(held_variable)
             self.assertNotIn('"key_code": "f19"', json.dumps(rule["manipulators"]))
 
@@ -1167,6 +1198,7 @@ class KarabinerGeneratorTests(unittest.TestCase):
                 "Agentic Mouse — Corsair base layer",
                 exact_corsair_keyboard_condition(),
                 "keypad_5",
+                "keypad_7",
                 "button4",
                 "corsair",
             ),
@@ -1174,11 +1206,12 @@ class KarabinerGeneratorTests(unittest.TestCase):
                 "Agentic Mouse — Razer base layer",
                 exact_test_device_condition(),
                 "5",
+                "9",
                 "button4",
                 "razer",
             ),
         )
-        for rule_name, device_condition, forward_source, back_button, mouse_source in base_cases:
+        for rule_name, device_condition, forward_source, enter_source, back_button, mouse_source in base_cases:
             rule = rules[rule_name]
             forward = next(
                 manipulator
@@ -1190,10 +1223,18 @@ class KarabinerGeneratorTests(unittest.TestCase):
                 for manipulator in rule["manipulators"]
                 if manipulator["from"].get("key_code") in {"keypad_8", "8"}
             )
+            enter = next(
+                manipulator
+                for manipulator in rule["manipulators"]
+                if manipulator["from"].get("key_code") == enter_source
+            )
             for manipulator in [forward, back]:
                 self.assertIn(device_condition, manipulator["conditions"])
                 self.assertIn(vscode_unless_condition(), manipulator["conditions"])
             self.assertEqual(back["to"][0]["pointing_button"], back_button)
+            self.assertIn(device_condition, enter["conditions"])
+            self.assertNotIn(vscode_unless_condition(), enter["conditions"])
+            self.assertEqual(enter["to"][0]["key_code"], "return_or_enter")
             self.assertEqual(
                 forward["to"][0]["send_user_command"]["payload"],
                 {

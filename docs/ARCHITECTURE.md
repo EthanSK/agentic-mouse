@@ -83,6 +83,8 @@ adapter generates the same base shape from its onboard main-row and
 physical-pointing namespaces, plus its two DPI VoiceInk bindings. Physical
 cells 5 and 8 also generate exact-device release-only VS Code overrides with matching base
 exclusions, and same-source cell 8 held + cell 7 generates the Stage + Next chord.
+Cell 8 release stores a one-second source-specific expiry, and the VS Code layer consumes
+cell 7 without output until that expiry passes so near-miss presses cannot send Enter.
 Cell 6 remains the global YouTube scrub wheel action in every app, cell 9
 opens Keys, and every other control inherits its ordinary action. Generation never installs or
 enables rules as a side effect, and linted output is not physical proof. The
