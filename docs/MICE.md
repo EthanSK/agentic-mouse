@@ -21,7 +21,7 @@ temporary lighting, but it does not write iCUE settings.
 | Button 5 | Forward; VS Code overrides it to Previous Change through F17 and arms button 4's Stage + Previous gesture |
 | Button 7 | Enter |
 | Button 8 | Back; VS Code overrides it to Next Change through F13 |
-| Button 6 | Click for YouTube −5 sec; hold + wheel through the existing VoiceInk bridge for up +5 sec, down −5 sec |
+| Button 6 | Click for YouTube −5 sec; hold 350 ms for temporary 2× speed; hold + wheel for up +5 sec, down −5 sec |
 | Button 9 | Open Keys mode |
 | Button 10 | Toggle this mouse's Default legend; universal Exit inside modes |
 | Button 11 | Hold-open Switch App |
@@ -33,7 +33,7 @@ behavior on 9 August 2026 after **Modify events** was enabled for its exact
 physical pointing interface. The equivalent Razer wheel remains separately
 unaccepted until that mouse is reconnected and tested.
 
-Button 6 rewinds the selected YouTube target by five seconds on a plain click without focusing Chrome; any wheel input during the hold keeps the existing scrub gesture and suppresses that click action. Button 2 opens the current
+Button 6 rewinds the selected YouTube target by five seconds on a short click without focusing Chrome. Holding for 350 ms requests 2× speed; release restores the exact prior speed without seeking. Any wheel input cancels the speed boost and keeps the existing scrub gesture. Holding button 5 inhibits speed so the volume wheel retains priority. Long holds never add a rewind on release. Button 2 opens the current
 frontmost app's mode, and button 9 opens shared Keys mode.
 Inside Keys, cell 3 sends Undo, cell 6 enters Keypad, and holding cell 9 maps wheel up/down to Next/Previous Track.
 Normal behavior

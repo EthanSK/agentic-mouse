@@ -105,6 +105,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         return controller
     }()
     private var screenshotInteractionWasActive = false
+    private lazy var youtubeScrubHoldController = YouTubeScrubHoldController(
+        inputAllowed: { [weak self] in self?.mouseCommandsAllowed == true },
+        beginSpeed: { [weak self] source in
+            _ = self?.chromeYouTubeSpeedHoldController.beginMomentaryHold(source: source)
+            self?.defaultMapHintCoordinators[source]?.flashActionFeedback(
+                source: source,
+                feedback: ModeHUDFeedback(message: "2× speed requested", tone: .informational)
+            )
+        },
+        endSpeed: { [weak self] source in
+            self?.chromeYouTubeSpeedHoldController.cancel(source: source)
+        }
+    )
     private lazy var chromeYouTubeSpeedHoldController: ChromeYouTubeSpeedHoldController = {
         let controller = ChromeYouTubeSpeedHoldController(
             inputAllowed: { [weak self] in self?.mouseCommandsAllowed == true }
@@ -1504,12 +1517,27 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             self.scheduleUtilityWheelAction(action, step: step)
             return true
         }
+        monitor.onControlChange = { [weak self] source, control in
+            guard control == .youtubeScrub else { return }
+            self?.youtubeScrubHoldController.press(
+                source: source,
+                volumeModifierActive: self?.wheelChordMonitor?.isYouTubeVolumeModifierActive(for: source) == true
+            )
+        }
+        monitor.onWheelInput = { [weak self] source in
+            self?.youtubeScrubHoldController.inhibitSpeed(source: source)
+        }
+        monitor.onClear = { [weak self] source in
+            self?.youtubeScrubHoldController.cancel(source: source)
+        }
         monitor.onRelease = { [weak self] release in
-            guard !release.didObserveWheelInput else { return }
             switch release.control {
             case .youtubeScrub:
+                guard self?.youtubeScrubHoldController.release(source: release.source) == true,
+                      !release.didObserveWheelInput else { return }
                 self?.performTopLevelYouTubeRewind(from: release.source)
             case .mediaTracks:
+                guard !release.didObserveWheelInput else { return }
                 self?.performKeysMediaTrackClick(from: release.source)
             case .horizontalScroll, .youtubeVolume, .brightness, .zoom, .clipboard,
                  .systemOverview, .applicationWindows, .magnetWindow, .spaces,
@@ -1519,6 +1547,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
         monitor.onYouTubeVolumeModifierChange = { [weak self] source in
+            if self?.wheelChordMonitor?.isYouTubeVolumeModifierActive(for: source) == true {
+                self?.youtubeScrubHoldController.inhibitSpeed(source: source)
+            }
             self?.defaultMapHintCoordinators[source]?.refresh()
         }
         monitor.onYouTubeVolumeModifierRelease = { [weak self] release in

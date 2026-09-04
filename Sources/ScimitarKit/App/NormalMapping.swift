@@ -90,8 +90,8 @@ public struct ScimitarNormalMapping: Equatable, Sendable {
             ),
             Assignment(
                 button: 6,
-                action: "YouTube Scrub + Wheel",
-                implementation: "Release without wheel input to rewind five seconds; otherwise each accepted ratchet asks the VoiceInk YouTube Bridge to seek the selected target by exactly five seconds without focusing Chrome"
+                action: "YouTube · Hold 2× / Scrub + Wheel",
+                implementation: "Click to rewind five seconds; hold for 350 ms to request temporary 2× speed and restore the prior rate without seeking on release; wheel input cancels speed and scrubs by five seconds per ratchet without focusing Chrome"
             ),
             Assignment(
                 button: 7,

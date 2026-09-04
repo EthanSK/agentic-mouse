@@ -37,6 +37,9 @@ final class ScrollWheelChordMonitor {
     var onYouTubeVolumeModifierChange: YouTubeVolumeModifierChangeHandler?
     var onProblem: ProblemHandler?
     var onDiagnostic: DiagnosticHandler?
+    var onControlChange: ((_ source: MouseSource, _ control: WheelChordControl) -> Void)?
+    var onWheelInput: ((_ source: MouseSource) -> Void)?
+    var onClear: ((_ source: MouseSource) -> Void)?
 
     private var tap: CFMachPort?
     private var runLoopSource: CFRunLoopSource?
@@ -96,8 +99,7 @@ final class ScrollWheelChordMonitor {
     }
 
     func stop() {
-        state.clearAll()
-        diagnosticThrottle.resetAll()
+        clearAll()
         if let tap {
             CGEvent.tapEnable(tap: tap, enable: false)
             CFMachPortInvalidate(tap)
@@ -117,7 +119,9 @@ final class ScrollWheelChordMonitor {
             finishHold(for: source)
             return
         }
+        if state.activeControl(for: source) != control { onClear?(source) }
         state.setActive(control, for: source)
+        onControlChange?(source, control)
         diagnosticThrottle.reset(source: source)
         emitDiagnostic(
             source: source,
@@ -158,11 +162,13 @@ final class ScrollWheelChordMonitor {
     }
 
     func clear(source: MouseSource) {
+        onClear?(source)
         state.clear(source: source)
         diagnosticThrottle.reset(source: source)
     }
 
     func clearAll() {
+        for source in MouseSource.allCases { onClear?(source) }
         state.clearAll()
         diagnosticThrottle.resetAll()
     }
@@ -196,6 +202,11 @@ final class ScrollWheelChordMonitor {
         let isContinuous = event.getIntegerValueField(.scrollWheelEventIsContinuous) != 0
         let scrollPhase = event.getIntegerValueField(.scrollWheelEventScrollPhase)
         let momentumPhase = event.getIntegerValueField(.scrollWheelEventMomentumPhase)
+        if delta != 0 {
+            for source in MouseSource.allCases where state.activeControl(for: source) != nil {
+                onWheelInput?(source) // Even filtered or ambiguous wheel input must end speed before routing the scrub/volume action.
+            }
+        }
         let routing = state.route(
             verticalDelta: delta,
             isContinuous: isContinuous,

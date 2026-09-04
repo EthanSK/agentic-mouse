@@ -120,7 +120,9 @@ final class ChromeYouTubeSpeedHoldController {
         return beginMomentaryHold(source: source)
     }
 
-    private func beginMomentaryHold(source: MouseSource) -> Bool {
+    /// Shares the lease with Default's long hold without seeding Chrome's sticky double-click.
+    func beginMomentaryHold(source: MouseSource) -> Bool {
+        guard inputAllowed() else { return false }
         guard heldSources.insert(source).inserted else { return true }
         guard token == nil else { return true }
 

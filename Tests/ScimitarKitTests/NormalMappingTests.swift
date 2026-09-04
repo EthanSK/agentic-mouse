@@ -76,10 +76,10 @@ final class NormalMappingTests: XCTestCase {
             ScimitarNormalMapping.normal.assignment(for: 2)?.implementation,
             "Exact-device Karabiner opens the current frontmost app mode; active cell 10 exits"
         )
-        XCTAssertEqual(ScimitarNormalMapping.normal.assignment(for: 6)?.action, "YouTube Scrub + Wheel")
+        XCTAssertEqual(ScimitarNormalMapping.normal.assignment(for: 6)?.action, "YouTube · Hold 2× / Scrub + Wheel")
         XCTAssertEqual(
             ScimitarNormalMapping.normal.assignment(for: 6)?.implementation,
-            "Release without wheel input to rewind five seconds; otherwise each accepted ratchet asks the VoiceInk YouTube Bridge to seek the selected target by exactly five seconds without focusing Chrome"
+            "Click to rewind five seconds; hold for 350 ms to request temporary 2× speed and restore the prior rate without seeking on release; wheel input cancels speed and scrubs by five seconds per ratchet without focusing Chrome"
         )
         XCTAssertEqual(ScimitarNormalMapping.normal.assignment(for: 9)?.action, "Keys mode")
         XCTAssertEqual(

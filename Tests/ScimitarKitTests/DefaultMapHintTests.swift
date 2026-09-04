@@ -72,7 +72,7 @@ final class DefaultMapHintCommandTests: XCTestCase {
         XCTAssertEqual(DefaultMapLegend.legend[2].actionTitle, "Screenshot")
         XCTAssertEqual(DefaultMapLegend.legend[1].actionTitle, "App mode")
         XCTAssertEqual(DefaultMapLegend.legend[1].destinationModeAccent, AppSpecificMode.selectorAccent)
-        XCTAssertEqual(DefaultMapLegend.legend[5].actionTitle, "YouTube Scrub + Wheel")
+        XCTAssertEqual(DefaultMapLegend.legend[5].actionTitle, "YouTube · Hold 2× / Scrub + Wheel")
         XCTAssertEqual(DefaultMapLegend.legend[4].actionTitle, "Forward · Hold + 6 for Volume")
         XCTAssertEqual(DefaultMapLegend.legend[8].actionTitle, "Keys mode")
         XCTAssertEqual(DefaultMapLegend.legend[8].accent, ModePickerCoordinator.keysAccent)
@@ -228,7 +228,7 @@ final class DefaultMapHintCoordinatorTests: XCTestCase {
         coordinator.handleToggle(source: .corsair)
 
         XCTAssertEqual(hud.snapshots.last?.legend[1].actionTitle, "Chrome mode")
-        XCTAssertEqual(hud.snapshots.last?.legend[5].actionTitle, "YouTube Scrub + Wheel")
+        XCTAssertEqual(hud.snapshots.last?.legend[5].actionTitle, "YouTube · Hold 2× / Scrub + Wheel")
         XCTAssertEqual(
             hud.snapshots.last?.legend[1].accent,
             ChromeMode.accent.blended(with: .white, amount: 0.58)
@@ -259,7 +259,7 @@ final class DefaultMapHintCoordinatorTests: XCTestCase {
             hud.snapshots.last?.legend[1].appBackdrop,
             ModeHUDAppBackdrop(bundleIdentifier: AppSpecificTarget.vsCode.bundleIdentifier)
         )
-        XCTAssertEqual(hud.snapshots.last?.legend[5].actionTitle, "YouTube Scrub + Wheel")
+        XCTAssertEqual(hud.snapshots.last?.legend[5].actionTitle, "YouTube · Hold 2× / Scrub + Wheel")
         XCTAssertTrue(coordinator.isShowingHint)
 
         let razerSnapshot = DefaultMapLegend.snapshot(
@@ -280,7 +280,7 @@ final class DefaultMapHintCoordinatorTests: XCTestCase {
         )
         coordinator.handleToggle(source: .corsair)
 
-        XCTAssertEqual(hud.snapshots.last?.legend[5].actionTitle, "YouTube Scrub + Wheel")
+        XCTAssertEqual(hud.snapshots.last?.legend[5].actionTitle, "YouTube · Hold 2× / Scrub + Wheel")
     }
 
     func testCoordinatorIgnoresCommandsOwnedByTheOtherMouse() {
