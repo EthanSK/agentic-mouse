@@ -80,11 +80,29 @@
     },
     {
       "id": "corsair-vscode-side-05-previous-change",
-      "description": "Corsair side 5 emits the Better Git Previous Change transport only in VS Code",
+      "description": "Corsair side 5 emits Better Git Previous Change on release unless same-source side 4 consumes the hold for Stage + Previous",
       "action": "vscode-go-to-previous-change",
       "rule": "Corsair VS Code layer",
       "from": {
         "key_code": "keypad_5",
+        "modifiers": { "optional": ["any"] }
+      },
+      "conditions": [
+        {
+          "type": "device_if",
+          "identifiers": [
+            { "vendor_id": 6940, "product_id": 65535, "is_keyboard": true }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "corsair-vscode-side-04-stage-previous-chord",
+      "description": "Corsair side 4 stages and moves backward while same-source side 5 is held or for one second after its release in VS Code",
+      "action": "vscode-stage-previous-while-corsair-previous-held",
+      "rule": "Corsair VS Code layer",
+      "from": {
+        "key_code": "keypad_4",
         "modifiers": { "optional": ["any"] }
       },
       "conditions": [
@@ -412,11 +430,29 @@
     },
     {
       "id": "razer-vscode-side-05-previous-change",
-      "description": "Razer side 5 emits the Better Git Previous Change transport only in VS Code",
+      "description": "Razer side 5 emits Better Git Previous Change on release unless same-source physical cell 4 consumes the hold for Stage + Previous",
       "action": "vscode-go-to-previous-change",
       "rule": "Razer VS Code layer",
       "from": {
         "key_code": "5",
+        "modifiers": { "optional": ["any"] }
+      },
+      "conditions": [
+        {
+          "type": "device_if",
+          "identifiers": [
+            { "vendor_id": 5426, "product_id": 141, "is_keyboard": true }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "razer-vscode-side-06-stage-previous-chord",
+      "description": "Razer side 6 shares physical cell 4 and stages and moves backward while same-source side 5 is held or for one second after its release in VS Code",
+      "action": "vscode-stage-previous-while-razer-previous-held",
+      "rule": "Razer VS Code layer",
+      "from": {
+        "key_code": "6",
         "modifiers": { "optional": ["any"] }
       },
       "conditions": [

@@ -251,7 +251,8 @@ final class DefaultMapHintCoordinatorTests: XCTestCase {
         coordinator.refresh()
 
         XCTAssertEqual(hud.snapshots.last?.legend[1].actionTitle, "VS Code mode")
-        XCTAssertEqual(hud.snapshots.last?.legend[4].actionTitle, "Previous Change")
+        XCTAssertEqual(hud.snapshots.last?.legend[3].actionTitle, "Copy / Paste · Stage + Previous after 5")
+        XCTAssertEqual(hud.snapshots.last?.legend[4].actionTitle, "Previous Change · Hold + 4 to Stage")
         XCTAssertEqual(hud.snapshots.last?.legend[6].actionTitle, "Enter · Stage + Next after 8")
         XCTAssertEqual(hud.snapshots.last?.legend[7].actionTitle, "Next Change · Hold + 7 to Stage")
         XCTAssertEqual(
@@ -265,6 +266,8 @@ final class DefaultMapHintCoordinatorTests: XCTestCase {
             source: .razer,
             frontmostAppContext: frontmostAppContext
         )
+        XCTAssertEqual(razerSnapshot.legend[3].actionTitle, "Copy / Paste · Stage + Previous after 5")
+        XCTAssertEqual(razerSnapshot.legend[4].actionTitle, "Previous Change · Hold + 6 to Stage")
         XCTAssertEqual(razerSnapshot.legend[6].actionTitle, "Enter · Stage + Next after 8")
         XCTAssertEqual(razerSnapshot.legend[7].actionTitle, "Next Change · Hold + 9 to Stage")
     }

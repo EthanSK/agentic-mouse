@@ -232,8 +232,11 @@ public enum DefaultMapLegend {
             } else if cell == .frontmostAppModeSelector {
                 title = frontmostAppContext?.definition.title ?? "App mode"
             } else if frontmostAppContext?.target == .vsCode,
+                      cell == .clipboardWheelControl {
+                title = "Copy / Paste · Stage + Previous after 5"
+            } else if frontmostAppContext?.target == .vsCode,
                       cell == VSCodeModeAction.previousChange.cell {
-                title = "Previous Change"
+                title = "Previous Change · Hold + \(PhysicalCell.clipboardWheelControl.printedSide(on: source)!) to Stage"
             } else if frontmostAppContext?.target == .vsCode,
                       cell == PhysicalCell(rawValue: 7)! {
                 title = "Enter · Stage + Next after 8"

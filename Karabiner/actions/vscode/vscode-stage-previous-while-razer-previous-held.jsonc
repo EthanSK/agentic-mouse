@@ -1,0 +1,28 @@
+// In Visual Studio Code, Razer physical cell 4 stages backward while cell 5 is held or for one second after cell 5 releases.
+{
+  "id": "vscode-stage-previous-while-razer-previous-held",
+  "title": "VS Code: stage and go previous while Razer Previous is held",
+  "description": "Consumes Razer physical cell 4 as F19 while that same mouse's physical cell 5 hold is active or during the one-second post-release staging window.",
+  "manipulators": [
+    {
+      "conditions": [
+        { "type": "variable_if", "name": "agentic_mouse_razer_vscode_side_05_previous_change_pending", "value": 1 },
+        { "type": "frontmost_application_if", "bundle_identifiers": ["^com\\.microsoft\\.VSCode(?:Insiders)?$"] }
+      ],
+      "to": [
+        { "set_variable": { "name": "agentic_mouse_razer_vscode_side_05_previous_change_pending", "value": 2 } },
+        { "key_code": "f19", "repeat": false }
+      ]
+    },
+    {
+      "conditions": [
+        { "type": "expression_if", "expression": "(agentic_mouse_razer_vscode_side_05_previous_change_pending > system.now.milliseconds) and (agentic_mouse_razer_vscode_side_05_previous_change_pending <= system.now.milliseconds + 1000)" },
+        { "type": "frontmost_application_if", "bundle_identifiers": ["^com\\.microsoft\\.VSCode(?:Insiders)?$"] }
+      ],
+      "to": [
+        { "set_variable": { "name": "agentic_mouse_razer_vscode_side_05_previous_change_pending", "value": 0 } },
+        { "key_code": "f19", "repeat": false }
+      ]
+    }
+  ]
+}

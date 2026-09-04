@@ -17,8 +17,8 @@ temporary lighting, but it does not write iCUE settings.
 | Button 3 | Screenshot outside modes; rapid double-press pastes its last saved result; mode-specific action inside modes |
 | Button 1 | Hold + wheel for at most one macOS Space; first sign wins until release |
 | Button 2 | Open the current frontmost app mode |
-| Button 4 | Hold + wheel for native horizontal scrolling |
-| Button 5 | Forward; VS Code overrides it to Previous Change through F17 |
+| Button 4 | Hold + wheel for Copy / Paste; VS Code uses it for Stage + Previous while button 5 is held or for one second after release |
+| Button 5 | Forward; VS Code overrides it to Previous Change through F17 and arms button 4's Stage + Previous gesture |
 | Button 7 | Enter |
 | Button 8 | Back; VS Code overrides it to Next Change through F13 |
 | Button 6 | Click for YouTube −5 sec; hold + wheel through the existing VoiceInk bridge for up +5 sec, down −5 sec |
@@ -51,6 +51,9 @@ permission.
 
 In VS Code only, top-level physical cell 5 emits non-repeating F17 for Better Git
 Previous Change on release, and physical cell 8 emits F13 Next Change on release.
+While same-source cell 5 is held, pressing physical cell 4 emits F19 Stage + Previous
+instead of arming Copy / Paste and suppresses the pending Previous action. For one second after cell 5
+releases, one same-source cell-4 press emits F19 Stage + Previous instead of Copy / Paste.
 While same-source cell 8 is held, pressing physical cell 7 emits F18 Stage + Next
 instead of Enter and suppresses the pending Next action. For one second after cell 8
 releases, one same-source cell-7 press emits F18 Stage + Next instead of Enter. Top-level navigation has
@@ -62,7 +65,7 @@ their 300 ms navigation gestures only inside that explicitly entered child. Cell
 the current editor tab with Command-W, cell 7 opens the Command Palette with
 Command-Shift-P, and cell 11 sends F12 for Go to Definition. The child does not duplicate the
 Default Back/Forward pair. Matching base
-exclusions preserve Forward and Back everywhere else; every
+exclusions preserve Forward and Back everywhere else, while Copy / Paste remains available whenever its Stage + Previous window is inactive; every
 untouched control continues to inherit the exact-device base.
 
 Agentic Mouse and Karabiner emit only the neutral F16 transport. Better Git

@@ -1,0 +1,28 @@
+// In Visual Studio Code, Corsair physical cell 4 stages backward while cell 5 is held or for one second after cell 5 releases.
+{
+  "id": "vscode-stage-previous-while-corsair-previous-held",
+  "title": "VS Code: stage and go previous while Corsair Previous is held",
+  "description": "Consumes Corsair physical cell 4 as F19 while that same mouse's physical cell 5 hold is active or during the one-second post-release staging window.",
+  "manipulators": [
+    {
+      "conditions": [
+        { "type": "variable_if", "name": "agentic_mouse_corsair_vscode_side_05_previous_change_pending", "value": 1 },
+        { "type": "frontmost_application_if", "bundle_identifiers": ["^com\\.microsoft\\.VSCode(?:Insiders)?$"] }
+      ],
+      "to": [
+        { "set_variable": { "name": "agentic_mouse_corsair_vscode_side_05_previous_change_pending", "value": 2 } },
+        { "key_code": "f19", "repeat": false }
+      ]
+    },
+    {
+      "conditions": [
+        { "type": "expression_if", "expression": "(agentic_mouse_corsair_vscode_side_05_previous_change_pending > system.now.milliseconds) and (agentic_mouse_corsair_vscode_side_05_previous_change_pending <= system.now.milliseconds + 1000)" },
+        { "type": "frontmost_application_if", "bundle_identifiers": ["^com\\.microsoft\\.VSCode(?:Insiders)?$"] }
+      ],
+      "to": [
+        { "set_variable": { "name": "agentic_mouse_corsair_vscode_side_05_previous_change_pending", "value": 0 } },
+        { "key_code": "f19", "repeat": false }
+      ]
+    }
+  ]
+}
