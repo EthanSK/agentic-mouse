@@ -1,5 +1,19 @@
 # Learnings
 
+## 2026-09-04 — Late VS Code staging owns the pre-navigation file
+
+**Trigger:** Ethan reported that a slower stage follow-up inside the one-second mouse window stages the newly selected file rather than the file he had just reviewed.
+
+**Finding:** The held and late branches both emitted bare F18/F19. Better Git therefore resolved whichever file was active when staging ran. Fast input appeared correct only while navigation had not settled. The latest request supersedes the older post-release current-file staging behavior: navigation must remain immediate, while the late stage owns the original file without navigating back.
+
+**Fix:** Tag navigation and late staging with Control-Option-Command, plus Shift for Razer. Better Git captures the origin inside its existing navigation queue and consumes it once for the matching mouse/direction within one second of input arrival. If navigation already crossed files, stage the original URI without another jump; within-file navigation still uses normal Stage + Next/Previous. Keep held chords on bare F18/F19. A consumed held chord clears its variable on release instead of arming another late stage window. (Codex task: 01a039f7-873c-7c30-b3dc-af8a6724ace5)
+
+**Guard:** Pin source-specific modifiers, unchanged held output, conditional expiry, and consumed release cleanup in generator tests. Keep same-source 8+7 (Corsair 8+7 / Razer 8+9) and 5+4 (Corsair 5+4 / Razer 5+6) independent. Better Git refuses missing, expired, ambiguous, staged-only, wrong-source, or no-longer-unstaged origins rather than staging the current file as a fallback.
+
+**Verification:** The full clean Agentic Mouse gate passed 711 Swift tests plus bridge, extension, generator, generated-source freshness, Karabiner lint and packaging checks. The isolated Better Git host passed 84 tests, including 800 ms slow presses in both directions from both mice, immediate queued input, no second jump, within-file advancement, Undo, one-shot consumption, deadline/source checks and repeated navigation. Tests ran only after the exact isolated window was verified on Built-in Retina Display; normal VS Code and the live mouse runtime remained unchanged.
+
+**Deployment boundary:** Do not activate these generated mappings before the matching Better Git release is loaded. An older extension has no receiver for the tagged shortcuts. Publishing Better Git does not authorize updating or reloading Ethan's normal VS Code; he owns that step. These source checks are not physical acceptance. Preserve the unrelated dirty Tracks changes and the pending Spotify install checkpoint.
+
 ## 2026-09-04 — A displayed Spotify radio page is not the playback context
 
 **Trigger:** Ethan asked to retry the unfinished Song Radio utility with Computer Use on the Mini and approved Extra Utilities cell 3 (Corsair 3 / Razer 1).

@@ -21,7 +21,7 @@
       ],
       "to": [
         { "set_variable": { "name": "agentic_mouse_corsair_vscode_side_05_previous_change_pending", "value": 0 } },
-        { "key_code": "f19", "repeat": false }
+        { "key_code": "f19", "modifiers": ["left_control", "left_option", "left_command"], "repeat": false }
       ]
     }
   ]

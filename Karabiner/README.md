@@ -58,6 +58,15 @@ Mouse then asks the VoiceInk bridge to seek backward without focusing Chrome.
 
 ## Persistent default-map reference
 
+The top-level VS Code navigation/staging overrides depend on Better Git's
+captured-origin commands. Navigation uses Control-Option-Command-F13/F17 for
+Corsair and adds Shift for Razer; the corresponding late-stage press uses
+F18/F19 with the same modifiers. Ordinary held Stage + Next/Previous remains
+unmodified F18/F19. Install this complete rule artifact only after the compatible
+Better Git extension is loaded, or navigation will have no receiver. Each binding
+declares `outputModifiers`; shared action templates substitute
+`$binding_output_modifiers` so both device adapters keep one navigation behavior.
+
 Both exact-device bases give canonical physical cell 10
 (Corsair printed 10 / Razer printed 12) one source-specific
 `agentic_mouse_default_map_toggle` command outside modes. Canonical cell 11 owns

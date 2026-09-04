@@ -21,7 +21,7 @@
       ],
       "to": [
         { "set_variable": { "name": "agentic_mouse_razer_vscode_side_08_next_change_pending", "value": 0 } },
-        { "key_code": "f18", "repeat": false }
+        { "key_code": "f18", "modifiers": ["left_control", "left_option", "left_command", "left_shift"], "repeat": false }
       ]
     }
   ]

@@ -1012,6 +1012,11 @@
             },
             {
               "key_code": "f19",
+              "modifiers": [
+                "left_control",
+                "left_option",
+                "left_command"
+              ],
               "repeat": false,
               "conditions": [
                 {
@@ -1069,6 +1074,11 @@
           "to_after_key_up": [
             {
               "key_code": "f17",
+              "modifiers": [
+                "left_control",
+                "left_option",
+                "left_command"
+              ],
               "repeat": false,
               "conditions": [
                 {
@@ -1086,7 +1096,27 @@
               "set_variable": {
                 "name": "agentic_mouse_corsair_vscode_side_05_previous_change_pending",
                 "expression": "system.now.milliseconds + 1000"
-              }
+              },
+              "conditions": [
+                {
+                  "type": "variable_if",
+                  "name": "agentic_mouse_corsair_vscode_side_05_previous_change_pending",
+                  "value": 1
+                }
+              ]
+            },
+            {
+              "set_variable": {
+                "name": "agentic_mouse_corsair_vscode_side_05_previous_change_pending",
+                "value": 0
+              },
+              "conditions": [
+                {
+                  "type": "variable_if",
+                  "name": "agentic_mouse_corsair_vscode_side_05_previous_change_pending",
+                  "value": 2
+                }
+              ]
             }
           ],
           "conditions": [
@@ -1187,6 +1217,11 @@
             },
             {
               "key_code": "f18",
+              "modifiers": [
+                "left_control",
+                "left_option",
+                "left_command"
+              ],
               "repeat": false,
               "conditions": [
                 {
@@ -1244,6 +1279,11 @@
           "to_after_key_up": [
             {
               "key_code": "f13",
+              "modifiers": [
+                "left_control",
+                "left_option",
+                "left_command"
+              ],
               "repeat": false,
               "conditions": [
                 {
@@ -1261,7 +1301,27 @@
               "set_variable": {
                 "name": "agentic_mouse_corsair_vscode_side_08_next_change_pending",
                 "expression": "system.now.milliseconds + 1000"
-              }
+              },
+              "conditions": [
+                {
+                  "type": "variable_if",
+                  "name": "agentic_mouse_corsair_vscode_side_08_next_change_pending",
+                  "value": 1
+                }
+              ]
+            },
+            {
+              "set_variable": {
+                "name": "agentic_mouse_corsair_vscode_side_08_next_change_pending",
+                "value": 0
+              },
+              "conditions": [
+                {
+                  "type": "variable_if",
+                  "name": "agentic_mouse_corsair_vscode_side_08_next_change_pending",
+                  "value": 2
+                }
+              ]
             }
           ],
           "conditions": [
@@ -2024,6 +2084,12 @@
           "to_after_key_up": [
             {
               "key_code": "f17",
+              "modifiers": [
+                "left_control",
+                "left_option",
+                "left_command",
+                "left_shift"
+              ],
               "repeat": false,
               "conditions": [
                 {
@@ -2041,7 +2107,27 @@
               "set_variable": {
                 "name": "agentic_mouse_razer_vscode_side_05_previous_change_pending",
                 "expression": "system.now.milliseconds + 1000"
-              }
+              },
+              "conditions": [
+                {
+                  "type": "variable_if",
+                  "name": "agentic_mouse_razer_vscode_side_05_previous_change_pending",
+                  "value": 1
+                }
+              ]
+            },
+            {
+              "set_variable": {
+                "name": "agentic_mouse_razer_vscode_side_05_previous_change_pending",
+                "value": 0
+              },
+              "conditions": [
+                {
+                  "type": "variable_if",
+                  "name": "agentic_mouse_razer_vscode_side_05_previous_change_pending",
+                  "value": 2
+                }
+              ]
             }
           ],
           "conditions": [
@@ -2142,6 +2228,12 @@
             },
             {
               "key_code": "f19",
+              "modifiers": [
+                "left_control",
+                "left_option",
+                "left_command",
+                "left_shift"
+              ],
               "repeat": false,
               "conditions": [
                 {
@@ -2199,6 +2291,12 @@
           "to_after_key_up": [
             {
               "key_code": "f13",
+              "modifiers": [
+                "left_control",
+                "left_option",
+                "left_command",
+                "left_shift"
+              ],
               "repeat": false,
               "conditions": [
                 {
@@ -2216,7 +2314,27 @@
               "set_variable": {
                 "name": "agentic_mouse_razer_vscode_side_08_next_change_pending",
                 "expression": "system.now.milliseconds + 1000"
-              }
+              },
+              "conditions": [
+                {
+                  "type": "variable_if",
+                  "name": "agentic_mouse_razer_vscode_side_08_next_change_pending",
+                  "value": 1
+                }
+              ]
+            },
+            {
+              "set_variable": {
+                "name": "agentic_mouse_razer_vscode_side_08_next_change_pending",
+                "value": 0
+              },
+              "conditions": [
+                {
+                  "type": "variable_if",
+                  "name": "agentic_mouse_razer_vscode_side_08_next_change_pending",
+                  "value": 2
+                }
+              ]
             }
           ],
           "conditions": [
@@ -2317,6 +2435,12 @@
             },
             {
               "key_code": "f18",
+              "modifiers": [
+                "left_control",
+                "left_option",
+                "left_command",
+                "left_shift"
+              ],
               "repeat": false,
               "conditions": [
                 {

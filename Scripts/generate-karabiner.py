@@ -149,16 +149,20 @@ def _load_action(path: Path, actions_root: Path) -> dict[str, Any]:
     return action
 
 
-def _expand_binding_placeholders(value: Any, binding_id: str) -> Any:
+def _expand_binding_placeholders(value: Any, binding_id: str, output_modifiers: list[str] | None = None) -> Any:
     """Give multi-manipulator actions isolated Karabiner state per physical binding."""
     variable = f"agentic_mouse_{binding_id.replace('-', '_')}_pending"
     if isinstance(value, str):
+        if value == "$binding_output_modifiers":
+            if output_modifiers is None:
+                raise GenerationError(f"binding {binding_id} needs outputModifiers")
+            return output_modifiers
         return variable if value == BINDING_VARIABLE_PLACEHOLDER else value
     if isinstance(value, list):
-        return [_expand_binding_placeholders(item, binding_id) for item in value]
+        return [_expand_binding_placeholders(item, binding_id, output_modifiers) for item in value]
     if isinstance(value, dict):
         return {
-            key: _expand_binding_placeholders(item, binding_id)
+            key: _expand_binding_placeholders(item, binding_id, output_modifiers)
             for key, item in value.items()
         }
     return value
@@ -248,6 +252,10 @@ def load_bindings(
                     )
         if "parameters" in binding and not isinstance(binding["parameters"], dict):
             raise GenerationError(f"{path}: {binding_id} parameters must be an object")
+        if "outputModifiers" in binding:
+            modifiers = binding["outputModifiers"]
+            if not isinstance(modifiers, list) or not modifiers or any(modifier not in ("left_command", "left_control", "left_option", "left_shift") for modifier in modifiers) or len(set(modifiers)) != len(modifiers):
+                raise GenerationError(f"{path}: {binding_id} outputModifiers must be unique explicit modifiers")
         if "rule" in binding and not isinstance(binding["rule"], str):
             raise GenerationError(f"{path}: {binding_id} rule must be a string")
     def validate_mode_metadata(name: str, metadata: Any) -> dict[str, Any] | None:
@@ -531,7 +539,7 @@ def build_documents(
             )
 
         for index, source_template in enumerate(action["_manipulator_templates"]):
-            template = _expand_binding_placeholders(copy.deepcopy(source_template), binding["id"])
+            template = _expand_binding_placeholders(copy.deepcopy(source_template), binding["id"], binding.get("outputModifiers"))
             action_conditions = template.pop("conditions", [])
             action_parameters = template.pop("parameters", {})
 

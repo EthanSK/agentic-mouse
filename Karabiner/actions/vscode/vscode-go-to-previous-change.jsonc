@@ -1,4 +1,4 @@
-// In Visual Studio Code, emits F17 on physical release unless consumed, then keeps Stage + Previous available for one second.
+// Source-tagged F17 captures the reviewed file before moving; a late stage consumes that identity, not the new current file.
 {
   "id": "vscode-go-to-previous-change",
   "title": "VS Code: go to previous change",
@@ -11,8 +11,9 @@
       { "set_variable": { "name": "$binding_variable", "value": 1 } }
     ],
     "to_after_key_up": [
-      { "key_code": "f17", "repeat": false, "conditions": [{ "type": "variable_if", "name": "$binding_variable", "value": 1 }] },
-      { "set_variable": { "name": "$binding_variable", "expression": "system.now.milliseconds + 1000" } }
+      { "key_code": "f17", "modifiers": "$binding_output_modifiers", "repeat": false, "conditions": [{ "type": "variable_if", "name": "$binding_variable", "value": 1 }] },
+      { "set_variable": { "name": "$binding_variable", "expression": "system.now.milliseconds + 1000" }, "conditions": [{ "type": "variable_if", "name": "$binding_variable", "value": 1 }] },
+      { "set_variable": { "name": "$binding_variable", "value": 0 }, "conditions": [{ "type": "variable_if", "name": "$binding_variable", "value": 2 }] }
     ]
   }
 }

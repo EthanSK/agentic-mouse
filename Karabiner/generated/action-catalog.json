@@ -651,6 +651,7 @@
         "to_after_key_up": [
           {
             "key_code": "f13",
+            "modifiers": "$binding_output_modifiers",
             "repeat": false,
             "conditions": [
               {
@@ -664,7 +665,27 @@
             "set_variable": {
               "name": "$binding_variable",
               "expression": "system.now.milliseconds + 1000"
-            }
+            },
+            "conditions": [
+              {
+                "type": "variable_if",
+                "name": "$binding_variable",
+                "value": 1
+              }
+            ]
+          },
+          {
+            "set_variable": {
+              "name": "$binding_variable",
+              "value": 0
+            },
+            "conditions": [
+              {
+                "type": "variable_if",
+                "name": "$binding_variable",
+                "value": 2
+              }
+            ]
           }
         ]
       }
@@ -694,6 +715,7 @@
         "to_after_key_up": [
           {
             "key_code": "f17",
+            "modifiers": "$binding_output_modifiers",
             "repeat": false,
             "conditions": [
               {
@@ -707,7 +729,27 @@
             "set_variable": {
               "name": "$binding_variable",
               "expression": "system.now.milliseconds + 1000"
-            }
+            },
+            "conditions": [
+              {
+                "type": "variable_if",
+                "name": "$binding_variable",
+                "value": 1
+              }
+            ]
+          },
+          {
+            "set_variable": {
+              "name": "$binding_variable",
+              "value": 0
+            },
+            "conditions": [
+              {
+                "type": "variable_if",
+                "name": "$binding_variable",
+                "value": 2
+              }
+            ]
           }
         ]
       }
@@ -885,6 +927,11 @@
             },
             {
               "key_code": "f18",
+              "modifiers": [
+                "left_control",
+                "left_option",
+                "left_command"
+              ],
               "repeat": false
             }
           ]
@@ -946,6 +993,12 @@
             },
             {
               "key_code": "f18",
+              "modifiers": [
+                "left_control",
+                "left_option",
+                "left_command",
+                "left_shift"
+              ],
               "repeat": false
             }
           ]
@@ -1007,6 +1060,11 @@
             },
             {
               "key_code": "f19",
+              "modifiers": [
+                "left_control",
+                "left_option",
+                "left_command"
+              ],
               "repeat": false
             }
           ]
@@ -1068,6 +1126,12 @@
             },
             {
               "key_code": "f19",
+              "modifiers": [
+                "left_control",
+                "left_option",
+                "left_command",
+                "left_shift"
+              ],
               "repeat": false
             }
           ]

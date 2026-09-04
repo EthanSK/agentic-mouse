@@ -83,6 +83,7 @@
       "description": "Corsair side 5 emits Better Git Previous Change on release unless same-source side 4 consumes the hold for Stage + Previous",
       "action": "vscode-go-to-previous-change",
       "rule": "Corsair VS Code layer",
+      "outputModifiers": ["left_control", "left_option", "left_command"],
       "from": {
         "key_code": "keypad_5",
         "modifiers": { "optional": ["any"] }
@@ -137,6 +138,7 @@
       "description": "Corsair side 8 emits Better Git Next Change on release unless same-source side 7 consumes the hold for Stage + Next",
       "action": "vscode-go-to-next-change",
       "rule": "Corsair VS Code layer",
+      "outputModifiers": ["left_control", "left_option", "left_command"],
       "from": {
         "key_code": "keypad_8",
         "modifiers": { "optional": ["any"] }
@@ -433,6 +435,7 @@
       "description": "Razer side 5 emits Better Git Previous Change on release unless same-source physical cell 4 consumes the hold for Stage + Previous",
       "action": "vscode-go-to-previous-change",
       "rule": "Razer VS Code layer",
+      "outputModifiers": ["left_control", "left_option", "left_command", "left_shift"],
       "from": {
         "key_code": "5",
         "modifiers": { "optional": ["any"] }
@@ -617,6 +620,7 @@
       "description": "Razer side 8 emits Better Git Next Change on release unless same-source physical cell 7 consumes the hold for Stage + Next",
       "action": "vscode-go-to-next-change",
       "rule": "Razer VS Code layer",
+      "outputModifiers": ["left_control", "left_option", "left_command", "left_shift"],
       "from": {
         "key_code": "8",
         "modifiers": { "optional": ["any"] }

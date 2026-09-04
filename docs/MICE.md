@@ -49,14 +49,14 @@ accepted this hold-open behavior on the exact Corsair and Razer rules on
 10 August 2026. It needs no Agentic Mouse command receiver or Accessibility
 permission.
 
-In VS Code only, top-level physical cell 5 emits non-repeating F17 for Better Git
-Previous Change on release, and physical cell 8 emits F13 Next Change on release.
+In VS Code only, top-level physical cell 5 emits source-tagged F17 for Better Git
+Previous Change on release, and physical cell 8 emits source-tagged F13 Next Change on release.
 While same-source cell 5 is held, pressing physical cell 4 emits F19 Stage + Previous
 instead of arming Copy / Paste and suppresses the pending Previous action. For one second after cell 5
-releases, one same-source cell-4 press emits F19 Stage + Previous instead of Copy / Paste.
+releases, one same-source cell-4 press stages the file captured before Previous instead of Copy / Paste.
 While same-source cell 8 is held, pressing physical cell 7 emits F18 Stage + Next
 instead of Enter and suppresses the pending Next action. For one second after cell 8
-releases, one same-source cell-7 press emits F18 Stage + Next instead of Enter. Top-level navigation has
+releases, one same-source cell-7 press stages the file captured before Next instead of Enter. Top-level navigation has
 no double-click delay. Physical cell 6 remains YouTube Scrub + Wheel. Inside the VS Code child page, cell 9 sends
 F18 Stage + Next on a single press or F16 exact Undo on a rapid double. Hold
 cell 6 and ratchet down for cursor-history Back or up for Forward; delivery uses
@@ -67,6 +67,14 @@ Command-Shift-P, and cell 11 sends F12 for Go to Definition. The child does not 
 Default Back/Forward pair. Matching base
 exclusions preserve Forward and Back everywhere else, while Copy / Paste remains available whenever its Stage + Previous window is inactive; every
 untouched control continues to inherit the exact-device base.
+
+The captured-origin routes use Control-Option-Command with F13/F17 navigation
+and F18/F19 late staging for Corsair, plus Shift for Razer. Better Git remembers
+the source file before moving and stages it directly. If navigation already
+opened another file, it leaves that destination selected; otherwise it retains
+normal Stage + Next/Previous. Held chords keep ordinary F18/F19 and never arm
+another late stage on release. Load the matching Better Git release before
+installing these generated rules; old Better Git versions do not handle them.
 
 Agentic Mouse and Karabiner emit only the neutral F16 transport. Better Git
 v1.2.53+ resolves it against the latest exact observed Git-index transition, so

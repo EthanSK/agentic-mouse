@@ -1155,11 +1155,15 @@ class KarabinerGeneratorTests(unittest.TestCase):
                     self.assertNotIn("to_if_alone", manipulator)
 
             previous = by_source[previous_source][0]
+            source_modifiers = ["left_control", "left_option", "left_command"]
+            if rule_name == "Agentic Mouse — Razer VS Code layer":
+                source_modifiers.append("left_shift")
             self.assertEqual(
                 previous["to"],
                 [{"set_variable": {"name": previous_variable, "value": 1}}],
             )
             self.assertEqual(previous["to_after_key_up"][0]["key_code"], "f17")
+            self.assertEqual(previous["to_after_key_up"][0]["modifiers"], source_modifiers)
             self.assertIs(previous["to_after_key_up"][0]["repeat"], False)
             self.assertIn(
                 {"type": "variable_if", "name": previous_variable, "value": 1},
@@ -1171,7 +1175,8 @@ class KarabinerGeneratorTests(unittest.TestCase):
                     "set_variable": {
                         "name": previous_variable,
                         "expression": "system.now.milliseconds + 1000",
-                    }
+                    },
+                    "conditions": [{"type": "variable_if", "name": previous_variable, "value": 1}],
                 },
             )
 
@@ -1181,6 +1186,7 @@ class KarabinerGeneratorTests(unittest.TestCase):
                 [{"set_variable": {"name": next_variable, "value": 1}}],
             )
             self.assertEqual(next_change["to_after_key_up"][0]["key_code"], "f13")
+            self.assertEqual(next_change["to_after_key_up"][0]["modifiers"], source_modifiers)
             self.assertIs(next_change["to_after_key_up"][0]["repeat"], False)
             self.assertIn(
                 {"type": "variable_if", "name": next_variable, "value": 1},
@@ -1192,7 +1198,8 @@ class KarabinerGeneratorTests(unittest.TestCase):
                     "set_variable": {
                         "name": next_variable,
                         "expression": "system.now.milliseconds + 1000",
-                    }
+                    },
+                    "conditions": [{"type": "variable_if", "name": next_variable, "value": 1}],
                 },
             )
 
@@ -1210,6 +1217,7 @@ class KarabinerGeneratorTests(unittest.TestCase):
                     {"set_variable": {"name": gesture_variable, "value": 2}},
                 )
                 self.assertEqual(chord["to"][1]["key_code"], function_key)
+                self.assertNotIn("modifiers", chord["to"][1], "held chords retain ordinary Stage + Next/Previous")
                 self.assertIs(chord["to"][1]["repeat"], False)
                 self.assertIn(
                     {
@@ -1226,8 +1234,15 @@ class KarabinerGeneratorTests(unittest.TestCase):
                     {"set_variable": {"name": gesture_variable, "value": 0}},
                 )
                 self.assertEqual(cooldown["to"][1]["key_code"], function_key)
+                self.assertEqual(cooldown["to"][1]["modifiers"], source_modifiers)
                 self.assertIs(cooldown["to"][1]["repeat"], False)
                 gesture_variables.add(gesture_variable)
+
+            for navigation, variable in ((previous, previous_variable), (next_change, next_variable)):
+                self.assertEqual(navigation["to_after_key_up"][2], {
+                    "set_variable": {"name": variable, "value": 0},
+                    "conditions": [{"type": "variable_if", "name": variable, "value": 2}],
+                }, "a consumed held chord must not arm another late stage")
 
         self.assertEqual(
             len(gesture_variables),
@@ -1514,6 +1529,7 @@ class KarabinerGeneratorTests(unittest.TestCase):
                                 "id": f"test-{action_id}",
                                 "description": f"Test-only {action_id}",
                                 "action": action_id,
+                                "outputModifiers": ["left_control", "left_option", "left_command"],
                                 # Karabiner supports F1...F24. The semantic
                                 # action catalog is intentionally larger than
                                 # that, and these isolated test transports do
