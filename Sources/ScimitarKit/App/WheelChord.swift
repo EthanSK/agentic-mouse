@@ -120,7 +120,7 @@ public enum WheelChordControl: String, Codable, CaseIterable, Sendable {
         switch target {
         case .codex where cell == PhysicalCell(rawValue: 4)!:
             return .codexReasoningEffort
-        case .codex where cell == PhysicalCell(rawValue: 11)!:
+        case .codex where cell == CodexMode.chatHistoryWheelCell:
             return .codexChatHistory
         case .chrome where ChromeModeAction.action(for: cell) == .cycleTabsWithWheel:
             return .chromeTabs
@@ -159,7 +159,7 @@ public enum WheelChordControl: String, Codable, CaseIterable, Sendable {
         case .codexReasoningEffort:
             return PhysicalCell(rawValue: 4)!
         case .codexChatHistory:
-            return PhysicalCell(rawValue: 11)!
+            return CodexMode.chatHistoryWheelCell
         case .mediaTracks:
             return .mediaTracksWheelControl
         }

@@ -2273,6 +2273,48 @@ final class ModePickerTests: XCTestCase {
         XCTAssertEqual(controls, [.codexReasoningEffort, nil])
     }
 
+    func testCodexSwappedChatWheelAndMicWorkForBothMiceAndEntryJourneys() {
+        for source in MouseSource.allCases {
+            for manual in [false, true] {
+                let hud = RecordingModeHUDPresenter()
+                let coordinator = makeCoordinator(hud: hud)
+                var presses: [PhysicalCell] = []
+                coordinator.onAppSpecificInput = { _, _, cell, phase in
+                    if phase == .press { presses.append(cell) }
+                    return true
+                }
+                if manual {
+                    coordinator.enterAppSelector(source: source)
+                    coordinator.handle(.init(action: .select, source: source, physicalCell: AppSpecificTarget.codex.selectorCell!))
+                } else {
+                    coordinator.resolveFrontmostApp = {
+                        FrontmostAppModeContext(target: .codex, displayName: "Codex", bundleIdentifier: CodexMode.bundleIdentifier)
+                    }
+                    coordinator.enterAppSpecific(source: source)
+                }
+
+                let chatCell = PhysicalCell(rawValue: 6)!
+                let micCell = PhysicalCell(rawValue: 11)!
+                coordinator.handle(.init(action: .select, source: source, physicalCell: chatCell))
+                XCTAssertEqual(coordinator.activeWheelControl, .codexChatHistory)
+                XCTAssertEqual(hud.snapshots.last?.selection?.title, "Chats Selection + Wheel")
+                XCTAssertTrue(presses.isEmpty)
+                coordinator.handle(.init(action: .select, source: source, physicalCell: chatCell, phase: .release))
+                XCTAssertNil(coordinator.activeWheelControl)
+
+                coordinator.handle(.init(action: .select, source: source, physicalCell: micCell))
+                XCTAssertEqual(presses, [micCell])
+                XCTAssertEqual(CodexModeAction.action(for: micCell), .toggleMicrophoneMute)
+                XCTAssertEqual(hud.snapshots.last?.selection?.title, "Mute / unmute voice mic")
+                XCTAssertNil(coordinator.activeWheelControl)
+                coordinator.handle(.init(action: .select, source: source, physicalCell: micCell, phase: .release))
+                XCTAssertEqual(presses, [micCell])
+                XCTAssertTrue(coordinator.isActive)
+                coordinator.handle(.init(action: .close, source: source, physicalCell: .modeExit))
+            }
+        }
+    }
+
     func testEveryModeExitsFromUniversalCellTen() {
         for entry in [PhysicalCell.keypadModeSelector, .appSpecificModeSelector, .keysModeSelector] {
             let lease = RecordingModePickerLease()
@@ -2342,9 +2384,11 @@ final class ModePickerTests: XCTestCase {
         XCTAssertEqual(CodexModeAction.newTask.cell.printedSide(on: .razer), 5)
         XCTAssertEqual(CodexModeAction.newTask.cell.printedSide(on: .corsair), 5)
         XCTAssertEqual(CodexModeAction.togglePin.cell.rawValue, 3)
-        XCTAssertEqual(CodexModeAction.toggleMicrophoneMute.cell.rawValue, 6)
-        XCTAssertEqual(CodexModeAction.toggleMicrophoneMute.cell.printedSide(on: .corsair), 6)
-        XCTAssertEqual(CodexModeAction.toggleMicrophoneMute.cell.printedSide(on: .razer), 4)
+        XCTAssertEqual(CodexModeAction.toggleMicrophoneMute.cell.rawValue, 11)
+        XCTAssertEqual(CodexModeAction.toggleMicrophoneMute.cell.printedSide(on: .corsair), 11)
+        XCTAssertEqual(CodexModeAction.toggleMicrophoneMute.cell.printedSide(on: .razer), 11)
+        XCTAssertEqual(CodexMode.chatHistoryWheelCell.printedSide(on: .corsair), 6)
+        XCTAssertEqual(CodexMode.chatHistoryWheelCell.printedSide(on: .razer), 4)
         XCTAssertEqual(
             CodexModeAction.toggleMicrophoneMute.title,
             "Mute / unmute voice mic"
@@ -2370,7 +2414,9 @@ final class ModePickerTests: XCTestCase {
         XCTAssertEqual(CodexModeAction.pressEnter.cell.printedSide(on: .corsair), 7)
         XCTAssertEqual(CodexModeAction.action(for: .modePickerEntry), .toggleVoiceMode)
         XCTAssertNil(CodexModeAction.action(for: PhysicalCell(rawValue: 4)!))
-        XCTAssertNil(CodexModeAction.action(for: PhysicalCell(rawValue: 11)!))
+        XCTAssertNil(CodexModeAction.action(for: PhysicalCell(rawValue: 6)!))
+        XCTAssertEqual(CodexModeAction.action(for: PhysicalCell(rawValue: 11)!), .toggleMicrophoneMute)
+        XCTAssertNil(WheelChordControl.appSpecificControl(for: .codex, cell: PhysicalCell(rawValue: 11)!))
         XCTAssertEqual(
             WheelChordControl.appSpecificControl(
                 for: .codex,
@@ -2381,7 +2427,7 @@ final class ModePickerTests: XCTestCase {
         XCTAssertEqual(
             WheelChordControl.appSpecificControl(
                 for: .codex,
-                cell: PhysicalCell(rawValue: 11)!
+                cell: PhysicalCell(rawValue: 6)!
             ),
             .codexChatHistory
         )
@@ -2389,18 +2435,18 @@ final class ModePickerTests: XCTestCase {
         XCTAssertEqual(CodexMode.definition.legend[4].actionTitle, "New chat")
         XCTAssertEqual(CodexMode.definition.legend[2].actionTitle, "Pin / unpin")
         XCTAssertEqual(CodexMode.definition.legend[0].actionTitle, "Steer queued message")
-        XCTAssertEqual(CodexMode.definition.legend[5].actionTitle, "Mute / unmute voice mic")
+        XCTAssertEqual(CodexMode.definition.legend[10].actionTitle, "Mute / unmute voice mic")
         XCTAssertEqual(CodexMode.definition.legend[8].actionTitle, "Open side chat")
         XCTAssertEqual(CodexMode.definition.legend[9].actionTitle, "Exit Codex mode")
         XCTAssertEqual(CodexMode.definition.legend[3].actionTitle, "Reasoning Effort + Wheel")
         XCTAssertEqual(CodexMode.definition.legend[11].actionTitle, "Voice mode")
-        XCTAssertEqual(CodexMode.definition.legend[10].actionTitle, "Chats Selection + Wheel")
+        XCTAssertEqual(CodexMode.definition.legend[5].actionTitle, "Chats Selection + Wheel")
         XCTAssertEqual(
             CodexMode.definition.legend[3].accent,
             ModeHUDActionFamilyPalette.reasoningEffort
         )
         XCTAssertEqual(
-            CodexMode.definition.legend[10].accent,
+            CodexMode.definition.legend[5].accent,
             ModeHUDActionFamilyPalette.historyNavigation
         )
         XCTAssertNotEqual(CodexMode.definition.legend[11].actionTitle, "Choose another app")

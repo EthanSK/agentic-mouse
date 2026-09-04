@@ -550,7 +550,7 @@ final class WheelChordTests: XCTestCase {
 
     func testCodexReasoningEffortInvertsQuartzSignButChatHistoryKeepsItsOwnPolarity() {
         XCTAssertEqual(WheelChordControl.codexReasoningEffort.diagnosticCell.rawValue, 4)
-        XCTAssertEqual(WheelChordControl.codexChatHistory.diagnosticCell.rawValue, 11)
+        XCTAssertEqual(WheelChordControl.codexChatHistory.diagnosticCell.rawValue, 6)
         XCTAssertEqual(
             WheelChordControl.codexReasoningEffort.codexReasoningEffortAction(for: .up),
             .decrease

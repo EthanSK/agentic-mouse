@@ -14,7 +14,7 @@ public enum CodexModeAction: String, CaseIterable, Equatable, Sendable {
         switch self {
         case .newTask: return PhysicalCell(rawValue: 5)!
         case .togglePin: return PhysicalCell(rawValue: 3)!
-        case .toggleMicrophoneMute: return PhysicalCell(rawValue: 6)!
+        case .toggleMicrophoneMute: return PhysicalCell(rawValue: 11)!
         case .toggleVoiceMode: return PhysicalCell(rawValue: 12)!
         case .openSideChat: return PhysicalCell(rawValue: 9)!
         case .steerQueuedMessage: return PhysicalCell(rawValue: 1)!
@@ -70,6 +70,7 @@ public enum CodexModeAction: String, CaseIterable, Equatable, Sendable {
 public enum CodexMode {
     public static let bundleIdentifier = "com.openai.codex"
     public static let accent = RGBColor(red: 0, green: 218, blue: 184)
+    public static let chatHistoryWheelCell = PhysicalCell(rawValue: 6)! // Swap Codex cells 6 and 11 on both mice; share this cell between routing, the HUD and wheel feedback. (Codex task: 01a039f7-873c-7c30-b3dc-af8a6724ace5)
 
     public static let definition = AppSpecificModeDefinition(
         title: "Codex mode",
