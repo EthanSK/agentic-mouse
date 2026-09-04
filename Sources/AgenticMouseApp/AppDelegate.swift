@@ -82,6 +82,28 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         inputAllowed: { [weak self] in self?.mouseCommandsAllowed == true }
     )
     private let notificationCenterToggleVerifier = NotificationCenterToggleVerifier()
+    private lazy var spotifySongRadioController: SpotifySongRadioController = {
+        let controller = SpotifySongRadioController(
+            inputAllowed: { [weak self] in self?.mouseCommandsAllowed == true }
+        )
+        controller.onCompletion = { [weak self] source, result in
+            guard let self else { return }
+            let feedback: ModeHUDFeedback
+            switch result {
+            case .success:
+                feedback = ModeHUDFeedback(message: "Song Radio started · position restored", tone: .confirmed)
+            case .failure(let error):
+                self.log.notice("Spotify Song Radio did not complete: \(String(describing: error))")
+                feedback = ModeHUDFeedback(message: error.userMessage, tone: .notConfirmed)
+            }
+            guard self.mouseCommandsAllowed,
+                  let coordinator = self.modePickerCoordinators[source],
+                  coordinator.isActive, coordinator.page == .extraUtilities
+            else { return } // A delayed Spotify result must never reopen a closed legend or overwrite another mode's feedback.
+            self.modeHUDPresenters[source]?.flashFeedback(feedback)
+        }
+        return controller
+    }()
     private var screenshotInteractionWasActive = false
     private lazy var chromeYouTubeSpeedHoldController: ChromeYouTubeSpeedHoldController = {
         let controller = ChromeYouTubeSpeedHoldController(
@@ -227,6 +249,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     /// Runs on every exit path, including signals.
     private func teardown() {
+        spotifySongRadioController.cancel()
         shouldMaintainICUESession = false
         runtimeHealthMonitor?.stop()
         runtimeHealthMonitor = nil
@@ -972,6 +995,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     self.colorProofCoordinator?.exit(reason: .userRequested)
                     self.multiTapCoordinators[source]?.exit(reason: .userRequested)
                 } else {
+                    self.spotifySongRadioController.cancel(source: source)
                     self.chromeYouTubeSpeedHoldController.cancel(source: source)
                     // An exit can be user-driven, but it can also be lock,
                     // sleep, device loss, or lease failure. Drop any bounded
@@ -1218,6 +1242,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 // ModePicker routes only one-press Utility cards here. Keep
                 // held-wheel families out so one detent can never double-fire.
                 guard action.isDirectAction else { return .failed(message: nil) }
+                if action == .spotifySongRadio {
+                    switch self.spotifySongRadioController.start(source: source) {
+                    case .accepted: return .started(message: "Starting Spotify Song Radio…")
+                    case .busy: return .started(message: "Song Radio is already starting")
+                    case .inputBlocked: return .failed(message: "Mouse commands are disabled while macOS is locked")
+                    case .spotifyNotRunning: return .failed(message: SpotifySongRadioError.spotifyNotRunning.userMessage)
+                    }
+                }
                 switch self.modeUtilityActionExecutor.perform(action) {
                 case .success:
                     return .performed

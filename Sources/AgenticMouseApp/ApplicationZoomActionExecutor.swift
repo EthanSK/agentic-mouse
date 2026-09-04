@@ -55,7 +55,7 @@ struct ApplicationZoomActionExecutor {
              .moveToSpaceLeft, .moveToSpaceRight, .copy, .paste,
              .moveWindowLeftWithMagnet, .moveWindowRightWithMagnet,
              .showDesktop, .missionControl, .pasteStoredPassword,
-             .showApplicationWindows, .organizeWindows, .quitApp:
+             .showApplicationWindows, .organizeWindows, .spotifySongRadio, .quitApp:
             preconditionFailure("ApplicationZoomActionExecutor only owns Zoom In and Zoom Out")
         }
 

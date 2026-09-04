@@ -20,6 +20,7 @@ public enum ModePickerExitReason: Equatable, Sendable {
 
 public enum ModeUtilityActionOutcome: Equatable, Sendable {
     case performed
+    case started(message: String)
     case failed(message: String?)
 }
 
@@ -426,6 +427,11 @@ public final class ModePickerCoordinator {
                 return
             }
             let outcome = onUtilityAction?(source, action) ?? .failed(message: nil)
+            if case .started(let message) = outcome {
+                recordSelection(cell: cell)
+                hud.flashFeedback(ModeHUDFeedback(message: message, tone: .informational))
+                return
+            }
             guard case .performed = outcome else {
                 if case .failed(let message) = outcome {
                     hud.flashProblem(

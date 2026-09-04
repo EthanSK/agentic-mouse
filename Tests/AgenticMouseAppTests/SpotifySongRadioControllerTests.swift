@@ -217,7 +217,98 @@ final class SpotifySongRadioControllerTests: XCTestCase {
         XCTAssertEqual(controller.start(source: .corsair), .busy)
 
         controller.cancel()
+        XCTAssertEqual(controller.start(source: .razer), .busy)
         releaseCapture.mutate { $0 = true }
+    }
+
+    func testUnchangedSongWaitsForPlayerRadioContextBeforeSeeking() async {
+        let time = LockedBox<TimeInterval>(100)
+        let contextChecks = LockedBox(0)
+        let seeks = LockedBox<[TimeInterval]>([])
+        let completion = expectation(description: "context transition")
+        var result: Result<Void, SpotifySongRadioError>?
+        var injected = automation(snapshot: snapshot(), now: 100, seek: { position in seeks.mutate { $0.append(position) } })
+        injected.now = { time.value }
+        injected.sleep = { _ in time.mutate { $0 += 1 } }
+        injected.confirmRadioContext = { title in
+            XCTAssertEqual(title, "Test song Radio")
+            let count = contextChecks.mutateAndReturn { $0 += 1; return $0 }
+            if count < 3 { XCTAssertTrue(seeks.value.isEmpty) }
+            return .success(count >= 3)
+        }
+        let controller = SpotifySongRadioController(spotifyIsRunning: { true }, automation: injected)
+        controller.onCompletion = { _, value in result = value; completion.fulfill() }
+        XCTAssertEqual(controller.start(source: .corsair), .accepted)
+        await fulfillment(of: [completion], timeout: 1)
+        assertSuccess(result)
+        XCTAssertEqual(seeks.value, [42])
+        XCTAssertEqual(contextChecks.value, 4)
+    }
+
+    func testRadioPageWithoutPlaybackContextChangeTimesOutWithoutSeeking() async {
+        let time = LockedBox<TimeInterval>(100)
+        let seeks = LockedBox<[TimeInterval]>([])
+        let completion = expectation(description: "context timeout")
+        var result: Result<Void, SpotifySongRadioError>?
+        var injected = automation(snapshot: snapshot(), now: 100, seek: { position in seeks.mutate { $0.append(position) } })
+        injected.now = { time.value }
+        injected.sleep = { _ in time.mutate { $0 += 1 } }
+        injected.confirmRadioContext = { _ in .success(false) }
+        let controller = SpotifySongRadioController(spotifyIsRunning: { true }, automation: injected, loadTimeout: 2)
+        controller.onCompletion = { _, value in result = value; completion.fulfill() }
+        _ = controller.start(source: .corsair)
+        await fulfillment(of: [completion], timeout: 1)
+        XCTAssertEqual(failure(result), .radioDidNotLoad)
+        XCTAssertTrue(seeks.value.isEmpty)
+    }
+
+    func testDeviceTransferAfterRadioCommandPreventsSeekAndStateRestore() async {
+        let checks = LockedBox(0)
+        let completion = expectation(description: "device transferred")
+        var result: Result<Void, SpotifySongRadioError>?
+        var injected = automation(snapshot: snapshot(), now: 100, seek: { _ in XCTFail("must not seek remote device") }, restorePlaybackState: { _ in XCTFail("must not play remote device") })
+        injected.confirmLocalPlayback = {
+            let count = checks.mutateAndReturn { $0 += 1; return $0 }
+            return count < 3 ? .success(()) : .failure(.playbackOnAnotherDevice)
+        }
+        let controller = SpotifySongRadioController(spotifyIsRunning: { true }, automation: injected)
+        controller.onCompletion = { _, value in result = value; completion.fulfill() }
+        _ = controller.start(source: .corsair)
+        await fulfillment(of: [completion], timeout: 1)
+        XCTAssertEqual(failure(result), .playbackOnAnotherDevice)
+    }
+
+    func testPausedPositionBelowTwoSecondsIsRestoredExactly() async {
+        let seeks = LockedBox<[TimeInterval]>([])
+        let commands = LockedBox<[String]>([])
+        let completion = expectation(description: "early paused position")
+        let controller = SpotifySongRadioController(spotifyIsRunning: { true }, automation: automation(
+            snapshot: snapshot(position: 0.75, playbackState: .paused), now: 108,
+            seek: { position in seeks.mutate { $0.append(position) }; commands.mutate { $0.append("seek") } },
+            restorePlaybackState: { state in
+                XCTAssertEqual(state, .paused)
+                commands.mutate { $0.append("pause") }
+            }
+        ))
+        controller.onCompletion = { _, _ in completion.fulfill() }
+        _ = controller.start(source: .razer)
+        await fulfillment(of: [completion], timeout: 1)
+        XCTAssertEqual(seeks.value, [0.75])
+        XCTAssertEqual(commands.value, ["pause", "seek"])
+    }
+
+    func testSparseAccessibilityTreeAndPageShuffleAreNotPlayerProof() {
+        var observation = SpotifyPlaybackDeviceGuard.PlayerObservation()
+        XCTAssertFalse(observation.isComplete)
+        observation.observe(labels: ["Play", "Connect to a device", "Enable Shuffle for Test song Radio"], inNowPlayingBar: false, inPlayerControls: false)
+        XCTAssertFalse(observation.isComplete)
+        XCTAssertNil(observation.contextTitle)
+        observation.observe(labels: ["Now playing bar", "Connect to a device"], inNowPlayingBar: true, inPlayerControls: false)
+        observation.observe(labels: ["Pause", "Enable Shuffle for Old playlist"], inNowPlayingBar: true, inPlayerControls: true)
+        XCTAssertTrue(observation.isComplete)
+        XCTAssertEqual(observation.contextTitle, "Old playlist")
+        observation.observe(labels: ["Disable Shuffle for Test song Radio"], inNowPlayingBar: true, inPlayerControls: true)
+        XCTAssertNil(observation.contextTitle)
     }
 
     func testLockedSessionRejectsBeforeInspectingSpotify() {
@@ -253,19 +344,39 @@ final class SpotifySongRadioControllerTests: XCTestCase {
             SpotifySongRadioPlaybackState
         ) -> Void = { _ in }
     ) -> SpotifySongRadioAutomation {
-        SpotifySongRadioAutomation(
+        let position = LockedBox(snapshot.position)
+        let playbackState = LockedBox(snapshot.playbackState)
+        return SpotifySongRadioAutomation(
             confirmLocalPlayback: { .success(()) },
-            capture: { .success(snapshot) },
+            capture: { .success(SpotifySongRadioSnapshot(
+                trackURI: snapshot.trackURI, trackName: snapshot.trackName,
+                position: position.value, duration: snapshot.duration,
+                playbackState: playbackState.value, capturedAtUptime: snapshot.capturedAtUptime
+            )) },
             startRadio: { _ in .success(()) },
             currentTrackURI: { .success(snapshot.trackURI) },
-            seek: { position in seek(position); return .success(()) },
+            confirmRadioContext: { _ in .success(true) },
+            seek: { target in position.mutate { $0 = target }; seek(target); return .success(()) },
             restorePlaybackState: { state in
+                playbackState.mutate { $0 = state }
                 restorePlaybackState(state)
                 return .success(())
             },
             now: { now },
             sleep: { _ in }
         )
+    }
+
+    func testSuccessfulSeekResponseWithoutPlayheadChangeIsNotSuccess() async {
+        let completion = expectation(description: "seek not applied")
+        var result: Result<Void, SpotifySongRadioError>?
+        var injected = automation(snapshot: snapshot(), now: 106)
+        injected.seek = { _ in .success(()) }
+        let controller = SpotifySongRadioController(spotifyIsRunning: { true }, automation: injected)
+        controller.onCompletion = { _, value in result = value; completion.fulfill() }
+        _ = controller.start(source: .corsair)
+        await fulfillment(of: [completion], timeout: 1)
+        XCTAssertEqual(failure(result), .positionNotRestored)
     }
 
     private func snapshot(
@@ -276,6 +387,7 @@ final class SpotifySongRadioControllerTests: XCTestCase {
     ) -> SpotifySongRadioSnapshot {
         SpotifySongRadioSnapshot(
             trackURI: "spotify:track:AbC123",
+            trackName: "Test song",
             position: position,
             duration: duration,
             playbackState: playbackState,

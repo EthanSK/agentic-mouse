@@ -1,6 +1,6 @@
 import Foundation
 
-/// Stateless system actions exposed directly from the shared Modes menu.
+/// System actions exposed directly from the shared Modes menu.
 ///
 /// These actions do not enter a child mode. Their physical-cell identity is
 /// shared across both exact-device adapters; only the printed number differs.
@@ -21,6 +21,7 @@ public enum ModeUtilityAction: Equatable, Sendable {
     case missionControl
     case showApplicationWindows
     case organizeWindows
+    case spotifySongRadio
     case quitApp
     case pasteStoredPassword
 
@@ -42,6 +43,7 @@ public enum ModeUtilityAction: Equatable, Sendable {
         case .missionControl: return "Mission Control"
         case .showApplicationWindows: return "App Exposé"
         case .organizeWindows: return "Organize Windows"
+        case .spotifySongRadio: return "Spotify Song Radio"
         case .quitApp: return "Quit App"
         case .pasteStoredPassword: return "PP"
         }
@@ -67,6 +69,8 @@ public enum ModeUtilityAction: Equatable, Sendable {
             return ModeHUDActionFamilyPalette.windowManagement
         case .quitApp:
             return RGBColor(red: 205, green: 56, blue: 72)
+        case .spotifySongRadio:
+            return RGBColor(red: 30, green: 215, blue: 96)
         case .pasteStoredPassword:
             return ModeHUDActionFamilyPalette.storedPassword
         case .rewindYouTubeFiveSeconds:
@@ -93,6 +97,7 @@ public enum ModeUtilityAction: Equatable, Sendable {
     public static func extraUtilitiesAction(for cell: PhysicalCell) -> ModeUtilityAction? {
         switch cell {
         case .organizeWindows: return .organizeWindows
+        case .spotifySongRadio: return .spotifySongRadio
         case .quitApp: return .quitApp
         default: return nil
         }
@@ -104,7 +109,7 @@ public enum ModeUtilityAction: Equatable, Sendable {
     public var isDirectAction: Bool {
         switch self {
         case .rewindYouTubeFiveSeconds, .openIntelligenceOnDemand,
-             .organizeWindows, .quitApp, .pasteStoredPassword:
+             .organizeWindows, .spotifySongRadio, .quitApp, .pasteStoredPassword:
             return true
         case .increaseDisplayBrightness, .decreaseDisplayBrightness,
              .zoomIn, .zoomOut, .moveToSpaceLeft, .moveToSpaceRight,

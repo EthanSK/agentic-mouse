@@ -135,6 +135,10 @@ public struct PhysicalCell: RawRepresentable, Hashable, Codable, Sendable, Compa
     /// This is Corsair printed 1 and Razer printed 3.
     public static let organizeWindows = PhysicalCell(rawValue: 1)!
 
+    /// Starts the current Spotify song's radio from Extra Utilities.
+    /// Ethan approved Corsair printed 3 / Razer printed 1 for this action.
+    public static let spotifySongRadio = PhysicalCell(rawValue: 3)!
+
     /// Sends a normal Command-Q to the current frontmost application from
     /// Extra Utilities. This is Corsair printed 9 and Razer printed 7.
     public static let quitApp = PhysicalCell(rawValue: 9)!

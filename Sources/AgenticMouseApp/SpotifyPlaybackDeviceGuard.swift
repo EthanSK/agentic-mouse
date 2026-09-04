@@ -22,6 +22,16 @@ final class SpotifyPlaybackDeviceGuard: @unchecked Sendable {
 
     @MainActor
     func confirmLocalPlayback() async -> Result<Void, SpotifySongRadioError> {
+        await observation().map { _ in () }
+    }
+
+    @MainActor
+    func confirmRadioContext(named title: String) async -> Result<Bool, SpotifySongRadioError> {
+        await observation().map { $0.contextTitle == title }
+    }
+
+    @MainActor
+    private func observation() async -> Result<PlayerObservation, SpotifySongRadioError> {
         guard let processIdentifier = NSRunningApplication.runningApplications(
             withBundleIdentifier: SpotifySongRadioTarget.bundleIdentifier
         ).first?.processIdentifier else {
@@ -41,9 +51,46 @@ final class SpotifyPlaybackDeviceGuard: @unchecked Sendable {
         }
     }
 
+    struct PlayerObservation {
+        private(set) var sawNowPlayingBar = false
+        private(set) var sawTransport = false
+        private(set) var sawDeviceControl = false
+        private(set) var contextTitles: Set<String> = []
+
+        var contextTitle: String? {
+            contextTitles.count == 1 ? contextTitles.first : nil
+        }
+
+        var isComplete: Bool {
+            sawNowPlayingBar && sawTransport && sawDeviceControl
+        }
+
+        mutating func observe(labels: [String], inNowPlayingBar: Bool, inPlayerControls: Bool) {
+            guard inNowPlayingBar else { return }
+            sawNowPlayingBar = true
+            sawDeviceControl = sawDeviceControl || labels.contains("Connect to a device")
+            guard inPlayerControls else { return }
+            sawTransport = sawTransport || labels.contains("Play") || labels.contains("Pause")
+            // A displayed radio page has its own shuffle button even while the old playlist still plays. Only the bottom player's label proves playback context. (Codex task: 01a039f7-873c-7c30-b3dc-af8a6724ace5)
+            for label in labels {
+                for prefix in ["Enable Shuffle for ", "Disable Shuffle for "] where label.hasPrefix(prefix) {
+                    let title = String(label.dropFirst(prefix.count))
+                    if !title.isEmpty { contextTitles.insert(title) }
+                }
+            }
+        }
+    }
+
+    private struct ElementIdentity: Hashable {
+        let element: AXUIElement
+
+        static func == (lhs: Self, rhs: Self) -> Bool { CFEqual(lhs.element, rhs.element) }
+        func hash(into hasher: inout Hasher) { hasher.combine(CFHash(element)) }
+    }
+
     private static func inspect(
         _ processIdentifier: pid_t
-    ) -> Result<Void, SpotifySongRadioError> {
+    ) -> Result<PlayerObservation, SpotifySongRadioError> {
         guard AXIsProcessTrusted() else { return .failure(.playbackDeviceUnknown) }
         let application = AXUIElementCreateApplication(processIdentifier)
         AXUIElementSetMessagingTimeout(application, 0.08)
@@ -59,25 +106,38 @@ final class SpotifyPlaybackDeviceGuard: @unchecked Sendable {
             return .failure(.playbackDeviceUnknown)
         }
 
-        var pending = windows
+        var pending = windows.map { (element: $0, inNowPlayingBar: false, inPlayerControls: false) }
+        var visited = Set<ElementIdentity>()
+        var observation = PlayerObservation()
+        let deadline = ProcessInfo.processInfo.systemUptime + 4
         var index = 0
         while index < pending.count, index < maximumElementCount {
-            let element = pending[index]
+            guard ProcessInfo.processInfo.systemUptime < deadline else {
+                return .failure(.playbackDeviceUnknown)
+            }
+            let entry = pending[index]
             index += 1
-            if containsRemotePlaybackBanner(labels(of: element)) {
+            let element = entry.element
+            guard visited.insert(ElementIdentity(element: element)).inserted else { continue }
+            let elementLabels = labels(of: element)
+            if containsRemotePlaybackBanner(elementLabels) {
                 return .failure(.playbackOnAnotherDevice)
             }
+            let inNowPlayingBar = entry.inNowPlayingBar || elementLabels.contains("Now playing bar")
+            let inPlayerControls = entry.inPlayerControls || (inNowPlayingBar && elementLabels.contains("Player controls"))
+            observation.observe(labels: elementLabels, inNowPlayingBar: inNowPlayingBar, inPlayerControls: inPlayerControls)
             switch children(of: element) {
             case .success(let children):
-                pending.append(contentsOf: children)
+                pending.append(contentsOf: children.map { ($0, inNowPlayingBar, inPlayerControls) })
             case .unsupported:
                 break
             case .failed:
                 return .failure(.playbackDeviceUnknown)
             }
         }
-        guard index == pending.count else { return .failure(.playbackDeviceUnknown) }
-        return .success(())
+        // An unexposed Chromium tree can finish with only a few empty nodes. Absence of a remote banner is not local-device proof without the actual player controls.
+        guard index == pending.count, observation.isComplete else { return .failure(.playbackDeviceUnknown) }
+        return .success(observation)
     }
 
     private enum ChildrenResult {

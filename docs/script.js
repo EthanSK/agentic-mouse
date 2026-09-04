@@ -111,7 +111,9 @@ const LAYERS = {
     label: "Extra Utilities",
     actions: [
       ["Organize Windows", "Request one manual restore of the saved Stay layout."],
-      SPARE, SPARE, SPARE, SPARE, SPARE, SPARE, SPARE,
+      SPARE,
+      ["Spotify Song Radio", "Start the current song’s radio and restore its playhead; refuse playback on another device."],
+      SPARE, SPARE, SPARE, SPARE, SPARE,
       ["Quit App", "Send one ordinary Command-Q to the frontmost external app."],
       ["Exit Extra Utilities", "Return directly to Default."],
       SPARE, SPARE,

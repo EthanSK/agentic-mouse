@@ -67,7 +67,7 @@ struct SystemOverviewActionExecutor {
              .rewindYouTubeFiveSeconds, .openIntelligenceOnDemand, .zoomIn, .zoomOut,
              .moveToSpaceLeft, .moveToSpaceRight, .copy, .paste,
              .moveWindowLeftWithMagnet, .moveWindowRightWithMagnet,
-             .organizeWindows, .quitApp,
+             .organizeWindows, .spotifySongRadio, .quitApp,
              .pasteStoredPassword:
             preconditionFailure("SystemOverviewActionExecutor only owns macOS overview actions")
         }

@@ -2,6 +2,31 @@ import XCTest
 @testable import ScimitarKit
 
 final class ModePickerTests: XCTestCase {
+    func testSongRadioUsesApprovedExtraUtilitiesCellAndDoesNotClaimImmediateSuccess() {
+        for source in MouseSource.allCases {
+            let hud = RecordingModeHUDPresenter()
+            let coordinator = makeCoordinator(hud: hud)
+            var actions: [ModeUtilityAction] = []
+            coordinator.onUtilityAction = { requestedSource, action in
+                XCTAssertEqual(requestedSource, source)
+                actions.append(action)
+                return .started(message: "Starting Spotify Song Radio…")
+            }
+            coordinator.enter(source: source)
+            coordinator.handle(.init(action: .select, source: source, physicalCell: .extraUtilitiesSelector, phase: .press))
+            XCTAssertEqual(hud.snapshots.last?.legend[2].actionTitle, "Spotify Song Radio")
+            coordinator.handle(.init(action: .select, source: source, physicalCell: .spotifySongRadio, phase: .press))
+            coordinator.handle(.init(action: .select, source: source, physicalCell: .spotifySongRadio, phase: .release))
+            XCTAssertEqual(actions, [.spotifySongRadio])
+            XCTAssertEqual(hud.feedback.last, ModeHUDFeedback(message: "Starting Spotify Song Radio…", tone: .informational))
+            XCTAssertEqual(coordinator.page, .extraUtilities)
+            XCTAssertTrue(coordinator.isActive)
+        }
+        XCTAssertEqual(PhysicalCell.spotifySongRadio.printedSide(on: .corsair), 3)
+        XCTAssertEqual(PhysicalCell.spotifySongRadio.printedSide(on: .razer), 1)
+        XCTAssertNil(ModeUtilityAction.directAction(for: .spotifySongRadio))
+    }
+
     func testCellTwelveOpensAndCellTenClosesTheSharedModesLeaseFromEitherMouse() {
         let lease = RecordingModePickerLease()
         let hud = RecordingModeHUDPresenter()
@@ -2415,6 +2440,7 @@ final class ModePickerTests: XCTestCase {
             case .appSelector: expectedCellThreeTitle = "Claude"
             case .keys: expectedCellThreeTitle = "Undo"
             case .chromeWebsites: expectedCellThreeTitle = "X"
+            case .extraUtilities: expectedCellThreeTitle = "Spotify Song Radio"
             default: expectedCellThreeTitle = "Spare"
             }
             XCTAssertEqual(hud.snapshots.last?.legend[2].actionTitle, expectedCellThreeTitle)

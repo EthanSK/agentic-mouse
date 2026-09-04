@@ -9,6 +9,7 @@ enum SpotifySongRadioPlaybackState: String, Equatable, Sendable {
 
 struct SpotifySongRadioSnapshot: Equatable, Sendable {
     let trackURI: String
+    let trackName: String
     let position: TimeInterval
     let duration: TimeInterval
     let playbackState: SpotifySongRadioPlaybackState
@@ -23,6 +24,7 @@ enum SpotifySongRadioError: Error, Equatable, Sendable {
     case playbackDeviceUnknown
     case playbackOnAnotherDevice
     case positionTooNearEnd
+    case positionNotRestored
     case radioDidNotLoad
     case scriptingFailed
     case spotifyNotRunning
@@ -45,6 +47,8 @@ enum SpotifySongRadioError: Error, Equatable, Sendable {
             return "Spotify is playing on another device"
         case .positionTooNearEnd:
             return "The song is too close to ending"
+        case .positionNotRestored:
+            return "Spotify did not restore the playhead or playback state"
         case .radioDidNotLoad:
             return "Song Radio did not load"
         case .scriptingFailed:
@@ -64,6 +68,7 @@ struct SpotifySongRadioAutomation: Sendable {
     var capture: @Sendable () async -> Result<SpotifySongRadioSnapshot, SpotifySongRadioError>
     var startRadio: @Sendable (_ trackURI: String) async -> Result<Void, SpotifySongRadioError>
     var currentTrackURI: @Sendable () async -> Result<String, SpotifySongRadioError>
+    var confirmRadioContext: @Sendable (_ title: String) async -> Result<Bool, SpotifySongRadioError>
     var seek: @Sendable (_ position: TimeInterval) async -> Result<Void, SpotifySongRadioError>
     var restorePlaybackState: @Sendable (
         _ state: SpotifySongRadioPlaybackState
@@ -79,6 +84,7 @@ struct SpotifySongRadioAutomation: Sendable {
             capture: { await client.capture() },
             startRadio: { await client.startRadio(trackURI: $0) },
             currentTrackURI: { await client.currentTrackURI() },
+            confirmRadioContext: { await deviceGuard.confirmRadioContext(named: $0) },
             seek: { await client.seek(to: $0) },
             restorePlaybackState: { await client.restorePlaybackState($0) },
             now: { ProcessInfo.processInfo.systemUptime },
@@ -112,6 +118,7 @@ final class SpotifySongRadioController {
     private let pollInterval: TimeInterval
     private var generation: UInt64 = 0
     private var task: Task<Void, Never>?
+    private(set) var activeSource: MouseSource?
 
     init(
         spotifyIsRunning: @escaping () -> Bool = {
@@ -138,20 +145,23 @@ final class SpotifySongRadioController {
 
         generation &+= 1
         let currentGeneration = generation
+        activeSource = source
         task = Task { [weak self] in
             guard let self else { return }
             let result = await self.performTransition()
-            guard currentGeneration == self.generation else { return }
             self.task = nil
+            self.activeSource = nil
+            guard currentGeneration == self.generation else { return }
             self.onCompletion?(source, result)
         }
         return .accepted
     }
 
-    func cancel() {
+    func cancel(source: MouseSource? = nil) {
+        if let source, activeSource != source { return }
         generation &+= 1
         task?.cancel()
-        task = nil
+        // An in-flight Apple Event cannot be withdrawn. Keep the busy latch until it returns so cancellation cannot overlap a second playback request.
     }
 
     private func performTransition() async -> Result<Void, SpotifySongRadioError> {
@@ -188,7 +198,12 @@ final class SpotifySongRadioController {
             guard mayContinue else { return .failure(.cancelled) }
             switch await automation.currentTrackURI() {
             case .success(snapshot.trackURI):
-                return await restore(snapshot)
+                // The seed URI is already current before the command. Wait for the actual player's radio label, not the open radio page or unchanged song. (Codex task: 01a039f7-873c-7c30-b3dc-af8a6724ace5)
+                switch await automation.confirmRadioContext(snapshot.trackName + " Radio") {
+                case .success(true): return await restore(snapshot)
+                case .success(false): break
+                case .failure(let error): return .failure(error)
+                }
             case .success:
                 return .failure(.trackChanged)
             case .failure(.currentItemUnavailable):
@@ -204,6 +219,19 @@ final class SpotifySongRadioController {
     private func restore(
         _ snapshot: SpotifySongRadioSnapshot
     ) async -> Result<Void, SpotifySongRadioError> {
+        guard mayContinue else { return .failure(.cancelled) }
+        if case .failure(let error) = await automation.confirmLocalPlayback() {
+            return .failure(error)
+        }
+        guard mayContinue else { return .failure(.cancelled) }
+        // Starting a radio plays immediately. Pause before seeking a paused snapshot, otherwise the playhead advances again while later checks run.
+        if case .failure(let error) = await automation.restorePlaybackState(snapshot.playbackState) {
+            return .failure(error)
+        }
+        guard mayContinue else { return .failure(.cancelled) }
+        if case .failure(let error) = await automation.confirmLocalPlayback() {
+            return .failure(error)
+        }
         var target = snapshot.position
         if snapshot.playbackState == .playing {
             target += max(0, automation.now() - snapshot.capturedAtUptime)
@@ -212,21 +240,25 @@ final class SpotifySongRadioController {
             return .failure(.positionTooNearEnd)
         }
         guard mayContinue else { return .failure(.cancelled) }
-        if target >= 2, case .failure(let error) = await automation.seek(target) {
+        if case .failure(let error) = await automation.seek(target) {
             return .failure(error)
         }
+        let seekCompletedAtUptime = automation.now()
         guard mayContinue else { return .failure(.cancelled) }
-        if case .failure(let error) = await automation.restorePlaybackState(
-            snapshot.playbackState
-        ) {
-            return .failure(error)
-        }
-        guard mayContinue else { return .failure(.cancelled) }
-        switch await automation.currentTrackURI() {
-        case .success(snapshot.trackURI):
-            return .success(())
-        case .success:
-            return .failure(.trackChanged)
+        switch await automation.capture() {
+        case .success(let restored):
+            guard restored.trackURI == snapshot.trackURI else { return .failure(.trackChanged) }
+            let elapsed = snapshot.playbackState == .playing
+                ? max(0, restored.capturedAtUptime - seekCompletedAtUptime) : 0
+            guard restored.playbackState == snapshot.playbackState,
+                  abs(restored.position - (target + elapsed)) <= 2
+            else { return .failure(.positionNotRestored) } // A successful seek Apple Event is not proof the player applied it; read back position/state before showing success.
+            guard mayContinue else { return .failure(.cancelled) }
+            switch await automation.confirmRadioContext(snapshot.trackName + " Radio") {
+            case .success(true): return .success(())
+            case .success(false): return .failure(.radioDidNotLoad)
+            case .failure(let error): return .failure(error)
+            }
         case .failure(let error):
             return .failure(error)
         }
@@ -262,7 +294,6 @@ private final class SpotifyAppleScriptClient: @unchecked Sendable {
     private let queue = DispatchQueue(label: "com.ethan.agentic-mouse.spotify-song-radio")
 
     func capture() async -> Result<SpotifySongRadioSnapshot, SpotifySongRadioError> {
-        let capturedAtUptime = ProcessInfo.processInfo.systemUptime
         let source = """
         with timeout of 5 seconds
             tell application id "\(Self.bundleIdentifier)"
@@ -271,25 +302,30 @@ private final class SpotifyAppleScriptClient: @unchecked Sendable {
                 set capturedPosition to player position
                 set capturedDuration to duration of current track
                 set capturedState to player state as text
+                set capturedName to name of current track
             end tell
             set AppleScript's text item delimiters to ASCII character 31
-            return {capturedURI, capturedPosition, capturedDuration, capturedState} as text
+            return {capturedURI, capturedPosition, capturedDuration, capturedState, capturedName} as text
         end timeout
         """
         switch await execute(source) {
         case .success(let value):
             let fields = value.split(separator: Character(UnicodeScalar(31)), omittingEmptySubsequences: false)
-            guard fields.count == 4,
+            guard fields.count == 5,
                   let position = TimeInterval(fields[1]),
                   let durationMilliseconds = TimeInterval(fields[2]),
+                  position.isFinite, position >= 0,
+                  durationMilliseconds.isFinite, durationMilliseconds > 0,
+                  !fields[4].isEmpty,
                   let state = SpotifySongRadioPlaybackState(rawValue: String(fields[3]))
             else { return .failure(.currentItemUnavailable) }
             return .success(SpotifySongRadioSnapshot(
                 trackURI: String(fields[0]),
+                trackName: String(fields[4]),
                 position: position,
                 duration: durationMilliseconds / 1_000,
                 playbackState: state,
-                capturedAtUptime: capturedAtUptime
+                capturedAtUptime: ProcessInfo.processInfo.systemUptime
             ))
         case .failure(let failure):
             return .failure(Self.map(failure, unavailableIsExpected: true))

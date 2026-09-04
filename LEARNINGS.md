@@ -1,5 +1,19 @@
 # Learnings
 
+## 2026-09-04 — A displayed Spotify radio page is not the playback context
+
+**Trigger:** Ethan asked to retry the unfinished Song Radio utility with Computer Use on the Mini and approved Extra Utilities cell 3 (Corsair 3 / Razer 1).
+
+**Finding:** Selecting the current song's real `Go to song radio` menu item displayed that song's radio with the seed first, but left Spotify playing the original radio on the MacBook Pro. The renderer simultaneously exposed two different shuffle labels: one under the radio page and one under `Now playing bar` → `Player controls`. The read-only player state independently confirmed the original playback context. Searching labels across the entire app, or checking only that the seed URI remained current, would falsely confirm a switch.
+
+**Fix:** Keep the seed-URI AppleScript command, but wait for the bottom player's radio label before seeking. Ignore the displayed page's label, refuse incomplete Accessibility scans rather than treating an empty tree as local playback, recheck the device before later playback commands, and read back the restored position/state before showing completion. Keep a cancelled in-flight Apple Event busy until it returns. A paused playhead below two seconds still needs an exact seek.
+
+**Guard:** The native context check is scoped UI evidence, not an API exposing Spotify's context URI: playlist titles alone are not globally unique. Do not claim URI-level context identity from a title. Mini renderer tests are not evidence that an unflagged production Spotify instance exposes the same native tree. Never transfer a remote Connect session for testing without Ethan's current permission. Keep the live radio switch, seek restoration, production AX surface, and installed HUD acceptance explicitly unverified until exercised. (Codex task: 01a039f7-873c-7c30-b3dc-af8a6724ace5)
+
+**Verification:** The focused controller/mode suites cover unchanged-context timeout without a seek, sparse-tree refusal, page/player label separation, delayed context change, post-switch remote-device refusal, cancellation single-flight, pausing before restoring an early paused position, ignored-seek detection, both physical labels, and informational starting feedback. Native CUA independently exposed the same two named player ancestors on the Mini. Its helper Automation preflight reached a system-consent host that the tool is not permitted to inspect or click; that prompt remains user-owned. No playback-changing command ran during this investigation.
+
+**Checkpoint:** The final clean gate passed all 711 Swift tests plus extension, VS Code bridge, Karabiner generator/lints, and packaging checks. The utility is wired in source but not yet signed, installed, or end-to-end accepted. Keep the installed runtime unchanged until the Mini consent and authorized playback test are resolved.
+
 ## 2026-09-03 — Suppress near-miss Enter for one second after VS Code Next releases
 
 **Trigger:** Ethan kept sending Enter accidentally when physical cell 8 came up just before cell 7 went down while he was trying to use the same-source Stage + Next chord.

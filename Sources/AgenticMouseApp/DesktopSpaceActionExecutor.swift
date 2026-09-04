@@ -51,7 +51,7 @@ struct DesktopSpaceActionExecutor {
              .rewindYouTubeFiveSeconds, .openIntelligenceOnDemand, .zoomIn, .zoomOut,
              .copy, .paste, .showDesktop, .missionControl,
              .moveWindowLeftWithMagnet, .moveWindowRightWithMagnet,
-             .pasteStoredPassword, .showApplicationWindows, .organizeWindows, .quitApp:
+             .pasteStoredPassword, .showApplicationWindows, .organizeWindows, .spotifySongRadio, .quitApp:
             preconditionFailure("DesktopSpaceActionExecutor only owns Space Left and Space Right")
         }
 

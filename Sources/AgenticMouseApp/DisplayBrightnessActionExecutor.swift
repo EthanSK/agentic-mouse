@@ -46,7 +46,7 @@ struct DisplayBrightnessActionExecutor {
              .zoomIn, .zoomOut, .moveToSpaceLeft, .moveToSpaceRight,
              .copy, .paste, .showDesktop, .missionControl, .pasteStoredPassword,
              .moveWindowLeftWithMagnet, .moveWindowRightWithMagnet,
-             .showApplicationWindows, .organizeWindows, .quitApp:
+             .showApplicationWindows, .organizeWindows, .spotifySongRadio, .quitApp:
             preconditionFailure("This action is owned by ModeUtilityActionExecutor")
         }
 

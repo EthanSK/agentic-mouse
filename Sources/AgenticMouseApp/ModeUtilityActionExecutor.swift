@@ -3,6 +3,7 @@ import ApplicationServices
 import ScimitarKit
 
 enum ModeUtilityActionError: Error, Equatable {
+    case asynchronousActionRequired
     case displayBrightnessEventCreationFailed
     case applicationZoomEventCreationFailed
     case desktopSpaceEventCreationFailed
@@ -211,6 +212,8 @@ struct ModeUtilityActionExecutor {
             case .failure:
                 return .failure(.systemOverviewEventCreationFailed)
             }
+        case .spotifySongRadio:
+            return .failure(.asynchronousActionRequired) // Spotify must run through its guarded asynchronous controller, never a dispatch-only success.
         case .organizeWindows:
             guard inputAllowed() else {
                 return .failure(.organizeWindowsInputBlocked)
