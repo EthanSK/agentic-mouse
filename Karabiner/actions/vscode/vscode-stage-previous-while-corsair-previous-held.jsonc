@@ -2,7 +2,7 @@
 {
   "id": "vscode-stage-previous-while-corsair-previous-held",
   "title": "VS Code: stage and go previous while Corsair Previous is held",
-  "description": "Consumes Corsair physical cell 4 as F19 while that same mouse's physical cell 5 hold is active or during the one-second post-release staging window.",
+  "description": "Consumes Corsair physical cell 4 as ordinary F19 while cell 5 is held, or source-tagged F19 to stage its pre-navigation file during the one-second post-release window.",
   "manipulators": [
     {
       "conditions": [

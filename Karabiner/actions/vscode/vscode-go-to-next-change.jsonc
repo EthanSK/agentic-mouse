@@ -2,7 +2,7 @@
 {
   "id": "vscode-go-to-next-change",
   "title": "VS Code: go to next change",
-  "description": "Press marks the exact mouse's Next button held; release emits F13 only when the same hold was not consumed, then starts that mouse's one-second Enter dead zone.",
+  "description": "Press marks this mouse's Next button held; unused release emits source-tagged F13, then opens one second to stage the pre-navigation file. A consumed hold clears on release.",
   "manipulator": {
     "conditions": [
       { "type": "frontmost_application_if", "bundle_identifiers": ["^com\\.microsoft\\.VSCode(?:Insiders)?$"] }
