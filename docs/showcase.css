@@ -535,7 +535,7 @@ button {
   background: #231e1d;
 }
 .lounge-photo > img {
-  aspect-ratio: 1672/941;
+  aspect-ratio: 1671/941;
   object-fit: contain;
   transform-origin: center;
   will-change: transform;
