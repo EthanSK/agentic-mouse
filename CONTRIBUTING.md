@@ -4,7 +4,7 @@ Start with the [README](README.md), [architecture](docs/ARCHITECTURE.md), and [a
 
 ## Make a focused change
 
-1. Fork the repository and create a branch.
+1. Fork the repository, create a branch, and run `npm ci --ignore-scripts --prefix Integrations/VSCode` to install the locked local packaging tool.
 2. Change the source that owns the behavior. Keep device routing exact and preserve unrelated controls.
 3. Run `make check`. For packaging changes, also run `ICUE_SDK_FRAMEWORK=/nonexistent/agentic-mouse-sdk make app`; it packages an ad-hoc development bundle without launching or installing it.
 4. For website changes, serve `.build/site` after `make test-site`. Check desktop and phone widths, both hands, drag rotation, keyboard controls, native HUD interactions and the no-WebGL fallback. Keep screenshots and personal data outside Git.

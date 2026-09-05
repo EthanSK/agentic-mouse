@@ -43,3 +43,5 @@ __pycache__/
 Local/
 /.outstanding-items/
 /Rollbacks/
+# Local VS Code extension packaging tools; package-lock.json remains tracked.
+/Integrations/VSCode/node_modules/

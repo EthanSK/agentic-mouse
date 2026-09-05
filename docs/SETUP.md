@@ -6,7 +6,7 @@ Using a coding agent? Give it [AGENT-SETUP.md](AGENT-SETUP.md) before letting it
 
 ## 1. Build without changing your Mac
 
-You need **Xcode 26 or later with the macOS 26 SDK**, its bundled Swift toolchain, **Node.js 20 or later**, and **Python 3**. The native glass HUD cannot compile against an older SDK, even though the app's deployment target is macOS 13. The package manifest's Swift 5.10 tools version is not the complete build requirement.
+You need **Xcode 26 or later with the macOS 26 SDK**, its bundled Swift toolchain, **Node.js 22 or later**, and **Python 3**. The native glass HUD cannot compile against an older SDK, even though the app's deployment target is macOS 13. The package manifest's Swift 5.10 tools version is not the complete build requirement.
 
 Use a Mac supported by your Xcode version: Xcode 26 requires macOS 15.6 or later, and newer versions may require a newer host. Check [Apple's Xcode requirements](https://developer.apple.com/xcode/system-requirements). Apple Silicon and Intel are build targets; each still needs its own hardware acceptance.
 
@@ -15,11 +15,12 @@ Select the full Xcode installation under **Xcode → Settings → Locations → 
 ```sh
 git clone https://github.com/EthanSK/agentic-mouse.git
 cd agentic-mouse
+npm ci --ignore-scripts --prefix Integrations/VSCode
 make check
 make app
 ```
 
-Tests use fake hardware. `make app` writes an **ad-hoc development bundle** to `build/AgenticMouse.app`; it does not install or launch it. Do not use it to replace an app with Accessibility permission.
+The npm step installs the locked local VS Code packaging tool; it does not install an editor extension. Tests use fake hardware. `make app` writes an **ad-hoc development bundle** to `build/AgenticMouse.app`; it does not install or launch it. Do not use it to replace an app with Accessibility permission.
 
 Read-only diagnostics:
 

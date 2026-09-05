@@ -30,7 +30,7 @@ Consult the dependency table in [SETUP.md](SETUP.md). VoiceInk++ / YouTube Bridg
 
 ## Install only the reviewed candidate
 
-1. Run `make check` from the intended source checkout. Report failures instead of weakening tests or security gates.
+1. Follow the toolchain setup, run `npm ci --ignore-scripts --prefix Integrations/VSCode`, then `make check` from the intended source checkout. Report failures instead of weakening tests or security gates.
 2. Verify the owner's available stable signing identity. Use `CODE_SIGN_IDENTITY`; Ethan's certificate is only for his own Mac. Keep the bundle identity and `/Applications/AgenticMouse.app` path stable across updates.
 3. For Corsair lighting, use the audited SDK version from [SETUP.md](SETUP.md). An explicit SDK-free build is appropriate for a Razer-only setup; missing Corsair RGB must remain visible.
 4. Package one successful `make install-candidate`. Record the version, executable hash, signature and embedded SDK version. Do not consume another version by repeating packaging without a source change.

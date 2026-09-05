@@ -29,6 +29,8 @@ jobs:
         run: |
           xcodebuild -version
           xcrun --show-sdk-version
+      - name: Install the pinned extension packaging tool
+        run: npm ci --ignore-scripts --prefix Integrations/VSCode
       - name: Run the clean hardware-free gate
         run: make check
       - name: Package an SDK-free development bundle without installing it

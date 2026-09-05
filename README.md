@@ -54,11 +54,12 @@ The mice share a physical action layout, with their own printed numbers and mirr
 
 **Ready to build and adapt; manual setup required.** There is no signed, notarized app download yet. Speech mode, YouTube control and some VS Code actions depend on external integrations that are not included. Check the [dependency table](docs/SETUP.md#2-check-which-features-you-can-use) before setting up your mice.
 
-Building requires **Xcode 26 or later with the macOS 26 SDK**, its bundled Swift toolchain, **Node.js 20 or later**, and **Python 3**. Use a Mac supported by that Xcode version; the app itself targets macOS 13 or later. Building and running the hardware-free tests does not require either mouse or the proprietary iCUE SDK. See the [toolchain setup](docs/SETUP.md#1-build-without-changing-your-mac).
+Building requires **Xcode 26 or later with the macOS 26 SDK**, its bundled Swift toolchain, **Node.js 22 or later**, and **Python 3**. Use a Mac supported by that Xcode version; the app itself targets macOS 13 or later. Building and running the hardware-free tests does not require either mouse or the proprietary iCUE SDK. See the [toolchain setup](docs/SETUP.md#1-build-without-changing-your-mac).
 
 ```sh
 git clone https://github.com/EthanSK/agentic-mouse.git
 cd agentic-mouse
+npm ci --ignore-scripts --prefix Integrations/VSCode
 make check
 make app
 ```
