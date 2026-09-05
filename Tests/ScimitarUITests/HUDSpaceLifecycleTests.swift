@@ -60,6 +60,7 @@ final class HUDSpaceLifecycleTests: XCTestCase {
             object: nil
         )
         try await Task.sleep(nanoseconds: 800_000_000)
+        await waitForMainQueueTurns() // Bug: Before this fix, CI could assert between panel teardown and queued recreation. Fix: Drain the main queue before checking the completed reattachment.
 
         let refreshedPanels = visibleHUDPanels().subtracting(baselinePanels)
         XCTAssertEqual(refreshedPanels.count, NSScreen.screens.count)
@@ -82,6 +83,7 @@ final class HUDSpaceLifecycleTests: XCTestCase {
             object: nil
         )
         try await Task.sleep(nanoseconds: 800_000_000)
+        await waitForMainQueueTurns()
 
         XCTAssertFalse(presenter.isVisible)
     }
@@ -95,6 +97,7 @@ final class HUDSpaceLifecycleTests: XCTestCase {
 
         presenter.reattachToCurrentSpaces()
         try await Task.sleep(nanoseconds: 800_000_000)
+        await waitForMainQueueTurns()
 
         let refreshedPanels = visibleHUDPanels().subtracting(baselinePanels)
         XCTAssertEqual(refreshedPanels.count, NSScreen.screens.count)
@@ -110,6 +113,7 @@ final class HUDSpaceLifecycleTests: XCTestCase {
 
         presenter.reattachToCurrentSpaces()
         try await Task.sleep(nanoseconds: 800_000_000)
+        await waitForMainQueueTurns()
 
         XCTAssertFalse(presenter.isVisible)
     }
