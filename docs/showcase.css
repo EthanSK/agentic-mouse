@@ -751,6 +751,9 @@ button {
   height: 90px;
   object-fit: contain;
 }
+.setup-item .setup-razer {
+  transform: rotate(-28deg) scale(1.12);
+}
 .setup-item .setup-tag {
   font-size: 11px;
   letter-spacing: 0.1em;
@@ -777,27 +780,27 @@ button {
 .desk-icon {
   position: relative;
   width: 90px;
-  height: 60px;
+  height: 70px;
 }
 .desk-icon:before {
   content: "";
   position: absolute;
   top: 10px;
   width: 88px;
-  height: 7px;
+  height: 10px;
   border-radius: 2px;
-  background: #b89269;
+  background: linear-gradient(#c9a875 0 65%, #ad895a 65%);
   transform: skewY(-6deg);
 }
 .desk-icon:after {
   content: "";
   position: absolute;
   left: 12px;
-  top: 16px;
+  top: 19px;
   width: 60px;
-  height: 40px;
-  border-left: 4px solid #33323a;
-  border-right: 4px solid #33323a;
+  height: 46px;
+  border-left: 6px solid #33323a;
+  border-right: 6px solid #33323a;
 }
 .setup-note {
   font-size: 11px;

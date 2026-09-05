@@ -40,11 +40,13 @@ The HUD’s labels, card colours, printed-button crosswalk, repair markers, and 
 
 | Part | What I use |
 |---|---|
-| Left hand | Razer Naga Left-Handed Edition |
-| Right hand | Corsair Scimitar Elite Wireless SE |
+| Left hand | [Razer Naga Left-Handed Edition](https://www.razer.com/gb-en/gaming-mice/razer-naga-left-handed-edition), black |
+| Right hand | [Corsair Scimitar Elite Wireless SE](https://www.corsair.com/uk/en/p/gaming-mouse/ch-9314415-ww/scimitar-elite-wireless-se-mmo-gaming-mouse-black-yellow-ch-9314415-ww), black/yellow (`CH-9314415-WW`) |
 | Dictation | VoiceInk++ |
-| Chair | Hbada E3 Pro, grey with footrest |
-| Desk | FlexiSpot E7 Pro with a bamboo top |
+| Chair | [Hbada E3 Pro 2026](https://www.hbada.uk/products/hbada-e3-pro-ergonomic-office-chair?variant=57072259858807), grey with footrest |
+| Desk | [FlexiSpot E7 Pro](https://flexispot.co.uk/next-generation-standing-desk-e7-pro), bought in 2025: black frame, 180 × 80 cm bamboo top |
+
+These models and options were checked against my purchase confirmations. FlexiSpot's linked shop page now sells the 2026 revision; my desk is the 2025 model.
 
 The mice share a physical action layout, with their own printed numbers and mirrored presentation. I can switch hands without changing how I work.
 
