@@ -69,8 +69,9 @@
             mouse does the rest.
           </p>
         </div>
+        <p class="hero-rotation-hint" id="hero-rotation-hint"><span class="pointer-instruction">Drag to rotate</span><span class="touch-instruction">Swipe sideways to rotate</span></p>
         <div class="hero-products">
-          <figure class="hero-product left">
+          <figure class="hero-product left" data-mouse="razer">
             <img
               src="./assets/razer-angled.webp"
               width="1536"
@@ -78,14 +79,16 @@
               alt="Razer Naga Left-Handed Edition with its twelve-button thumb grid"
               fetchpriority="high"
             />
+            <canvas class="hero-mouse-canvas" tabindex="0" role="img" aria-label="Razer Naga 3D model" aria-describedby="hero-rotation-hint"></canvas>
+            <svg class="speech-leader" aria-hidden="true"><path></path><circle r="4"></circle></svg>
             <button type="button" class="speech-callout" data-speech="razer">
               <span aria-hidden="true">●</span> Activate speech mode
             </button>
             <figcaption class="product-caption">
-              Left hand<strong>Razer Naga</strong>
+              Left hand<strong>Razer Naga</strong><button type="button" class="hero-reset" aria-label="Reset view for Razer Naga">Reset view ↻</button>
             </figcaption>
           </figure>
-          <figure class="hero-product right">
+          <figure class="hero-product right" data-mouse="corsair">
             <img
               src="./assets/corsair.webp"
               width="1200"
@@ -93,11 +96,13 @@
               alt="Corsair Scimitar Elite Wireless SE with its twelve-button thumb grid"
               fetchpriority="high"
             />
+            <canvas class="hero-mouse-canvas" tabindex="0" role="img" aria-label="Corsair Scimitar 3D model" aria-describedby="hero-rotation-hint"></canvas>
+            <svg class="speech-leader" aria-hidden="true"><path></path><circle r="4"></circle></svg>
             <button type="button" class="speech-callout" data-speech="corsair">
               <span aria-hidden="true">●</span> Activate speech mode
             </button>
             <figcaption class="product-caption">
-              Right hand<strong>Corsair Scimitar</strong>
+              Right hand<strong>Corsair Scimitar</strong><button type="button" class="hero-reset" aria-label="Reset view for Corsair Scimitar">Reset view ↻</button>
             </figcaption>
           </figure>
         </div>
@@ -122,7 +127,7 @@
             <div class="control-copy">
               <p class="eyebrow">Twelve buttons. Either hand.</p>
               <h2 id="buttons-title">
-                A whole Mac.<br /><span>Under my thumb.</span>
+                A whole Mac.<br /> <span>AGI under my&nbsp;thumb.</span>
               </h2>
               <p class="control-description">
                 <span class="pointer-instruction"
@@ -197,15 +202,17 @@
                     width="1200"
                     height="1200"
                     alt="" /></span
-                ><span>The thumb grid,<br />up close.</span>
+                ><span>Side buttons,<br />under your thumb.</span>
               </div>
-              <canvas id="control-canvas" aria-hidden="true"></canvas>
-              <div
-                class="scene-controls"
-                id="scene-controls"
-                role="group"
-                aria-label="Interactive twelve-button mouse grid"
-              ></div>
+              <div class="scene-model">
+                <canvas id="control-canvas" aria-hidden="true"></canvas>
+                <div
+                  class="scene-controls"
+                  id="scene-controls"
+                  role="group"
+                  aria-label="Interactive twelve-button mouse grid"
+                ></div>
+              </div>
               <div class="sim-output">
                 <span>Example output</span
                 ><output data-sim-output aria-live="polite">Try a button</output
@@ -245,7 +252,7 @@
             </div>
             <figcaption class="photo-caption">
               <strong>My setup, reimagined with AI.</strong
-              ><span>Made from my studio and Canvas photos.</span>
+              ><span>Made from my portrait and studio photos.</span>
             </figcaption>
           </figure>
           <div class="lounge-quote">

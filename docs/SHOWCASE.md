@@ -6,7 +6,7 @@ Build with `make test-site`, then serve `.build/site`. GitHub Actions runs the s
 
 `Sources/ShowcaseExporter` links `ScimitarKit` and exercises the real `ModePickerCoordinator` with inert leases, manual clocks, and recording HUDs. It exports the reachable mode graph, labels, colours, repair markers, physical crosswalk, wheel descriptions, app list, and keypad groups. No native configuration, installed app icons, hardware connection, or private preferences are read.
 
-`docs/simulator.mjs` consumes that generated graph. Both hands keep their own mode and Default-legend state. Automatic app mode follows the browser’s Current app selector; manual selection stays fixed, including through Chrome’s website submenu. Keypad text and action feedback are disposable browser examples. Third-party apps, OS actions, external bridge execution, and the native input security system are not emulated. The hero mice are product photographs; the draggable object is a rendered thumb grid.
+`docs/simulator.mjs` consumes that generated graph. Both hands keep their own mode and Default-legend state. Automatic app mode follows the browser’s Current app selector; manual selection stays fixed, including through Chrome’s website submenu. Keypad text and action feedback are disposable browser examples. Third-party apps, OS actions, external bridge execution, and the native input security system are not emulated. The hero and controls chapter load the same separately authored Naga Left-Handed Edition and Scimitar Elite Wireless SE meshes. Each physical key carries only its printed number; the browser resolves its action through the native crosswalk. The hardware geometry is a photo-based reconstruction, not manufacturer CAD or an automatic scan.
 
 `Scripts/build-site.py` writes `.build/site`, including generated `simulator-data.json` and a no-JavaScript full map. It applies a content-derived cache version to the homepage, CSS and browser modules. The published data identifies the exact source commit; uncommitted native work is not silently bundled into a deployment. The historical `docs/script.js` table is no longer consumed by the homepage or the generated full map. Do not use it as the showcase’s source of truth.
 
@@ -23,7 +23,9 @@ visitor input; mobile and reduced-motion layouts have no long pinned chapter.
 Browser dependencies are pinned and served from `lib/`, without runtime CDN imports:
 
 - [Three.js 0.185.1](https://www.npmjs.com/package/three/v/0.185.1): module/core builds,
-  `RoundedBoxGeometry`, `RoomEnvironment`. MIT; see `lib/THREE-LICENSE.txt`.
+  `GLTFLoader`, `DRACOLoader`, and their geometry utilities. MIT; see `lib/THREE-LICENSE.txt`.
+- Draco WebAssembly decoder, pinned from the Three.js 0.185.1 distribution.
+  Apache 2.0; see `lib/draco/DRACO-LICENSE.txt`.
 - [GSAP 3.15.0](https://www.npmjs.com/package/gsap/v/3.15.0): GSAP and ScrollTrigger.
   Their distribution headers retain the copyright and
   [GSAP Standard License](https://gsap.com/standard-license/) reference.
@@ -32,6 +34,33 @@ Browser dependencies are pinned and served from `lib/`, without runtime CDN impo
 
 The repository's MIT license covers its original code, not third-party trademarks,
 photography or separately licensed dependencies.
+
+## Rebuild the 3D hardware
+
+The browser loads two compressed GLB assets from `models/`. They are shared between
+both hero views and the side-button chapter. The default side view faces the thumb
+buttons; Reset view restores that orientation. A hidden key cannot intercept a
+click through the shell. Product photographs and an HTML button grid remain usable
+when WebGL or model loading is unavailable.
+
+To change the physical reconstruction, use Blender 5.2 and run:
+
+```sh
+blender --background --factory-startup -t 4 --python Scripts/build-mouse-models.py
+make test-site
+```
+
+Optional comparison renders: append `-- --renders /absolute/output/directory`.
+The script fits separate shell profiles, panels, grip details, button assemblies,
+and markings, then exports Draco-compressed GLBs. Blender is needed only when
+editing the hardware meshes; normal site builds use the committed assets.
+
+`models/marks.json` contains sampled emblem outlines from the
+[Simple Icons Razer](https://github.com/simple-icons/simple-icons/blob/develop/icons/razer.svg)
+and [Corsair](https://github.com/simple-icons/simple-icons/blob/develop/icons/corsair.svg)
+SVGs. Simple Icons distributes its artwork under [CC0](https://github.com/simple-icons/simple-icons/blob/develop/LICENSE.md); the company trademarks
+remain their owners' property. The physical references are the official galleries
+linked below, including Razer Gallery 2/4/5 and Corsair SE images 1/4/5.
 
 ## Images
 
@@ -47,8 +76,10 @@ Every displayed image retains its source aspect ratio. Hardware thumbnails use
 - `razer-side.webp`: Gallery 4 from the same official Razer product gallery, converted
   to WebP without changing its proportions, used as the thumb-grid reference inset.
 - `hbada.webp`: [Hbada E3 Pro 2026 grey chair image](https://www.hbada.uk/cdn/shop/files/E3_Pro_2026_Gray_with_footrest_ergonomic_office_chair_front.png?v=1778028844&width=1200).
-- `ethan-lounging.webp`: an AI scene commissioned by Ethan using his own studio and
-  thedrums/Spotify Canvas photographs as identity and setting references. It is
+- `ethan-lounging.webp`: an AI scene commissioned by Ethan using his
+  original studio photograph for the setting and his [real GitHub profile portrait](https://github.com/EthanSK)
+  for the face. The earlier generated identity reference was replaced after Ethan
+  reported that it did not look like him. It is
   clearly labelled as AI on the page. It illustrates the reclining setup rather
   than claiming to be a documentary photograph or a live application screenshot.
 

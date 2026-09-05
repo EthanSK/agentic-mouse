@@ -19,7 +19,7 @@ def build():
     revision = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
     data["revision"] = revision
     raw = (json.dumps(data, sort_keys=True, ensure_ascii=False, separators=(",", ":")) + "\n").encode()
-    files = [item for item in (ROOT / "docs").rglob("*") if item.is_file() and not item.is_symlink() and item.suffix in {".html", ".css", ".js", ".mjs", ".svg", ".webp", ".png", ".jpg", ".ico", ".webmanifest", ".xml", ".txt"}]
+    files = [item for item in (ROOT / "docs").rglob("*") if item.is_file() and not item.is_symlink() and item.suffix in {".html", ".css", ".js", ".mjs", ".svg", ".webp", ".png", ".jpg", ".ico", ".webmanifest", ".xml", ".txt", ".glb", ".wasm"}]
     digest = hashlib.sha256(raw)
     for item in sorted(files):
         digest.update(str(item.relative_to(ROOT / "docs")).encode())

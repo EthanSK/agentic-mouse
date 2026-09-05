@@ -434,96 +434,21 @@ document
     document.querySelector("#speech-demo").close(),
   );
 
-/** Build the draggable physical grid. */
+/** Build the full mouse; native-exported cells remain the only mapping source. */
 async function createButtonScene() {
   const THREE = await import("three");
-  const [{ RoundedBoxGeometry }, { RoomEnvironment }] = await Promise.all([
-    import("./lib/RoundedBoxGeometry.js"),
-    import("./lib/RoomEnvironment.js"),
-  ]);
-  const renderer = new THREE.WebGLRenderer({
-    canvas: document.querySelector("#control-canvas"),
-    alpha: true,
-    antialias: true,
-  });
+  const { createMouseModel, lightStudio } = await import("./mouse-model.mjs?v=__SITE_VERSION__");
+  const renderer = new THREE.WebGLRenderer({ canvas: document.querySelector("#control-canvas"), alpha: true, antialias: true });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
   renderer.setClearColor(0x101115, 0);
-  renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.05;
-  renderer.shadowMap.enabled = true;
-  renderer.shadowMap.type = THREE.PCFShadowMap;
   const scene = new THREE.Scene();
-  const environment = new RoomEnvironment();
-  const pmrem = new THREE.PMREMGenerator(renderer);
-  const environmentMap = pmrem.fromScene(environment, 0.04);
-  scene.environment = environmentMap.texture;
-  environment.dispose();
-  pmrem.dispose();
-  const camera = new THREE.PerspectiveCamera(36, 1, 0.1, 40);
-  camera.position.set(0, 0.1, 10.6);
+  lightStudio(renderer, scene, 1.1); // Same studio as the hero; a touch more exposure keeps the charcoal shell readable on the near-black chapter ground.
+  const camera = new THREE.PerspectiveCamera(36, 1, 0.1, 50);
+  camera.position.set(0, 0, 11.4);
   const assembly = new THREE.Group();
-  assembly.scale.setScalar(0.83); // Leave a clear space below the model for action feedback, including rotated views.
   scene.add(assembly);
-  const shell = new THREE.Mesh(
-    new RoundedBoxGeometry(5.3, 3.95, 0.4, 5, 0.33),
-    new THREE.MeshPhysicalMaterial({
-      color: 0x303039,
-      metalness: 0.6,
-      roughness: 0.32,
-      clearcoat: 0.25,
-    }),
-  );
-  shell.castShadow = true;
-  shell.receiveShadow = true;
-  assembly.add(shell);
-  const rim = new THREE.Mesh(
-    new RoundedBoxGeometry(5.1, 3.75, 0.15, 4, 0.24),
-    new THREE.MeshStandardMaterial({
-      color: 0x14131b,
-      metalness: 0.45,
-      roughness: 0.42,
-    }),
-  );
-  rim.position.z = 0.26;
-  assembly.add(rim);
-  const keyGeometry = new RoundedBoxGeometry(1.035, 0.99, 0.28, 4, 0.1);
-  const keys = new Map();
-  for (const physical of CELLS) {
-    const key = new THREE.Mesh(
-      keyGeometry,
-      new THREE.MeshPhysicalMaterial({
-        color: 0x32303b,
-        metalness: 0.12,
-        roughness: 0.55,
-        clearcoat: 0.08,
-        envMapIntensity: 0.25,
-      }),
-    );
-    key.castShadow = true;
-    key.receiveShadow = true;
-    assembly.add(key);
-    keys.set(physical.id, key);
-  }
-  const keyLight = new THREE.DirectionalLight(0xe4dcff, 1.8);
-  keyLight.position.set(-3, 5, 7);
-  keyLight.castShadow = true;
-  keyLight.shadow.mapSize.set(1024, 1024);
-  keyLight.shadow.camera.left = -7;
-  keyLight.shadow.camera.right = 7;
-  keyLight.shadow.camera.top = 7;
-  keyLight.shadow.camera.bottom = -7;
-  keyLight.shadow.normalBias = 0.04;
-  scene.add(keyLight);
-  const fillLight = new THREE.DirectionalLight(0xb298f5, 1.1);
-  fillLight.position.set(5, -1, 3);
-  scene.add(fillLight);
-  const floor = new THREE.Mesh(
-    new THREE.PlaneGeometry(30, 30),
-    new THREE.ShadowMaterial({ opacity: 0.15 }),
-  );
-  floor.position.z = -1.5;
-  floor.receiveShadow = true;
-  scene.add(floor);
+  const models = Object.fromEntries(await Promise.all(["corsair", "razer"].map(async (source) => [source, await createMouseModel(source, map.sources[source])])));
+  for (const model of Object.values(models)) assembly.add(model.group);
   const pose = {
     progress: 0,
     handTurn: 0,
@@ -534,11 +459,10 @@ async function createButtonScene() {
   const point = new THREE.Vector3();
   const normal = new THREE.Vector3();
   const direction = new THREE.Vector3();
+  const raycaster = new THREE.Raycaster();
   const corners = [
-    new THREE.Vector3(-0.46, -0.43, 0.145),
-    new THREE.Vector3(0.46, -0.43, 0.145),
-    new THREE.Vector3(-0.46, 0.43, 0.145),
-    new THREE.Vector3(0.46, 0.43, 0.145),
+    new THREE.Vector3(.10, -.18, -.20), new THREE.Vector3(.10, -.18, .20),
+    new THREE.Vector3(.10, .18, -.20), new THREE.Vector3(.10, .18, .20),
   ];
   let width = 0;
   let height = 0;
@@ -549,52 +473,43 @@ async function createButtonScene() {
     if (!visible || !width || !height) return;
     const progress =
       pose.dragProgress ?? (reducedMotion.matches ? 0.7 : pose.progress);
+    const model = models[hand];
+    const keys = model.keys;
+    for (const [source, object] of Object.entries(models)) object.group.visible = source === hand;
     assembly.rotation.set(
-      0.28 - progress * 0.33 + pose.dragX,
-      (hand === "razer" ? 1 : -1) * (0.38 - progress * 0.29) +
-        pose.handTurn +
-        pose.dragY,
-      -0.11 + progress * 0.14,
+      .12 + progress * .14 + pose.dragX,
+      -model.side * Math.PI / 2 + model.side * progress * .17 + pose.handTurn + pose.dragY,
+      -.025,
     );
-    assembly.position.y = 0.25;
-    rowsFor(hand).forEach((row, rowIndex) =>
-      row.forEach((cell, columnIndex) => {
-        const key = keys.get(cell);
-        key.position.set(
-          (columnIndex - 1.5) * 1.17,
-          (1 - rowIndex) * 1.14,
-          0.48 + progress * 0.13 + (cell === previewCell ? 0.11 : 0),
-        );
-        const control = simulator.control(cell);
-        const highlighted =
-          cell === previewCell || simulator.state.held === cell;
-        key.material.color.set(control.destinationColor ?? control.color);
-        if (highlighted) key.material.color.multiplyScalar(0.65);
-        else key.material.color.lerp(new THREE.Color("#222129"), 0.995); // A full rainbow hid the selected control; retain the native accent as a quiet tint until hover or hold. (Codex task: 01a06ee5-4aa0-7a61-a029-704e5c44a8f2)
-        key.material.emissive.set(
-          cell === previewCell || simulator.state.held === cell
-            ? (control.destinationColor ?? control.color)
-            : "#000000",
-        );
-        key.material.emissiveIntensity = 0.14;
-      }),
-    );
+    assembly.position.y = .4;
+    for (const [cell, key] of keys) {
+      const control = simulator.control(cell);
+      const highlighted = cell === previewCell || simulator.state.held === cell;
+      key.material.color.copy(key.userData.color);
+      if (highlighted) key.material.color.set(control.destinationColor ?? control.color);
+      if (highlighted) key.material.color.multiplyScalar(.5);
+      key.material.emissive.set(highlighted ? (control.destinationColor ?? control.color) : "#000000");
+      key.material.emissiveIntensity = .3; // The calmer studio lowers ambient light; a slightly stronger glow keeps the selected key's mode colour legible on the charcoal shell.
+      key.position.copy(key.userData.rest);
+      if (simulator.state.held === cell) key.position.x -= model.side * .035;
+    }
     camera.updateMatrixWorld(); // The first focus could jump far outside the chapter when keys were projected before the camera's first render.
     assembly.updateMatrixWorld(true);
     for (const [cell, key] of keys) {
-      point.set(0, 0, 0.145).applyMatrix4(key.matrixWorld).project(camera);
+      point.set(model.side * .10, 0, 0).applyMatrix4(key.matrixWorld).project(camera);
       const button = sceneButtons.get(cell);
-      normal.set(0, 0, 1).transformDirection(key.matrixWorld);
+      normal.set(model.side, 0, 0).transformDirection(key.matrixWorld);
       direction
         .copy(camera.position)
         .sub(key.getWorldPosition(new THREE.Vector3()))
         .normalize();
-      button.style.visibility =
-        normal.dot(direction) > 0.18 ? "visible" : "hidden"; // A rotated back face must not leave invisible clickable buttons over the solid shell.
+      raycaster.setFromCamera(new THREE.Vector2(point.x, point.y), camera);
+      const hit = normal.dot(direction) > .18 ? raycaster.intersectObjects(model.pickables, false)[0] : null;
+      button.style.visibility = hit?.object.userData.cell === cell ? "visible" : "hidden"; // Facing the camera is insufficient on a full shell: the palm or wheel can occlude a key after rotation.
       button.style.left = `${(point.x * 0.5 + 0.5) * width}px`;
       button.style.top = `${(-point.y * 0.5 + 0.5) * height}px`;
       const projected = corners.map((corner) =>
-        corner.clone().applyMatrix4(key.matrixWorld).project(camera),
+        corner.clone().setX(model.side * .10).applyMatrix4(key.matrixWorld).project(camera),
       );
       button.style.width = `${Math.max(8, (Math.max(...projected.map((p) => p.x)) - Math.min(...projected.map((p) => p.x))) * width * 0.45)}px`;
       button.style.height = `${Math.max(8, (Math.max(...projected.map((p) => p.y)) - Math.min(...projected.map((p) => p.y))) * height * 0.45)}px`; // Fixed hit boxes overlapped adjacent keys after rotation; size targets from each real key face.
@@ -603,6 +518,13 @@ async function createButtonScene() {
     renderer.render(scene, camera);
   }
   updateScene = render;
+  sceneControls.addEventListener("click", (event) => {
+    if (suppressClick || event.target.closest("button")) return;
+    const rect = sceneControls.getBoundingClientRect();
+    raycaster.setFromCamera(new THREE.Vector2((event.clientX - rect.left) / rect.width * 2 - 1, -(event.clientY - rect.top) / rect.height * 2 + 1), camera);
+    const hit = raycaster.intersectObjects(models[hand].pickables, false)[0];
+    if (hit?.object.userData.speech) document.querySelector(`.hero-product[data-mouse="${hand}"] .speech-callout`).click();
+  });
   let drag;
   let renderFrame = 0;
   sceneControls.addEventListener("pointerdown", (event) => {
@@ -658,7 +580,7 @@ async function createButtonScene() {
   resetView = () => {
     pose.dragX = 0;
     pose.dragY = 0;
-    pose.dragProgress = null;
+    pose.dragProgress = 0;
     render();
   };
   sceneControls.addEventListener(
@@ -676,6 +598,9 @@ async function createButtonScene() {
     if (reducedMotion.matches || !window.gsap) {
       hand = nextHand;
       simulator.chooseHand(hand);
+      pose.dragX = 0;
+      pose.dragY = 0;
+      pose.dragProgress = 0;
       renderAll();
       return;
     }
@@ -694,6 +619,7 @@ async function createButtonScene() {
         simulator.chooseHand(hand);
         pose.dragX = 0;
         pose.dragY = 0;
+        pose.dragProgress = 0;
         pose.handTurn = -Math.PI / 2;
         renderAll();
         gsap.to(pose, {
@@ -716,12 +642,12 @@ async function createButtonScene() {
     width = entries[0].contentRect.width;
     height = entries[0].contentRect.height;
     camera.aspect = width / height;
-    camera.position.z = camera.aspect < 1 ? 10.6 / camera.aspect : 10.6;
+    camera.position.z = camera.aspect < 1 ? 11.4 / camera.aspect : 11.4;
     camera.updateProjectionMatrix();
     renderer.setSize(width, height, false);
     render();
   });
-  resize.observe(sceneElement);
+  resize.observe(sceneControls.parentElement); // Mobile puts the output below the model; project keys within the canvas's own box, not the entire chapter.
   const observer = new IntersectionObserver(
     (entries) => {
       visible = entries[0].isIntersecting;
@@ -731,6 +657,7 @@ async function createButtonScene() {
   );
   observer.observe(sceneElement);
   sceneElement.classList.remove("scene-fallback");
+  sceneElement.classList.add("has-mouse-model");
   sceneElement.dataset.engine = `three.js r${THREE.REVISION}`;
   renderer.domElement.addEventListener("webglcontextlost", (event) => {
     event.preventDefault();
@@ -750,10 +677,8 @@ function createScrollStory(scene) {
   gsap.registerPlugin(ScrollTrigger);
   const media = gsap.matchMedia();
   media.add("(prefers-reduced-motion: no-preference)", () => {
-    gsap.to(".hero-product.left img", {
-      y: -58,
-      x: -25,
-      rotation: -6,
+    gsap.to(".hero-product.left", {
+      y: -38,
       ease: "none",
       scrollTrigger: {
         trigger: ".hero",
@@ -762,10 +687,8 @@ function createScrollStory(scene) {
         scrub: 0.6,
       },
     });
-    gsap.to(".hero-product.right img", {
-      y: -58,
-      x: 25,
-      rotation: 6,
+    gsap.to(".hero-product.right", {
+      y: -38,
       ease: "none",
       scrollTrigger: {
         trigger: ".hero",
@@ -876,3 +799,20 @@ createButtonScene()
     );
     createScrollStory(null);
   });
+
+import("./hero-mice.mjs?v=__SITE_VERSION__").then(({ createHeroMouse }) => {
+  for (const figure of document.querySelectorAll(".hero-product")) {
+    void createHeroMouse(figure, map.sources[figure.dataset.mouse], (source, cell) => {
+      hand = source;
+      simulator.chooseHand(hand);
+      resetView();
+      activate(cell, sceneButtons.get(cell));
+      document.querySelector("#buttons").scrollIntoView({ behavior: reducedMotion.matches ? "instant" : "smooth" });
+    }, (source, cell) => {
+      const state = simulator.states[source];
+      const mode = state.mode === "default" ? map.sources[source].defaults[simulator.app] : map.sources[source].modes[state.mode];
+      const control = mode.controls.find((item) => item.cell === cell);
+      return `${source === "razer" ? "Razer" : "Corsair"} ${control.printed}: ${control.title}`;
+    });
+  }
+}).catch((error) => console.warn("The interactive hero could not load.", error));

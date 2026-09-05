@@ -10,17 +10,17 @@ My personal macOS setup, made public so you can explore it and build your own. â
 
 ![An AI recreation of Ethan S K reclining at his studio desk with a mouse in each hand](docs/assets/ethan-lounging.webp)
 
-*My setup, reimagined with AI from my studio photos.*
+*My setup, reimagined with AI from my portrait and studio photos.*
 
 ## Take it for a spin
 
 The website is a working browser demo of the mouse controls:
 
-1. **Drag the 3D grid.** Switch hands to see the printed numbers on each mouse.
+1. **Rotate either mouse.** Drag the models, then switch hands to try each thumb grid.
 2. **Press a mode button.** The controls and lighting change to Utility, Keys, or the current app. Press Exit to return.
 3. **Try the gestures.** Hold a wheel control and use Wheel up / Wheel down. Open Keys â†’ Keypad to type a local example.
 
-The labels, colours, button positions, repair markers, and mode transitions are generated from the native Swift source. The demo does not control your Mac or access your microphone.
+The labels, colours, printed-button crosswalk, repair markers, and mode transitions are generated from the native Swift source. The 3D hardware is recreated from product photographs. The demo does not control your Mac or access your microphone.
 
 ## What I use it for
 

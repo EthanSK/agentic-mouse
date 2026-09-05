@@ -1907,6 +1907,9 @@ button {
   max-width: none;
   height: auto;
 }
+.scene-origin-image:has(img[src$="razer-side.webp"]) {
+  mask-image: radial-gradient(ellipse, #000 48%, transparent 74%);
+}
 @media (max-width: 760px) {
   .scene-origin-image {
     width: 120px;
@@ -2346,4 +2349,217 @@ button {
 
 .hud-demo .sim-actions {
   justify-content: center;
+}
+
+/* Full hardware models share the photographs' frame; the images remain the WebGL fallback. */
+.hero {
+  min-height: 970px;
+}
+.hero-rotation-hint {
+  margin-top: 22px;
+  color: #817889;
+  text-align: center;
+  font-size: 11px;
+}
+.hero-products {
+  margin-top: 10px;
+  flex: none;
+  min-height: 330px;
+}
+.hero-product.left,
+.hero-product.right {
+  height: 330px;
+}
+.hero-mouse-canvas {
+  display: none;
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  cursor: grab;
+  touch-action: pan-y;
+}
+.hero-mouse-canvas.is-dragging {
+  cursor: grabbing;
+}
+.hero-mouse-canvas:focus-visible {
+  outline: 1px solid #a38ebc;
+  outline-offset: -5px;
+  border-radius: 30px;
+}
+.model-ready .hero-mouse-canvas {
+  display: block;
+}
+.model-ready > img {
+  visibility: hidden;
+}
+.speech-leader {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+  z-index: 2;
+}
+.speech-leader path {
+  fill: none;
+  stroke: #9572b4;
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+.speech-leader circle {
+  fill: #b293d0;
+  stroke: #fff;
+  stroke-width: 1.5;
+  vector-effect: non-scaling-stroke;
+}
+.hero-product .speech-callout {
+  top: 12px;
+  bottom: auto;
+}
+.hero-product.left .speech-callout {
+  left: 8%;
+}
+.hero-product.right .speech-callout {
+  right: 8%;
+}
+.hero-product .product-caption {
+  bottom: -47px;
+}
+.hero-reset {
+  display: none;
+  margin: 8px auto 0;
+  border: 0;
+  padding: 3px 8px;
+  background: none;
+  color: #82778d;
+  font: 500 10px var(--sans);
+}
+.model-ready.model-rotated .hero-reset {
+  display: block;
+}
+.hero-reset:hover {
+  color: #483759;
+}
+.has-mouse-model:not(.scene-fallback) .scene-key {
+  color: transparent;
+  font-size: 0;
+  padding: 0;
+  border-radius: 4px;
+}
+@media (max-width: 760px) {
+  .hero {
+    height: auto;
+    min-height: 820px;
+    max-height: none;
+    padding-bottom: 60px;
+  }
+  .hero-products {
+    width: calc(100% - 16px);
+    min-height: 240px;
+    margin-top: 14px;
+  }
+  .hero-product.left,
+  .hero-product.right {
+    height: 240px;
+  }
+  .hero-product.left .speech-callout,
+  .hero-product.right .speech-callout {
+    top: 0;
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
+    font-size: 9px;
+    padding: 8px 9px;
+    gap: 5px;
+  }
+  .hero-product .product-caption {
+    bottom: -53px;
+  }
+  .hero-bottom {
+    margin-top: 85px;
+  }
+}
+.hero-button-hint {
+  position: absolute;
+  left: 50%;
+  bottom: 1rem;
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: 90%;
+  padding: .55rem .85rem;
+  border-radius: .6rem;
+  background: #242329;
+  color: #fff;
+  font-size: .75rem;
+  text-align: center;
+  pointer-events: none;
+}
+.hero-mouse-canvas.is-action { cursor: pointer; }
+.hero-product.model-ready::before {
+  content: "";
+  position: absolute;
+  left: 19%;
+  width: 62%;
+  top: 82%;
+  height: 6%;
+  background: #272231;
+  border-radius: 50%;
+  filter: blur(16px);
+  opacity: .12;
+  pointer-events: none;
+}
+.scene-model {
+  position: absolute;
+  inset: 0;
+}
+.has-mouse-model::before { display: none; }
+.has-mouse-model .scene-model::before {
+  content: "";
+  position: absolute;
+  inset: 17% 0 16%;
+  background: radial-gradient(ellipse, #37394380 0%, #25262e55 40%, transparent 72%);
+  pointer-events: none;
+}
+.has-mouse-model .scene-model::after {
+  content: "";
+  position: absolute;
+  top: 62%;
+  left: 14%;
+  width: 72%;
+  height: 4%;
+  border-radius: 50%;
+  background: #000;
+  filter: blur(13px);
+  opacity: .5;
+  pointer-events: none;
+}
+@media (max-width: 760px) {
+  .has-mouse-model:not(.scene-fallback) { height: auto; }
+  .has-mouse-model:not(.scene-fallback) .scene-toolbar { position: relative; }
+  .has-mouse-model:not(.scene-fallback) .scene-origin {
+    position: relative;
+    top: auto;
+    left: auto;
+    transform: none;
+    justify-content: center;
+    margin: 16px 0 0;
+  }
+  .has-mouse-model:not(.scene-fallback) .scene-model {
+    position: relative;
+    height: 300px;
+  }
+  .has-mouse-model:not(.scene-fallback) .scene-model canvas,
+  .has-mouse-model:not(.scene-fallback) .scene-controls { inset: 0; }
+  .has-mouse-model:not(.scene-fallback) .sim-output {
+    position: relative;
+    inset: auto;
+    margin: 0;
+  }
+  .has-mouse-model:not(.scene-fallback) .scene-meta {
+    position: relative;
+    bottom: auto;
+    margin: 18px 0 0;
+  }
 }
