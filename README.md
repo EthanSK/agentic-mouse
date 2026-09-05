@@ -17,10 +17,10 @@ My personal macOS setup, made public so you can explore it and build your own. �
 The website is a working browser demo of the mouse controls:
 
 1. **Rotate either mouse.** Drag the models, then switch hands to try each thumb grid.
-2. **Press a mode button.** The controls and lighting change to Utility, Keys, or the current app. Press Exit to return.
+2. **Press a mode button.** The native-style HUD opens beside the mouse with Utility, Keys, or the current app’s controls. Press Exit to return.
 3. **Try the gestures.** Hold a wheel control and use Wheel up / Wheel down. Open Keys → Keypad to type a local example.
 
-The labels, colours, printed-button crosswalk, repair markers, and mode transitions are generated from the native Swift source. The 3D hardware is recreated from product photographs. The demo does not control your Mac or access your microphone.
+The HUD’s labels, card colours, printed-button crosswalk, repair markers, and mode transitions are generated from the native Swift source. On phones, the HUD appears below the mouse and scrolls into view when you press a key. The 3D hardware is recreated from product photographs. The demo does not control your Mac or access your microphone.
 
 ## What I use it for
 

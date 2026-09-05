@@ -152,7 +152,39 @@
                 ></select
               ></label>
               <p class="sim-app-hint" data-app-hint></p>
-              <div class="control-result" aria-live="polite" aria-atomic="true">
+              <div class="native-preview">
+                <p class="native-preview-label">HUD on my Mac</p>
+                <div data-native-hud id="mouse-hud"></div>
+                <div class="native-hud-hidden" data-legend-hidden hidden>
+                  Default legend hidden<button type="button" data-show-legend>Show legend</button>
+                </div>
+              </div>
+
+            </div>
+            <div class="scene-wrap scene-fallback" id="button-scene">
+              <div class="scene-toolbar">
+                <span id="scene-mode">Default mode</span
+                ><button type="button" id="reset-view">Reset view ↻</button>
+              </div>
+              <div class="scene-origin">
+                <span class="scene-origin-image"
+                  ><img
+                    src="./assets/corsair.webp"
+                    width="1200"
+                    height="1200"
+                    alt="" /></span
+                ><span>Side buttons,<br />under your thumb.</span>
+              </div>
+              <div class="scene-model">
+                <canvas id="control-canvas" aria-hidden="true"></canvas>
+                <div
+                  class="scene-controls"
+                  id="scene-controls"
+                  role="group"
+                  aria-label="Interactive twelve-button mouse grid"
+                ></div>
+              </div>
+              <div class="control-result scene-result" aria-live="polite" aria-atomic="true">
                 <p class="result-address" id="control-address">
                   Corsair 4 · Razer 6
                 </p>
@@ -160,6 +192,7 @@
                 <p id="control-detail">
                   Hold the button and turn the wheel to copy or paste.
                 </p>
+                <output class="native-text-output" data-sim-output data-keypad-output hidden></output>
                 <div
                   class="sim-actions"
                   role="group"
@@ -188,35 +221,6 @@
                 <p class="result-instruction">
                   Browser demo only. Nothing is sent to your Mac.
                 </p>
-              </div>
-            </div>
-            <div class="scene-wrap scene-fallback" id="button-scene">
-              <div class="scene-toolbar">
-                <span id="scene-mode">Default mode</span
-                ><button type="button" id="reset-view">Reset view ↻</button>
-              </div>
-              <div class="scene-origin">
-                <span class="scene-origin-image"
-                  ><img
-                    src="./assets/corsair.webp"
-                    width="1200"
-                    height="1200"
-                    alt="" /></span
-                ><span>Side buttons,<br />under your thumb.</span>
-              </div>
-              <div class="scene-model">
-                <canvas id="control-canvas" aria-hidden="true"></canvas>
-                <div
-                  class="scene-controls"
-                  id="scene-controls"
-                  role="group"
-                  aria-label="Interactive twelve-button mouse grid"
-                ></div>
-              </div>
-              <div class="sim-output">
-                <span>Example output</span
-                ><output data-sim-output aria-live="polite">Try a button</output
-                ><small data-sim-history></small>
               </div>
               <p class="scene-meta">
                 <span></span>12 thumb buttons<span></span
@@ -278,8 +282,8 @@
               </h2>
             </div>
             <p>
-              A floating legend on every screen. The buttons show what they do,
-              and the mouse lights up to match the mode. Pick one to try it.
+              The HUD I use on my Mac. Click a button to open its mode.
+              The mouse lights up to match.
             </p>
           </div>
           <div class="hud-demo">
@@ -347,36 +351,13 @@
                   aria-label="HUD current app"
                 ></select
               ></label>
-              <div class="hud-frame" id="hud-frame">
-                <div
-                  class="hud-grid"
-                  id="hud-grid"
-                  role="group"
-                  aria-label="HUD controls"
-                ></div>
-                <div id="legend-hidden-note" hidden>
-                  Default legend hidden<button type="button" id="show-legend">
-                    Show legend
-                  </button>
-                </div>
-                <div class="hud-footer">
-                  <span id="hud-mode-name">Default mode</span>
-                  <div class="hud-hand" role="group" aria-label="HUD mouse">
-                    <button
-                      type="button"
-                      data-hud-hand="razer"
-                      aria-pressed="false"
-                    >
-                      Razer</button
-                    ><button
-                      type="button"
-                      data-hud-hand="corsair"
-                      aria-pressed="true"
-                    >
-                      Corsair
-                    </button>
-                  </div>
-                </div>
+              <div class="hud-hand" role="group" aria-label="HUD mouse">
+                <button type="button" data-hud-hand="razer" aria-pressed="false">Razer</button>
+                <button type="button" data-hud-hand="corsair" aria-pressed="true">Corsair</button>
+              </div>
+              <div data-native-hud id="hud-frame"></div>
+              <div class="native-hud-hidden" data-legend-hidden hidden>
+                Default legend hidden<button type="button" data-show-legend>Show legend</button>
               </div>
               <p
                 class="hud-explanation"
@@ -410,14 +391,14 @@
                   Reset demo
                 </button>
               </div>
-              <div class="sim-output sim-output-hud">
-                <span>Example output</span
+              <div class="sim-output sim-output-hud" data-keypad-output hidden>
+                <span>Keypad text</span
                 ><output data-sim-output aria-live="off">Try a button</output
                 ><small data-sim-history></small>
               </div>
               <p class="hud-caption">
                 Generated from the app source. Actions run in this page only.
-                <span class="repair-key">× Needs repair</span> marks a reported
+                <span class="repair-key">❌</span> marks a reported
                 physical issue.
               </p>
             </div>

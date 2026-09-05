@@ -1,4 +1,5 @@
 import { MouseSimulator } from "./simulator.mjs?v=__SITE_VERSION__";
+import { createNativeHUD } from "./native-hud.mjs?v=__SITE_VERSION__";
 
 const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
 const sceneElement = document.querySelector("#button-scene");
@@ -25,6 +26,7 @@ let resetView = () => {};
 let tourHasInput = false;
 let suppressClick = false;
 let pendingTimer;
+const feedbackTimers = new Map();
 let followHeroSelection = false;
 let changeHand = (nextHand) => {
   simulator.chooseHand(nextHand);
@@ -32,7 +34,7 @@ let changeHand = (nextHand) => {
   renderAll();
 };
 const sceneButtons = new Map();
-const hudButtons = new Map();
+const hudViews = [];
 const heldButtons = new WeakSet();
 
 function rowsFor(source) {
@@ -120,12 +122,23 @@ function activate(cell, button) {
   tourHasInput = true;
   simulator.press(cell);
   renderAll();
+  const closedHUD = button.closest(".native-hud[hidden]");
+  if (closedHUD) closedHUD.nextElementSibling.querySelector("[data-show-legend]").focus(); // Hiding the legend from its own keyboard control must leave focus on the visible way to reopen it.
+  if (phoneHUD.matches && button.closest("#buttons")) {
+    requestAnimationFrame(() => nativePreview.scrollIntoView({ block: "nearest", behavior: reducedMotion.matches ? "instant" : "smooth" })); // On a phone, a key could update the HUD below the viewport; bring the panel into view while keeping the mouse above it.
+  }
+}
+
+function schedulePendingText() {
   clearTimeout(pendingTimer);
-  if (simulator.state.pending)
+  const deadline = Math.min(...Object.values(simulator.states).map((state) => state.pending?.deadline ?? Infinity));
+  if (Number.isFinite(deadline))
     pendingTimer = setTimeout(() => {
       simulator.tick();
+      renderHUD();
       renderOutputs();
-    }, map.keypadTimeout + 10);
+      schedulePendingText();
+    }, Math.max(0, deadline - performance.now()) + 10); // A click on the other hand must not cancel the first hand's pending letter; service both native coordinators' deadlines.
 }
 
 /** A real long press uses the native keypad hold threshold; the explicit Hold button also works with a keyboard. */
@@ -187,25 +200,6 @@ for (const physical of CELLS) {
     gridKeydown(event, physical.id, sceneButtons),
   );
   sceneButtons.set(physical.id, button);
-  const hudButton = document.createElement("button");
-  hudButton.type = "button";
-  hudButton.className = "hud-cell";
-  hudButton.addEventListener("click", () => activate(physical.id, hudButton));
-  bindKeypadHold(hudButton, physical.id);
-  hudButton.addEventListener("focus", () => {
-    document.querySelector("#hud-explanation").textContent = describe(
-      simulator.control(physical.id),
-    );
-  });
-  hudButton.addEventListener("pointerenter", () => {
-    document.querySelector("#hud-explanation").textContent = describe(
-      simulator.control(physical.id),
-    );
-  });
-  hudButton.addEventListener("keydown", (event) =>
-    gridKeydown(event, physical.id, hudButtons),
-  );
-  hudButtons.set(physical.id, hudButton);
 }
 document.querySelectorAll("[data-hand], [data-hud-hand]").forEach((button) =>
   button.addEventListener("click", () => {
@@ -215,16 +209,12 @@ document.querySelectorAll("[data-hand], [data-hud-hand]").forEach((button) =>
 );
 
 function renderHUD() {
-  const grid = document.querySelector("#hud-grid");
-  document
-    .querySelector("#hud-frame")
-    .style.setProperty("--hud-accent", simulator.mode.color);
+  for (const render of hudViews) render();
   document
     .querySelector(".hud-section")
     .style.setProperty("--mode-light", simulator.mode.color);
   document.querySelector("#mode-light-label").textContent =
     `${simulator.mode.title} lighting`;
-  document.querySelector("#hud-mode-name").textContent = simulator.mode.title;
   document.querySelectorAll("[data-hud-mode]").forEach((button) => {
     button.setAttribute(
       "aria-pressed",
@@ -249,50 +239,19 @@ function renderHUD() {
   document.querySelector("#hud-explanation").textContent = describe(
     simulator.control(selectedCell),
   );
-  grid.classList.toggle(
-    "legend-hidden",
-    simulator.state.mode === "default" && !simulator.state.legend,
-  );
-  document.querySelector("#legend-hidden-note").hidden =
-    simulator.state.mode !== "default" || simulator.state.legend;
-  let position = 0;
-  for (const cell of rowsFor(hand).flat()) {
-    const control = simulator.control(cell);
-    const button = hudButtons.get(cell);
-    button.className = `hud-cell${control.reportedBroken ? " is-broken" : ""}`;
-    button.style.setProperty(
-      "--cell-color",
-      control.destinationColor ?? control.color,
-    );
-    button.classList.toggle(
-      "is-destination",
-      Boolean(control.destinationColor),
-    );
-    button.setAttribute("aria-pressed", String(cell === selectedCell));
-    button.setAttribute(
-      "aria-label",
-      `${hand === "razer" ? "Razer" : "Corsair"} ${control.printed}: ${control.title}${control.reportedBroken ? ", reported physical issue" : ""}`,
-    );
-    const number = document.createElement("span");
-    number.className = "hud-number";
-    number.textContent = control.printed;
-    const caption = document.createElement("span");
-    caption.className = "hud-title";
-    caption.textContent = control.title;
-    button.replaceChildren(number, caption);
-    if (control.reportedBroken) {
-      const repair = document.createElement("span");
-      repair.className = "repair-chip";
-      repair.textContent = "× Needs repair";
-      button.append(repair);
-    }
-    if (grid.children[position] !== button)
-      grid.insertBefore(button, grid.children[position] ?? null);
-    position += 1;
-  }
+  document.querySelectorAll("[data-legend-hidden]").forEach((note) => {
+    note.hidden = simulator.state.mode !== "default" || simulator.state.legend;
+  });
 }
 
 function renderOutputs() {
+  clearTimeout(feedbackTimers.get(hand));
+  const state = simulator.state;
+  if (state.feedback) feedbackTimers.set(hand, setTimeout(() => {
+    state.feedback = null;
+    renderHUD();
+  }, 4000)); // The native ColorProofHUDPanel returns to its mode title four seconds after action feedback; keep each hand's timer independent.
+  document.querySelectorAll("[data-keypad-output]").forEach((output) => { output.hidden = simulator.state.mode !== "keypad"; });
   document.querySelectorAll("[data-sim-output]").forEach((output) => {
     output.textContent = simulator.state.output;
     output.classList.toggle("is-typing", Boolean(simulator.state.pending));
@@ -340,6 +299,7 @@ function renderAll() {
   renderControls();
   renderHUD();
   renderOutputs();
+  schedulePendingText();
 }
 
 document.querySelectorAll("[data-hud-mode]").forEach((button) =>
@@ -410,10 +370,30 @@ document.querySelectorAll("[data-sim-action]").forEach((button) =>
 document
   .querySelector("#reset-view")
   .addEventListener("click", () => resetView());
-document.querySelector("#show-legend").addEventListener("click", () => {
+document.querySelectorAll("[data-show-legend]").forEach((button) => button.addEventListener("click", () => {
   simulator.state.legend = true;
   renderAll();
-});
+}));
+for (const element of document.querySelectorAll("[data-native-hud]")) {
+  hudViews.push(createNativeHUD(element, simulator, {
+    activate,
+    bindHold: bindKeypadHold,
+    keydown: gridKeydown,
+    preview: (cell) => {
+      tourHasInput = true;
+      previewControl(cell);
+      document.querySelector("#hud-explanation").textContent = describe(simulator.control(cell));
+    },
+  }));
+}
+const phoneHUD = window.matchMedia("(max-width: 760px)");
+const nativePreview = document.querySelector(".native-preview");
+function placeHUD() {
+  if (phoneHUD.matches) sceneElement.insertBefore(nativePreview, document.querySelector(".scene-result"));
+  else document.querySelector(".control-copy").append(nativePreview);
+} // Keep the HUD beside the mouse on desktop and directly below it on phones, so clicking a key never updates an off-screen panel. (Codex task: 01a06ee5-4aa0-7a61-a029-704e5c44a8f2)
+phoneHUD.addEventListener("change", placeHUD);
+placeHUD();
 renderAll();
 let controlsWereVisible = false;
 new IntersectionObserver(([entry]) => {
@@ -602,6 +582,7 @@ async function createButtonScene() {
       if (simulator.state.held === null || event.ctrlKey) return;
       event.preventDefault();
       simulator.wheel(event.deltaY < 0 ? "up" : "down");
+      renderHUD();
       renderOutputs();
     },
     { passive: false },

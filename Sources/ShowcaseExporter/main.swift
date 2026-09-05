@@ -9,12 +9,38 @@ struct SiteControl: Encodable {
     let color: String
     let destinationColor: String?
     let reportedBroken: Bool
+    let hud: SiteHUDCard
+    let appIcon: String?
     var next: String?
     var followsApp: Bool?
     var effect: String?
     var wheel: SiteWheel?
     var keypad: SiteKeypad?
     var doublePress: String?
+}
+
+struct SiteHUDCard: Encodable {
+    let fill: String
+    let border: String
+    let foreground: String
+}
+
+struct SiteHUDBorder: Encodable {
+    let width: Double
+    let opacity: Double
+
+    init(selected: Bool, navigation: Bool) {
+        let treatment = ModeHUDCardBorderTreatment(isSelected: selected, isModeNavigation: navigation)
+        width = treatment.lineWidth
+        opacity = treatment.opacity
+    }
+}
+
+struct SiteHUDMetrics: Encodable {
+    let cardInset = ModeHUDLayoutMetrics.cardHorizontalContentInset
+    let ordinary = SiteHUDBorder(selected: false, navigation: false)
+    let navigation = SiteHUDBorder(selected: false, navigation: true)
+    let selected = SiteHUDBorder(selected: true, navigation: false)
 }
 
 struct SiteWheel: Encodable {
@@ -29,15 +55,18 @@ struct SiteKeypad: Encodable {
     let digit: String?
     let tap: KeyAction?
     let hold: KeyAction?
+    let holdCaption: String?
 }
 
 struct SiteMode: Encodable {
     let title: String
     let color: String
     let controls: [SiteControl]
+    let presentationStyle: String
 }
 
 struct SiteSource: Encodable {
+    let name: String
     let rows: [[Int]]
     let modes: [String: SiteMode]
     let defaults: [String: SiteMode]
@@ -55,6 +84,13 @@ struct SiteMap: Encodable {
     let keypadTimeout: Double
     let holdThreshold: Double
     let initialShift: String
+    let version: String
+    let hud = SiteHUDMetrics()
+}
+
+struct SiteVersion: Decodable {
+    let CFBundleShortVersionString: String
+    let CFBundleVersion: String
 }
 
 /// Satisfies the coordinator's lease boundary without a Karabiner connection.
@@ -140,7 +176,7 @@ func exportSource(_ source: MouseSource) -> SiteSource {
         }
         let snapshot = probe.hud.snapshots.last!
         let controls = snapshot.legend.map { item -> SiteControl in
-            var control = exportControl(item, source: source)
+            var control = exportControl(item, source: source, modeAccent: snapshot.accent, style: snapshot.presentationStyle)
             let press = ModePickerCommand(action: .select, source: source, physicalCell: item.cell, phase: .press)
             let cellProbe = SiteProbe(source: source, commands: route.commands, app: route.app)
             cellProbe.coordinator.handle(press)
@@ -162,10 +198,11 @@ func exportSource(_ source: MouseSource) -> SiteSource {
             }
             return control
         }
-        modes[modeID] = SiteMode(title: snapshot.modeTitle, color: hex(snapshot.accent), controls: controls)
+        modes[modeID] = SiteMode(title: snapshot.modeTitle, color: hex(snapshot.accent), controls: controls, presentationStyle: snapshot.presentationStyle.rawValue)
     }
     modes["default"] = defaultMode(source, app: nil)
     return SiteSource(
+        name: source.displayName,
         rows: PhysicalCell.displayRowsTopToBottom(for: source).map { $0.map(\.rawValue) },
         modes: modes,
         defaults: Dictionary(uniqueKeysWithValues: AppSpecificTarget.allCases.map { ($0.rawValue, defaultMode(source, app: $0)) })
@@ -176,7 +213,7 @@ func exportSource(_ source: MouseSource) -> SiteSource {
 func defaultMode(_ source: MouseSource, app: AppSpecificTarget?) -> SiteMode {
     let snapshot = DefaultMapLegend.snapshot(source: source, frontmostAppContext: context(for: app))
     let controls = snapshot.legend.map { item -> SiteControl in
-        var control = exportControl(item, source: source)
+        var control = exportControl(item, source: source, modeAccent: snapshot.accent, style: snapshot.presentationStyle)
         let entry: ModePickerCommand.Action?
         switch item.cell {
         case .modePickerEntry: entry = .open
@@ -196,7 +233,7 @@ func defaultMode(_ source: MouseSource, app: AppSpecificTarget?) -> SiteMode {
         if let wheel = WheelChordControl.topLevelControl(for: item.cell) { control.wheel = exportWheel(wheel) }
         return control
     }
-    return SiteMode(title: snapshot.modeTitle, color: hex(snapshot.accent), controls: controls)
+    return SiteMode(title: snapshot.modeTitle, color: hex(snapshot.accent), controls: controls, presentationStyle: snapshot.presentationStyle.rawValue)
 }
 
 /// Exports the actual keypad groups and commands without a second letter map.
@@ -204,18 +241,21 @@ func keypadMode(_ source: MouseSource) -> SiteMode {
     let accent = ModePickerCoordinator.keypadAccent
     let controls = PhysicalCell.all.map { cell -> SiteControl in
         let spec = MultiTapKeymap.modesKeypad[MultiTapKey(rawValue: cell.rawValue)!]!
-        var control = exportControl(.init(cell: cell, actionTitle: spec.caption, accent: accent), source: source)
-        control.keypad = SiteKeypad(cycle: spec.cycle.map(String.init), digit: spec.numericCharacter.map(String.init), tap: spec.tapAction, hold: spec.holdAction)
+        var control = exportControl(.init(cell: cell, actionTitle: spec.caption, accent: accent), source: source, modeAccent: accent, style: .neutral)
+        control.keypad = SiteKeypad(cycle: spec.cycle.map(String.init), digit: spec.numericCharacter.map(String.init), tap: spec.tapAction, hold: spec.holdAction, holdCaption: spec.holdCaption)
         if spec.tapAction == .exitMode { control.next = "default" }
         return control
     }
-    return SiteMode(title: "Keypad mode", color: hex(accent), controls: controls)
+    return SiteMode(title: "Keypad mode", color: hex(accent), controls: controls, presentationStyle: "keypad")
 }
 
-func exportControl(_ item: ModeHUDLegendItem, source: MouseSource) -> SiteControl {
-    SiteControl(cell: item.cell.rawValue, printed: item.cell.printedSide(on: source)!, title: item.actionTitle,
+func exportControl(_ item: ModeHUDLegendItem, source: MouseSource, modeAccent: RGBColor, style: ModeHUDPresentationStyle) -> SiteControl {
+    let colors = ModeHUDCardColors(modeAccent: modeAccent, actionAccent: item.accent, destinationModeAccent: item.destinationModeAccent, presentationStyle: style) // The website must show the native HUD, not invent a second palette. Resolve both colour roles through the same Swift presentation code. (Codex task: 01a06ee5-4aa0-7a61-a029-704e5c44a8f2)
+    return SiteControl(cell: item.cell.rawValue, printed: item.cell.printedSide(on: source)!, title: item.actionTitle,
                 color: hex(item.accent), destinationColor: item.destinationModeAccent.map(hex),
-                reportedBroken: item.controlStatus == .reportedBroken)
+                reportedBroken: item.controlStatus == .reportedBroken,
+                hud: SiteHUDCard(fill: hex(colors.fill), border: hex(colors.border), foreground: hex(colors.foreground)),
+                appIcon: AppSpecificTarget.allCases.first { $0.bundleIdentifier == item.appBackdrop?.bundleIdentifier }?.rawValue)
 }
 
 /// Direction labels come from the native wheel resolver, including its accepted per-family physical inversions.
@@ -240,12 +280,14 @@ func hex(_ color: RGBColor) -> String {
     String(format: "#%02x%02x%02x", color.red, color.green, color.blue)
 }
 
+let version = try PropertyListDecoder().decode(SiteVersion.self, from: Data(contentsOf: URL(fileURLWithPath: "Resources/Info.plist")))
 let map = SiteMap(
     sources: Dictionary(uniqueKeysWithValues: MouseSource.allCases.map { ($0.rawValue, exportSource($0)) }),
     apps: AppSpecificTarget.allCases.map { SiteApp(id: $0.rawValue, title: $0.displayName) },
     keypadTimeout: MultiTapConfiguration.default.multiTapTimeout * 1000,
     holdThreshold: MultiTapConfiguration.default.holdThreshold * 1000,
-    initialShift: MultiTapConfiguration.default.initialShiftState.rawValue
+    initialShift: MultiTapConfiguration.default.initialShiftState.rawValue,
+    version: AgenticMouseVersion.displayString(marketingVersion: version.CFBundleShortVersionString, buildVersion: version.CFBundleVersion)
 )
 let encoder = JSONEncoder()
 encoder.outputFormatting = [.sortedKeys, .withoutEscapingSlashes]

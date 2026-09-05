@@ -22,6 +22,8 @@ export class MouseSimulator {
       pending: null,
       shift: this.map.initialShift,
       history: [],
+      hudSelection: null,
+      feedback: null,
     };
   }
 
@@ -50,6 +52,8 @@ export class MouseSimulator {
     for (const state of Object.values(this.states)) {
       state.held = null;
       state.pending = null; // The native keypad cancels pending text when the target app changes.
+      state.hudSelection = null;
+      state.feedback = null;
       if (state.followsApp) state.mode = app;
     }
   }
@@ -60,6 +64,8 @@ export class MouseSimulator {
     this.state.followsApp = followsApp;
     this.state.held = null;
     this.state.pending = null;
+    this.state.hudSelection = null;
+    this.state.feedback = null;
     if (mode === "keypad") this.state.shift = this.map.initialShift;
     this.state.output = this.mode.title;
   }
@@ -73,6 +79,7 @@ export class MouseSimulator {
     this.tick(now);
     this.state.selected = cell;
     const control = this.control(cell);
+    this.state.hudSelection = cell;
     if (!control.wheel) {
       this.state.held = null;
       this.state.wheelUsed = false;
@@ -90,13 +97,16 @@ export class MouseSimulator {
       this.state.output = this.state.held
         ? `Holding ${control.printed} · ${control.title}`
         : "Button released";
+      this.state.feedback = this.state.output;
     } else if (control.effect === "toggleLegend") {
+      this.state.feedback = null;
       this.state.legend = !this.state.legend;
       this.state.output = this.state.legend
         ? "Default legend shown"
         : "Default legend hidden";
     } else if (control.title === "Spare") {
       this.state.output = "No action here";
+      this.state.feedback = this.state.output;
     } else {
       this.record(control.effect ?? control.title);
     }
@@ -105,6 +115,7 @@ export class MouseSimulator {
   /** Expose a held gesture explicitly so mouse, touch and keyboard visitors can all try it. */
   hold(cell, now = performance.now()) {
     this.state.selected = cell;
+    this.state.hudSelection = cell;
     const control = this.control(cell);
     if (control.keypad) {
       this.commitPending();
@@ -115,12 +126,14 @@ export class MouseSimulator {
       this.state.held = cell;
       this.state.wheelUsed = false;
       this.state.output = `Holding ${control.printed} · ${control.title}`;
+      this.state.feedback = this.state.output;
     }
   }
   release() {
     this.state.held = null;
     this.state.wheelUsed = false;
     this.state.output = "Button released";
+    this.state.feedback = null;
   }
 
   /** The exported labels resolve wheel direction and one-action-per-hold behaviour in Swift. */
@@ -131,10 +144,12 @@ export class MouseSimulator {
     const action = control.wheel[direction];
     if (control.wheel.oncePerHold && this.state.wheelUsed) {
       this.state.output = "Release and hold again";
+      this.state.feedback = this.state.output;
       return;
     }
     if (!action) {
       this.state.output = "No action in this direction";
+      this.state.feedback = this.state.output;
       return;
     }
     this.state.wheelUsed = true;
@@ -162,6 +177,7 @@ export class MouseSimulator {
     if (action === "pressBackspace")
       this.state.text = this.state.text.slice(0, -1);
     this.state.output = keyText[action] ?? action;
+    this.state.feedback = this.state.output;
     this.state.history = [...this.state.history.slice(-3), this.state.output];
   }
 

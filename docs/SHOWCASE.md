@@ -18,6 +18,33 @@ the chapter. Keyboard testing caught that failure. The enclosing chapter uses
 grid usable if WebGL is unavailable. The scroll tour permanently yields after
 visitor input; mobile and reduced-motion layouts have no long pinned chapter.
 
+## Native HUD preview
+
+The controls chapter and HUD section share `docs/native-hud.mjs`. A physical mouse
+key, HUD card, or keyboard activation updates both views through the same simulator.
+The browser renders the native 4 × 3 hierarchy: action titles above printed source
+labels, navigation colours, quieter opaque action fills, selection borders, repair
+crosses, the mode footer, and Keypad cycles with the pending character highlighted.
+The main HUD sits beside the mouse on desktop and below it on phones. Phone key
+activation scrolls only enough to bring the HUD into view. The native application
+and the visitor's Mac are never controlled.
+
+`ShowcaseExporter` derives card colours from `ModeHUDCardColors`, borders from
+`ModeHUDCardBorderTreatment`, padding from `ModeHUDLayoutMetrics`, and the version
+from the committed `Resources/Info.plist`. Mode definitions, not browser tables,
+choose which cards receive app icons. `assets/apps/*.png` contains 128 × 128 exports
+of the corresponding installed application's public icon artwork; the normal build
+uses these committed assets and does not inspect installed applications. The icons
+and trademarks remain their owners' property. Add the matching icon if a new named
+app is introduced; the website test checks every referenced icon.
+
+The CSS matches `ModeHUDView` and `HUDView` spacing and type hierarchy. Browser blur
+approximates macOS glass; it does not reproduce AppKit's system compositor. Changes
+to SwiftUI's layout still need a matching CSS change and visual comparison. Native
+mapping, colour-role and mode changes rebuild automatically on a push. Action
+feedback clears after the native panel's four-second interval. A hidden Default
+legend remains hidden after exiting a mode; each mouse retains its own state.
+
 ## Dependencies
 
 Browser dependencies are pinned and served from `lib/`, without runtime CDN imports:
