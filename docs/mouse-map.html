@@ -3,253 +3,27 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta
-      name="description"
-      content="An interactive, physical-position map of Ethan's Corsair Scimitar and left-handed Razer Naga controls."
-    />
-    <meta name="theme-color" content="#0b0e1c" />
-    <title>Physical Mouse Map — Agentic Mouse</title>
-    <link rel="stylesheet" href="./mouse-map.css?v=20260823a" />
-    <script src="./mouse-map.js?v=20260823a" defer></script>
+    <title>Agentic Mouse — full control map</title>
+    <link rel="stylesheet" href="./map.css?v=__SITE_VERSION__" />
   </head>
   <body>
-    <a class="skip-link" href="#mapping-board">Skip to the mouse map</a>
-
-    <header class="map-rail">
-      <a class="rail-brand" href="./" aria-label="Back to Agentic Mouse">
-        <span class="brand-pads" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
-        <span><strong>AGENTIC MOUSE</strong><small>DEFAULT TRANSPORT MAP</small></span>
-      </a>
-
-      <div class="layer-control" aria-label="Application layer">
-        <span class="control-label">LAYER</span>
-        <div class="dip-switch" role="radiogroup" aria-label="Choose mapping layer">
-          <button class="layer-button is-active" type="button" role="radio" aria-checked="true" data-layer="normal">Normal</button>
-          <button class="layer-button" type="button" role="radio" aria-checked="false" data-layer="vscode">VS Code base</button>
-        </div>
-      </div>
-
-      <button
-        class="key-toggle"
-        id="key-toggle"
-        type="button"
-        aria-expanded="false"
-        aria-controls="grid-key"
-      >
-        <span class="mini-grid" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></span>
-        Grid key
-        <kbd>G</kbd>
-      </button>
-    </header>
-
-    <aside class="grid-key" id="grid-key" aria-labelledby="grid-key-title" hidden>
-      <div class="key-heading">
-        <div>
-          <p class="designator">REFERENCE / 4 × 3</p>
-          <h2 id="grid-key-title">Thumb-grid key</h2>
-        </div>
-        <button class="key-close" id="key-close" type="button" aria-label="Close grid key">×</button>
-      </div>
-
-      <div class="key-device-switch" role="radiogroup" aria-label="Grid numbering shown first">
-        <button type="button" class="is-active" role="radio" aria-checked="true" data-key-device="corsair">Corsair first</button>
-        <button type="button" role="radio" aria-checked="false" data-key-device="razer">Razer first</button>
-      </div>
-
-      <p class="orientation"><span>FRONT</span><i aria-hidden="true"></i><span>REAR</span></p>
-      <div class="key-grid" id="key-grid" aria-label="Clickable physical position crosswalk"></div>
-      <p class="key-explainer">Same physical cell, different printed number. Click any cell to highlight both mice.</p>
-
-      <ul class="signal-legend compact" aria-label="Signal types">
-        <li><i class="signal-dot pointing">●</i> Native pointer</li>
-        <li><i class="signal-dot media">◎</i> Native media</li>
-        <li><i class="signal-dot keyboard">□</i> Keystroke</li>
-        <li><i class="signal-dot consumed">×</i> Consumed</li>
-        <li><i class="signal-dot runtime">◆</i> Runtime mode</li>
-      </ul>
-    </aside>
-
     <main>
-      <section class="map-intro" aria-labelledby="page-title">
-        <p class="designator"><span class="status-led" aria-hidden="true"></span> TWO DEVICES / ONE PHYSICAL VOCABULARY</p>
-        <h1 id="page-title">Same reach.<br /><em>Same action.</em></h1>
-        <p class="intro-copy">
-          The numbers disagree because the mice are mirrored. The positions do not. Pick any side button to inspect the installed Default transport and its VS Code base override. Runtime pages live in the main interactive deck.
-        </p>
-        <div class="truth-strip" aria-label="Current mapping facts">
-          <span><b>Back / Forward</b> are native mouse buttons</span>
-          <span><b>Media</b> uses system consumer keys</span>
-          <span><b>Runtime chords</b> are owned by Agentic Mouse</span>
-        </div>
-      </section>
-
-      <section class="mapping-board" id="mapping-board" aria-label="Interactive mirrored mouse map">
-        <div class="board-caption" aria-hidden="true">
-          <span>SAME HEIGHT, SAME CELL</span>
-          <i></i>
-          <span>THE PRINTED NUMBERS DISAGREE</span>
-        </div>
-
-        <p class="layer-note" id="layer-note">
-          <strong>Default preview.</strong> The ordinary base applies everywhere except the two explicit VS Code overrides on cells 5 and 8.
-        </p>
-
-        <div class="device-stage" id="device-stage">
-          <svg class="signal-layer" id="signal-layer" aria-hidden="true">
-            <path class="trace-shadow" id="trace-shadow" d="" />
-            <path class="trace-active" id="trace-active" d="" />
-            <circle class="trace-via trace-via-start" id="trace-start" r="5" cx="0" cy="0" />
-            <circle class="trace-via trace-via-end" id="trace-end" r="5" cx="0" cy="0" />
-          </svg>
-
-          <article class="device device-razer" aria-labelledby="razer-title">
-            <header class="device-header">
-              <div>
-                <p class="device-side">LEFT-HAND / ONBOARD TRANSPORTS</p>
-                <h2 id="razer-title">Razer Naga</h2>
-              </div>
-              <span class="device-state"><i></i> INSTALLED RULES</span>
-            </header>
-
-            <div class="mouse-assembly razer-assembly">
-              <div class="mouse-depth" aria-hidden="true"></div>
-              <div class="mouse-shell" aria-hidden="true">
-                <span class="shell-highlight"></span>
-                <span class="shell-seam"></span>
-                <span class="wheel"><i></i><i></i><i></i><i></i></span>
-              </div>
-
-              <div class="top-controls razer-controls" aria-label="Razer top controls">
-                <button type="button" class="top-control media-control" data-extra="razer-wheel">
-                  <span>◎</span><small>PLAY / PAUSE</small>
-                </button>
-                <button type="button" class="top-control voice-control" data-extra="razer-f21">
-                  <span>F21</span><small>VOICEINK++</small>
-                </button>
-                <button type="button" class="top-control voice-control" data-extra="razer-f22">
-                  <span>F22</span><small>VOICEINK++</small>
-                </button>
-              </div>
-
-              <div class="thumb-plate thumb-plate-razer">
-                <span class="plate-label">RZ01-03410 / MAIN ROW</span>
-                <div class="thumb-grid razer-grid" id="razer-grid" role="radiogroup" aria-label="Razer Naga thumb grid"></div>
-              </div>
-            </div>
-
-            <footer class="device-footer">
-              <span><b>USB</b> 1532:008D</span>
-              <span><b>SENSOR</b> 2,700 DPI · 1,000 Hz</span>
-            </footer>
-          </article>
-
-          <div class="signal-bus" aria-hidden="true">
-            <span class="bus-title">THE BUS</span>
-            <div class="bus-ruler">
-              <i></i><i></i><i></i>
-              <b></b><b></b><b></b><b></b><b></b><b></b><b></b><b></b><b></b><b></b><b></b><b></b>
-            </div>
-            <span class="bus-label" id="bus-label">SELECT A CELL</span>
-          </div>
-
-          <article class="device device-corsair" aria-labelledby="corsair-title">
-            <header class="device-header">
-              <div>
-                <p class="device-side">RIGHT-HAND / ICUE TRANSPORTS</p>
-                <h2 id="corsair-title">Corsair Scimitar</h2>
-              </div>
-              <span class="device-state"><i></i> INSTALLED RULES</span>
-            </header>
-
-            <div class="mouse-assembly corsair-assembly">
-              <div class="mouse-depth" aria-hidden="true"></div>
-              <div class="mouse-shell" aria-hidden="true">
-                <span class="shell-highlight"></span>
-                <span class="shell-seam"></span>
-                <span class="wheel"><i></i><i></i><i></i><i></i></span>
-              </div>
-
-              <div class="top-controls corsair-controls" aria-label="Corsair top controls">
-                <button type="button" class="top-control media-control" data-extra="corsair-wheel">
-                  <span>◎</span><small>PLAY / PAUSE</small>
-                </button>
-                <button type="button" class="top-control" data-extra="corsair-dpi">
-                  <span>DPI</span><small>VOICEINK++</small>
-                </button>
-              </div>
-
-              <div class="thumb-plate thumb-plate-corsair">
-                <span class="plate-label">ICUE VIRTUAL HID / KEYPAD</span>
-                <div class="thumb-grid corsair-grid" id="corsair-grid" role="radiogroup" aria-label="Corsair Scimitar thumb grid"></div>
-              </div>
-            </div>
-
-            <footer class="device-footer">
-              <span><b>VIRTUAL HID</b> 1B1C:FFFF</span>
-              <span><b>SENSOR</b> 2,750 DPI · ALL STAGES</span>
-            </footer>
-          </article>
-        </div>
-
-        <section class="detail-dock" id="detail-dock" aria-labelledby="detail-title">
-          <div class="detail-address">
-            <p class="detail-kicker">SELECTED PHYSICAL CELL</p>
-            <h2 id="detail-title">Corsair 8 <span>↔</span> Razer 8</h2>
-            <p id="detail-position">Column 3 · middle row</p>
-            <dl class="transport-pair">
-              <div><dt>CORSAIR RAW</dt><dd id="corsair-transport">keypad_8</dd></div>
-              <div><dt>RAZER RAW</dt><dd id="razer-transport">8</dd></div>
-            </dl>
-          </div>
-
-          <div class="detail-action">
-            <p class="detail-kicker" id="action-layer-label">NORMAL ACTION</p>
-            <h3 id="action-name">Back</h3>
-            <p id="action-description">Go back one page or step.</p>
-            <div class="alternate-action" id="alternate-action">
-              <span>IN VS CODE</span>
-              <strong id="alternate-name">Previous change</strong>
-              <small id="alternate-output">F17 → Better Git command</small>
-            </div>
-            <span class="acceptance-status" id="acceptance-status">CONFIGURED · SEE PER-CONTROL EVIDENCE</span>
-          </div>
-
-          <div class="detail-signal" id="detail-signal" data-signal="pointing">
-            <p class="detail-kicker">OUTPUT TYPE</p>
-            <div class="signal-heading"><i id="signal-glyph">●</i><h3 id="signal-name">Native pointing button</h3></div>
-            <code id="signal-code">pointing_button button4</code>
-            <p id="signal-description">Behaves like an ordinary five-button mouse's Back/Forward event in normal apps.</p>
-          </div>
-        </section>
-
-        <ul class="signal-legend board-legend" aria-label="Signal type legend">
-          <li><i class="signal-dot pointing">●</i> Native pointer</li>
-          <li><i class="signal-dot media">◎</i> Native media</li>
-          <li><i class="signal-dot keyboard">□</i> Keystroke</li>
-          <li><i class="signal-dot consumed">×</i> Consumed</li>
-          <li><i class="signal-dot runtime">◆</i> Runtime mode</li>
-        </ul>
-      </section>
-
-      <section class="how-it-works" aria-labelledby="how-title">
-        <div>
-          <p class="designator">SIGNAL ROUTE / PLAIN LANGUAGE</p>
-          <h2 id="how-title">A transport is not the action.</h2>
-        </div>
-        <ol>
-          <li><span>01</span><strong>The mouse emits a harmless raw key.</strong><p>Corsair uses keypad keys; Razer uses its onboard number-row keys.</p></li>
-          <li><span>02</span><strong>Karabiner checks the exact device.</strong><p>Your real keyboard and numpad are not part of these rules.</p></li>
-          <li><span>03</span><strong>The shared action emits the right event.</strong><p>Back and Forward become native mouse buttons; media uses a consumer key; held-wheel controls are routed by Agentic Mouse.</p></li>
-        </ol>
-      </section>
+      <a href="./#buttons">← Try the interactive mouse</a>
+      <h1>Every button.<br />Every mode.</h1>
+      <p>
+        Generated from the same Swift definitions as the app. Expand a mode to
+        see its controls.
+      </p>
+      <p>
+        <a
+          href="https://github.com/EthanSK/agentic-mouse/commit/__SOURCE_REVISION__"
+          >Source __SHORT_REVISION__</a
+        >
+        ·
+        <a href="./simulator-data.json?v=__SITE_VERSION__">Download map data</a>
+      </p>
+      <div class="maps">__MAP_SECTIONS__</div>
+      <footer>Agentic Mouse · Ethan S K</footer>
     </main>
-
-    <div class="button-tooltip" id="button-tooltip" role="tooltip" hidden aria-hidden="true">
-      <span class="tooltip-address" id="tooltip-address"></span>
-      <strong id="tooltip-title"></strong>
-      <span class="tooltip-meta" id="tooltip-meta"></span>
-      <code id="tooltip-output"></code>
-    </div>
-    <div class="sr-only" id="selection-announcement" aria-live="polite"></div>
   </body>
 </html>

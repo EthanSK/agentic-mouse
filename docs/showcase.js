@@ -1,255 +1,440 @@
-/* The existing public map owns the actions and the physical crosswalk. Keep this tour a view of that data. */
+import { MouseSimulator } from "./simulator.mjs?v=__SITE_VERSION__";
+
 const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
 const sceneElement = document.querySelector("#button-scene");
 const sceneControls = document.querySelector("#scene-controls");
-const corsairRows = [
-  [3, 6, 9, 12],
-  [2, 5, 8, 11],
-  [1, 4, 7, 10],
-];
-let hand = "corsair";
-let selectedCell = 4;
-let previewCell = 4;
-let hudMode = "default";
-let hudHand = "corsair";
+const response = await fetch(
+  document.querySelector('meta[name="mouse-map"]').content,
+);
+if (!response.ok)
+  throw new Error(`Mouse map could not load (${response.status})`);
+const map = await response.json();
+const simulator = new MouseSimulator(map);
+const CELLS = map.sources.corsair.modes.default.controls.map((control) => ({
+  id: control.cell,
+  corsair: control.printed,
+  razer: map.sources.razer.modes.default.controls.find(
+    (item) => item.cell === control.cell,
+  ).printed,
+}));
+let hand = simulator.hand;
+let selectedCell = simulator.state.selected;
+let previewCell = selectedCell;
 let updateScene = () => {};
+let resetView = () => {};
 let tourHasInput = false;
+let suppressClick = false;
+let pendingTimer;
 let changeHand = (nextHand) => {
+  simulator.chooseHand(nextHand);
   hand = nextHand;
-  renderControls();
+  renderAll();
 };
 const sceneButtons = new Map();
+const hudButtons = new Map();
+const heldButtons = new WeakSet();
 
-/** Read the shared map, including the Razer's deliberately mirrored arrow actions. */
-function actionFor(mode, cell, source) {
-  return (
-    LAYERS[mode].sourceOverrides?.[source]?.[cell] ??
-    LAYERS[mode].actions[cell - 1]
-  ); // Default cell 6 really includes a 350 ms 2× hold; NormalMapping and YouTubeScrubHoldController confirm it despite older project prose. (Codex task: 01a06ee5-4aa0-7a61-a029-704e5c44a8f2)
-}
-
-/** Put the physical cells in the same three-by-four arrangement as the native HUD. */
 function rowsFor(source) {
-  return corsairRows.map((row) =>
-    source === "razer" ? [...row].reverse() : row,
-  );
+  return map.sources[source].rows;
 }
 
-/** Describe the selected physical button without sending any command to the Mac. */
+/** Use descriptions of the exported action rather than maintaining a second button map. */
+function describe(control) {
+  if (control.next === "default")
+    return "Exit this mode and restore the Default controls.";
+  if (control.next)
+    return `Open ${map.sources[hand].modes[control.next].title}. The buttons and lighting change with it.`;
+  if (control.keypad) {
+    if (control.keypad.cycle.length)
+      return `Tap to cycle ${control.keypad.cycle.join(" ")}. Hold for ${control.keypad.digit}.`;
+    return control.keypad.hold
+      ? "Tap for Backspace. Hold for Return."
+      : `${control.title}. Type in the example below.`;
+  }
+  if (control.wheel)
+    return `Hold this button. Wheel up: ${control.wheel.up ?? "no action"}. Wheel down: ${control.wheel.down ?? "no action"}.`;
+  if (control.effect === "toggleLegend")
+    return "Show or hide this mouse’s Default legend. Each mouse remembers its own choice.";
+  if (control.title === "Spare") return "No action here";
+  if (simulator.state.mode === "websites")
+    return `Open ${control.title} in Chrome.`;
+  const target = map.apps.find((app) => app.id === simulator.state.mode)?.title;
+  return `${control.title}${target ? ` in ${target}` : ""}.${control.doublePress ? " Double press for the secondary action." : ""}${control.reportedBroken ? " Ethan reported this button as not working. The marker comes from the app source." : ""}`;
+}
+
 function previewControl(cell) {
   previewCell = cell;
   const physical = CELLS[cell - 1];
-  const action = actionFor("default", cell, hand);
+  const control = simulator.control(cell);
   document.querySelector("#control-address").textContent =
     `Corsair ${physical.corsair} · Razer ${physical.razer}`;
-  document.querySelector("#control-title").textContent = action[0];
-  document.querySelector("#control-detail").textContent = action[1];
+  document.querySelector("#control-title").textContent = control.title;
+  document.querySelector("#control-detail").textContent = describe(control);
   updateScene();
 }
 
-/** Keep both the accessible button order and the 3D projection in the chosen hand's order. */
+/** Keep focused nodes in place while their actions and mode change. */
 function renderControls() {
   let position = 0;
+  selectedCell = simulator.state.selected;
   for (const cell of rowsFor(hand).flat()) {
     const button = sceneButtons.get(cell);
-    const label = CELLS[cell - 1][hand];
-    button.textContent = label;
+    const control = simulator.control(cell);
+    button.textContent = control.printed;
     button.setAttribute(
       "aria-label",
-      `${hand === "razer" ? "Razer" : "Corsair"} ${label}: ${actionFor("default", cell, hand)[0]}`,
+      `${hand === "razer" ? "Razer" : "Corsair"} ${control.printed}: ${control.title}`,
     );
     button.setAttribute("aria-pressed", String(cell === selectedCell));
     if (sceneControls.children[position] !== button)
       sceneControls.insertBefore(
         button,
         sceneControls.children[position] ?? null,
-      ); // Moving a focused button on selection would lose its keyboard focus.
+      ); // Re-inserting a focused node on every action would lose keyboard focus.
     position += 1;
   }
   document
-    .querySelectorAll("[data-hand]")
-    .forEach((button) =>
-      button.setAttribute("aria-pressed", String(button.dataset.hand === hand)),
-    );
+    .querySelectorAll("[data-hand], [data-hud-hand]")
+    .forEach((button) => {
+      button.setAttribute(
+        "aria-pressed",
+        String((button.dataset.hand ?? button.dataset.hudHand) === hand),
+      );
+    });
   document.querySelector("#scene-hand").textContent =
     hand === "razer" ? "Razer Naga" : "Corsair Scimitar";
   document.querySelector(".scene-origin img").src =
     hand === "razer" ? "./assets/razer-side.webp" : "./assets/corsair.webp";
+  document.querySelector("#scene-mode").textContent = simulator.mode.title;
+  sceneElement.style.setProperty("--mode-light", simulator.mode.color);
   previewControl(selectedCell);
 }
 
+function activate(cell, button) {
+  if (heldButtons.has(button)) {
+    heldButtons.delete(button);
+    return;
+  }
+  if (suppressClick) return;
+  tourHasInput = true;
+  simulator.press(cell);
+  renderAll();
+  clearTimeout(pendingTimer);
+  if (simulator.state.pending)
+    pendingTimer = setTimeout(() => {
+      simulator.tick();
+      renderOutputs();
+    }, map.keypadTimeout + 10);
+}
+
+/** A real long press uses the native keypad hold threshold; the explicit Hold button also works with a keyboard. */
+function bindKeypadHold(button, cell) {
+  let timer;
+  button.addEventListener("pointerdown", (event) => {
+    if (event.button !== 0) return;
+    heldButtons.delete(button);
+    const key = simulator.control(cell).keypad;
+    if (!key?.digit && !key?.hold) return;
+    const source = hand;
+    const mode = simulator.state.mode;
+    timer = setTimeout(() => {
+      if (suppressClick || source !== hand || mode !== simulator.state.mode)
+        return;
+      heldButtons.add(button);
+      simulator.hold(cell);
+      renderAll();
+    }, map.holdThreshold);
+  });
+  for (const event of ["pointerup", "pointercancel", "pointerleave"])
+    button.addEventListener(event, () => clearTimeout(timer));
+}
+
+/** Match the physical order for arrows; Enter and Space retain native button activation. */
+function gridKeydown(event, cell, buttons) {
+  const steps = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -4, ArrowDown: 4 };
+  if (!Object.hasOwn(steps, event.key)) return;
+  event.preventDefault();
+  const order = rowsFor(hand).flat();
+  buttons
+    .get(
+      order[Math.max(0, Math.min(11, order.indexOf(cell) + steps[event.key]))],
+    )
+    .focus();
+}
 for (const physical of CELLS) {
   const button = document.createElement("button");
   button.type = "button";
   button.className = "scene-key";
+  button.dataset.cell = physical.id;
   button.addEventListener("pointerenter", (event) => {
-    if (event.pointerType !== "touch") {
+    if (event.pointerType !== "touch" && !suppressClick) {
       tourHasInput = true;
       previewControl(physical.id);
     }
   });
-  button.addEventListener("pointerleave", () => previewControl(selectedCell));
+  button.addEventListener("pointerleave", () => {
+    if (!suppressClick) previewControl(selectedCell);
+  });
   button.addEventListener("focus", () => {
     tourHasInput = true;
     previewControl(physical.id);
   });
   button.addEventListener("blur", () => previewControl(selectedCell));
-  button.addEventListener("click", () => {
-    selectedCell = physical.id;
-    renderControls();
-  });
-  button.addEventListener("keydown", (event) => {
-    const steps = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -4, ArrowDown: 4 };
-    if (!Object.hasOwn(steps, event.key)) return;
-    event.preventDefault();
-    const order = rowsFor(hand).flat();
-    const index = Math.max(
-      0,
-      Math.min(11, order.indexOf(physical.id) + steps[event.key]),
-    );
-    sceneButtons.get(order[index]).focus();
-  });
+  button.addEventListener("click", () => activate(physical.id, button));
+  bindKeypadHold(button, physical.id);
+  button.addEventListener("keydown", (event) =>
+    gridKeydown(event, physical.id, sceneButtons),
+  );
   sceneButtons.set(physical.id, button);
+  const hudButton = document.createElement("button");
+  hudButton.type = "button";
+  hudButton.className = "hud-cell";
+  hudButton.addEventListener("click", () => activate(physical.id, hudButton));
+  bindKeypadHold(hudButton, physical.id);
+  hudButton.addEventListener("focus", () => {
+    document.querySelector("#hud-explanation").textContent = describe(
+      simulator.control(physical.id),
+    );
+  });
+  hudButton.addEventListener("pointerenter", () => {
+    document.querySelector("#hud-explanation").textContent = describe(
+      simulator.control(physical.id),
+    );
+  });
+  hudButton.addEventListener("keydown", (event) =>
+    gridKeydown(event, physical.id, hudButtons),
+  );
+  hudButtons.set(physical.id, hudButton);
 }
-document.querySelectorAll("[data-hand]").forEach((button) =>
+document.querySelectorAll("[data-hand], [data-hud-hand]").forEach((button) =>
   button.addEventListener("click", () => {
     tourHasInput = true;
-    changeHand(button.dataset.hand);
+    changeHand(button.dataset.hand ?? button.dataset.hudHand);
   }),
 );
-renderControls();
 
-const modeColours = {
-  default: "#b9adc9",
-  utility: "#ab65ef",
-  keys: "#f29a5e",
-  keypad: "#72bad5",
-  codex: "#76b3ab",
-};
-
-/** Recreate the app's readable colour groups without pretending the preview is a live HUD. */
-function cellColour(title) {
-  if (title.includes("Exit")) return "#413343";
-  if (
-    title.includes("mode") ||
-    title === "Keypad" ||
-    title.includes("Utilities")
-  )
-    return "#574270";
-  if (title.includes("Wheel")) return "#333a4f";
-  if (title === "Spare") return "#24232a";
-  return "#3e3847";
-}
-
-/** Render every control from the existing map so the walkthrough stays in sync with it. */
 function renderHUD() {
   const grid = document.querySelector("#hud-grid");
-  grid.replaceChildren();
   document
     .querySelector("#hud-frame")
-    .style.setProperty("--hud-accent", modeColours[hudMode] ?? "#9d8bb9");
+    .style.setProperty("--hud-accent", simulator.mode.color);
   document
     .querySelector(".hud-section")
-    .style.setProperty("--mode-light", modeColours[hudMode] ?? "#9d8bb9");
+    .style.setProperty("--mode-light", simulator.mode.color);
   document.querySelector("#mode-light-label").textContent =
-    `${LAYERS[hudMode].label} lighting`;
-  document.querySelector("#hud-mode-name").textContent = LAYERS[
-    hudMode
-  ].label.endsWith("mode")
-    ? LAYERS[hudMode].label
-    : `${LAYERS[hudMode].label} mode`;
-  document
-    .querySelectorAll("[data-hud-mode]")
-    .forEach((button) =>
-      button.setAttribute(
-        "aria-pressed",
-        String(button.dataset.hudMode === hudMode),
-      ),
+    `${simulator.mode.title} lighting`;
+  document.querySelector("#hud-mode-name").textContent = simulator.mode.title;
+  document.querySelectorAll("[data-hud-mode]").forEach((button) => {
+    button.setAttribute(
+      "aria-pressed",
+      String(button.dataset.hudMode === simulator.state.mode),
     );
-  document
-    .querySelectorAll("[data-hud-hand]")
-    .forEach((button) =>
-      button.setAttribute(
-        "aria-pressed",
-        String(button.dataset.hudHand === hudHand),
-      ),
-    );
-  document.querySelector("#more-modes").value = Object.hasOwn(
-    modeColours,
-    hudMode,
-  )
+    button
+      .querySelector(".mode-dot")
+      .style.setProperty(
+        "--mode-color",
+        map.sources[hand].modes[button.dataset.hudMode].color,
+      );
+  });
+  document.querySelector("#more-modes").value = [
+    "default",
+    "utility",
+    "keys",
+    "keypad",
+    "codex",
+  ].includes(simulator.state.mode)
     ? ""
-    : hudMode;
-  document.querySelector("#hud-explanation").textContent =
-    hudMode === "codex"
-      ? "Two ways out: buttons 2 and 10 both exit Codex mode. Select any control to see what it does."
-      : "Select a control to see what it does.";
-  for (const cell of rowsFor(hudHand).flat()) {
-    const action = actionFor(hudMode, cell, hudHand);
-    const broken = action[0].includes("❌");
-    const title = action[0].replace(" ❌", "");
-    const button = document.createElement("button");
-    button.type = "button";
-    button.className = `hud-cell${broken ? " is-broken" : ""}`;
-    button.style.setProperty("--cell-color", cellColour(title));
-    button.setAttribute("aria-pressed", "false");
+    : simulator.state.mode;
+  document.querySelector("#hud-explanation").textContent = describe(
+    simulator.control(selectedCell),
+  );
+  grid.classList.toggle(
+    "legend-hidden",
+    simulator.state.mode === "default" && !simulator.state.legend,
+  );
+  document.querySelector("#legend-hidden-note").hidden =
+    simulator.state.mode !== "default" || simulator.state.legend;
+  let position = 0;
+  for (const cell of rowsFor(hand).flat()) {
+    const control = simulator.control(cell);
+    const button = hudButtons.get(cell);
+    button.className = `hud-cell${control.reportedBroken ? " is-broken" : ""}`;
+    button.style.setProperty(
+      "--cell-color",
+      control.destinationColor ?? control.color,
+    );
+    button.classList.toggle(
+      "is-destination",
+      Boolean(control.destinationColor),
+    );
+    button.setAttribute("aria-pressed", String(cell === selectedCell));
     button.setAttribute(
       "aria-label",
-      `${hudHand === "razer" ? "Razer" : "Corsair"} ${CELLS[cell - 1][hudHand]}: ${title}${broken ? ", reported physical issue" : ""}`,
+      `${hand === "razer" ? "Razer" : "Corsair"} ${control.printed}: ${control.title}${control.reportedBroken ? ", reported physical issue" : ""}`,
     );
     const number = document.createElement("span");
     number.className = "hud-number";
-    number.textContent = CELLS[cell - 1][hudHand];
+    number.textContent = control.printed;
     const caption = document.createElement("span");
     caption.className = "hud-title";
-    caption.textContent = title;
-    button.append(number, caption);
-    if (broken) {
+    caption.textContent = control.title;
+    button.replaceChildren(number, caption);
+    if (control.reportedBroken) {
       const repair = document.createElement("span");
       repair.className = "repair-chip";
       repair.textContent = "× Needs repair";
       button.append(repair);
     }
-    button.addEventListener("click", () => {
-      grid
-        .querySelectorAll("button")
-        .forEach((item) =>
-          item.setAttribute("aria-pressed", String(item === button)),
-        );
-      document.querySelector("#hud-explanation").textContent =
-        `${title}. ${action[1]}`;
-    });
-    grid.append(button);
+    if (grid.children[position] !== button)
+      grid.insertBefore(button, grid.children[position] ?? null);
+    position += 1;
   }
 }
+
+function renderOutputs() {
+  document.querySelectorAll("[data-sim-output]").forEach((output) => {
+    output.textContent = simulator.state.output;
+    output.classList.toggle("is-typing", Boolean(simulator.state.pending));
+  });
+  document.querySelectorAll("[data-sim-history]").forEach((output) => {
+    output.textContent = simulator.state.history.slice(-4, -1).join("  →  ");
+  });
+  document.querySelectorAll("[data-current-app]").forEach((select) => {
+    select.value = simulator.app;
+  });
+  document.querySelectorAll("[data-app-hint]").forEach((hint) => {
+    const entry = simulator.mode.controls.find(
+      (item) => item.next === simulator.app,
+    );
+    hint.textContent =
+      simulator.state.mode === "default" && entry
+        ? `Press ${entry.printed} to open ${entry.title}`
+        : simulator.state.followsApp
+          ? "Follows the current app"
+          : map.apps.some((app) => app.id === simulator.state.mode)
+            ? "Manually selected app"
+            : "Current app for Default controls";
+  });
+  const control = simulator.control(selectedCell);
+  document.querySelectorAll("[data-sim-action]").forEach((button) => {
+    const action = button.dataset.simAction;
+    if (action === "hold") {
+      button.hidden =
+        !control.wheel && !control.keypad?.digit && !control.keypad?.hold;
+      button.textContent =
+        simulator.state.held === selectedCell ? "Stop hold" : "Hold";
+      button.setAttribute(
+        "aria-pressed",
+        String(simulator.state.held === selectedCell),
+      );
+    }
+    if (action === "up" || action === "down") {
+      button.disabled = simulator.state.held === null;
+      button.hidden = !control.wheel && simulator.state.held === null;
+    }
+    if (action === "double") button.hidden = !control.doublePress;
+  });
+}
+function renderAll() {
+  renderControls();
+  renderHUD();
+  renderOutputs();
+}
+
 document.querySelectorAll("[data-hud-mode]").forEach((button) =>
   button.addEventListener("click", () => {
-    hudMode = button.dataset.hudMode;
-    renderHUD();
+    tourHasInput = true;
+    simulator.chooseMode(button.dataset.hudMode);
+    renderAll();
   }),
 );
-document.querySelectorAll("[data-hud-hand]").forEach((button) =>
-  button.addEventListener("click", () => {
-    hudHand = button.dataset.hudHand;
-    renderHUD();
-  }),
-);
-for (const [mode, layer] of Object.entries(LAYERS)) {
-  if (Object.hasOwn(modeColours, mode)) continue;
+for (const [mode, definition] of Object.entries(map.sources.corsair.modes)) {
+  if (
+    ["default", "utility", "keys", "keypad", "codex", "unsupported"].includes(
+      mode,
+    )
+  )
+    continue;
   const option = document.createElement("option");
   option.value = mode;
-  option.textContent = layer.label;
+  option.textContent = definition.title;
   document.querySelector("#more-modes").append(option);
 }
 document.querySelector("#more-modes").addEventListener("change", (event) => {
   if (event.target.value) {
-    hudMode = event.target.value;
-    renderHUD();
+    tourHasInput = true;
+    simulator.chooseMode(event.target.value);
+    renderAll();
   }
 });
-renderHUD();
+document.querySelectorAll("[data-current-app]").forEach((select) => {
+  for (const app of map.apps) {
+    const option = document.createElement("option");
+    option.value = app.id;
+    option.textContent = app.title;
+    select.append(option);
+  }
+  select.addEventListener("change", () => {
+    tourHasInput = true;
+    simulator.chooseApp(select.value);
+    renderAll();
+  });
+});
+document.querySelectorAll("[data-sim-action]").forEach((button) =>
+  button.addEventListener("click", () => {
+    tourHasInput = true;
+    switch (button.dataset.simAction) {
+      case "hold":
+        simulator.state.held === selectedCell
+          ? simulator.release()
+          : simulator.hold(selectedCell);
+        break;
+      case "up":
+        simulator.wheel("up");
+        break;
+      case "down":
+        simulator.wheel("down");
+        break;
+      case "double":
+        simulator.doublePress(selectedCell);
+        break;
+      case "reset":
+        simulator.reset();
+        resetView();
+        break;
+    }
+    renderAll();
+  }),
+);
+document
+  .querySelector("#reset-view")
+  .addEventListener("click", () => resetView());
+document.querySelector("#show-legend").addEventListener("click", () => {
+  simulator.state.legend = true;
+  renderAll();
+});
+renderAll();
 
-/** Load the GPU chapter after the HTML controls work; unsupported WebGL keeps the same usable grid. */
+/** Show an explicit dictation example; this never opens a microphone or native app. */
+for (const button of document.querySelectorAll("[data-speech]")) {
+  button.addEventListener("click", () => {
+    const dialog = document.querySelector("#speech-demo");
+    document.querySelector("#speech-hand").textContent =
+      button.dataset.speech === "razer"
+        ? "Razer Naga · Top button"
+        : "Corsair Scimitar · Top button";
+    dialog.showModal();
+    document.querySelector("#speech-example").textContent =
+      "Build me something cool. I’m staying right here.";
+  });
+}
+document
+  .querySelector("#close-speech")
+  .addEventListener("click", () =>
+    document.querySelector("#speech-demo").close(),
+  );
+
+/** Build the draggable physical grid. */
 async function createButtonScene() {
   const THREE = await import("three");
   const [{ RoundedBoxGeometry }, { RoomEnvironment }] = await Promise.all([
@@ -277,6 +462,7 @@ async function createButtonScene() {
   const camera = new THREE.PerspectiveCamera(36, 1, 0.1, 40);
   camera.position.set(0, 0.1, 10.6);
   const assembly = new THREE.Group();
+  assembly.scale.setScalar(0.83); // Leave a clear space below the model for action feedback, including rotated views.
   scene.add(assembly);
   const shell = new THREE.Mesh(
     new RoundedBoxGeometry(5.3, 3.95, 0.4, 5, 0.33),
@@ -338,8 +524,22 @@ async function createButtonScene() {
   floor.position.z = -1.5;
   floor.receiveShadow = true;
   scene.add(floor);
-  const pose = { progress: 0, handTurn: 0 };
+  const pose = {
+    progress: 0,
+    handTurn: 0,
+    dragX: 0,
+    dragY: 0,
+    dragProgress: null,
+  };
   const point = new THREE.Vector3();
+  const normal = new THREE.Vector3();
+  const direction = new THREE.Vector3();
+  const corners = [
+    new THREE.Vector3(-0.46, -0.43, 0.145),
+    new THREE.Vector3(0.46, -0.43, 0.145),
+    new THREE.Vector3(-0.46, 0.43, 0.145),
+    new THREE.Vector3(0.46, 0.43, 0.145),
+  ];
   let width = 0;
   let height = 0;
   let visible = true;
@@ -347,13 +547,16 @@ async function createButtonScene() {
   /** Render on scroll or input only; project HTML hit targets from the actual key faces. */
   function render() {
     if (!visible || !width || !height) return;
-    const progress = reducedMotion.matches ? 0.7 : pose.progress;
+    const progress =
+      pose.dragProgress ?? (reducedMotion.matches ? 0.7 : pose.progress);
     assembly.rotation.set(
-      0.28 - progress * 0.33,
-      (hand === "razer" ? 1 : -1) * (0.38 - progress * 0.29) + pose.handTurn,
+      0.28 - progress * 0.33 + pose.dragX,
+      (hand === "razer" ? 1 : -1) * (0.38 - progress * 0.29) +
+        pose.handTurn +
+        pose.dragY,
       -0.11 + progress * 0.14,
     );
-    assembly.position.y = 0.07;
+    assembly.position.y = 0.25;
     rowsFor(hand).forEach((row, rowIndex) =>
       row.forEach((cell, columnIndex) => {
         const key = keys.get(cell);
@@ -362,10 +565,18 @@ async function createButtonScene() {
           (1 - rowIndex) * 1.14,
           0.48 + progress * 0.13 + (cell === previewCell ? 0.11 : 0),
         );
-        key.material.color.setHex(cell === previewCell ? 0x503079 : 0x282534);
-        key.material.emissive.setHex(
-          cell === previewCell ? 0x221238 : 0x000000,
+        const control = simulator.control(cell);
+        const highlighted =
+          cell === previewCell || simulator.state.held === cell;
+        key.material.color.set(control.destinationColor ?? control.color);
+        if (highlighted) key.material.color.multiplyScalar(0.65);
+        else key.material.color.lerp(new THREE.Color("#222129"), 0.995); // A full rainbow hid the selected control; retain the native accent as a quiet tint until hover or hold. (Codex task: 01a06ee5-4aa0-7a61-a029-704e5c44a8f2)
+        key.material.emissive.set(
+          cell === previewCell || simulator.state.held === cell
+            ? (control.destinationColor ?? control.color)
+            : "#000000",
         );
+        key.material.emissiveIntensity = 0.14;
       }),
     );
     camera.updateMatrixWorld(); // The first focus could jump far outside the chapter when keys were projected before the camera's first render.
@@ -373,25 +584,106 @@ async function createButtonScene() {
     for (const [cell, key] of keys) {
       point.set(0, 0, 0.145).applyMatrix4(key.matrixWorld).project(camera);
       const button = sceneButtons.get(cell);
+      normal.set(0, 0, 1).transformDirection(key.matrixWorld);
+      direction
+        .copy(camera.position)
+        .sub(key.getWorldPosition(new THREE.Vector3()))
+        .normalize();
+      button.style.visibility =
+        normal.dot(direction) > 0.18 ? "visible" : "hidden"; // A rotated back face must not leave invisible clickable buttons over the solid shell.
       button.style.left = `${(point.x * 0.5 + 0.5) * width}px`;
       button.style.top = `${(-point.y * 0.5 + 0.5) * height}px`;
-      button.style.width = `${Math.min(width * 0.17, height * 0.15)}px`;
-      button.style.height = `${height * 0.135}px`;
+      const projected = corners.map((corner) =>
+        corner.clone().applyMatrix4(key.matrixWorld).project(camera),
+      );
+      button.style.width = `${Math.max(8, (Math.max(...projected.map((p) => p.x)) - Math.min(...projected.map((p) => p.x))) * width * 0.45)}px`;
+      button.style.height = `${Math.max(8, (Math.max(...projected.map((p) => p.y)) - Math.min(...projected.map((p) => p.y))) * height * 0.45)}px`; // Fixed hit boxes overlapped adjacent keys after rotation; size targets from each real key face.
       button.style.opacity = Math.max(0, 1 - Math.abs(pose.handTurn));
     }
     renderer.render(scene, camera);
   }
   updateScene = render;
+  let drag;
+  let renderFrame = 0;
+  sceneControls.addEventListener("pointerdown", (event) => {
+    if (event.button !== 0 || sceneElement.classList.contains("scene-fallback"))
+      return;
+    suppressClick = false;
+    drag = {
+      id: event.pointerId,
+      x: event.clientX,
+      y: event.clientY,
+      startX: pose.dragX,
+      startY: pose.dragY,
+      touch: event.pointerType === "touch",
+    };
+  });
+  sceneControls.addEventListener("pointermove", (event) => {
+    if (!drag || drag.id !== event.pointerId) return;
+    const x = event.clientX - drag.x;
+    const y = event.clientY - drag.y;
+    if (!suppressClick && Math.hypot(x, y) < 7) return;
+    if (drag.touch && !suppressClick && Math.abs(y) > Math.abs(x)) {
+      drag = null;
+      return;
+    } // A vertical touch gesture scrolls the page; only a horizontal swipe takes ownership of rotation.
+    tourHasInput = true;
+    suppressClick = true;
+    sceneControls.setPointerCapture(event.pointerId);
+    sceneElement.classList.add("is-dragging");
+    pose.dragProgress ??= reducedMotion.matches ? 0.7 : pose.progress;
+    pose.dragY = drag.startY + x * 0.009;
+    pose.dragX = Math.max(
+      -1.2,
+      Math.min(1.2, drag.startX + (drag.touch ? 0 : y * 0.007)),
+    );
+    if (!renderFrame)
+      renderFrame = requestAnimationFrame(() => {
+        renderFrame = 0;
+        render();
+      });
+  });
+  function endDrag(event) {
+    if (!drag || drag.id !== event.pointerId) return;
+    drag = null;
+    sceneElement.classList.remove("is-dragging");
+    if (sceneControls.hasPointerCapture(event.pointerId))
+      sceneControls.releasePointerCapture(event.pointerId);
+    setTimeout(() => {
+      suppressClick = false;
+    }, 0); // Keep the release-generated click suppressed after a drag; the next independent press starts normally.
+  }
+  sceneControls.addEventListener("pointerup", endDrag);
+  sceneControls.addEventListener("pointercancel", endDrag);
+  resetView = () => {
+    pose.dragX = 0;
+    pose.dragY = 0;
+    pose.dragProgress = null;
+    render();
+  };
+  sceneControls.addEventListener(
+    "wheel",
+    (event) => {
+      if (simulator.state.held === null || event.ctrlKey) return;
+      event.preventDefault();
+      simulator.wheel(event.deltaY < 0 ? "up" : "down");
+      renderOutputs();
+    },
+    { passive: false },
+  );
   changeHand = (nextHand) => {
     if (nextHand === hand) return;
     if (reducedMotion.matches || !window.gsap) {
       hand = nextHand;
-      renderControls();
+      simulator.chooseHand(hand);
+      renderAll();
       return;
     }
-    document.querySelectorAll("[data-hand]").forEach((button) => {
-      button.disabled = true;
-    });
+    document
+      .querySelectorAll("[data-hand], [data-hud-hand]")
+      .forEach((button) => {
+        button.disabled = true;
+      });
     gsap.to(pose, {
       handTurn: Math.PI / 2,
       duration: 0.2,
@@ -399,17 +691,22 @@ async function createButtonScene() {
       onUpdate: render,
       onComplete: () => {
         hand = nextHand;
+        simulator.chooseHand(hand);
+        pose.dragX = 0;
+        pose.dragY = 0;
         pose.handTurn = -Math.PI / 2;
-        renderControls();
+        renderAll();
         gsap.to(pose, {
           handTurn: 0,
           duration: 0.3,
           ease: "power2.out",
           onUpdate: render,
           onComplete: () => {
-            document.querySelectorAll("[data-hand]").forEach((button) => {
-              button.disabled = false;
-            });
+            document
+              .querySelectorAll("[data-hand], [data-hud-hand]")
+              .forEach((button) => {
+                button.disabled = false;
+              });
           },
         });
       },
@@ -524,7 +821,7 @@ function createScrollStory(scene) {
   });
   if (scene)
     media.add(
-      "(min-width: 761px) and (prefers-reduced-motion: no-preference)",
+      "(min-width: 761px) and (min-height: 851px) and (prefers-reduced-motion: no-preference)",
       () => {
         const story = document.querySelector(".control-story");
         story.classList.add("is-scroll-scene");
@@ -539,8 +836,8 @@ function createScrollStory(scene) {
                   ? 6
                   : 12;
             if (!tourHasInput && previewCell !== cell) {
-              selectedCell = cell;
-              renderControls();
+              simulator.state.selected = cell;
+              renderAll();
             } else scene.render(); // The scroll tour yields permanently on pointer or keyboard input so it never replaces a visitor's selection.
           },
           scrollTrigger: {

@@ -449,7 +449,7 @@ button {
 }
 .scene-meta {
   position: absolute;
-  bottom: 30px;
+  bottom: 15px;
   left: 0;
   width: 100%;
   display: flex;
@@ -490,6 +490,7 @@ button {
   width: auto !important; /* A lost WebGL context leaves projected inline dimensions on the same buttons. */
   height: 80px !important;
   opacity: 1 !important;
+  visibility: visible !important;
   transform: none !important;
   background: #292532;
   box-shadow: 0 8px #09080e;
@@ -1954,4 +1955,395 @@ button {
   .chapter-progress {
     bottom: 20px;
   }
+}
+
+/* The simulator shares one native map across the 3D and HUD views. */
+.sim-app {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: fit-content;
+  max-width: 100%;
+  margin-top: 18px;
+  color: #b8b3c6;
+  font-size: 12px;
+}
+.sim-app select {
+  appearance: auto;
+  min-width: 0;
+  max-width: 215px;
+  padding: 9px 28px 9px 12px;
+  border: 1px solid #4c465c;
+  border-radius: 8px;
+  color: #f4f1fb;
+  background: #26232e;
+  font: inherit;
+}
+.sim-app-hint {
+  font-size: 11px;
+  color: #b0a8bd;
+  margin: 7px 0 0;
+}
+.sim-app-hud {
+  margin: 0 0 16px;
+}
+
+.sim-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 14px;
+}
+.sim-actions button,
+.scene-toolbar button {
+  border: 1px solid #635774;
+  border-radius: 7px;
+  padding: 8px 10px;
+  min-height: 36px;
+  font: 500 11px var(--sans);
+  color: #ece6f5;
+  background: #302937;
+}
+.sim-actions button:hover,
+.scene-toolbar button:hover {
+  background: #463650;
+}
+.sim-actions button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.sim-actions button[aria-pressed="true"] {
+  color: #211729;
+  background: #dcc5ef;
+}
+.sim-actions [hidden] {
+  display: none;
+}
+.scene-toolbar {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  z-index: 4;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 15px;
+  color: #e7def5;
+  font-size: 13px;
+}
+.scene-toolbar > span {
+  padding-left: 15px;
+  border-left: 2px solid var(--mode-light);
+}
+.scene-controls {
+  cursor: grab;
+  touch-action: pan-y;
+  user-select: none;
+}
+.scene-key {
+  cursor: pointer;
+}
+.is-dragging .scene-controls,
+.is-dragging .scene-key {
+  cursor: grabbing;
+}
+.scene-origin {
+  top: 52px;
+  pointer-events: none;
+}
+.sim-output {
+  position: absolute;
+  bottom: 46px;
+  left: 8%;
+  right: 8%;
+  z-index: 4;
+  padding: 16px 20px;
+  border: 1px solid #494051;
+  border-radius: 13px;
+  background: #1e1a24ed;
+  pointer-events: none;
+}
+.sim-output > span {
+  display: block;
+  color: #aaa0b9;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.sim-output output {
+  display: block;
+  margin-top: 5px;
+  font-size: clamp(15px, 1.5vw, 21px);
+  line-height: 1.35;
+  color: #ede7f4;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  min-height: 29px;
+  max-height: 94px;
+  overflow: auto;
+}
+.sim-output small {
+  display: block;
+  color: #b3a8bf;
+  font-size: 10px;
+  margin-top: 8px;
+  line-height: 1.4;
+}
+.sim-output small:empty {
+  display: none;
+}
+.sim-output .is-typing::after {
+  content: "│";
+  color: #c19bee;
+}
+.sim-output-hud {
+  position: static;
+  margin-top: 16px;
+  pointer-events: auto;
+}
+
+.hud-cell {
+  background: color-mix(in srgb, var(--cell-color) 25%, #18151d);
+}
+.hud-cell.is-destination {
+  border-color: var(--cell-color);
+  background: color-mix(in srgb, var(--cell-color) 45%, #18151d);
+}
+.hud-grid.legend-hidden {
+  opacity: 0;
+  pointer-events: none;
+  visibility: hidden;
+}
+.hud-frame {
+  position: relative;
+}
+#legend-hidden-note {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 17px;
+}
+#legend-hidden-note[hidden] {
+  display: none;
+}
+#show-legend {
+  border: 1px solid #9b84af;
+  border-radius: 25px;
+  padding: 10px 18px;
+  color: #eadff3;
+  background: #30243b;
+}
+.speech-callout {
+  position: absolute;
+  top: 22%;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border: 1px solid #cec7da;
+  border-radius: 24px;
+  background: #fffc;
+  box-shadow: 0 3px 15px #30213908;
+  color: #453951;
+  font: 500 11px var(--sans);
+  white-space: nowrap;
+  transition:
+    background 150ms,
+    box-shadow 150ms;
+}
+.speech-callout:hover {
+  background: white;
+  box-shadow: 0 4px 22px #8060ba26;
+}
+.speech-callout span {
+  color: #9572cb;
+  font-size: 8px;
+}
+.hero-product.left .speech-callout {
+  left: 2%;
+}
+.hero-product.right .speech-callout {
+  right: -15%;
+}
+.speech-demo {
+  width: min(520px, calc(100% - 40px));
+  box-sizing: border-box;
+  border: 1px solid #ded8e7;
+  border-radius: 24px;
+  padding: 48px;
+  background: #f8f6fb;
+  color: #26202e;
+}
+.speech-demo::backdrop {
+  background: #19121b80;
+  backdrop-filter: blur(10px);
+}
+#close-speech {
+  position: absolute;
+  right: 18px;
+  top: 12px;
+  border: 0;
+  background: none;
+  color: #4d415c;
+  font-size: 28px;
+  line-height: 1;
+  padding: 8px;
+}
+.speech-demo h2 {
+  font-size: 30px;
+  line-height: 1.15;
+  letter-spacing: -0.04em;
+}
+#speech-example {
+  font-size: 23px;
+  line-height: 1.5;
+  min-height: 100px;
+}
+.speech-note {
+  color: #7b7087;
+  font-size: 12px;
+  line-height: 1.6;
+}
+.speech-wave {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+  height: 56px;
+  margin: 25px 0;
+}
+.speech-wave i {
+  width: 4px;
+  height: 16px;
+  border-radius: 4px;
+  background: #9770be;
+}
+.speech-wave i:nth-child(2n) {
+  height: 33px;
+}
+.speech-wave i:nth-child(3n) {
+  height: 45px;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .speech-demo[open] .speech-wave i {
+    animation: speech-wave 800ms ease-in-out 3 alternate;
+  }
+  .speech-wave i:nth-child(2n) {
+    animation-delay: 120ms;
+  }
+}
+@keyframes speech-wave {
+  to {
+    transform: scaleY(0.4);
+  }
+}
+@media (min-width: 761px) {
+  .control-copy {
+    padding-block: 65px;
+  }
+  .control-copy h2 {
+    font-size: clamp(40px, 3.8vw, 60px);
+  }
+  .control-result {
+    margin-top: 18px;
+    padding-top: 18px;
+  }
+  .hand-switch {
+    margin-top: 18px;
+  }
+}
+@media (max-width: 760px) {
+  .scene-toolbar {
+    top: 5px;
+  }
+  .scene-origin {
+    top: 55px;
+  }
+  .scene-wrap {
+    height: 480px;
+  }
+  .sim-output {
+    bottom: 42px;
+    left: 0;
+    right: 0;
+    padding: 13px 15px;
+  }
+  .control-result {
+    max-width: none;
+    min-height: 0;
+  }
+  .control-result p {
+    max-width: none;
+  }
+  .sim-actions button {
+    min-height: 42px;
+    padding: 9px 11px;
+  }
+  .speech-callout {
+    top: auto;
+    bottom: -84px;
+    font-size: 10px;
+    padding: 9px 10px;
+  }
+  .hero-product.left .speech-callout {
+    left: 50%;
+    transform: translateX(-50%);
+  }
+  .hero-product.right .speech-callout {
+    right: auto;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+  .hero-bottom {
+    margin-top: 126px;
+  }
+  .speech-demo {
+    padding: 36px 25px;
+  }
+  .sim-output-hud {
+    padding: 15px;
+  }
+}
+@media (min-width: 761px) and (max-height: 850px) {
+  .control-sticky {
+    min-height: 780px;
+    height: auto;
+    max-height: none;
+  }
+  .control-copy {
+    padding-block: 70px;
+  }
+  .scene-wrap {
+    height: 620px;
+  }
+}
+
+.scene-fallback .scene-controls {
+  top: 115px;
+  bottom: 145px;
+  padding: 10px 30px;
+}
+.scene-fallback .scene-key {
+  height: 64px !important;
+}
+@media (max-width: 760px) {
+  .scene-fallback .scene-controls {
+    top: 135px;
+    bottom: 145px;
+    padding: 0 25px;
+    gap: 8px;
+  }
+  .scene-fallback .scene-key {
+    height: 54px !important;
+  }
+}
+
+.hud-demo .sim-actions {
+  justify-content: center;
 }

@@ -8,6 +8,7 @@
       name="description"
       content="Two mice, twenty-four thumb buttons, and a chair that tilts back. Explore Ethan's personal macOS setup through an interactive 3D walkthrough."
     />
+    <meta name="mouse-map" content="./simulator-data.json?v=__SITE_VERSION__" />
     <meta name="theme-color" content="#f5f5f7" />
     <meta property="og:type" content="website" />
     <meta
@@ -32,7 +33,7 @@
     <link rel="manifest" href="./site.webmanifest" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link rel="stylesheet" href="./showcase.css?v=20260905c" />
+    <link rel="stylesheet" href="./showcase.css?v=__SITE_VERSION__" />
     <script type="importmap">
       { "imports": { "three": "./lib/three.module.min.js" } }
     </script>
@@ -77,6 +78,9 @@
               alt="Razer Naga Left-Handed Edition with its twelve-button thumb grid"
               fetchpriority="high"
             />
+            <button type="button" class="speech-callout" data-speech="razer">
+              <span aria-hidden="true">●</span> Activate speech mode
+            </button>
             <figcaption class="product-caption">
               Left hand<strong>Razer Naga</strong>
             </figcaption>
@@ -89,6 +93,9 @@
               alt="Corsair Scimitar Elite Wireless SE with its twelve-button thumb grid"
               fetchpriority="high"
             />
+            <button type="button" class="speech-callout" data-speech="corsair">
+              <span aria-hidden="true">●</span> Activate speech mode
+            </button>
             <figcaption class="product-caption">
               Right hand<strong>Corsair Scimitar</strong>
             </figcaption>
@@ -96,7 +103,7 @@
         </div>
         <div class="hero-bottom">
           <div class="wrap nav-inner">
-            <span class="edition">Built by Ethan · Open source</span
+            <span class="edition">Built by Ethan S K · Open source</span
             ><a class="scroll-link" href="#buttons"
               ><span class="scroll-icon" aria-hidden="true"></span>Take it for a
               scroll<span aria-hidden="true">↓</span></a
@@ -119,9 +126,10 @@
               </h2>
               <p class="control-description">
                 <span class="pointer-instruction"
-                  >Hover to explore. Click to keep a button selected.</span
+                  >Drag to rotate. Click a button to run its action.</span
                 ><span class="touch-instruction"
-                  >Tap a button to see what it does.</span
+                  >Swipe sideways to rotate. Tap a button to run its
+                  action.</span
                 >
                 Switch hands to see the numbers on the other mouse.
               </p>
@@ -132,6 +140,13 @@
                   Right hand
                 </button>
               </div>
+              <label class="sim-app"
+                >Current app<select
+                  data-current-app
+                  aria-label="Current app"
+                ></select
+              ></label>
+              <p class="sim-app-hint" data-app-hint></p>
               <div class="control-result" aria-live="polite" aria-atomic="true">
                 <p class="result-address" id="control-address">
                   Corsair 4 · Razer 6
@@ -140,12 +155,41 @@
                 <p id="control-detail">
                   Hold the button and turn the wheel to copy or paste.
                 </p>
+                <div
+                  class="sim-actions"
+                  role="group"
+                  aria-label="Try the selected control"
+                >
+                  <button
+                    type="button"
+                    data-sim-action="hold"
+                    aria-pressed="false"
+                  >
+                    Hold
+                  </button>
+                  <button type="button" data-sim-action="up" disabled>
+                    Wheel up ↑
+                  </button>
+                  <button type="button" data-sim-action="down" disabled>
+                    Wheel down ↓
+                  </button>
+                  <button type="button" data-sim-action="double" hidden>
+                    Double press
+                  </button>
+                  <button type="button" data-sim-action="reset">
+                    Reset demo
+                  </button>
+                </div>
                 <p class="result-instruction">
-                  Interactive preview. Your Mac stays untouched.
+                  Browser demo only. Nothing is sent to your Mac.
                 </p>
               </div>
             </div>
             <div class="scene-wrap scene-fallback" id="button-scene">
+              <div class="scene-toolbar">
+                <span id="scene-mode">Default mode</span
+                ><button type="button" id="reset-view">Reset view ↻</button>
+              </div>
               <div class="scene-origin">
                 <span class="scene-origin-image"
                   ><img
@@ -162,6 +206,11 @@
                 role="group"
                 aria-label="Interactive twelve-button mouse grid"
               ></div>
+              <div class="sim-output">
+                <span>Example output</span
+                ><output data-sim-output aria-live="polite">Try a button</output
+                ><small data-sim-history></small>
+              </div>
               <p class="scene-meta">
                 <span></span>12 thumb buttons<span></span
                 ><span id="scene-hand">Corsair Scimitar</span>
@@ -205,8 +254,8 @@
               the keyboard<br />every five seconds.”
             </blockquote>
             <p>
-              <strong>Ethan Sarif-Kattan</strong> · Builder of slightly
-              ridiculous, useful things.
+              <strong>Ethan S K</strong> · Builder of slightly ridiculous,
+              useful things.
             </p>
           </div>
         </div>
@@ -260,7 +309,7 @@
                 </select></label
               >
               <a class="map-link" href="./mouse-map.html"
-                >Open the technical map <span aria-hidden="true">↗</span></a
+                >Open the full map <span aria-hidden="true">↗</span></a
               >
               <div class="mode-mouse" aria-hidden="true">
                 <svg viewBox="0 0 130 160">
@@ -285,6 +334,12 @@
               </div>
             </div>
             <div>
+              <label class="sim-app sim-app-hud"
+                >Current app<select
+                  data-current-app
+                  aria-label="HUD current app"
+                ></select
+              ></label>
               <div class="hud-frame" id="hud-frame">
                 <div
                   class="hud-grid"
@@ -292,6 +347,11 @@
                   role="group"
                   aria-label="HUD controls"
                 ></div>
+                <div id="legend-hidden-note" hidden>
+                  Default legend hidden<button type="button" id="show-legend">
+                    Show legend
+                  </button>
+                </div>
                 <div class="hud-footer">
                   <span id="hud-mode-name">Default mode</span>
                   <div class="hud-hand" role="group" aria-label="HUD mouse">
@@ -318,8 +378,38 @@
               >
                 Select a control to see what it does.
               </p>
+              <div
+                class="sim-actions"
+                role="group"
+                aria-label="Try the selected control"
+              >
+                <button
+                  type="button"
+                  data-sim-action="hold"
+                  aria-pressed="false"
+                >
+                  Hold
+                </button>
+                <button type="button" data-sim-action="up" disabled>
+                  Wheel up ↑
+                </button>
+                <button type="button" data-sim-action="down" disabled>
+                  Wheel down ↓
+                </button>
+                <button type="button" data-sim-action="double" hidden>
+                  Double press
+                </button>
+                <button type="button" data-sim-action="reset">
+                  Reset demo
+                </button>
+              </div>
+              <div class="sim-output sim-output-hud">
+                <span>Example output</span
+                ><output data-sim-output aria-live="off">Try a button</output
+                ><small data-sim-history></small>
+              </div>
               <p class="hud-caption">
-                Interactive HUD preview.
+                Generated from the app source. Actions run in this page only.
                 <span class="repair-key">× Needs repair</span> marks a reported
                 physical issue.
               </p>
@@ -484,12 +574,27 @@
         </div>
       </section>
     </main>
+    <dialog class="speech-demo" id="speech-demo" aria-labelledby="speech-title">
+      <button type="button" id="close-speech" aria-label="Close speech demo">
+        ×
+      </button>
+      <p class="eyebrow" id="speech-hand">Top button</p>
+      <h2 id="speech-title">Activate speech mode</h2>
+      <div class="speech-wave" aria-hidden="true">
+        <i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+      </div>
+      <p id="speech-example"></p>
+      <p class="speech-note">
+        The top button starts dictation with VoiceInk++. This is an example
+        only; no microphone is used. DPI stays at 2,750.
+      </p>
+    </dialog>
     <footer class="site-footer">
       <div class="wrap">
-        <span>Agentic Mouse · An Ethan Sarif-Kattan project</span
+        <span>Agentic Mouse · An Ethan S K project</span
         ><span
-          ><a href="https://github.com/EthanSK">More of my projects ↗</a> · Open
-          source, MIT · 2026</span
+          ><a href="https://github.com/EthanSK">More of my projects ↗</a> ·
+          Open source, MIT · 2026</span
         >
       </div>
     </footer>
@@ -502,9 +607,9 @@
         >.
       </p></noscript
     >
-    <script src="./script.js?v=20260905c"></script>
+
     <script src="./lib/gsap.min.js"></script>
     <script src="./lib/ScrollTrigger.min.js"></script>
-    <script type="module" src="./showcase.js?v=20260905c"></script>
+    <script type="module" src="./showcase.js?v=__SITE_VERSION__"></script>
   </body>
 </html>

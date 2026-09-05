@@ -1,7 +1,7 @@
 .DEFAULT_GOAL := help
 SHELL := /bin/bash
 
-.PHONY: help build release test test-extension test-vscode-bridge vscode-bridge test-karabiner test-packaging test-verbose clean app doctor keymap mapping simulate karabiner check
+.PHONY: help build release test test-extension test-vscode-bridge vscode-bridge test-karabiner test-packaging test-verbose clean app doctor keymap mapping simulate karabiner check site test-site
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
@@ -48,11 +48,17 @@ test-karabiner: ## Validate semantic action sources and generated Karabiner JSON
 test-verbose: ## Run tests with full output
 	swift test --verbose
 
-check: clean build test test-extension test-vscode-bridge test-karabiner test-packaging ## Clean build followed by the full test suite
+check: clean build test test-extension test-vscode-bridge test-karabiner test-packaging test-site ## Clean build followed by the full test suite
 	bash -n Scripts/package-app.sh
 	bash -n Scripts/package-vscode-bridge.sh
 	bash -n Scripts/update-app-version.sh
 	@echo "clean build + tests passed"
+
+site: ## Build the interactive website from native mode definitions
+	python3 Scripts/build-site.py
+
+test-site: site ## Verify the generated mode graph and browser simulation
+	node --test Tests/ShowcaseTests/*.test.mjs
 
 clean: ## Remove build products
 	swift package clean

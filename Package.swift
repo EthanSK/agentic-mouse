@@ -13,7 +13,8 @@ let package = Package(
             name: "agentic-mouse-supervisor",
             targets: ["AgenticMouseSupervisor"]
         ),
-        .executable(name: "agentic-mouse-doctor", targets: ["ScimitarDoctor"])
+        .executable(name: "agentic-mouse-doctor", targets: ["ScimitarDoctor"]),
+        .executable(name: "agentic-mouse-site", targets: ["ShowcaseExporter"])
     ],
     targets: [
         // Thin C shim that dlopen()s the proprietary iCUE SDK at runtime.
@@ -71,6 +72,12 @@ let package = Package(
             name: "ScimitarDoctor",
             dependencies: ["ScimitarKit"],
             path: "Sources/ScimitarDoctor"
+        ),
+
+        .executableTarget(
+            name: "ShowcaseExporter",
+            dependencies: ["ScimitarKit"],
+            path: "Sources/ShowcaseExporter"
         ),
 
         .testTarget(

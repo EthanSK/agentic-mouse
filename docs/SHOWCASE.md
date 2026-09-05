@@ -1,13 +1,14 @@
 # The Agentic Mouse showcase
 
-GitHub Pages publishes this directory from `main`. The homepage uses ordinary HTML,
-CSS and browser modules; it does not need a build service. Preview it with
-`python3 -m http.server 8841 --bind 127.0.0.1 --directory docs`.
+Build with `make test-site`, then serve `.build/site`. GitHub Actions runs the same build and tests on every push to `main`, then publishes the artifact to GitHub Pages. Pull requests only build and test. The Pages publishing source must be **GitHub Actions**.
 
-`showcase.js` reads the existing `CELLS` and `LAYERS` declarations from `script.js`.
-Keep that file as the shared public mapping source, including source-specific
-Razer arrow overrides and reported physical issues. The homepage never dispatches
-a native command. Its HUD and lighting are labelled interactive previews.
+## Source of truth
+
+`Sources/ShowcaseExporter` links `ScimitarKit` and exercises the real `ModePickerCoordinator` with inert leases, manual clocks, and recording HUDs. It exports the reachable mode graph, labels, colours, repair markers, physical crosswalk, wheel descriptions, app list, and keypad groups. No native configuration, installed app icons, hardware connection, or private preferences are read.
+
+`docs/simulator.mjs` consumes that generated graph. Both hands keep their own mode and Default-legend state. Automatic app mode follows the browser’s Current app selector; manual selection stays fixed, including through Chrome’s website submenu. Keypad text and action feedback are disposable browser examples. Third-party apps, OS actions, external bridge execution, and the native input security system are not emulated. The hero mice are product photographs; the draggable object is a rendered thumb grid.
+
+`Scripts/build-site.py` writes `.build/site`, including generated `simulator-data.json` and a no-JavaScript full map. It applies a content-derived cache version to the homepage, CSS and browser modules. The published data identifies the exact source commit; uncommitted native work is not silently bundled into a deployment. The historical `docs/script.js` table is no longer consumed by the homepage or the generated full map. Do not use it as the showcase’s source of truth.
 
 The Three.js chapter renders on scroll, resize and interaction, with a capped
 pixel ratio. Its camera world matrix must be current **before** projecting HTML
@@ -60,6 +61,6 @@ and browser-test screenshots do not belong in the public site.
 Check the page in a real browser at desktop and phone sizes, including 320 pixels.
 Try the hand switch, every mode family, pointer selection, Tab/arrow/Enter input,
 and the technical-map link. Inspect settled scroll states and image proportions.
-When changing assets or scripts, advance the homepage's cache query and verify the
-live Pages response after pushing. A website preview cannot prove physical mouse
+The build advances asset cache versions automatically. After publication, verify
+the exact live HTML, modules and generated data against the build artifact. A website preview cannot prove physical mouse
 acceptance or native command delivery.
