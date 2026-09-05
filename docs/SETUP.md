@@ -6,7 +6,11 @@ Using a coding agent? Give it [AGENT-SETUP.md](AGENT-SETUP.md) before letting it
 
 ## 1. Build without changing your Mac
 
-You need macOS 13 or later, Swift 5.10 or later, Node.js 20 or later, and Python 3. Install Apple's Xcode command line tools and confirm `swift --version`, `node --version`, and `python3 --version` first. Apple Silicon and Intel are build targets; each still needs its own hardware acceptance.
+You need **Xcode 26 or later with the macOS 26 SDK**, its bundled Swift toolchain, **Node.js 20 or later**, and **Python 3**. The native glass HUD cannot compile against an older SDK, even though the app's deployment target is macOS 13. The package manifest's Swift 5.10 tools version is not the complete build requirement.
+
+Use a Mac supported by your Xcode version: Xcode 26 requires macOS 15.6 or later, and newer versions may require a newer host. Check [Apple's Xcode requirements](https://developer.apple.com/xcode/system-requirements). Apple Silicon and Intel are build targets; each still needs its own hardware acceptance.
+
+Select the full Xcode installation under **Xcode → Settings → Locations → Command Line Tools**, or set `DEVELOPER_DIR` to that installation's `Contents/Developer` directory for your shell. Confirm `xcodebuild -version`, `xcrun --show-sdk-version` (26 or later), `swift --version`, `node --version`, and `python3 --version` before building. CI selects Xcode 26.3 explicitly rather than relying on the runner's older default.
 
 ```sh
 git clone https://github.com/EthanSK/agentic-mouse.git
