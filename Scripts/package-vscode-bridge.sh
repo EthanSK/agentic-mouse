@@ -21,4 +21,5 @@ mkdir -p "$(dirname "${OUTPUT_PATH}")"
   "${VSCE}" package --out "${OUTPUT_PATH}"
 )
 unzip -tq "${OUTPUT_PATH}" >/dev/null
+unzip -p "${OUTPUT_PATH}" extension/LICENSE.txt | cmp - "${REPO_ROOT}/LICENSE" # Note: VSCE normalizes the linked project license to LICENSE.txt; verify the published archive carries the exact terms.
 printf 'Packaged VS Code bridge %s at %s\n' "${VERSION}" "${OUTPUT_PATH}"
