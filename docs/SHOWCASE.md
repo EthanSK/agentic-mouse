@@ -110,12 +110,13 @@ Every displayed image retains its source aspect ratio. Hardware thumbnails use
 - `razer-side.webp`: Gallery 4 from the same official Razer product gallery, converted
   to WebP without changing its proportions, used as the thumb-grid reference inset.
 - `hbada.webp`: [Hbada E3 Pro 2026 grey chair image](https://www.hbada.uk/cdn/shop/files/E3_Pro_2026_Gray_with_footrest_ergonomic_office_chair_front.png?v=1778028844&width=1200).
-- `ethan-lounging.webp`: an AI scene commissioned by Ethan using his
-  original studio photograph for the setting and his [real GitHub profile portrait](https://github.com/EthanSK)
-  for the face. The earlier generated identity reference was replaced after Ethan
-  reported that it did not look like him. It is
-  clearly labelled as AI on the page. It illustrates the reclining setup rather
-  than claiming to be a documentary photograph or a live application screenshot.
+- `ethan-lounging.webp`: the original AI scene commissioned by Ethan using his
+  studio and thedrums/Spotify Canvas photographs as identity and setting references.
+  Restored byte-for-byte from `5d3ba24` at Ethan's request after he rejected the
+  later face replacement. It remains labelled as AI on the page and illustrates
+  the reclining setup rather than claiming to be a documentary photograph or
+  a live application screenshot. The image URL uses the site's content version
+  so returning visitors receive the restored image.
 
 Product photography and names remain the property of their respective owners.
 Original private identity reference files, native configuration, review transcripts,
