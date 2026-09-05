@@ -26,6 +26,10 @@ Browser dependencies are pinned and served from `lib/`, without runtime CDN impo
   `GLTFLoader`, `DRACOLoader`, and their geometry utilities. MIT; see `lib/THREE-LICENSE.txt`.
 - Draco WebAssembly decoder, pinned from the Three.js 0.185.1 distribution.
   Apache 2.0; see `lib/draco/DRACO-LICENSE.txt`.
+- [three-mesh-bvh 0.9.14](https://github.com/gkjohnson/three-mesh-bvh): a shared
+  spatial index for exact mesh picking, so each frame does not scan every triangle
+  twelve times. MIT; see `lib/THREE-MESH-BVH-LICENSE.txt`. The bundled module exports
+  only `MeshBVH` and `acceleratedRaycast`, with Three.js kept external.
 - [GSAP 3.15.0](https://www.npmjs.com/package/gsap/v/3.15.0): GSAP and ScrollTrigger.
   Their distribution headers retain the copyright and
   [GSAP Standard License](https://gsap.com/standard-license/) reference.
@@ -39,7 +43,10 @@ photography or separately licensed dependencies.
 
 The browser loads two compressed GLB assets from `models/`. They are shared between
 both hero views and the side-button chapter. The default side view faces the thumb
-buttons; Reset view restores that orientation. A hidden key cannot intercept a
+buttons; Reset view restores that orientation. Returning to the controls chapter
+starts on the right mouse, unless a hero key explicitly opens the left mouse's
+action. Keyboard focus lights the physical key rather than drawing a flat square
+over its angled face. A hidden key cannot intercept a
 click through the shell. Product photographs and an HTML button grid remain usable
 when WebGL or model loading is unavailable.
 

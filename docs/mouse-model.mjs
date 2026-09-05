@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { GLTFLoader } from "./lib/loaders/GLTFLoader.js";
 import { DRACOLoader } from "./lib/loaders/DRACOLoader.js";
+import { MeshBVH, acceleratedRaycast } from "./lib/three-mesh-bvh.mjs";
 
 const decoder = new DRACOLoader();
 decoder.setDecoderPath(new URL("./lib/draco/", import.meta.url).href);
@@ -38,7 +39,11 @@ export async function createMouseModel(hand, source) { // Ethan rejected generic
       speech = object;
       object.traverse((part) => { part.userData.speech = true; });
     }
-    if (object.isMesh) pickables.push(object);
+    if (object.isMesh) {
+      object.geometry.boundsTree ??= new MeshBVH(object.geometry); // Twelve full-mesh scans cost about 100 ms per frame; share one spatial index per geometry across hero and chapter clones.
+      object.raycast = acceleratedRaycast;
+      pickables.push(object);
+    }
   });
   if (keys.size !== 12 || !speech) throw new Error(`Incomplete ${hand} hardware model`);
   return { group, keys, speech, pickables, side };

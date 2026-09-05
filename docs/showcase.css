@@ -2448,6 +2448,10 @@ button {
   padding: 0;
   border-radius: 4px;
 }
+.has-mouse-model:not(.scene-fallback) .scene-key:focus-visible {
+  outline: none; /* The real 3D key supplies the focus highlight; a screen-aligned square cannot fit its angled face. */
+  background: transparent;
+}
 @media (max-width: 760px) {
   .hero {
     height: auto;

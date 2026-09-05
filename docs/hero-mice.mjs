@@ -55,6 +55,7 @@ export async function createHeroMouse(figure, source, onCell, labelForCell) {
     const model = await createMouseModel(hand, source);
     scene.add(model.group);
     const raycaster = new THREE.Raycaster();
+    raycaster.firstHitOnly = true;
     const point = new THREE.Vector3();
     const hint = document.createElement("span");
     hint.className = "hero-button-hint";

@@ -25,6 +25,7 @@ let resetView = () => {};
 let tourHasInput = false;
 let suppressClick = false;
 let pendingTimer;
+let followHeroSelection = false;
 let changeHand = (nextHand) => {
   simulator.chooseHand(nextHand);
   hand = nextHand;
@@ -414,6 +415,15 @@ document.querySelector("#show-legend").addEventListener("click", () => {
   renderAll();
 });
 renderAll();
+let controlsWereVisible = false;
+new IntersectionObserver(([entry]) => {
+  const visible = entry.isIntersecting && entry.intersectionRatio >= .001;
+  if (visible && !controlsWereVisible) {
+    if (!followHeroSelection) changeHand("corsair"); // Returning from another section starts on the right mouse; an explicit hero-key click still opens that mouse's own action.
+    followHeroSelection = false;
+  }
+  controlsWereVisible = visible;
+}, { rootMargin: `-${getComputedStyle(document.documentElement).scrollPaddingTop} 0px 0px`, threshold: .001 }).observe(document.querySelector("#buttons")); // Anchor navigation leaves the previous section inside scroll-padding; exclude that strip when detecting a return.
 
 /** Show an explicit dictation example; this never opens a microphone or native app. */
 for (const button of document.querySelectorAll("[data-speech]")) {
@@ -451,7 +461,6 @@ async function createButtonScene() {
   for (const model of Object.values(models)) assembly.add(model.group);
   const pose = {
     progress: 0,
-    handTurn: 0,
     dragX: 0,
     dragY: 0,
     dragProgress: null,
@@ -460,6 +469,8 @@ async function createButtonScene() {
   const normal = new THREE.Vector3();
   const direction = new THREE.Vector3();
   const raycaster = new THREE.Raycaster();
+  raycaster.firstHitOnly = true;
+  const focusColor = new THREE.Color("#ffffff");
   const corners = [
     new THREE.Vector3(.10, -.18, -.20), new THREE.Vector3(.10, -.18, .20),
     new THREE.Vector3(.10, .18, -.20), new THREE.Vector3(.10, .18, .20),
@@ -469,16 +480,22 @@ async function createButtonScene() {
   let visible = true;
 
   /** Render on scroll or input only; project HTML hit targets from the actual key faces. */
+  let renderFrame = 0;
   function render() {
+    if (!renderFrame) renderFrame = requestAnimationFrame(draw); // Scroll, resize and selection can request the same view in one frame; draw it once.
+  }
+  function draw() {
+    renderFrame = 0;
     if (!visible || !width || !height) return;
     const progress =
       pose.dragProgress ?? (reducedMotion.matches ? 0.7 : pose.progress);
     const model = models[hand];
     const keys = model.keys;
+    const focusedButton = document.activeElement?.matches(".scene-key:focus-visible") ? document.activeElement : null;
     for (const [source, object] of Object.entries(models)) object.group.visible = source === hand;
     assembly.rotation.set(
       .12 + progress * .14 + pose.dragX,
-      -model.side * Math.PI / 2 + model.side * progress * .17 + pose.handTurn + pose.dragY,
+      -model.side * Math.PI / 2 + model.side * progress * .17 + pose.dragY,
       -.025,
     );
     assembly.position.y = .4;
@@ -489,6 +506,7 @@ async function createButtonScene() {
       if (highlighted) key.material.color.set(control.destinationColor ?? control.color);
       if (highlighted) key.material.color.multiplyScalar(.5);
       key.material.emissive.set(highlighted ? (control.destinationColor ?? control.color) : "#000000");
+      if (sceneButtons.get(cell) === focusedButton) key.material.emissive.lerp(focusColor, .55); // A flat HTML focus square crossed angled key edges; show keyboard focus on the actual key surface instead. (Codex task: 01a06ee5-4aa0-7a61-a029-704e5c44a8f2)
       key.material.emissiveIntensity = .3; // The calmer studio lowers ambient light; a slightly stronger glow keeps the selected key's mode colour legible on the charcoal shell.
       key.position.copy(key.userData.rest);
       if (simulator.state.held === cell) key.position.x -= model.side * .035;
@@ -526,7 +544,6 @@ async function createButtonScene() {
     if (hit?.object.userData.speech) document.querySelector(`.hero-product[data-mouse="${hand}"] .speech-callout`).click();
   });
   let drag;
-  let renderFrame = 0;
   sceneControls.addEventListener("pointerdown", (event) => {
     if (event.button !== 0 || sceneElement.classList.contains("scene-fallback"))
       return;
@@ -559,11 +576,7 @@ async function createButtonScene() {
       -1.2,
       Math.min(1.2, drag.startX + (drag.touch ? 0 : y * 0.007)),
     );
-    if (!renderFrame)
-      renderFrame = requestAnimationFrame(() => {
-        renderFrame = 0;
-        render();
-      });
+    render();
   });
   function endDrag(event) {
     if (!drag || drag.id !== event.pointerId) return;
@@ -593,50 +606,14 @@ async function createButtonScene() {
     },
     { passive: false },
   );
-  changeHand = (nextHand) => {
+  changeHand = (nextHand) => { // The half-second flip disabled the selector and felt delayed; switch immediately and reserve motion for scrolling and dragging.
     if (nextHand === hand) return;
-    if (reducedMotion.matches || !window.gsap) {
-      hand = nextHand;
-      simulator.chooseHand(hand);
-      pose.dragX = 0;
-      pose.dragY = 0;
-      pose.dragProgress = 0;
-      renderAll();
-      return;
-    }
-    document
-      .querySelectorAll("[data-hand], [data-hud-hand]")
-      .forEach((button) => {
-        button.disabled = true;
-      });
-    gsap.to(pose, {
-      handTurn: Math.PI / 2,
-      duration: 0.2,
-      ease: "power2.in",
-      onUpdate: render,
-      onComplete: () => {
-        hand = nextHand;
-        simulator.chooseHand(hand);
-        pose.dragX = 0;
-        pose.dragY = 0;
-        pose.dragProgress = 0;
-        pose.handTurn = -Math.PI / 2;
-        renderAll();
-        gsap.to(pose, {
-          handTurn: 0,
-          duration: 0.3,
-          ease: "power2.out",
-          onUpdate: render,
-          onComplete: () => {
-            document
-              .querySelectorAll("[data-hand], [data-hud-hand]")
-              .forEach((button) => {
-                button.disabled = false;
-              });
-          },
-        });
-      },
-    });
+    hand = nextHand;
+    simulator.chooseHand(hand);
+    pose.dragX = 0;
+    pose.dragY = 0;
+    pose.dragProgress = 0;
+    renderAll();
   };
   const resize = new ResizeObserver((entries) => {
     width = entries[0].contentRect.width;
@@ -803,6 +780,7 @@ createButtonScene()
 import("./hero-mice.mjs?v=__SITE_VERSION__").then(({ createHeroMouse }) => {
   for (const figure of document.querySelectorAll(".hero-product")) {
     void createHeroMouse(figure, map.sources[figure.dataset.mouse], (source, cell) => {
+      followHeroSelection = !controlsWereVisible;
       hand = source;
       simulator.chooseHand(hand);
       resetView();
