@@ -870,6 +870,9 @@ button {
   color: #9a919f;
   font-size: 11px;
 }
+.site-footer p {
+  margin-top: 14px;
+}
 .error-page {
   min-height: 100svh;
   padding: 180px 30px;
