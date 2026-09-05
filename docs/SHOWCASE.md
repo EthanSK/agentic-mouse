@@ -115,7 +115,8 @@ Every displayed image retains its source aspect ratio. Hardware thumbnails use
   in iPhone Photos. The portrait, taken on 2 September 2026, supplies his short
   haircut, face and outfit: a black graphic T-shirt and beige shorts. The desk
   photo supplies the bamboo top, laptop, monitors, speakers and microphone setup.
-  The reclining pose, chair and armrest mouse surfaces are AI reimagined. The image
+  The reclining pose and chair are AI reimagined. Both mice rest on the main
+  desktop, with one in use and the other parked beside it. The image
   remains labelled as AI on the page; it is not a documentary photograph or a
   live application screenshot. Private photo-library originals stay outside the
   repository. The image URL uses the site's content version for browser updates.

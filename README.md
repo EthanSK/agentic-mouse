@@ -8,7 +8,7 @@ My personal macOS setup, made public so you can explore it and build your own. �
 
 [**Try the interactive walkthrough →**](https://ethansk.github.io/agentic-mouse/) · [Every button and mode](https://ethansk.github.io/agentic-mouse/mouse-map.html) · [Setup guide](docs/SETUP.md)
 
-![An AI recreation of Ethan S K reclining at his studio desk with a mouse in each hand](docs/assets/ethan-lounging.webp)
+![An AI recreation of Ethan S K reclining at his studio desk, using one of two mice on the desktop](docs/assets/ethan-lounging.webp)
 
 *My setup, reimagined with AI from my portrait and studio photos.*
 
