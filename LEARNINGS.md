@@ -1160,6 +1160,12 @@
 
 GitHub Pages served Agentic Mouse JavaScript with `Cache-Control: max-age=600`, so a successful Pages build did not by itself prove that a returning browser would load a changed interactive map. Whenever public CSS or JavaScript bytes change, rotate the version query in every referring HTML file, then fetch the exact versioned live URL and require its SHA-256 to match the committed asset before calling the UI current.
 
+## 2026-09-05 — Keep the scroll showcase usable outside its GPU scene
+
+**Finding:** Projecting HTML buttons before Three.js updates the camera world matrix can place keyboard targets far outside the scene; focusing one then scrolls a hidden ancestor and blanks the chapter. Update the camera matrix before projection and use `overflow: clip` on the enclosing chapter. Manual Tab/arrow/Enter testing caught and verified this failure. (Codex task: 01a06ee5-4aa0-7a61-a029-704e5c44a8f2)
+
+**Guard:** Keep the public actions in the existing `CELLS`/`LAYERS` map, render usable HTML controls before loading WebGL, and let visitor input permanently override the automatic scroll tour. Test both hands, long descriptions, narrow phone widths, and the no-WebGL grid. Full-bleed `100vw` imagery also needs horizontal clipping: a forced 16-pixel classic scrollbar verified that the page remains within the document width. Keep asset provenance and the detailed website workflow in `docs/SHOWCASE.md`; these previews do not prove physical native command delivery.
+
 ## 2026-08-17 — Fall back to a clipboard lease when an editor hides AX focus
 
 **Status:** Historical and superseded for the active Keypad path by the direct-Unicode trial below. The ownership-marked implementation remains in source only as rollback evidence until physical acceptance is complete.
