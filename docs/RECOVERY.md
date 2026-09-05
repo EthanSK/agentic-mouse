@@ -146,27 +146,21 @@ happened over.
 
 ---
 
-## Full reset
+## Roll back or uninstall
 
-First choose **Quit Agentic Mouse** from its menu bar item. That supported path
-disarms self-recovery before the process exits. Then remove configuration and
-the installed app if that is truly intended:
+Keep an ordinary keyboard available. Back up the current Karabiner file before changing it, even when you already have an older installation backup.
 
-```bash
-rm -rf ~/.config/agentic-mouse                  # forget the configuration
-```
+For an app rollback, use **Quit Agentic Mouse**, restore the preserved signed bundle to `/Applications/AgenticMouse.app`, and relaunch that exact path. Restore its matching Agentic rule block if the new source changed the command contract. Never restore an old whole Karabiner file over unrelated changes made since the backup; merge only the Agentic block, preserving other rules and profiles.
 
-If the menu item is unavailable, disable **Agentic Mouse Runtime Supervisor**
-under System Settings → General → Login Items & Extensions before stopping the
-process. Do not use `killall AgenticMouse` as an intentional stop: an enabled
-supervisor correctly treats that as an unexpected exit and relaunches it.
+For complete removal:
 
-Then remove the app bundle. To also revoke the permission: System Settings →
-Privacy & Security → Accessibility → remove Agentic Mouse.
+1. Choose **Quit Agentic Mouse** from its menu bar item. This disarms its supervisor. If the menu is unavailable, disable **Agentic Mouse Runtime Supervisor** under **System Settings → General → Login Items & Extensions** before stopping the exact process. Repeated process killing leaves an enabled supervisor trying to recover it.
+2. In Karabiner's selected profile, remove only the rules whose descriptions start with `Agentic Mouse — `. This includes the locked-session sink, bases, app overrides and runtime Modes rule. Keep every unrelated rule and profile. The complete installer block must come out together: leaving the sink while deleting the app would keep custom buttons consumed.
+3. Restore the mouse's desired ordinary assignments through its vendor/onboard settings, using the saved profile export where appropriate. Without the Agentic rules, neutral digit/keypad/function-key transports can reach ordinary apps. Do not reset other devices or profiles.
+4. Remove `/Applications/AgenticMouse.app` and its row under **Privacy & Security → Accessibility**. Verify its supervisor is no longer enabled.
+5. Keep the private config and backups until rollback is no longer needed. Optionally archive or remove only `~/.config/agentic-mouse` afterward. Removing the app alone does not delete that directory or a separately installed VS Code extension.
 
-Uninstalling changes nothing about iCUE, your profiles, your DPI stages, the
-Logitech setup, or the VoiceInk++ macro on the top DPI control. The helper never
-modified any of them.
+Uninstalling the app does not revert vendor profiles or configure external apps. Check pointer, scrolling, primary/secondary clicks, side buttons and an ordinary keyboard before considering removal complete.
 
 ---
 
@@ -178,5 +172,5 @@ Run the whole system against fakes, with no hardware involved:
 make simulate
 ```
 
-If that behaves correctly, the state machine, interception lifecycle and text
-pipeline are sound and the problem is at the hardware or permission boundary.
+This checks the simulated coordinator paths. A pass helps narrow the problem;
+it does not rule out native integration, permissions, timing or hardware faults.

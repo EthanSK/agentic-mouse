@@ -20,9 +20,11 @@ Karabiner/
   bindings/bindings.json   Exact-device physical adapter layer
   generated/
     action-catalog.json    Combined, browsable action vocabulary
-    agentic-mouse.json     Importable Karabiner complex modifications
+    agentic-mouse.json     Development base export; do not install alone
     agentic-mouse-runtime.json  Complete runtime-mode replacement
 ```
+
+For a first installation, follow [SETUP.md](../docs/SETUP.md#6-initialize-the-complete-karabiner-rules). The installer supports an explicit `--initialize` dry run and preserves the selected profile's unrelated rules. Only the complete runtime artifact is suitable for installation.
 
 The generator recursively discovers action files, so future modes and submenus
 can live in new named subfolders without turning one source file into a large

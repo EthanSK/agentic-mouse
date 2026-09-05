@@ -20,6 +20,8 @@ visitor input; mobile and reduced-motion layouts have no long pinned chapter.
 
 ## Native HUD preview
 
+The opening mirror grid derives each mouse's printed layout and Default actions from the same export. Hovering or focusing a cell highlights its counterpart; clicking selects that hand, opens its Default map and executes the displayed control in the shared browser simulator. It does not duplicate the action table or link the two hands' independent runtime modes.
+
 The controls chapter and HUD section share `docs/native-hud.mjs`. A physical mouse
 key, HUD card, or keyboard activation updates both views through the same simulator.
 The browser renders the native 4 × 3 hierarchy: action titles above printed source

@@ -1,7 +1,10 @@
 .DEFAULT_GOAL := help
 SHELL := /bin/bash
 
-.PHONY: help build release test test-extension test-vscode-bridge vscode-bridge test-karabiner test-packaging test-verbose clean app doctor keymap mapping simulate karabiner check site test-site
+.PHONY: help build release test test-extension test-vscode-bridge vscode-bridge test-karabiner test-install test-packaging test-verbose clean app install-candidate doctor keymap mapping simulate karabiner check site test-site
+
+CODE_SIGN_IDENTITY ?=
+REQUIRE_ICUE_SDK ?= 1
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
@@ -30,6 +33,9 @@ test-packaging: ## Test monotonic marketing/build versions for signed candidates
 	bash Tests/PackagingTests/test-app-version.sh
 	bash Tests/PackagingTests/test-runtime-supervisor.sh
 
+test-install: ## Test first installation and updates against temporary Karabiner profiles
+	python3 -m unittest discover -s Tests/InstallationTests -p 'test_*.py'
+
 karabiner: ## Generate the Karabiner adapter and action catalog
 	python3 Scripts/generate-karabiner.py
 
@@ -48,7 +54,7 @@ test-karabiner: ## Validate semantic action sources and generated Karabiner JSON
 test-verbose: ## Run tests with full output
 	swift test --verbose
 
-check: clean build test test-extension test-vscode-bridge test-karabiner test-packaging test-site ## Clean build followed by the full test suite
+check: clean build test test-extension test-vscode-bridge test-karabiner test-install test-packaging test-site ## Clean build followed by the full test suite
 	bash -n Scripts/package-app.sh
 	bash -n Scripts/package-vscode-bridge.sh
 	bash -n Scripts/update-app-version.sh
@@ -68,7 +74,7 @@ app: ## Package AgenticMouse.app into ./build (installs nothing)
 	bash ./Scripts/package-app.sh
 
 install-candidate: ## Package a stable Developer-ID app for guarded installation
-	INSTALL_CANDIDATE=1 CODE_SIGN_IDENTITY="Developer ID Application: Ethan Sarif-Kattan (T34G959ZG8)" bash ./Scripts/package-app.sh
+	INSTALL_CANDIDATE=1 CODE_SIGN_IDENTITY="$(CODE_SIGN_IDENTITY)" REQUIRE_ICUE_SDK="$(REQUIRE_ICUE_SDK)" bash ./Scripts/package-app.sh
 
 doctor: build ## Show the resolved configuration, redacted
 	swift run agentic-mouse-doctor config

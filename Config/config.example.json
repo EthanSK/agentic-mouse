@@ -1,7 +1,7 @@
 {
   "_comment": [
-    "Copy this file to ~/.config/agentic-mouse/config.json and fill in the",
-    "REPLACE_ME values, then `chmod 600` it.",
+    "For a first setup, copy this file to ~/.config/agentic-mouse/config.json,",
+    "then `chmod 600` it. Preserve an existing config; defaults need no placeholders.",
     "",
     "No real device identifier belongs in this repository.",
     "Run `agentic-mouse-doctor config` to see the resolved configuration and warnings."
@@ -32,7 +32,7 @@
 
     "_comment_sdkSearchPaths": [
       "Extra places to look for the proprietary iCUE SDK, tried before the",
-      "built-in list. The SDK is never bundled with this project."
+      "built-in list. The SDK is not in the repository; packaging may embed your local framework."
     ],
     "sdkSearchPaths": [],
 
@@ -92,10 +92,10 @@
   },
 
   "defaultMapHint": {
-    "_comment": "Shared cell 2 toggles the persistent Default mode legend (Corsair 2 / Razer 2). Shared cell 10 holds Switch App outside modes and exits an active mode.",
+    "_comment": "Shared cell 10 toggles the persistent Default legend (Corsair 10 / Razer 12) or exits an active mode. Cell 11 holds Switch App; cell 2 opens the current app mode.",
     "enabled": true,
     "doubleClickInterval": 0.34,
-    "_comment_displayDuration": "0 keeps the legend visible until the same mouse's cell-2 toggle hides it.",
+    "_comment_displayDuration": "0 keeps the legend visible until the same mouse's cell-10 toggle hides it.",
     "displayDuration": 0
   },
 

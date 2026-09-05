@@ -2,7 +2,7 @@
 
 **The setup for the agentic future.**
 
-Two mice. Twenty-four thumb buttons. I lean back, talk to agents, and keep the rest under my thumb.
+Twelve thumb controls, mirrored on both mice. I lean back, talk to agents, and keep the rest under my thumb.
 
 My personal macOS setup, made public so you can explore it and build your own. — **Ethan S K**
 
@@ -52,6 +52,8 @@ The mice share a physical action layout, with their own printed numbers and mirr
 
 ## Build the app
 
+**Ready to build and adapt; manual setup required.** There is no signed, notarized app download yet. Speech mode, YouTube control and some VS Code actions depend on external integrations that are not included. Check the [dependency table](docs/SETUP.md#2-check-which-features-you-can-use) before setting up your mice.
+
 Requires **macOS 13 or later**, **Swift 5.10 or later**, **Node.js 20 or later**, and **Python 3**. Building and running the hardware-free tests does not require either mouse or the proprietary iCUE SDK.
 
 ```sh
@@ -61,7 +63,7 @@ make check
 make app
 ```
 
-`make app` packages `build/AgenticMouse.app`. It does **not** install it or change your mouse settings.
+`make app` packages an ad-hoc development bundle at `build/AgenticMouse.app`. It does **not** install or launch it. Follow the signing steps in the setup guide before a real installation; launching the GUI app starts input handling and registers its login supervisor.
 
 For real hardware, follow the [setup guide](docs/SETUP.md): configure the neutral button transports, provide the iCUE SDK for Corsair lighting, review the generated Karabiner runtime rules, and grant the required macOS permissions. This is a personal setup to commission, not a universal plug-and-play installer.
 
@@ -107,6 +109,8 @@ Agentic Mouse does not edit vendor profile databases. Its runtime modes restore 
 ## Go deeper
 
 - [Setup](docs/SETUP.md) — build requirements, SDK, hardware, and permissions.
+- [Set up with your agent](docs/AGENT-SETUP.md) — adapt the project to your own Mac and apps.
+- [Contribute](CONTRIBUTING.md) · [Release readiness](docs/RELEASE.md) — checks, supported scope and remaining release gates.
 - [Architecture](docs/ARCHITECTURE.md) — native components and responsibilities.
 - [Karabiner](Karabiner/README.md) — semantic actions and exact-device adapters.
 - [Limitations](docs/LIMITATIONS.md) · [Live proof](docs/LIVE-PROOF.md) — what is verified and what still needs physical acceptance.

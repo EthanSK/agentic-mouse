@@ -6,7 +6,7 @@
     <title>Agentic Mouse — the setup for the agentic future</title>
     <meta
       name="description"
-      content="Two mice, twenty-four thumb buttons, and a chair that tilts back. Explore Ethan's personal macOS setup through an interactive 3D walkthrough."
+      content="Twelve thumb controls, mirrored across both mice. Explore Ethan's personal macOS setup through an interactive 3D walkthrough."
     />
     <meta name="mouse-map" content="./simulator-data.json?v=__SITE_VERSION__" />
     <meta name="theme-color" content="#f5f5f7" />
@@ -65,7 +65,7 @@
             The setup for the<br /><span>agentic future.</span>
           </h1>
           <p class="hero-description">
-            Two mice. Twenty-four thumb buttons.<br />I talk to agents. The
+            Twelve thumb controls, mirrored on both mice.<br />I talk to agents. The
             mouse does the rest.
           </p>
         </div>
@@ -114,6 +114,26 @@
               scroll<span aria-hidden="true">↓</span></a
             ><span class="edition">Made for leaning back</span>
           </div>
+        </div>
+      </section>
+
+      <section class="mirror-section" aria-labelledby="mirror-title" hidden>
+        <div class="wrap">
+          <h2 id="mirror-title">Same twelve controls, mirrored.</h2>
+          <p>Switch hands. The same action sits under either thumb, with its own printed number.</p>
+          <div class="mirror-layout">
+            <div>
+              <h3>Left hand <span>Razer Naga</span></h3>
+              <div class="mirror-grid" data-mirror-source="razer" role="group" aria-label="Mirrored Razer controls"></div>
+            </div>
+            <div class="mirror-axis" aria-hidden="true"><span>↔</span></div>
+            <div>
+              <h3>Right hand <span>Corsair Scimitar</span></h3>
+              <div class="mirror-grid" data-mirror-source="corsair" role="group" aria-label="Mirrored Corsair controls"></div>
+            </div>
+          </div>
+          <p class="mirror-match"><strong data-mirror-action></strong><span data-mirror-address></span></p>
+          <p class="mirror-instruction"><span class="pointer-instruction">Hover a control to see its match. Click to try the action.</span><span class="touch-instruction">Tap a control to try the action on that mouse.</span></p>
         </div>
       </section>
 
@@ -535,9 +555,10 @@
             ><a
               class="text-link"
               href="https://github.com/EthanSK/agentic-mouse/blob/main/docs/SETUP.md"
-              >Build notes <span aria-hidden="true">→</span></a
+              >Read the setup guide <span aria-hidden="true">→</span></a
             >
           </div>
+          <p class="release-status">Source is available, but setup is manual. There is no signed app download yet.</p>
           <details class="build-note">
             <summary>A personal build, with a few things to know</summary>
             <p>

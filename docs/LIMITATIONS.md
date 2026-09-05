@@ -125,12 +125,12 @@ Karabiner rules, so they do not depend on Scimitar SDK macro callbacks. iCUE's
 absence does not suppress the universal HUD or Razer runtime path. The menu bar
 reports the Corsair/iCUE boundary separately.
 
-**The public SDK does not document macOS support.** Corsair's current public
-iCUE SDK reference lists Windows requirements. iCUE for macOS contains an SDK
-library and approval UI, and this project can load its audited ABI, but that is
-not enough to call the integration a supported public macOS API. Treat runtime
-mode colours as experimental until Corsair documents macOS support and a
-guarded physical write/release test is explicitly approved.
+**The macOS SDK integration is version-specific.** Corsair's official
+[4.0.84 release](https://github.com/CorsairOfficial/cue-sdk/releases/tag/v4.0.84)
+provides a macOS DMG. This project accepts that audited framework version only;
+unknown versions and raw dylibs are refused before loading. A successful load
+does not establish compatibility with another mouse or prove physical colour
+and restoration behavior. Keep those hardware acceptance results separate.
 
 **Shared layer only.** iCUE renders at 127, other shared clients at 128, this
 helper at 130. Another SDK client at a higher priority would win, and this
@@ -146,11 +146,12 @@ multi-tap mode, the mode exits.
 ## Scope
 
 **Nothing is installed by the build.** `make app` writes to `build/` and stops.
-When the packaged app is launched from its installed location, it registers
+When the packaged GUI app is launched, it attempts to register
 its signed nested runtime supervisor through `SMAppService.loginItem`. The
 helper starts at login and relaunches an unexpectedly absent main process with
 bounded backoff. It does not install a LaunchAgent, and menu-bar Quit unregisters
-it before the app terminates.
+it before the app terminates. Launching an ad-hoc development copy can also
+attempt registration; use tests and the doctor for uninstalled inspection.
 
 **iCUE profiles are never edited.** The helper reads device properties and
 writes shared-layer colours. It does not modify a profile, and it never touches

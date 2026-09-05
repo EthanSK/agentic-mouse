@@ -23,6 +23,7 @@ SUPERVISOR_APP_DIR="${APP_DIR}/Contents/Library/LoginItems/AgenticMouseSuperviso
 CONFIGURATION="${CONFIGURATION:-release}"
 CODE_SIGN_IDENTITY="${CODE_SIGN_IDENTITY:--}"
 INSTALL_CANDIDATE="${INSTALL_CANDIDATE:-0}"
+REQUIRE_ICUE_SDK="${REQUIRE_ICUE_SDK:-1}"
 INFO_PLIST="${REPO_ROOT}/Resources/Info.plist"
 CURRENT_MARKETING_VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "${INFO_PLIST}")"
 CURRENT_BUILD_VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "${INFO_PLIST}")"
@@ -98,8 +99,23 @@ if [[ "${INSTALL_CANDIDATE}" == "1" && "${CODE_SIGN_IDENTITY}" == "-" ]]; then
   exit 1
 fi
 
+if [[ "${REQUIRE_ICUE_SDK}" != "0" && "${REQUIRE_ICUE_SDK}" != "1" ]]; then
+  printf 'error: REQUIRE_ICUE_SDK must be 0 or 1.\n' >&2
+  exit 64
+fi
+if [[ "${CODE_SIGN_IDENTITY}" != "-" ]]; then
+  if ! security find-identity -v -p codesigning | grep -Fq "\"${CODE_SIGN_IDENTITY}\""; then # A new user's Mac lacks Ethan's certificate; fail before building or replacing a candidate.
+    printf 'error: signing identity is unavailable: %s\nList your identities with: security find-identity -v -p codesigning\n' "${CODE_SIGN_IDENTITY}" >&2
+    exit 1
+  fi
+fi
+
 # Where to look for the SDK to embed. Override with ICUE_SDK_FRAMEWORK.
 ICUE_SDK_FRAMEWORK="${ICUE_SDK_FRAMEWORK:-/Volumes/iCUESDK/iCUESDK.framework}"
+if [[ "${CODE_SIGN_IDENTITY}" != "-" && "${REQUIRE_ICUE_SDK}" == "1" && ! -d "${ICUE_SDK_FRAMEWORK}" ]]; then # Missing Corsair lighting must block the normal signed install before it overwrites a previous candidate.
+  printf 'error: set ICUE_SDK_FRAMEWORK to the audited framework. Use REQUIRE_ICUE_SDK=0 only for a build without Corsair lighting.\n' >&2
+  exit 1
+fi
 
 log() { printf '\033[1m==>\033[0m %s\n' "$1"; }
 warn() { printf '\033[33m warning:\033[0m %s\n' "$1" >&2; }
@@ -148,12 +164,12 @@ if [[ -d "${ICUE_SDK_FRAMEWORK}" ]]; then
   cp -R "${ICUE_SDK_FRAMEWORK}" "${APP_DIR}/Contents/Frameworks/"
 else
   warn "iCUE SDK not found at ${ICUE_SDK_FRAMEWORK}."
-  if [[ "${CODE_SIGN_IDENTITY}" != "-" ]]; then
-    printf '\033[31m error:\033[0m a Developer-ID build requires the audited iCUE SDK; refusing to produce a crippled install candidate.\n' >&2
+  if [[ "${CODE_SIGN_IDENTITY}" != "-" && "${REQUIRE_ICUE_SDK}" == "1" ]]; then # The SDK volume may have been unmounted while Swift was building; do not approve a candidate without its required lighting library.
+    printf '\033[31m error:\033[0m the required iCUE SDK is no longer available; candidate packaging failed.\n' >&2
     exit 1
   fi
-  warn "The app will still run; lighting and multi-tap stay unavailable until"
-  warn "the SDK is installed. See docs/SETUP.md. Set ICUE_SDK_FRAMEWORK to"
+  warn "Corsair lighting is unavailable without the SDK. Exact-device Karabiner"
+  warn "input and Razer lighting are separate. See docs/SETUP.md. Set ICUE_SDK_FRAMEWORK to"
   warn "point at iCUESDK.framework and re-run to embed it."
 fi
 
@@ -220,11 +236,15 @@ cat <<EOF
 
 Next steps (all manual, none of them performed by this script):
 
-  1. Preserve the current installed app as rollback, then install this signed candidate.
-  2. Launch it once. It appears in the menu bar; it has no Dock icon.
-  3. Grant Accessibility permission when asked, then quit and relaunch.
-  4. Copy Config/config.example.json to ~/.config/agentic-mouse/config.json,
-     fill in the REPLACE_ME values, and chmod 600 it.
-  5. Verify with:  ${APP_DIR}/Contents/MacOS/agentic-mouse-doctor config
-                   ${APP_DIR}/Contents/MacOS/agentic-mouse-doctor icue
+  Follow docs/SETUP.md for first installation or a guarded update.
+  Preserve the installed app and live configuration before changing them.
+  Install only the complete agentic-mouse-runtime.json Karabiner artifact.
+  Keep this signed app at /Applications/AgenticMouse.app across updates.
+  Launching it registers its login supervisor; use Quit Agentic Mouse to stop it.
+  Add that exact path in System Settings > Privacy & Security > Accessibility.
+  Preserve an existing config; the example is optional for a first setup.
+
+  Read-only diagnostics:
+    ${APP_DIR}/Contents/MacOS/agentic-mouse-doctor config
+    ${APP_DIR}/Contents/MacOS/agentic-mouse-doctor icue
 EOF

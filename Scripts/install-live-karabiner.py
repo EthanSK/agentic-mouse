@@ -35,11 +35,14 @@ def agentic(rule: object) -> bool:
     )
 
 
-def selected_rules(document: dict) -> list[dict]:
+def selected_rules(document: dict, initialize: bool = False) -> list[dict]:
     profiles = [profile for profile in document.get("profiles", []) if profile.get("selected")]
     if len(profiles) != 1:
         raise ValueError(f"expected one selected profile, found {len(profiles)}")
-    rules = profiles[0].get("complex_modifications", {}).get("rules")
+    profile = profiles[0]
+    if initialize:
+        profile.setdefault("complex_modifications", {}).setdefault("rules", [])
+    rules = profile.get("complex_modifications", {}).get("rules")
     if not isinstance(rules, list):
         raise ValueError("selected profile has no complex-modification rule list")
     return rules
@@ -78,6 +81,7 @@ def main() -> int:
     parser.add_argument("--expected-live-sha256", required=True)
     parser.add_argument("--backup", type=Path, required=True)
     parser.add_argument("--apply", action="store_true")
+    parser.add_argument("--initialize", action="store_true", help="Insert the complete runtime block on a profile with no Agentic Mouse rules")
     args = parser.parse_args()
 
     actual_before = sha256(args.live)
@@ -99,16 +103,20 @@ def main() -> int:
             "use Karabiner/generated/agentic-mouse-runtime.json"
         )
 
-    rules = selected_rules(live)
+    rules = selected_rules(live, initialize=args.initialize)
     indices = [index for index, rule in enumerate(rules) if agentic(rule)]
-    if not indices:
+    if args.initialize and indices:
+        raise SystemExit("Agentic Mouse rules already exist; omit --initialize to update them")
+    if not indices and not args.initialize:
         raise SystemExit("selected profile contains no existing Agentic Mouse block")
-    expected_indices = list(range(indices[0], indices[-1] + 1))
+    expected_indices = list(range(indices[0], indices[-1] + 1)) if indices else []
     if indices != expected_indices:
         raise SystemExit("existing Agentic Mouse rules are not one contiguous block")
 
     non_agentic_before = [rule for rule in rules if not agentic(rule)]
-    rules[indices[0] : indices[-1] + 1] = generated_rules
+    start = indices[0] if indices else 0
+    end = indices[-1] + 1 if indices else 0
+    rules[start:end] = generated_rules
     if [rule for rule in rules if not agentic(rule)] != non_agentic_before:
         raise SystemExit("candidate changed a non-Agentic rule")
 
@@ -122,7 +130,8 @@ def main() -> int:
     if args.backup.exists():
         raise SystemExit(f"refusing to overwrite backup: {args.backup}")
 
-    close_runtime_modes()
+    if not args.initialize:  # A first installation has no runtime rules or command receiver yet; updates still close both live coordinators before reloading.
+        close_runtime_modes()
     args.backup.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy2(args.live, args.backup)
     mode = args.live.stat().st_mode

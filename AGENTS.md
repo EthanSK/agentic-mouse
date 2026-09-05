@@ -1,5 +1,11 @@
 # Agentic Mouse project rules
 
+## Scope on another owner's machine
+
+Read [docs/AGENT-SETUP.md](docs/AGENT-SETUP.md) and [docs/SETUP.md](docs/SETUP.md) before commissioning a fork or another person's Mac. The product invariants below apply to the project; Ethan-specific devices, keyboard layout, signing certificate, display routing, shortcuts and standing permissions apply only to his setup. They are not authorization to change another owner's machine. Establish that owner's devices, preferences and permissions first, preserve their existing configuration, and report unavailable external integrations explicitly.
+
+## Product and Ethan's setup
+
 - This repository owns the source/build architecture for shared named Karabiner actions across Ethan's Corsair Scimitar and left-handed Razer Naga, plus the Scimitar's explicit classic phone multi-tap mode and temporary runtime indicator.
 - Preserve the existing working iCUE assignments, 2,750 DPI, Logitech setup, Karabiner rules, VoiceInk++ route, and all unrelated hardware and application settings.
 - Utility Zoom follows the standard computer wheel convention on both mice: physical wheel up means Zoom In and physical wheel down means Zoom Out. This current Zoom-only rule overrides the older combined-polarity sentence below; do not flip Brightness, Spaces, Horizontal Scroll, Clipboard, YouTube, or another wheel family with it. (Codex task: 01a039f7-873c-7c30-b3dc-af8a6724ace5)
