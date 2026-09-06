@@ -618,7 +618,7 @@ final class ModePickerTests: XCTestCase {
         XCTAssertEqual(hud.snapshots.last?.modeTitle, "Choose app")
 
         coordinator.handle(.init(action: .select, source: .razer, physicalCell: AppSpecificTarget.codex.selectorCell!))
-        coordinator.handle(.init(action: .select, source: .razer, physicalCell: CodexModeAction.togglePin.cell))
+        coordinator.handle(.init(action: .select, source: .razer, physicalCell: CodexModeAction.newTask.cell))
 
         XCTAssertEqual(coordinator.page, .appSpecific)
         XCTAssertEqual(coordinator.appSpecificTarget, .codex)
@@ -626,7 +626,7 @@ final class ModePickerTests: XCTestCase {
         XCTAssertEqual(hud.snapshots.last?.modeTitle, "Codex mode")
         XCTAssertEqual(hud.snapshots.last?.accent, CodexMode.accent)
         XCTAssertEqual(selected.map(\.0), [.codex])
-        XCTAssertEqual(selected.map { $0.1.rawValue }, [3])
+        XCTAssertEqual(selected.map { $0.1.rawValue }, [5])
     }
 
     func testTopLevelCellTwoFollowsTheFrontmostAppAndBothAppExitCellsCloseIt() {
@@ -2477,7 +2477,7 @@ final class ModePickerTests: XCTestCase {
         )
         XCTAssertEqual(CodexMode.definition.legend[1].actionTitle, "Exit Codex mode")
         XCTAssertEqual(CodexMode.definition.legend[4].actionTitle, "New chat")
-        XCTAssertEqual(CodexMode.definition.legend[2].actionTitle, "Pin / unpin")
+        XCTAssertEqual(CodexMode.definition.legend[2].actionTitle, "Screenshot")
         XCTAssertEqual(CodexMode.definition.legend[0].actionTitle, "Steer queued message")
         XCTAssertEqual(CodexMode.definition.legend[10].actionTitle, "Mute / unmute voice mic")
         XCTAssertEqual(CodexMode.definition.legend[8].actionTitle, "Open side chat")
@@ -2526,7 +2526,7 @@ final class ModePickerTests: XCTestCase {
 
             let expectedCellThreeTitle: String
             switch page {
-            case .appSpecific: expectedCellThreeTitle = "Pin / unpin"
+            case .appSpecific: expectedCellThreeTitle = "Screenshot"
             case .appSelector: expectedCellThreeTitle = "Claude"
             case .keys: expectedCellThreeTitle = "Undo"
             case .chromeWebsites: expectedCellThreeTitle = "X"

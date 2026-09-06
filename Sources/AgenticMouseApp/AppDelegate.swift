@@ -71,6 +71,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private lazy var codexModeActionExecutor = CodexModeActionExecutor(
         inputAllowed: { [weak self] in self?.mouseCommandsAllowed == true }
     )
+    private lazy var codexPinActionExecutor = CodexPinActionExecutor(
+        inputAllowed: { [weak self] in self?.mouseCommandsAllowed == true }
+    )
     private var codexEditOwner: MouseSource?
     private lazy var applicationShortcutDispatcher = ApplicationShortcutDispatcher(
         inputAllowed: { [weak self] in self?.mouseCommandsAllowed == true }
@@ -268,6 +271,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         runtimeHealthMonitor = nil
         notificationCenterToggleVerifier.cancel()
         codexModeActionExecutor.cancelPendingActions()
+        codexPinActionExecutor.cancel()
         codexEditOwner = nil
         sessionReconnectGeneration &+= 1
         sessionReconnectAttempt = 0
@@ -366,6 +370,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func handleSessionLocked() {
         codexModeActionExecutor.cancelPendingActions()
+        codexPinActionExecutor.cancel()
         codexEditOwner = nil
         wheelChordMonitor?.clearAll()
         magnetWheelActionSequencer.cancelAll()
@@ -423,6 +428,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func systemWillSleep(_ notification: Notification) {
         codexModeActionExecutor.cancelPendingActions()
+        codexPinActionExecutor.cancel()
         codexEditOwner = nil
         wheelChordMonitor?.clearAll()
         magnetWheelActionSequencer.cancelAll()
@@ -1029,6 +1035,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                         $0.isActive && $0.page == .appSpecific && $0.appSpecificTarget == .codex
                     }
                     if !anotherCodexModeIsActive {
+                        self.codexPinActionExecutor.cancel()
                         self.codexModeActionExecutor.cancelPendingVerifications()
                     }
                 }
@@ -1457,6 +1464,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 self.scheduleVSCodeCursorHistoryAction(command, step: step)
                 return true
             }
+            if let action = step.control.codexPinAction(for: step.direction) {
+                guard let coordinator = self.modePickerCoordinators[step.source],
+                      coordinator.isActive, coordinator.page == .appSpecific,
+                      coordinator.appSpecificTarget == .codex,
+                      coordinator.activeWheelControl == .codexPin else { return false }
+                DispatchQueue.main.async { [weak self] in
+                    guard let self, self.mouseCommandsAllowed,
+                          let coordinator = self.modePickerCoordinators[step.source],
+                          coordinator.isActive, coordinator.appSpecificTarget == .codex else { return }
+                    self.codexPinActionExecutor.perform(action) { [weak self] message, failed in
+                        guard let self else { return }
+                        if failed { self.modeHUDPresenters[step.source]?.flashProblem(message) }
+                        else { self.modeHUDPresenters[step.source]?.flashFeedback(
+                            ModeHUDFeedback(message: message, tone: .informational)
+                        ) }
+                    }
+                }
+                return true
+            }
             if let action = step.control.codexReasoningEffortAction(for: step.direction) {
                 guard let coordinator = self.modePickerCoordinators[step.source],
                       coordinator.isActive,
@@ -1536,6 +1562,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 guard self?.youtubeScrubHoldController.release(source: release.source) == true,
                       !release.didObserveWheelInput else { return }
                 self?.performTopLevelYouTubeRewind(from: release.source)
+            case .codexPin:
+                guard let self, !release.didObserveWheelInput, self.mouseCommandsAllowed,
+                      let coordinator = self.modePickerCoordinators[release.source],
+                      coordinator.isActive, coordinator.page == .appSpecific,
+                      coordinator.appSpecificTarget == .codex else { return }
+                let result = self.selectedAreaScreenshotController.handlePress(from: release.source)
+                self.handleScreenshotTriggerResult(result, source: release.source)
             case .mediaTracks:
                 guard !release.didObserveWheelInput else { return }
                 self?.performKeysMediaTrackClick(from: release.source)

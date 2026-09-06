@@ -63,11 +63,12 @@ public enum CodexModeAction: String, CaseIterable, Equatable, Sendable {
     }
 
     public static func action(for cell: PhysicalCell) -> CodexModeAction? {
-        allCases.first { $0.cell == cell }
+        allCases.first { $0 != .togglePin && $0.cell == cell }
     }
 }
 
 public enum CodexMode {
+    public static let screenshotPinWheelCell = PhysicalCell(rawValue: 3)!
     public static let bundleIdentifier = "com.openai.codex"
     public static let accent = RGBColor(red: 32, green: 128, blue: 255)
     public static let chatHistoryWheelCell = PhysicalCell(rawValue: 6)! // Swap Codex cells 6 and 11 on both mice; share this cell between routing, the HUD and wheel feedback. (Codex task: 01a039f7-873c-7c30-b3dc-af8a6724ace5)
@@ -90,7 +91,7 @@ public enum CodexMode {
             if let control = WheelChordControl.appSpecificControl(for: .codex, cell: cell) {
                 return ModeHUDLegendItem(
                     cell: cell,
-                    actionTitle: "\(control.actionTitle) + Wheel",
+                    actionTitle: control == .codexPin ? "Screenshot" : "\(control.actionTitle) + Wheel",
                     accent: control.hudAccent,
                     controlStatus: control.hudControlStatus
                 )

@@ -141,7 +141,7 @@ const LAYERS = {
     actions: [
       ["Steer queued message", "Send Codex's built-in Command-Return shortcut; dispatch is not confirmation."],
       ["Exit Codex mode", "Return directly to Default."],
-      ["Pin / unpin", "Send the configured Codex pin shortcut."],
+      ["Screenshot", "Click Screenshot. Hold + wheel up Pin, down Unpin."],
       ["Reasoning Effort + Wheel", "Hold and ratchet: up increases effort, down decreases it."],
       ["New chat", "Send the configured Codex New Chat action."],
       ["Chats Selection + Wheel", "Hold and ratchet: up moves to the next chat, down to the previous chat."],

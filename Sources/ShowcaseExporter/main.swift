@@ -263,7 +263,7 @@ func exportControl(_ item: ModeHUDLegendItem, source: MouseSource, modeAccent: R
 func exportWheel(_ control: WheelChordControl) -> SiteWheel {
     let physicalUp: WheelChordDirection
     switch control {
-    case .youtubeScrub, .codexReasoningEffort, .vsCodeCursorHistory: physicalUp = .down // These families normalize the physical ratchet to the opposite Quartz enum sign; keep that exception local as the runtime does.
+    case .youtubeScrub, .codexReasoningEffort, .vsCodeCursorHistory, .codexPin: physicalUp = .down // These families normalize the physical ratchet to the opposite Quartz enum sign; keep that exception local as the runtime does.
     case .horizontalScroll, .youtubeVolume, .brightness, .zoom, .clipboard, .systemOverview,
          .applicationWindows, .magnetWindow, .spaces, .mediaTracks, .chromeTabs, .spotifyVolume, .codexChatHistory:
         physicalUp = .up

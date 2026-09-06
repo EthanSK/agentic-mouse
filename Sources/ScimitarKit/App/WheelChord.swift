@@ -22,6 +22,7 @@ public enum WheelChordControl: String, Codable, CaseIterable, Sendable {
     case vsCodeCursorHistory
     case codexReasoningEffort
     case codexChatHistory
+    case codexPin
 
     public var actionTitle: String {
         switch self {
@@ -41,6 +42,7 @@ public enum WheelChordControl: String, Codable, CaseIterable, Sendable {
         case .vsCodeCursorHistory: return "Cursor History"
         case .codexReasoningEffort: return "Reasoning Effort"
         case .codexChatHistory: return "Chats Selection"
+        case .codexPin: return "Pin/Unpin"
         }
     }
 
@@ -61,6 +63,7 @@ public enum WheelChordControl: String, Codable, CaseIterable, Sendable {
         case .vsCodeCursorHistory: return ModeHUDActionFamilyPalette.historyNavigation
         case .codexReasoningEffort: return ModeHUDActionFamilyPalette.reasoningEffort
         case .codexChatHistory: return ModeHUDActionFamilyPalette.historyNavigation
+        case .codexPin: return RGBColor(red: 255, green: 188, blue: 58)
         }
     }
 
@@ -82,7 +85,7 @@ public enum WheelChordControl: String, Codable, CaseIterable, Sendable {
         case .applicationWindows: return .applicationWindowsWheelControl
         case .magnetWindow: return .magnetWheelControl
         case .clipboard, .horizontalScroll, .youtubeScrub, .youtubeVolume, .mediaTracks, .chromeTabs, .spotifyVolume,
-             .vsCodeCursorHistory, .codexReasoningEffort, .codexChatHistory: return nil
+             .vsCodeCursorHistory, .codexReasoningEffort, .codexChatHistory, .codexPin: return nil
         }
     }
 
@@ -99,7 +102,7 @@ public enum WheelChordControl: String, Codable, CaseIterable, Sendable {
         case .youtubeScrub: return .youtubeScrubWheelControl
         case .brightness, .zoom, .spaces, .systemOverview, .applicationWindows, .youtubeVolume,
              .magnetWindow, .mediaTracks, .chromeTabs, .spotifyVolume,
-             .vsCodeCursorHistory, .codexReasoningEffort, .codexChatHistory: return nil
+             .vsCodeCursorHistory, .codexReasoningEffort, .codexChatHistory, .codexPin: return nil
         }
     }
 
@@ -118,6 +121,8 @@ public enum WheelChordControl: String, Codable, CaseIterable, Sendable {
         cell: PhysicalCell
     ) -> WheelChordControl? {
         switch target {
+        case .codex where cell == CodexMode.screenshotPinWheelCell:
+            return .codexPin
         case .codex where cell == PhysicalCell(rawValue: 4)!:
             return .codexReasoningEffort
         case .codex where cell == CodexMode.chatHistoryWheelCell:
@@ -156,6 +161,8 @@ public enum WheelChordControl: String, Codable, CaseIterable, Sendable {
             return StandardAppMode.spotifyVolumeWheelCell
         case .vsCodeCursorHistory:
             return VSCodeMode.cursorHistoryWheelCell
+        case .codexPin:
+            return CodexMode.screenshotPinWheelCell
         case .codexReasoningEffort:
             return PhysicalCell(rawValue: 4)!
         case .codexChatHistory:
@@ -194,7 +201,7 @@ public enum WheelChordControl: String, Codable, CaseIterable, Sendable {
         case (.spaces, .down): return .moveToSpaceLeft
         case (.horizontalScroll, _), (.youtubeScrub, _), (.youtubeVolume, _), (.mediaTracks, _), (.chromeTabs, _), (.spotifyVolume, _),
              (.vsCodeCursorHistory, _), (.codexReasoningEffort, _),
-             (.codexChatHistory, _): return nil
+             (.codexChatHistory, _), (.codexPin, _): return nil
         }
     }
 
@@ -257,6 +264,12 @@ public enum WheelChordControl: String, Codable, CaseIterable, Sendable {
         return direction == .down ? .increase : .decrease
     }
 
+    public func codexPinAction(for direction: WheelChordDirection) -> CodexPinAction? {
+        guard self == .codexPin else { return nil }
+        // Both accepted mice report a physical upward ratchet as `.down`.
+        return direction == .down ? .pin : .unpin
+    }
+
     public func codexChatHistoryAction(
         for direction: WheelChordDirection
     ) -> CodexChatHistoryAction? {
@@ -300,6 +313,8 @@ public enum WheelChordControl: String, Codable, CaseIterable, Sendable {
             return codexReasoningEffortAction(for: direction) == .increase
                 ? "Reasoning Effort Up"
                 : "Reasoning Effort Down"
+        case .codexPin:
+            return codexPinAction(for: direction) == .pin ? "Pin" : "Unpin"
         case .codexChatHistory:
             return codexChatHistoryAction(for: direction) == .forward
                 ? "Chat Forward"
@@ -340,7 +355,7 @@ public enum WheelChordControl: String, Codable, CaseIterable, Sendable {
         switch self {
         case .brightness, .zoom:
             return .everyAcceptedEvent
-        case .systemOverview, .applicationWindows, .spaces:
+        case .systemOverview, .applicationWindows, .spaces, .codexPin:
             return .oncePerHold
         case .clipboard:
             return .debounced(minimumInterval: 0.12)
@@ -827,4 +842,9 @@ public struct WheelChordCommand: Equatable, Codable, Sendable {
         }
         return decoded
     }
+}
+
+public enum CodexPinAction: Equatable, Sendable {
+    case pin
+    case unpin
 }

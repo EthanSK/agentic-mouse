@@ -491,6 +491,7 @@ public final class ModePickerCoordinator {
                let control = WheelChordControl.appSpecificControl(for: target, cell: cell) {
                 switch phase {
                 case .press:
+                    guard control != .codexPin || activeWheelControl != control else { return }
                     activeWheelControl = control
                     onWheelControlChange?(source, control)
                     recordSelection(cell: cell)
