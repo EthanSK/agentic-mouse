@@ -1,5 +1,13 @@
 # Learnings
 
+## 2026-09-06 — Reuse the original portrait for every lounge-image correction
+
+**Trigger:** After the generated lounge image's legs were lengthened, Ethan spotted that the lower torso still looked compressed and asked to supply his real face again.
+
+**Finding:** Improving one body proportion does not validate the rest of the pose. In the earlier render, the hips sat too close to the ribcage; the page displayed the image at its correct aspect ratio.
+
+**Guard:** Supply the real portrait as the face and outfit authority on every edit, with the current composite used only for scene continuity. Check ribcage-to-hip spacing, leg length, hand size and facial likeness independently. Keep private originals outside the repository, retain the AI disclosure, and verify the published asset at its intrinsic aspect ratio. (Codex task: 01a06ee5-4aa0-7a61-a029-704e5c44a8f2)
+
 ## 2026-09-04 — Late VS Code staging owns the pre-navigation file
 
 **Trigger:** Ethan reported that a slower stage follow-up inside the one-second mouse window stages the newly selected file rather than the file he had just reviewed.

@@ -117,8 +117,9 @@ Every displayed image retains its source aspect ratio. Hardware thumbnails use
   photo supplies the bamboo top, laptop, monitors, speakers and microphone setup.
   The corrected image uses those original photos for identity and room details,
   the previous composition for framing, and the official black/yellow Corsair
-  product image for the mouse under his right hand. The wider framing preserves
-  natural leg proportions; the original portrait remains the face reference.
+  product image for the mouse under his right hand. The latest edit lowers the
+  hips to correct the compressed lower torso while retaining the longer legs.
+  The original portrait was supplied again as the face reference for that edit.
   The reclining pose and chair are AI reimagined. Both mice rest on the main
   desktop, with one in use and the other parked beside it. The image
   remains labelled as AI on the page; it is not a documentary photograph or a
