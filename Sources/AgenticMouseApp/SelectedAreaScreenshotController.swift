@@ -478,7 +478,7 @@ final class SelectedAreaScreenshotController {
     typealias ProcessFactory = @MainActor () -> InteractiveScreenshotProcess
     typealias InputAllowedProvider = @MainActor () -> Bool
 
-    static let doublePressInterval: TimeInterval = 0.28
+    static let doublePressInterval: TimeInterval = 0.40
 
     private let makeProcess: ProcessFactory
     private let inputAllowed: InputAllowedProvider
