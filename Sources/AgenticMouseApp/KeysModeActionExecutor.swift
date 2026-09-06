@@ -68,6 +68,7 @@ struct KeysModeActionExecutor {
         case .undo: keyCode = 6; flags = .maskCommand
         case .insertSpace: keyCode = 49; flags = []
         case .pressBackspace: keyCode = 51; flags = []
+        case .save: keyCode = 1; flags = .maskCommand
         }
 
         let down = postEvent(keyCode, flags, true)

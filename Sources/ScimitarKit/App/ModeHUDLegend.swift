@@ -198,6 +198,7 @@ public enum ModeHUDActionFamilyPalette {
     public static let legendToggle = RGBColor(red: 0, green: 205, blue: 255)
     public static let space = RGBColor(red: 55, green: 150, blue: 255)
     public static let backspace = RGBColor(red: 255, green: 70, blue: 92)
+    public static let save = RGBColor(red: 45, green: 184, blue: 113)
     public static let storedPassword = RGBColor(red: 190, green: 86, blue: 255)
     public static let media = RGBColor(red: 82, green: 214, blue: 132)
     public static let reasoningEffort = RGBColor(red: 174, green: 112, blue: 255)

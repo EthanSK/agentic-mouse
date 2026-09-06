@@ -2614,3 +2614,7 @@ remains evidence for why the earlier `-p` and explicit-child variants failed.
 ## 2026-09-06 — Publish website changes from a clean release source
 
 The standalone mirrored-controls section requires removing its markup, dedicated JavaScript render call/listeners, and CSS together; the main simulator still needs the shared physical-cell data. The website-only patch passes all 15 showcase tests from the committed publication source. A dirty development checkout can contain exporter callback changes that depend on unpublished native code, so keep those paired with their native changes and build website releases from a clean publication source. Verify the actual Pages deployment and cache-versioned live assets before treating the website change as delivered.
+
+## 2026-09-06 — Add Save through the native Keys route
+
+Keys physical cell 12 is Save: Corsair printed 12 and mirrored Razer printed 10 send one non-repeating Command-S while Keys remains open. Add ordinary Keys shortcuts to KEYS_MODE_OUTPUT_BY_PHYSICAL_CELL so exact-device Karabiner owns keyboard output and selectNative supplies HUD feedback without a second app-generated key cycle. Preserve the page and per-event unlocked-session gates and exclude the native cell from the generic Keys route. The focused tests cover both mirrored sources, no duplicate output, and remaining in Keys. A live mapping update can deliver the shortcut while an app-label release is blocked; verify and report those two outcomes separately.

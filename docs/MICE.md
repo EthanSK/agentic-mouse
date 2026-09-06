@@ -35,7 +35,7 @@ unaccepted until that mouse is reconnected and tested.
 
 Button 6 rewinds the selected YouTube target by five seconds on a short click without focusing Chrome. Holding for 350 ms requests 2× speed; release restores the exact prior speed without seeking. Any wheel input cancels the speed boost and keeps the existing scrub gesture. Holding button 5 inhibits speed so the volume wheel retains priority. Long holds never add a rewind on release. Button 2 opens the current
 frontmost app's mode, and button 9 opens shared Keys mode.
-Inside Keys, cell 3 sends Undo, cell 6 enters Keypad, and holding cell 9 maps wheel up/down to Next/Previous Track.
+Inside Keys, cell 3 sends Undo, cell 6 enters Keypad, and holding cell 9 maps wheel up/down to Next/Previous Track. Cell 12 (Corsair 12 / Razer 10) sends Save with one Command-S press and stays in Keys mode.
 Normal behavior
 stays normal unless a mode is deliberately entered or the two approved VS Code
 overrides apply to physical cells 5 and 8.

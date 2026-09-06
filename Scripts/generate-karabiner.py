@@ -45,6 +45,7 @@ KEYS_MODE_OUTPUT_BY_PHYSICAL_CELL = {
     7: {"key_code": "right_arrow", "repeat": False},
     8: {"key_code": "spacebar", "repeat": False},
     11: {"key_code": "delete_or_backspace", "repeat": False},
+    12: {"key_code": "s", "modifiers": ["left_command"], "repeat": False},
 }
 RAZER_KEYS_MODE_OUTPUT_OVERRIDES = {
     1: {"key_code": "right_arrow", "repeat": False},

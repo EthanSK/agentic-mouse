@@ -126,7 +126,7 @@ class KarabinerGeneratorTests(unittest.TestCase):
             item for item in generated["rules"]
             if item["description"] == "Agentic Mouse — Modes (expiring, exact-device)"
         )
-        self.assertEqual(len(rule["manipulators"]), 62)
+        self.assertEqual(len(rule["manipulators"]), 64)
         actions = []
         legend_toggles = []
         for manipulator in rule["manipulators"]:
@@ -182,7 +182,7 @@ class KarabinerGeneratorTests(unittest.TestCase):
 
         self.assertEqual(actions[:2], ["close", "close"])
         self.assertEqual(actions.count("select"), 38)
-        self.assertEqual(actions.count("selectNative"), 18)
+        self.assertEqual(actions.count("selectNative"), 20)
         self.assertEqual(actions[-2:], ["open", "open"])
         self.assertEqual(
             {(item["source"], item["physical_cell"]) for item in legend_toggles},
@@ -348,6 +348,7 @@ class KarabinerGeneratorTests(unittest.TestCase):
                 "keypad_7": {"key_code": "right_arrow"},
                 "keypad_8": {"key_code": "spacebar"},
                 "keypad_hyphen": {"key_code": "delete_or_backspace"},
+                "keypad_plus": {"key_code": "s", "modifiers": ["left_command"]},
             },
             "razer": {
                 "3": {"key_code": "right_arrow"},
@@ -357,6 +358,7 @@ class KarabinerGeneratorTests(unittest.TestCase):
                 "9": {"key_code": "left_arrow"},
                 "8": {"key_code": "spacebar"},
                 "hyphen": {"key_code": "delete_or_backspace"},
+                "0": {"key_code": "s", "modifiers": ["left_command"]},
             },
         }
         for source_name, expected in native_keys.items():

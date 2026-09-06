@@ -1259,7 +1259,7 @@ final class ModePickerTests: XCTestCase {
             )
         }
 
-        XCTAssertEqual(actions.map(\.0), Array(repeating: .corsair, count: 7))
+        XCTAssertEqual(actions.map(\.0), Array(repeating: .corsair, count: 8))
         XCTAssertEqual(
             actions.map(\.1),
             [
@@ -1270,6 +1270,7 @@ final class ModePickerTests: XCTestCase {
                 .undo,
                 .insertSpace,
                 .pressBackspace,
+                .save,
             ]
         )
         XCTAssertEqual(KeysModeAction.arrowUp.cell.rawValue, 5)
@@ -1287,7 +1288,10 @@ final class ModePickerTests: XCTestCase {
         XCTAssertEqual(ModePickerCoordinator.keysLegend[2].actionTitle, "Undo")
         XCTAssertEqual(ModePickerCoordinator.keysLegend[8].actionTitle, "Tracks + Wheel")
         XCTAssertEqual(ModePickerCoordinator.keysLegend[10].actionTitle, "Backspace")
-        XCTAssertEqual(ModePickerCoordinator.keysLegend[11].actionTitle, "Spare")
+        XCTAssertEqual(ModePickerCoordinator.keysLegend[11].actionTitle, "Save")
+        XCTAssertEqual(KeysModeAction.save.cell.rawValue, 12)
+        XCTAssertEqual(KeysModeAction.save.cell(for: .razer).printedSide(on: .razer), 10)
+        XCTAssertEqual(ModePickerCoordinator.keysLegend(for: .razer)[11].actionTitle, "Save")
         XCTAssertEqual(
             ModePickerCoordinator.keysLegend(for: .corsair)[11].printedControlLabel(on: .corsair),
             "Corsair 12"
@@ -2502,7 +2506,7 @@ final class ModePickerTests: XCTestCase {
         }
     }
 
-    func testKeysCellTwelveIsSpareRatherThanUtilityNavigation() {
+    func testKeysCellTwelveSavesWithoutLeavingKeysMode() {
         let hud = RecordingModeHUDPresenter()
         let coordinator = makeCoordinator(hud: hud)
 
@@ -2528,8 +2532,20 @@ final class ModePickerTests: XCTestCase {
         XCTAssertEqual(coordinator.page, .keys)
         XCTAssertEqual(coordinator.navigationPath, [.modes, .keys])
         XCTAssertEqual(hud.snapshots.last?.modeTitle, "Keys mode")
-        XCTAssertEqual(hud.snapshots.last?.legend[11].actionTitle, "Spare")
-        XCTAssertTrue(keysActions.isEmpty)
+        XCTAssertEqual(hud.snapshots.last?.legend[11].actionTitle, "Save")
+        coordinator.handle(.init(action: .select, source: .corsair, physicalCell: .modePickerEntry, phase: .release))
+        XCTAssertEqual(keysActions, [.save])
+
+        for source in MouseSource.allCases {
+            coordinator.exit(reason: .userRequested)
+            coordinator.enterKeys(source: source)
+            keysActions.removeAll()
+            coordinator.handle(.init(action: .selectNative, source: source, physicalCell: .modePickerEntry, phase: .press))
+            coordinator.handle(.init(action: .selectNative, source: source, physicalCell: .modePickerEntry, phase: .release))
+            XCTAssertTrue(keysActions.isEmpty, "Native Save must not emit a second app-owned shortcut")
+            XCTAssertEqual(coordinator.page, .keys)
+            XCTAssertEqual(hud.snapshots.last?.legend[11].actionTitle, "Save")
+        }
     }
 
     func testKeypadFailureExitsInsteadOfLeavingTheKarabinerPageDesynchronized() {
