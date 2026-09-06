@@ -39,6 +39,7 @@ CODEX_VOICE_PHYSICAL_CELL = 12
 CODEX_BUNDLE_IDENTIFIERS = [r"^com\.openai\.codex$"]
 KEYS_MODE_OUTPUT_BY_PHYSICAL_CELL = {
     1: {"key_code": "left_arrow", "repeat": False},
+    2: {"key_code": "w", "modifiers": ["left_command"], "repeat": False},
     3: {"key_code": "z", "modifiers": ["left_command"], "repeat": False},
     4: {"key_code": "down_arrow", "repeat": False},
     5: {"key_code": "up_arrow", "repeat": False},

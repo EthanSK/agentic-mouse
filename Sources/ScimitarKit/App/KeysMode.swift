@@ -14,6 +14,7 @@ public enum KeysModeAction: CaseIterable, Equatable, Sendable {
     case insertSpace
     case pressBackspace
     case save
+    case close
 
     public var cell: PhysicalCell {
         switch self {
@@ -25,6 +26,7 @@ public enum KeysModeAction: CaseIterable, Equatable, Sendable {
         case .insertSpace: return PhysicalCell(rawValue: 8)!
         case .pressBackspace: return PhysicalCell(rawValue: 11)!
         case .save: return PhysicalCell(rawValue: 12)!
+        case .close: return PhysicalCell(rawValue: 2)!
         }
     }
 
@@ -47,6 +49,7 @@ public enum KeysModeAction: CaseIterable, Equatable, Sendable {
         case .insertSpace: return "Space"
         case .pressBackspace: return "Backspace"
         case .save: return "Save"
+        case .close: return "Close"
         }
     }
 
@@ -64,6 +67,8 @@ public enum KeysModeAction: CaseIterable, Equatable, Sendable {
             return ModeHUDActionFamilyPalette.backspace
         case .save:
             return ModeHUDActionFamilyPalette.save
+        case .close:
+            return ModeHUDActionFamilyPalette.windowManagement
         }
     }
 

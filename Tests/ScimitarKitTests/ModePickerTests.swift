@@ -1259,7 +1259,7 @@ final class ModePickerTests: XCTestCase {
             )
         }
 
-        XCTAssertEqual(actions.map(\.0), Array(repeating: .corsair, count: 8))
+        XCTAssertEqual(actions.map(\.0), Array(repeating: .corsair, count: 9))
         XCTAssertEqual(
             actions.map(\.1),
             [
@@ -1271,6 +1271,7 @@ final class ModePickerTests: XCTestCase {
                 .insertSpace,
                 .pressBackspace,
                 .save,
+                .close,
             ]
         )
         XCTAssertEqual(KeysModeAction.arrowUp.cell.rawValue, 5)
@@ -1284,7 +1285,9 @@ final class ModePickerTests: XCTestCase {
         XCTAssertEqual(ModePickerCoordinator.keysLegend[9].actionTitle, "Exit Keys mode")
         XCTAssertEqual(ModePickerCoordinator.keysLegend[5].actionTitle, "Keypad")
         XCTAssertEqual(ModePickerCoordinator.keysLegend[7].actionTitle, "Space")
-        XCTAssertEqual(ModePickerCoordinator.keysLegend[1].actionTitle, "Spare")
+        XCTAssertEqual(ModePickerCoordinator.keysLegend[1].actionTitle, "Close")
+        XCTAssertEqual(KeysModeAction.close.cell.rawValue, 2)
+        XCTAssertEqual(KeysModeAction.close.cell(for: .razer).printedSide(on: .razer), 2)
         XCTAssertEqual(ModePickerCoordinator.keysLegend[2].actionTitle, "Undo")
         XCTAssertEqual(ModePickerCoordinator.keysLegend[8].actionTitle, "Tracks + Wheel")
         XCTAssertEqual(ModePickerCoordinator.keysLegend[10].actionTitle, "Backspace")
@@ -2542,7 +2545,10 @@ final class ModePickerTests: XCTestCase {
             keysActions.removeAll()
             coordinator.handle(.init(action: .selectNative, source: source, physicalCell: .modePickerEntry, phase: .press))
             coordinator.handle(.init(action: .selectNative, source: source, physicalCell: .modePickerEntry, phase: .release))
-            XCTAssertTrue(keysActions.isEmpty, "Native Save must not emit a second app-owned shortcut")
+            coordinator.handle(.init(action: .selectNative, source: source, physicalCell: PhysicalCell(rawValue: 2)!, phase: .press))
+            coordinator.handle(.init(action: .selectNative, source: source, physicalCell: PhysicalCell(rawValue: 2)!, phase: .release))
+            XCTAssertEqual(hud.snapshots.last?.legend[1].actionTitle, "Close")
+            XCTAssertTrue(keysActions.isEmpty, "Native editing actions must not emit a second app-owned shortcut")
             XCTAssertEqual(coordinator.page, .keys)
             XCTAssertEqual(hud.snapshots.last?.legend[11].actionTitle, "Save")
         }

@@ -29,7 +29,7 @@ final class KeysModeActionExecutorTests: XCTestCase {
 
         XCTAssertEqual(
             events.map(\.0),
-            [126, 126, 125, 125, 123, 123, 124, 124, 6, 6, 49, 49, 51, 51, 1, 1]
+            [126, 126, 125, 125, 123, 123, 124, 124, 6, 6, 49, 49, 51, 51, 1, 1, 13, 13]
         )
         XCTAssertEqual(
             events.map(\.1),
@@ -42,11 +42,13 @@ final class KeysModeActionExecutorTests: XCTestCase {
                 [], [],
                 [], [],
                 .maskCommand, .maskCommand,
+                .maskCommand, .maskCommand,
             ]
         )
         XCTAssertEqual(
             events.map(\.2),
             [
+                true, false,
                 true, false,
                 true, false,
                 true, false,

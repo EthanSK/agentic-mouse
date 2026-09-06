@@ -154,3 +154,5 @@ classifier; deliberate double and triple gestures remain available.
 Before changing the Scimitar, inspect the saved iCUE assignment and any
 downstream rule separately. Verify the physical button and state plainly which
 layer owns the behavior.
+
+In Keys mode, physical cell 2 (Corsair 2 / Razer 2) sends one non-repeating Command-W to close the focused app's current tab, document, or window. Keys remains active.

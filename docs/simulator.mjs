@@ -173,6 +173,7 @@ export class MouseSimulator {
       arrowDown: "↓",
       undo: "Undo",
       save: "Save",
+      close: "Close",
     };
     if (action === "insertSpace") this.state.text += " ";
     if (action === "pressBackspace")

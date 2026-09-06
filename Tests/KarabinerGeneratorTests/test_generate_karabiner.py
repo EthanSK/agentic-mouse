@@ -126,7 +126,7 @@ class KarabinerGeneratorTests(unittest.TestCase):
             item for item in generated["rules"]
             if item["description"] == "Agentic Mouse — Modes (expiring, exact-device)"
         )
-        self.assertEqual(len(rule["manipulators"]), 64)
+        self.assertEqual(len(rule["manipulators"]), 66)
         actions = []
         legend_toggles = []
         for manipulator in rule["manipulators"]:
@@ -182,7 +182,7 @@ class KarabinerGeneratorTests(unittest.TestCase):
 
         self.assertEqual(actions[:2], ["close", "close"])
         self.assertEqual(actions.count("select"), 38)
-        self.assertEqual(actions.count("selectNative"), 20)
+        self.assertEqual(actions.count("selectNative"), 22)
         self.assertEqual(actions[-2:], ["open", "open"])
         self.assertEqual(
             {(item["source"], item["physical_cell"]) for item in legend_toggles},
@@ -292,7 +292,7 @@ class KarabinerGeneratorTests(unittest.TestCase):
                     )
                     for item in source_manipulators
                 ),
-                "Keys cell 12 is spare; only Keypad retains Return",
+                "Only Keypad retains Return; Keys cell 12 sends Save",
             )
             for target_cell in (1, 4, 7):
                 target = next(
@@ -342,6 +342,7 @@ class KarabinerGeneratorTests(unittest.TestCase):
         native_keys = {
             "corsair": {
                 "keypad_1": {"key_code": "left_arrow"},
+                "keypad_2": {"key_code": "w", "modifiers": ["left_command"]},
                 "keypad_3": {"key_code": "z", "modifiers": ["left_command"]},
                 "keypad_4": {"key_code": "down_arrow"},
                 "keypad_5": {"key_code": "up_arrow"},
@@ -352,6 +353,7 @@ class KarabinerGeneratorTests(unittest.TestCase):
             },
             "razer": {
                 "3": {"key_code": "right_arrow"},
+                "2": {"key_code": "w", "modifiers": ["left_command"]},
                 "1": {"key_code": "z", "modifiers": ["left_command"]},
                 "6": {"key_code": "down_arrow"},
                 "5": {"key_code": "up_arrow"},
