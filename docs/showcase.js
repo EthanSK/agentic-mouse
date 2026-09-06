@@ -299,62 +299,7 @@ function renderAll() {
   renderControls();
   renderHUD();
   renderOutputs();
-  renderMirror();
   schedulePendingText();
-}
-
-/** Show the same physical Default control on both native grids, without duplicating their map. */
-function highlightMirror(cell, source = hand) {
-  const physical = CELLS.find((item) => item.id === cell);
-  const control = map.sources[source].defaults[simulator.app].controls.find((item) => item.cell === cell); // Some titles include a second printed button number, so use the mouse being inspected.
-  document.querySelectorAll("[data-mirror-cell]").forEach((button) => {
-    button.dataset.active = String(Number(button.dataset.mirrorCell) === cell);
-  });
-  document.querySelector("[data-mirror-action]").textContent = control.title;
-  document.querySelector("[data-mirror-address]").textContent = `Razer ${physical.razer} ↔ Corsair ${physical.corsair}`;
-}
-
-/** Keep the explanatory Default grids aligned with the currently selected app. */
-function renderMirror() {
-  document.querySelectorAll("[data-mirror-source]").forEach((grid) => {
-    const source = grid.dataset.mirrorSource;
-    const mode = map.sources[source].defaults[simulator.app];
-    for (const button of grid.children) {
-      const control = mode.controls.find((item) => item.cell === Number(button.dataset.mirrorCell));
-      button.textContent = control.printed;
-      button.setAttribute("aria-label", `${source === "razer" ? "Razer" : "Corsair"} ${control.printed}: ${control.title}`);
-    }
-  });
-  highlightMirror(previewCell);
-  document.querySelector(".mirror-section").hidden = false; // Keep empty grids out of the no-JavaScript fallback until native data has populated them.
-}
-
-for (const grid of document.querySelectorAll("[data-mirror-source]")) {
-  const source = grid.dataset.mirrorSource;
-  const order = rowsFor(source).flat();
-  for (const cell of order) {
-    const button = document.createElement("button");
-    button.type = "button";
-    button.dataset.mirrorCell = cell;
-    button.addEventListener("pointerenter", () => highlightMirror(cell, source));
-    button.addEventListener("focus", () => highlightMirror(cell, source));
-    button.addEventListener("keydown", (event) => {
-      const step = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -4, ArrowDown: 4 }[event.key];
-      if (step === undefined) return;
-      event.preventDefault();
-      grid.children[Math.max(0, Math.min(order.length - 1, order.indexOf(cell) + step))].focus();
-    });
-    button.addEventListener("click", () => {
-      followHeroSelection = !controlsWereVisible;
-      hand = source;
-      simulator.chooseHand(hand);
-      simulator.chooseMode("default"); // The mirror explains Default controls; clicking it must run that shown action even after exploring another mode. (Codex task: 01a06ee5-4aa0-7a61-a029-704e5c44a8f2)
-      resetView();
-      activate(cell, sceneButtons.get(cell));
-      document.querySelector("#buttons").scrollIntoView({ behavior: reducedMotion.matches ? "instant" : "smooth" });
-    });
-    grid.append(button);
-  }
 }
 
 document.querySelectorAll("[data-hud-mode]").forEach((button) =>
