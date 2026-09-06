@@ -6,6 +6,7 @@ import Foundation
 /// controls act once per physical hold, and discrete selectors reject the
 /// short duplicate-event burst that one physical ratchet can produce.
 public enum WheelChordControl: String, Codable, CaseIterable, Sendable {
+    case screenshotPaste
     case horizontalScroll
     case youtubeScrub
     case youtubeVolume
@@ -26,6 +27,7 @@ public enum WheelChordControl: String, Codable, CaseIterable, Sendable {
 
     public var actionTitle: String {
         switch self {
+        case .screenshotPaste: return "Paste screenshot"
         case .horizontalScroll: return "Horizontal Scroll"
         case .youtubeScrub: return "YouTube Scrub"
         case .youtubeVolume: return "YouTube Volume"
@@ -48,6 +50,7 @@ public enum WheelChordControl: String, Codable, CaseIterable, Sendable {
 
     public var hudAccent: RGBColor {
         switch self {
+        case .screenshotPaste: return ModeHUDActionFamilyPalette.clipboard
         case .horizontalScroll: return ModeHUDActionFamilyPalette.horizontalScroll
         case .youtubeScrub, .youtubeVolume: return ModeHUDActionFamilyPalette.media
         case .brightness: return ModeHUDActionFamilyPalette.brightness
@@ -84,7 +87,7 @@ public enum WheelChordControl: String, Codable, CaseIterable, Sendable {
         case .systemOverview: return .systemOverviewWheelControl
         case .applicationWindows: return .applicationWindowsWheelControl
         case .magnetWindow: return .magnetWheelControl
-        case .clipboard, .horizontalScroll, .youtubeScrub, .youtubeVolume, .mediaTracks, .chromeTabs, .spotifyVolume,
+        case .screenshotPaste, .clipboard, .horizontalScroll, .youtubeScrub, .youtubeVolume, .mediaTracks, .chromeTabs, .spotifyVolume,
              .vsCodeCursorHistory, .codexReasoningEffort, .codexChatHistory, .codexPin: return nil
         }
     }
@@ -97,6 +100,7 @@ public enum WheelChordControl: String, Codable, CaseIterable, Sendable {
     /// Karabiner press/release commands arm these controls directly.
     public var topLevelCell: PhysicalCell? {
         switch self {
+        case .screenshotPaste: return .screenshotToggle
         case .clipboard: return .clipboardWheelControl
         case .horizontalScroll: return .horizontalScrollWheelControl
         case .youtubeScrub: return .youtubeScrubWheelControl
@@ -143,7 +147,7 @@ public enum WheelChordControl: String, Codable, CaseIterable, Sendable {
     /// need their owning page's shared cell instead of falling through to B0.
     public var diagnosticCell: PhysicalCell {
         switch self {
-        case .horizontalScroll, .youtubeScrub, .clipboard:
+        case .screenshotPaste, .horizontalScroll, .youtubeScrub, .clipboard:
             guard let topLevelCell else {
                 preconditionFailure("top-level wheel control is missing its canonical cell")
             }
@@ -199,7 +203,7 @@ public enum WheelChordControl: String, Codable, CaseIterable, Sendable {
         case (.magnetWindow, .down): return .moveWindowRightWithMagnet
         case (.spaces, .up): return .moveToSpaceRight
         case (.spaces, .down): return .moveToSpaceLeft
-        case (.horizontalScroll, _), (.youtubeScrub, _), (.youtubeVolume, _), (.mediaTracks, _), (.chromeTabs, _), (.spotifyVolume, _),
+        case (.screenshotPaste, _), (.horizontalScroll, _), (.youtubeScrub, _), (.youtubeVolume, _), (.mediaTracks, _), (.chromeTabs, _), (.spotifyVolume, _),
              (.vsCodeCursorHistory, _), (.codexReasoningEffort, _),
              (.codexChatHistory, _), (.codexPin, _): return nil
         }
@@ -287,6 +291,8 @@ public enum WheelChordControl: String, Codable, CaseIterable, Sendable {
             return action.actionTitle
         }
         switch self {
+        case .screenshotPaste:
+            return direction == .up ? "Paste screenshot" : nil
         case .horizontalScroll:
             return direction == .up ? "Scroll Right" : "Scroll Left"
         case .youtubeScrub:
@@ -345,7 +351,8 @@ public enum WheelChordControl: String, Codable, CaseIterable, Sendable {
     /// opposite detent remains consumed so the underlying page never scrolls,
     /// but it must not surface a false action-failed banner.
     public func accepts(_ direction: WheelChordDirection) -> Bool {
-        self != .applicationWindows || direction == .down
+        if self == .screenshotPaste { return direction == .up } // Physical wheel down on both accepted mice.
+        return self != .applicationWindows || direction == .down
     }
 
     /// One physical ratchet is not guaranteed to arrive as one Quartz event.
@@ -355,11 +362,11 @@ public enum WheelChordControl: String, Codable, CaseIterable, Sendable {
         switch self {
         case .brightness, .zoom:
             return .everyAcceptedEvent
-        case .systemOverview, .applicationWindows, .spaces, .codexPin:
+        case .systemOverview, .applicationWindows, .spaces, .codexPin, .screenshotPaste, .mediaTracks:
             return .oncePerHold
         case .clipboard:
             return .debounced(minimumInterval: 0.12)
-        case .horizontalScroll, .youtubeScrub, .youtubeVolume, .mediaTracks, .chromeTabs, .spotifyVolume, .codexChatHistory:
+        case .horizontalScroll, .youtubeScrub, .youtubeVolume, .chromeTabs, .spotifyVolume, .codexChatHistory:
             // Chats Selection deliberately uses this fixed leading-edge window:
             // collapse one detent's duplicate raw events, but do not let those
             // duplicates extend a quiet gap and swallow later ratchets.

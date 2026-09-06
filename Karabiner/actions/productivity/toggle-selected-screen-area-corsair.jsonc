@@ -1,19 +1,34 @@
-// Toggles one native selected-area screenshot interaction from Corsair physical cell 3.
+// Click captures or cancels; hold and wheel down pastes the saved screenshot.
 {
   "id": "toggle-selected-screen-area-corsair",
-  "title": "Toggle selected screen area (Corsair)",
-  "description": "Start a native selected-area screenshot, or cancel the still-running interaction on the next Corsair press.",
+  "title": "Screenshot and wheel paste (Corsair)",
+  "description": "Click to capture or cancel; hold and wheel down to paste the last saved screenshot.",
   "manipulator": {
-    "to": [{ "key_code": "vk_none" }],
-    "to_after_key_up": [{
-      "send_user_command": {
-        "payload": {
-          "command": "agentic_mouse_selected_area_screenshot_toggle",
-          "source": "corsair",
-          "physical_cell": 3
-        }
-      },
-      "repeat": false
-    }]
+    "to": [
+      {
+        "send_user_command": {
+          "payload": {
+            "command": "agentic_mouse_wheel_chord",
+            "source": "corsair",
+              "control": "screenshotPaste",
+            "phase": "press"
+          }
+        },
+        "repeat": false
+      }
+    ],
+    "to_after_key_up": [
+      {
+        "send_user_command": {
+          "payload": {
+            "command": "agentic_mouse_wheel_chord",
+            "source": "corsair",
+              "control": "screenshotPaste",
+            "phase": "release"
+          }
+        },
+        "repeat": false
+      }
+    ]
   }
 }

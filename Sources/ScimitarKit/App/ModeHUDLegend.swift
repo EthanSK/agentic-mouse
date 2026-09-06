@@ -217,10 +217,10 @@ public enum ModeHUDCopy {
         state: ScreenshotActionPresentationState
     ) -> String {
         switch state {
-        case .idle: return "Screenshot"
+        case .idle: return "Screenshot · Wheel Paste"
         case .capturing: return "Cancel screenshot"
         case .copying: return "Copying screenshot…"
-        case .pasteReady: return "Screenshot · 2× Paste"
+        case .pasteReady: return "Screenshot · Wheel Paste"
         }
     }
 

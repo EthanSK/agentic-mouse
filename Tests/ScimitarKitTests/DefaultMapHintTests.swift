@@ -69,7 +69,7 @@ final class DefaultMapHintCommandTests: XCTestCase {
         XCTAssertEqual(DefaultMapLegend.legend.map(\.cell), PhysicalCell.all)
         XCTAssertEqual(DefaultMapLegend.legend[0].actionTitle, "Horizontal Scroll + Wheel")
         XCTAssertEqual(DefaultMapLegend.legend[3].actionTitle, "Copy / Paste + Wheel")
-        XCTAssertEqual(DefaultMapLegend.legend[2].actionTitle, "Screenshot")
+        XCTAssertEqual(DefaultMapLegend.legend[2].actionTitle, "Screenshot · Wheel Paste")
         XCTAssertEqual(DefaultMapLegend.legend[1].actionTitle, "App mode")
         XCTAssertEqual(DefaultMapLegend.legend[1].destinationModeAccent, AppSpecificMode.selectorAccent)
         XCTAssertEqual(DefaultMapLegend.legend[5].actionTitle, "YouTube · Hold 2× / Scrub + Wheel")
@@ -100,7 +100,7 @@ final class DefaultMapHintCommandTests: XCTestCase {
         XCTAssertEqual(snapshot.legend[9].actionTitle, "Legend toggle")
         XCTAssertEqual(snapshot.legend[11].actionTitle, "Utility modes")
         XCTAssertEqual(snapshot.legend[10].actionTitle, "Switch App")
-        XCTAssertEqual(snapshot.legend[2].actionTitle, "Screenshot")
+        XCTAssertEqual(snapshot.legend[2].actionTitle, "Screenshot · Wheel Paste")
         XCTAssertEqual(snapshot.legend[2].controlStatus, .normal)
         XCTAssertEqual(snapshot.legend[2].printedControlLabel(on: .corsair), "Corsair 3")
         XCTAssertEqual(snapshot.presentationStyle, .neutral)
@@ -198,7 +198,7 @@ final class DefaultMapHintCoordinatorTests: XCTestCase {
 
     func testVisibleMapRefreshesKnownScreenshotToggleCopy() {
         coordinator.handleToggle(source: .corsair)
-        XCTAssertEqual(hud.snapshots.last?.legend[2].actionTitle, "Screenshot")
+        XCTAssertEqual(hud.snapshots.last?.legend[2].actionTitle, "Screenshot · Wheel Paste")
 
         screenshotActionState = .capturing
         coordinator.refresh()
@@ -210,11 +210,11 @@ final class DefaultMapHintCoordinatorTests: XCTestCase {
 
         screenshotActionState = .pasteReady
         coordinator.refresh()
-        XCTAssertEqual(hud.snapshots.last?.legend[2].actionTitle, "Screenshot · 2× Paste")
+        XCTAssertEqual(hud.snapshots.last?.legend[2].actionTitle, "Screenshot · Wheel Paste")
 
         screenshotActionState = .idle
         coordinator.refresh()
-        XCTAssertEqual(hud.snapshots.last?.legend[2].actionTitle, "Screenshot")
+        XCTAssertEqual(hud.snapshots.last?.legend[2].actionTitle, "Screenshot · Wheel Paste")
     }
 
     func testVisibleDefaultMapTracksFrontmostAppNameAndExactIconIdentity() {

@@ -25,104 +25,55 @@ final class SelectedAreaScreenshotControllerTests: XCTestCase {
         }
     }
 
-    func testSinglePressWaitsForBoundedDoublePressWindowThenStartsNativeCapture() {
-        let process = RecordingScreenshotProcess()
-        let scheduler = ManualTickScheduler()
-        let clipboard = RecordingScreenshotClipboardCoordinator()
-        let controller = SelectedAreaScreenshotController(
-            makeProcess: { process },
-            gestureScheduler: scheduler,
-            clipboardCoordinator: clipboard
-        )
-        var asynchronous: [(MouseSource, SelectedAreaScreenshotController.TriggerResult)] = []
-        controller.onAsynchronousResult = { asynchronous.append(($0, $1)) }
-
-        XCTAssertEqual(controller.handlePress(from: .corsair), .awaitingSinglePress)
-        XCTAssertEqual(scheduler.interval, SelectedAreaScreenshotController.doublePressInterval)
-        XCTAssertEqual(process.runCount, 0)
-
-        scheduler.fire()
-
-        XCTAssertEqual(process.runCount, 1)
-        XCTAssertTrue(controller.isCapturing)
-        XCTAssertEqual(controller.buttonState, .cancelScreenshot)
-        XCTAssertEqual(asynchronous.count, 1)
-        XCTAssertEqual(asynchronous[0].0, .corsair)
-        XCTAssertEqual(asynchronous[0].1, .started)
-        XCTAssertEqual(clipboard.prepareCount, 1)
+    func testClickStartsImmediatelyAndSecondClickCancelsRatherThanPastes() {
+        for source in MouseSource.allCases {
+            let process = RecordingScreenshotProcess()
+            let clipboard = RecordingScreenshotClipboardCoordinator()
+            clipboard.hasPasteableScreenshot = true
+            let controller = SelectedAreaScreenshotController(makeProcess: { process }, clipboardCoordinator: clipboard)
+            XCTAssertEqual(controller.handlePress(from: source), .started)
+            XCTAssertEqual(process.runCount, 1)
+            XCTAssertEqual(controller.handlePress(from: source), .cancelled)
+            XCTAssertEqual(process.cancelCount, 1)
+            XCTAssertEqual(clipboard.pasteCount, 0)
+        }
     }
 
-    func testRapidDoublePressPastesOwnedScreenshotWithoutStartingCapture() {
-        let process = RecordingScreenshotProcess()
-        let scheduler = ManualTickScheduler()
-        let clipboard = RecordingScreenshotClipboardCoordinator()
-        clipboard.hasPasteableScreenshot = true
-        let controller = SelectedAreaScreenshotController(
-            makeProcess: { process },
-            gestureScheduler: scheduler,
-            clipboardCoordinator: clipboard
-        )
-
-        XCTAssertEqual(controller.handlePress(from: .razer), .awaitingSinglePress)
-        XCTAssertEqual(controller.handlePress(from: .razer), .pasted)
-
-        XCTAssertEqual(process.runCount, 0)
-        XCTAssertEqual(clipboard.pasteCount, 1)
-        XCTAssertFalse(scheduler.isRunning)
-        XCTAssertEqual(controller.buttonState, .screenshotReadyToPaste)
+    func testExplicitWheelPasteUsesSavedScreenshotWithoutStartingCapture() {
+        for source in MouseSource.allCases {
+            let process = RecordingScreenshotProcess()
+            let clipboard = RecordingScreenshotClipboardCoordinator()
+            clipboard.hasPasteableScreenshot = true
+            let controller = SelectedAreaScreenshotController(makeProcess: { process }, clipboardCoordinator: clipboard)
+            XCTAssertEqual(controller.handlePaste(from: source), .pasted)
+            XCTAssertEqual(clipboard.pasteCount, 1)
+            XCTAssertEqual(process.runCount, 0)
+        }
     }
 
-    func testRapidDoublePressWithoutAnOwnedScreenshotStartsCaptureImmediately() {
+    func testWheelPasteCannotCancelOrPasteDuringNativeSelection() {
         let process = RecordingScreenshotProcess()
-        let scheduler = ManualTickScheduler()
         let clipboard = RecordingScreenshotClipboardCoordinator()
-        let controller = SelectedAreaScreenshotController(
-            makeProcess: { process },
-            gestureScheduler: scheduler,
-            clipboardCoordinator: clipboard
-        )
-
-        XCTAssertEqual(controller.handlePress(from: .corsair), .awaitingSinglePress)
+        let controller = SelectedAreaScreenshotController(makeProcess: { process }, clipboardCoordinator: clipboard)
         XCTAssertEqual(controller.handlePress(from: .corsair), .started)
-
-        XCTAssertEqual(process.runCount, 1)
+        XCTAssertEqual(controller.handlePaste(from: .razer), .blocked)
+        XCTAssertEqual(process.cancelCount, 0)
+        XCTAssertEqual(clipboard.pasteCount, 0)
         XCTAssertTrue(controller.isCapturing)
-        XCTAssertFalse(scheduler.isRunning)
-    }
-
-    func testPressDuringRunningNativeCaptureCancelsOnlyThatInteraction() {
-        let process = RecordingScreenshotProcess()
-        let scheduler = ManualTickScheduler()
-        let controller = SelectedAreaScreenshotController(
-            makeProcess: { process },
-            gestureScheduler: scheduler,
-            clipboardCoordinator: RecordingScreenshotClipboardCoordinator()
-        )
-
-        XCTAssertEqual(controller.handlePress(from: .corsair), .awaitingSinglePress)
-        scheduler.fire()
-        XCTAssertTrue(controller.isCapturing)
-
-        XCTAssertEqual(controller.handlePress(from: .corsair), .cancelled)
-        XCTAssertFalse(controller.isCapturing)
-        XCTAssertEqual(process.cancelCount, 1)
     }
 
     func testCompletedCaptureRemembersTheNewSavedImageAndMakesPasteVisible() {
         let process = RecordingScreenshotProcess()
-        let scheduler = ManualTickScheduler()
         let clipboard = RecordingScreenshotClipboardCoordinator()
         clipboard.completedResolutionResult = .success(URL(fileURLWithPath: "/tmp/new-shot.png"))
         let controller = SelectedAreaScreenshotController(
             makeProcess: { process },
-            gestureScheduler: scheduler,
             clipboardCoordinator: clipboard
         )
         var resolutionResults: [Result<URL, ScreenshotClipboardError>] = []
         controller.onScreenshotReady = { _, result in resolutionResults.append(result) }
 
         _ = controller.handlePress(from: .corsair)
-        scheduler.fire()
         process.complete(with: .completed)
         drainMainQueue()
 
@@ -134,12 +85,10 @@ final class SelectedAreaScreenshotControllerTests: XCTestCase {
 
     func testCompletedInteractionWithoutASavedFileReturnsToIdleAsCancellation() {
         let process = RecordingScreenshotProcess()
-        let scheduler = ManualTickScheduler()
         let clipboard = RecordingScreenshotClipboardCoordinator()
         clipboard.completedResolutionResult = .failure(.screenshotFileNotFound)
         let controller = SelectedAreaScreenshotController(
             makeProcess: { process },
-            gestureScheduler: scheduler,
             clipboardCoordinator: clipboard
         )
         var completions: [InteractiveScreenshotResult] = []
@@ -148,7 +97,6 @@ final class SelectedAreaScreenshotControllerTests: XCTestCase {
         controller.onScreenshotReady = { _, result in resolutionResults.append(result) }
 
         _ = controller.handlePress(from: .corsair)
-        scheduler.fire()
         process.complete(with: .completed)
         drainMainQueue()
 
@@ -157,27 +105,23 @@ final class SelectedAreaScreenshotControllerTests: XCTestCase {
         XCTAssertTrue(resolutionResults.isEmpty, "a click-cancel must not show a screenshot failure")
     }
 
-    func testDoublePressWhileNativeSaveIsPendingQueuesPasteUntilCaptureResolutionCompletes() {
+    func testWheelPasteWhileNativeSaveIsPendingQueuesPasteUntilCaptureResolutionCompletes() {
         let process = RecordingScreenshotProcess()
-        let scheduler = ManualTickScheduler()
         let clipboard = RecordingScreenshotClipboardCoordinator()
         let controller = SelectedAreaScreenshotController(
             makeProcess: { process },
-            gestureScheduler: scheduler,
             clipboardCoordinator: clipboard
         )
         var asynchronous: [SelectedAreaScreenshotController.TriggerResult] = []
         controller.onAsynchronousResult = { _, result in asynchronous.append(result) }
 
         _ = controller.handlePress(from: .corsair)
-        scheduler.fire()
         process.complete(with: .completed)
         drainMainQueue()
         XCTAssertTrue(clipboard.isCapturePending)
         XCTAssertEqual(controller.buttonState, .copyingScreenshot)
 
-        XCTAssertEqual(controller.handlePress(from: .corsair), .awaitingSinglePress)
-        XCTAssertEqual(controller.handlePress(from: .corsair), .pasteQueued)
+        XCTAssertEqual(controller.handlePaste(from: .corsair), .pasteQueued)
         XCTAssertEqual(clipboard.pasteCount, 0)
 
         clipboard.completeResolution(.success(URL(fileURLWithPath: "/tmp/new-shot.png")))
@@ -186,62 +130,36 @@ final class SelectedAreaScreenshotControllerTests: XCTestCase {
         XCTAssertEqual(asynchronous.last, .pasted)
     }
 
-    func testAClipboardChangeMakesTheDoublePressFailClosedInsteadOfRestoringStaleImage() {
+    func testAClipboardChangeMakesWheelPasteFailClosedInsteadOfRestoringStaleImage() {
         let process = RecordingScreenshotProcess()
-        let scheduler = ManualTickScheduler()
         let clipboard = RecordingScreenshotClipboardCoordinator()
         clipboard.hasPasteableScreenshot = true
         clipboard.pasteResult = .failure(.screenshotNoLongerAvailable)
         let controller = SelectedAreaScreenshotController(
             makeProcess: { process },
-            gestureScheduler: scheduler,
             clipboardCoordinator: clipboard
         )
 
-        _ = controller.handlePress(from: .razer)
         XCTAssertEqual(
-            controller.handlePress(from: .razer),
+            controller.handlePaste(from: .razer),
             .failed("The saved screenshot is no longer available")
         )
         XCTAssertEqual(process.runCount, 0)
     }
 
-    func testDifferentMouseCannotCompleteTheOtherSourcesDoublePress() {
+    func testCancelStopsCaptureAndClearsSavedOwnership() {
         let process = RecordingScreenshotProcess()
-        let scheduler = ManualTickScheduler()
-        let clipboard = RecordingScreenshotClipboardCoordinator()
-        clipboard.hasPasteableScreenshot = true
-        let controller = SelectedAreaScreenshotController(
-            makeProcess: { process },
-            gestureScheduler: scheduler,
-            clipboardCoordinator: clipboard
-        )
-        var asynchronous: [(MouseSource, SelectedAreaScreenshotController.TriggerResult)] = []
-        controller.onAsynchronousResult = { asynchronous.append(($0, $1)) }
-
-        XCTAssertEqual(controller.handlePress(from: .corsair), .awaitingSinglePress)
-        XCTAssertEqual(controller.handlePress(from: .razer), .awaitingSinglePress)
-        XCTAssertEqual(clipboard.pasteCount, 0)
-        XCTAssertEqual(process.runCount, 1)
-        XCTAssertEqual(asynchronous.first?.0, .corsair)
-        XCTAssertEqual(asynchronous.first?.1, .started)
-    }
-
-    func testCancelClearsPendingClassifierAndPreventsLateCapture() {
-        let process = RecordingScreenshotProcess()
-        let scheduler = ManualTickScheduler()
         let clipboard = RecordingScreenshotClipboardCoordinator()
         let controller = SelectedAreaScreenshotController(
             makeProcess: { process },
-            gestureScheduler: scheduler,
             clipboardCoordinator: clipboard
         )
 
         _ = controller.handlePress(from: .corsair)
         controller.cancel()
-        scheduler.fire()
 
-        XCTAssertEqual(process.runCount, 0)
+        XCTAssertEqual(process.runCount, 1)
+        XCTAssertEqual(process.cancelCount, 1)
         XCTAssertEqual(clipboard.cancelCount, 1)
         XCTAssertTrue(clipboard.lastCancelClearedOwnership)
     }
@@ -667,7 +585,6 @@ final class SelectedAreaScreenshotControllerTests: XCTestCase {
         var factoryCalls = 0
         let controller = SelectedAreaScreenshotController(
             makeProcess: { factoryCalls += 1; return RecordingScreenshotProcess() },
-            gestureScheduler: ManualTickScheduler(),
             clipboardCoordinator: RecordingScreenshotClipboardCoordinator(),
             inputAllowed: { false }
         )

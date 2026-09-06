@@ -1079,6 +1079,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                             self.codexEditOwner = previousEditOwner
                         }
                     }
+                    Log(category: "codex-actions", sink: self.logSink).notice("Codex mouse action \(action.rawValue), source \(source.rawValue), cell \(cell.rawValue)")
                     result = self.codexModeActionExecutor.perform(action) { [weak self] feedback in
                         guard let self,
                               self.modePickerCoordinators[source]?.isActive == true,
@@ -1413,6 +1414,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         )
         monitor.onStep = { [weak self] step in
             guard let self else { return false }
+            if step.control == .screenshotPaste {
+                guard self.modePickerCoordinators[step.source]?.isActive != true,
+                      self.mouseCommandsAllowed else { return false }
+                let result = self.selectedAreaScreenshotController.handlePaste(from: step.source)
+                self.handleScreenshotTriggerResult(result, source: step.source)
+                return result == .pasted || result == .pasteQueued
+            }
             if step.control == .horizontalScroll {
                 self.scheduleHorizontalWheelAction(step)
                 return true
@@ -1565,6 +1573,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 guard self?.youtubeScrubHoldController.release(source: release.source) == true,
                       !release.didObserveWheelInput else { return }
                 self?.performTopLevelYouTubeRewind(from: release.source)
+            case .screenshotPaste:
+                guard let self, !release.didObserveWheelInput, self.mouseCommandsAllowed,
+                      self.modePickerCoordinators[release.source]?.isActive != true else { return }
+                let result = self.selectedAreaScreenshotController.handlePress(from: release.source)
+                self.handleScreenshotTriggerResult(result, source: release.source)
             case .codexPin:
                 guard let self, !release.didObserveWheelInput, self.mouseCommandsAllowed,
                       let coordinator = self.modePickerCoordinators[release.source],
@@ -2220,8 +2233,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         source: MouseSource
     ) {
         switch result {
-        case .awaitingSinglePress:
-            log.debug("classifying screenshot press from \(source.displayName)")
         case .started:
             log.info("selected-area screenshot started from \(source.displayName)")
         case .cancelled:
@@ -2245,7 +2256,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 )
             )
         case .blocked:
-            log.notice("selected-area screenshot rejected while the session was inactive")
+            log.notice("screenshot request blocked by session or active selection")
         case .failed(let message):
             log.notice("selected-area screenshot unavailable: \(message)")
             defaultMapHintCoordinators[source]?.flashActionProblem(

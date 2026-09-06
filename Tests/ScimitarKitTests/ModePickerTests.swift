@@ -2652,6 +2652,29 @@ final class ModePickerTests: XCTestCase {
         }
     }
 
+    func testRepeatedCodexExitAndSteerDoNotRouteNewChatOnEitherMouse() {
+        for source in MouseSource.allCases {
+            for cell in [PhysicalCell.frontmostAppModeSelector, .modeExit, CodexModeAction.steerQueuedMessage.cell] {
+                let coordinator = makeCoordinator()
+                coordinator.resolveFrontmostApp = {
+                    FrontmostAppModeContext(target: .codex, displayName: "Codex", bundleIdentifier: CodexMode.bundleIdentifier)
+                }
+                var actions: [CodexModeAction] = []
+                coordinator.onAppSpecificInput = { _, target, cell, phase in
+                    if target == .codex, phase == .press, let action = CodexModeAction.action(for: cell) { actions.append(action) }
+                    return true
+                }
+                coordinator.enterAppSpecific(source: source)
+                for _ in 0..<2 {
+                    coordinator.handle(.init(action: .select, source: source, physicalCell: cell, phase: .press))
+                    coordinator.handle(.init(action: .select, source: source, physicalCell: cell, phase: .release))
+                }
+                XCTAssertFalse(actions.contains(.newTask))
+                XCTAssertEqual(actions, cell == CodexModeAction.steerQueuedMessage.cell ? [.steerQueuedMessage, .steerQueuedMessage] : [])
+            }
+        }
+    }
+
     private func makeCoordinator(
         lease: RecordingModePickerLease = RecordingModePickerLease(),
         hud: RecordingModeHUDPresenter = RecordingModeHUDPresenter(),

@@ -1519,7 +1519,15 @@
           },
           "to": [
             {
-              "key_code": "vk_none",
+              "send_user_command": {
+                "payload": {
+                  "command": "agentic_mouse_wheel_chord",
+                  "source": "corsair",
+                  "control": "screenshotPaste",
+                  "phase": "press"
+                }
+              },
+              "repeat": false,
               "conditions": [
                 {
                   "type": "expression_if",
@@ -1532,9 +1540,10 @@
             {
               "send_user_command": {
                 "payload": {
-                  "command": "agentic_mouse_selected_area_screenshot_toggle",
+                  "command": "agentic_mouse_wheel_chord",
                   "source": "corsair",
-                  "physical_cell": 3
+                  "control": "screenshotPaste",
+                  "phase": "release"
                 }
               },
               "repeat": false,
@@ -2580,7 +2589,15 @@
           },
           "to": [
             {
-              "key_code": "vk_none",
+              "send_user_command": {
+                "payload": {
+                  "command": "agentic_mouse_wheel_chord",
+                  "source": "razer",
+                  "control": "screenshotPaste",
+                  "phase": "press"
+                }
+              },
+              "repeat": false,
               "conditions": [
                 {
                   "type": "expression_if",
@@ -2593,9 +2610,10 @@
             {
               "send_user_command": {
                 "payload": {
-                  "command": "agentic_mouse_selected_area_screenshot_toggle",
+                  "command": "agentic_mouse_wheel_chord",
                   "source": "razer",
-                  "physical_cell": 3
+                  "control": "screenshotPaste",
+                  "phase": "release"
                 }
               },
               "repeat": false,

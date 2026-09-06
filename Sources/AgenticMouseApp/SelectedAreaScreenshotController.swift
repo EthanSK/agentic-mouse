@@ -450,16 +450,11 @@ final class NativeScreenshotClipboardCoordinator: ScreenshotClipboardCoordinatin
     }
 }
 
-/// Owns one native selected-area screenshot interaction plus the bounded
-/// single/double-press classification for its shared physical button. A single
-/// press starts the native capture after the short classifier window. A rapid
-/// second press from the same mouse pastes the screenshot Agentic Mouse most
-/// recently saved. Once the native crosshair is running, the next press keeps
-/// its established meaning and sends Escape to cancel that exact interaction.
+/// Owns the native capture and exact saved image. Click captures or cancels;
+/// explicit held-wheel Paste reuses the owned image without a double-click timer.
 @MainActor
 final class SelectedAreaScreenshotController {
     enum TriggerResult: Equatable {
-        case awaitingSinglePress
         case started
         case cancelled
         case pasteQueued
@@ -478,15 +473,12 @@ final class SelectedAreaScreenshotController {
     typealias ProcessFactory = @MainActor () -> InteractiveScreenshotProcess
     typealias InputAllowedProvider = @MainActor () -> Bool
 
-    static let doublePressInterval: TimeInterval = 0.40
 
     private let makeProcess: ProcessFactory
     private let inputAllowed: InputAllowedProvider
-    private let gestureScheduler: TickScheduler
     private let clipboardCoordinator: ScreenshotClipboardCoordinating
     private var activeProcess: InteractiveScreenshotProcess?
     private var activeSource: MouseSource?
-    private var pendingSource: MouseSource?
     private var pasteWhenCaptureResolvesForSource: MouseSource?
     private var generation: UInt64 = 0
     var onStateChange: (() -> Void)?
@@ -496,12 +488,10 @@ final class SelectedAreaScreenshotController {
 
     init(
         makeProcess: ProcessFactory? = nil,
-        gestureScheduler: TickScheduler = DispatchTickScheduler(),
         clipboardCoordinator: ScreenshotClipboardCoordinating? = nil,
         inputAllowed: @escaping InputAllowedProvider = { true }
     ) {
         self.makeProcess = makeProcess ?? { NativeInteractiveScreenshotProcess() }
-        self.gestureScheduler = gestureScheduler
         self.clipboardCoordinator = clipboardCoordinator
             ?? NativeScreenshotClipboardCoordinator(inputAllowed: inputAllowed)
         self.inputAllowed = inputAllowed
@@ -537,49 +527,21 @@ final class SelectedAreaScreenshotController {
             return .cancelled
         }
 
-        if let pendingSource {
-            gestureScheduler.stop()
-            self.pendingSource = nil
+        return startCapture(from: source)
+    }
 
-            guard pendingSource == source else {
-                let result = startCapture(from: pendingSource)
-                onAsynchronousResult?(pendingSource, result)
-                onStateChange?()
-                return .awaitingSinglePress
-            }
-
-            if clipboardCoordinator.isCapturePending {
-                pasteWhenCaptureResolvesForSource = source
-                onStateChange?()
-                return .pasteQueued
-            }
-            if clipboardCoordinator.hasPasteableScreenshot {
-                let result = pasteScreenshot()
-                onStateChange?()
-                return result
-            }
-            let result = startCapture(from: source)
+    func handlePaste(from source: MouseSource) -> TriggerResult {
+        guard inputAllowed(), !isCapturing else { return .blocked }
+        if clipboardCoordinator.isCapturePending {
+            pasteWhenCaptureResolvesForSource = source
             onStateChange?()
-            return result
+            return .pasteQueued
         }
-
-        pendingSource = source
-        gestureScheduler.start(interval: Self.doublePressInterval) { [weak self] in
-            guard let self, let source = self.pendingSource else { return }
-            self.gestureScheduler.stop()
-            self.pendingSource = nil
-            let result = self.startCapture(from: source)
-            self.onAsynchronousResult?(source, result)
-            self.onStateChange?()
-        }
-        onStateChange?()
-        return .awaitingSinglePress
+        return pasteScreenshot()
     }
 
     func cancel() {
         generation &+= 1
-        gestureScheduler.stop()
-        pendingSource = nil
         pasteWhenCaptureResolvesForSource = nil
         let process = activeProcess
         activeProcess = nil
@@ -592,6 +554,7 @@ final class SelectedAreaScreenshotController {
     private func startCapture(from source: MouseSource) -> TriggerResult {
         guard inputAllowed() else { return .blocked }
 
+        pasteWhenCaptureResolvesForSource = nil
         let process = makeProcess()
         clipboardCoordinator.prepareForCapture()
         generation &+= 1

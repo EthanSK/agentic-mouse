@@ -651,9 +651,10 @@ class KarabinerGeneratorTests(unittest.TestCase):
             self.assertEqual(
                 screenshot_toggle["to_after_key_up"][0]["send_user_command"]["payload"],
                 {
-                    "command": "agentic_mouse_selected_area_screenshot_toggle",
+                    "command": "agentic_mouse_wheel_chord",
                     "source": source,
-                    "physical_cell": 3,
+                    "control": "screenshotPaste",
+                    "phase": "release",
                 },
             )
             switch_app = next(
@@ -1006,8 +1007,8 @@ class KarabinerGeneratorTests(unittest.TestCase):
         for rule in generated["rules"]:
             for manipulator in rule["manipulators"]:
                 if any(
-                    event.get("send_user_command", {}).get("payload", {}).get("command")
-                    == "agentic_mouse_selected_area_screenshot_toggle"
+                    event.get("send_user_command", {}).get("payload", {}).get("control")
+                    == "screenshotPaste"
                     for event in manipulator.get("to_after_key_up", [])
                 ):
                     screenshots.append(manipulator)

@@ -2,6 +2,27 @@ import XCTest
 @testable import ScimitarKit
 
 final class WheelChordTests: XCTestCase {
+    func testScreenshotWheelHoldConsumesDuplicatesAndNeverCapturesAfterUnusedDirection() {
+        for source in MouseSource.allCases {
+            let state = WheelChordStateMachine()
+            state.setActive(.screenshotPaste, for: source)
+            guard case .consumeInactiveDirection = state.route(verticalDelta: -1, isContinuous: false) else { return XCTFail("Physical up is consumed") }
+            guard case .consume = state.route(verticalDelta: 1, isContinuous: false) else { return XCTFail("Physical down pastes") }
+            state.setActive(.screenshotPaste, for: source)
+            guard case .consumeAfterFirstHoldAction = state.route(verticalDelta: 1, isContinuous: false) else { return XCTFail("Duplicate press must not rearm paste") }
+            XCTAssertEqual(state.release(.screenshotPaste, for: source)?.didObserveWheelInput, true)
+            XCTAssertEqual(state.route(verticalDelta: 1, isContinuous: false), .passThrough)
+        }
+    }
+
+    func testScreenshotWheelPasteUsesPhysicalDownOnceAndSuppressesCaptureAfterAnyWheel() {
+        XCTAssertEqual(WheelChordControl.screenshotPaste.topLevelCell, .screenshotToggle)
+        XCTAssertEqual(WheelChordControl.screenshotPaste.dispatchPolicy, .oncePerHold)
+        XCTAssertTrue(WheelChordControl.screenshotPaste.accepts(.up))
+        XCTAssertFalse(WheelChordControl.screenshotPaste.accepts(.down))
+        XCTAssertEqual(WheelChordControl.screenshotPaste.feedbackActionTitle(for: .up), "Paste screenshot")
+    }
+
     func testOneRatchetedEventProducesOneStepRegardlessOfDeltaMagnitude() {
         let state = WheelChordStateMachine()
         state.setActive(.brightness, for: .corsair)
@@ -898,28 +919,51 @@ final class WheelChordTests: XCTestCase {
         XCTAssertNil(WheelChordControl.horizontalScroll.topLevelSystemAction(for: .up))
     }
 
-    func testKeysTracksWheelUsesCellNineAndFixedRatchetDebounce() {
+    func testKeysTracksWheelUsesCellNineAndActsOncePerPhysicalHold() {
         let cell = PhysicalCell.mediaTracksWheelControl
 
         XCTAssertEqual(WheelChordControl.keysControl(for: cell), .mediaTracks)
         XCTAssertNil(WheelChordControl.keysControl(for: PhysicalCell(rawValue: 8)!))
         XCTAssertEqual(WheelChordControl.mediaTracks.diagnosticCell, cell)
-        XCTAssertEqual(WheelChordControl.mediaTracks.dispatchPolicy, .debounced(minimumInterval: 0.08))
+        XCTAssertEqual(WheelChordControl.mediaTracks.dispatchPolicy, .oncePerHold)
 
-        let clock = ManualClock(now: 10)
-        let state = WheelChordStateMachine(clock: clock)
+        let state = WheelChordStateMachine()
         state.setActive(.mediaTracks, for: .corsair)
         guard case .consume(let first) = state.route(verticalDelta: -1, isContinuous: false),
-              case .consumeDebounced = state.route(verticalDelta: -1, isContinuous: false)
-        else { return XCTFail("one media ratchet should dispatch once") }
+              case .consumeAfterFirstHoldAction(let sameDirection) = state.route(
+                verticalDelta: -1,
+                isContinuous: false
+              ),
+              case .consumeAfterFirstHoldAction(let reversed) = state.route(
+                verticalDelta: 1,
+                isContinuous: false
+              )
+        else { return XCTFail("only the first media ratchet should dispatch during one hold") }
         XCTAssertEqual(first.direction, .down)
-
-        clock.advance(by: 0.081)
-        guard case .consume(let nextRatchet) = state.route(verticalDelta: -1, isContinuous: false),
-              case .consume(let reversed) = state.route(verticalDelta: 1, isContinuous: false)
-        else { return XCTFail("a later ratchet and immediate reversal should dispatch") }
-        XCTAssertEqual(nextRatchet.direction, .down)
+        XCTAssertEqual(first.detentCount, 1)
+        XCTAssertEqual(sameDirection.detentCount, 2)
         XCTAssertEqual(reversed.direction, .up)
+        XCTAssertEqual(reversed.detentCount, 3)
+
+        state.setActive(.mediaTracks, for: .corsair)
+        guard case .consumeAfterFirstHoldAction(let duplicatePress) = state.route(
+            verticalDelta: -1,
+            isContinuous: false
+        ) else { return XCTFail("a duplicate press command must not re-arm Tracks") }
+        XCTAssertEqual(duplicatePress.detentCount, 4)
+        XCTAssertTrue(state.release(.mediaTracks, for: .corsair)?.didObserveWheelInput == true)
+
+        state.setActive(.mediaTracks, for: .corsair)
+        XCTAssertEqual(
+            state.route(verticalDelta: 1, isContinuous: false),
+            .consume(.init(
+                source: .corsair,
+                control: .mediaTracks,
+                direction: .up,
+                detentCount: 1
+            )),
+            "a real release and new press must re-arm one media action"
+        )
         XCTAssertTrue(state.release(.mediaTracks, for: .corsair)?.didObserveWheelInput == true)
 
         state.setActive(.mediaTracks, for: .razer)

@@ -358,6 +358,7 @@ public final class ModePickerCoordinator {
                 && cell == .frontmostAppModeSelector)
         if isExitCell {
             if phase == .press {
+                if appSpecificTarget == .codex { log.notice("Codex mode exit, source \(source.rawValue), cell \(cell.rawValue)") }
                 exit(reason: .userRequested)
             }
             return

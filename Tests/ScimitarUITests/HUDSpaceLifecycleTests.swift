@@ -46,6 +46,8 @@ final class HUDSpaceLifecycleTests: XCTestCase {
         let baselinePanels = visibleHUDPanels()
         presenter.show(DefaultMapLegend.snapshot(source: .corsair))
         await waitForMainQueueTurns()
+        let originalWindows = NSApplication.shared.windows.filter { $0 is HUDPanel && $0.isVisible }
+        defer { withExtendedLifetime(originalWindows) {} } // ObjectIdentifier is only unique while the original object remains alive.
         let originalPanels = visibleHUDPanels().subtracting(baselinePanels)
         XCTAssertEqual(originalPanels.count, NSScreen.screens.count)
         if ProcessInfo.processInfo.environment["AGENTIC_MOUSE_HUD_VISUAL_HOLD"] == "1" {
@@ -60,8 +62,8 @@ final class HUDSpaceLifecycleTests: XCTestCase {
             object: nil
         )
         try await Task.sleep(nanoseconds: 800_000_000)
-        await waitForMainQueueTurns() // Bug: Before this fix, CI could assert between panel teardown and queued recreation. Fix: Drain the main queue before checking the completed reattachment.
 
+        await waitForMainQueueTurns() // The settled callback discards panels then enqueues recreation on the next main-queue turn.
         let refreshedPanels = visibleHUDPanels().subtracting(baselinePanels)
         XCTAssertEqual(refreshedPanels.count, NSScreen.screens.count)
         XCTAssertTrue(originalPanels.isDisjoint(with: refreshedPanels))
@@ -83,7 +85,6 @@ final class HUDSpaceLifecycleTests: XCTestCase {
             object: nil
         )
         try await Task.sleep(nanoseconds: 800_000_000)
-        await waitForMainQueueTurns()
 
         XCTAssertFalse(presenter.isVisible)
     }
@@ -93,12 +94,14 @@ final class HUDSpaceLifecycleTests: XCTestCase {
         let baselinePanels = visibleHUDPanels()
         presenter.show(DefaultMapLegend.snapshot(source: .razer))
         await waitForMainQueueTurns()
+        let originalWindows = NSApplication.shared.windows.filter { $0 is HUDPanel && $0.isVisible }
+        defer { withExtendedLifetime(originalWindows) {} } // ObjectIdentifier is only unique while the original object remains alive.
         let originalPanels = visibleHUDPanels().subtracting(baselinePanels)
 
         presenter.reattachToCurrentSpaces()
         try await Task.sleep(nanoseconds: 800_000_000)
-        await waitForMainQueueTurns()
 
+        await waitForMainQueueTurns() // The settled callback discards panels then enqueues recreation on the next main-queue turn.
         let refreshedPanels = visibleHUDPanels().subtracting(baselinePanels)
         XCTAssertEqual(refreshedPanels.count, NSScreen.screens.count)
         XCTAssertTrue(originalPanels.isDisjoint(with: refreshedPanels))
@@ -113,7 +116,6 @@ final class HUDSpaceLifecycleTests: XCTestCase {
 
         presenter.reattachToCurrentSpaces()
         try await Task.sleep(nanoseconds: 800_000_000)
-        await waitForMainQueueTurns()
 
         XCTAssertFalse(presenter.isVisible)
     }
