@@ -23,6 +23,7 @@ SUPERVISOR_APP_DIR="${APP_DIR}/Contents/Library/LoginItems/AgenticMouseSuperviso
 CONFIGURATION="${CONFIGURATION:-release}"
 CODE_SIGN_IDENTITY="${CODE_SIGN_IDENTITY:--}"
 INSTALL_CANDIDATE="${INSTALL_CANDIDATE:-0}"
+DISTRIBUTION_BUILD="${DISTRIBUTION_BUILD:-0}"
 REQUIRE_ICUE_SDK="${REQUIRE_ICUE_SDK:-1}"
 INFO_PLIST="${REPO_ROOT}/Resources/Info.plist"
 CURRENT_MARKETING_VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "${INFO_PLIST}")"
@@ -120,10 +121,21 @@ fi
 log() { printf '\033[1m==>\033[0m %s\n' "$1"; }
 warn() { printf '\033[33m warning:\033[0m %s\n' "$1" >&2; }
 
+BUILD_FLAGS=()
+SIGN_FLAGS=()
+APP_SIGN_FLAGS=()
+if [[ "${DISTRIBUTION_BUILD}" == "1" ]]; then
+  if [[ "${CODE_SIGN_IDENTITY}" != "Developer ID Application: "* || "${INSTALL_CANDIDATE}" != "0" ]]; then
+    printf 'error: distribution requires Developer ID and an already recorded version.\n' >&2
+    exit 65
+  fi
+  BUILD_FLAGS=(--arch arm64 --arch x86_64)
+  SIGN_FLAGS=(--options runtime --timestamp)
+  APP_SIGN_FLAGS=(--entitlements "${REPO_ROOT}/Resources/Distribution.entitlements")
+fi
 log "Building (${CONFIGURATION})"
-swift build --package-path "${REPO_ROOT}" -c "${CONFIGURATION}"
-
-BIN_PATH="$(swift build --package-path "${REPO_ROOT}" -c "${CONFIGURATION}" --show-bin-path)"
+swift build --package-path "${REPO_ROOT}" -c "${CONFIGURATION}" "${BUILD_FLAGS[@]}"
+BIN_PATH="$(swift build --package-path "${REPO_ROOT}" -c "${CONFIGURATION}" "${BUILD_FLAGS[@]}" --show-bin-path)"
 
 log "Assembling ${APP_NAME}.app ${PACKAGE_VERSION_LABEL}"
 rm -rf "${APP_DIR}"
@@ -181,12 +193,12 @@ if [[ "${CODE_SIGN_IDENTITY}" == "-" ]]; then
 else
   log "Signing (${CODE_SIGN_IDENTITY})"
 fi
-if ! codesign --force --sign "${CODE_SIGN_IDENTITY}" \
+if ! codesign --force --sign "${CODE_SIGN_IDENTITY}" "${SIGN_FLAGS[@]}" \
   "${APP_DIR}/Contents/MacOS/agentic-mouse-doctor"; then
   printf '\033[31m error:\033[0m codesign failed for the bundled doctor; refusing to continue.\n' >&2
   exit 1
 fi
-if ! codesign --force --sign "${CODE_SIGN_IDENTITY}" "${SUPERVISOR_APP_DIR}"; then
+if ! codesign --force --sign "${CODE_SIGN_IDENTITY}" "${SIGN_FLAGS[@]}" "${SUPERVISOR_APP_DIR}"; then
   printf '\033[31m error:\033[0m codesign failed for the runtime supervisor; refusing to continue.\n' >&2
   exit 1
 fi
@@ -194,7 +206,7 @@ fi
 # Sign the app bundle without --deep. The embedded iCUE framework is an
 # independently signed vendor binary; --deep would rewrite that audited binary
 # even though its existing nested signature is already valid.
-if ! codesign --force --sign "${CODE_SIGN_IDENTITY}" "${APP_DIR}"; then
+if ! codesign --force --sign "${CODE_SIGN_IDENTITY}" "${SIGN_FLAGS[@]}" "${APP_SIGN_FLAGS[@]}" "${APP_DIR}"; then
   printf '\033[31m error:\033[0m codesign failed for %s; refusing to produce an installable app.\n' \
     "${CODE_SIGN_IDENTITY}" >&2
   exit 1

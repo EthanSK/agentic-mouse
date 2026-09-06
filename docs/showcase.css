@@ -2746,3 +2746,5 @@ button {
 }
 
 .creator-end .release-status { font-size: 13px; margin-top: 24px; }
+
+[data-app-download][hidden] { display: none; }

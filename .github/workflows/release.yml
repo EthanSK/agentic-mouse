@@ -1,0 +1,130 @@
+name: Publish signed app
+
+on:
+  workflow_run:
+    workflows: [Check app and onboarding]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: signed-app-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    if: github.event_name == 'workflow_dispatch' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push' && github.event.workflow_run.head_repository.full_name == github.repository)
+    runs-on: macos-15
+    timeout-minutes: 60
+    permissions:
+      contents: write
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.3.app/Contents/Developer
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+          persist-credentials: false
+      - name: Select unpublished version
+        id: version
+        run: |
+          VERSION=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' Resources/Info.plist)
+          BUILD=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' Resources/Info.plist)
+          [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ && "$BUILD" =~ ^[1-9][0-9]*$ ]]
+          TAG="v${VERSION}-build.${BUILD}"
+          # Reruns cannot replace a published artifact with different bytes.
+          if gh release view "$TAG" --json isDraft --jq 'select(.isDraft == false)' | grep -q .; then
+            echo 'publish=false' >> "$GITHUB_OUTPUT"
+          else
+            echo 'publish=true' >> "$GITHUB_OUTPUT"
+          fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+      - name: Require release credentials
+        if: steps.version.outputs.publish == 'true'
+        env:
+          CSC_LINK: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          for NAME in CSC_LINK CSC_KEY_PASSWORD APPLE_ID APPLE_APP_SPECIFIC_PASSWORD APPLE_TEAM_ID; do
+            test -n "${!NAME}" || { echo "::error::Missing repository secret: $NAME. No unsigned release will be published."; exit 1; }
+          done
+      - uses: actions/setup-node@v4
+        if: steps.version.outputs.publish == 'true'
+        with:
+          node-version: 22
+      - name: Check exact release source
+        if: steps.version.outputs.publish == 'true'
+        run: |
+          npm ci --ignore-scripts --prefix Integrations/VSCode
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then make check; fi
+      - name: Import signing and notarization credentials
+        if: steps.version.outputs.publish == 'true'
+        env:
+          CSC_LINK: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          KEYCHAIN="$RUNNER_TEMP/agentic-release.keychain-db"
+          PASSWORD=$(openssl rand -hex 32)
+          echo "::add-mask::$PASSWORD"
+          umask 077
+          printf '%s' "$CSC_LINK" | base64 --decode > "$RUNNER_TEMP/signing.p12"
+          security create-keychain -p "$PASSWORD" "$KEYCHAIN"
+          security set-keychain-settings -lut 7200 "$KEYCHAIN"
+          security unlock-keychain -p "$PASSWORD" "$KEYCHAIN"
+          security import "$RUNNER_TEMP/signing.p12" -k "$KEYCHAIN" -P "$CSC_KEY_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$PASSWORD" "$KEYCHAIN" >/dev/null
+          security list-keychains -d user -s "$KEYCHAIN" "$HOME/Library/Keychains/login.keychain-db"
+          IDENTITY=$(security find-identity -v -p codesigning "$KEYCHAIN" | sed -n 's/.*"\(Developer ID Application: .*\)".*/\1/p')
+          [[ -n "$IDENTITY" && "$IDENTITY" != *$'\n'* && "$IDENTITY" == *"($APPLE_TEAM_ID)" ]]
+          echo "CODE_SIGN_IDENTITY=$IDENTITY" >> "$GITHUB_ENV"
+          xcrun notarytool store-credentials agentic-release --keychain "$KEYCHAIN" --apple-id "$APPLE_ID" --password "$APPLE_APP_SPECIFIC_PASSWORD" --team-id "$APPLE_TEAM_ID"
+          rm "$RUNNER_TEMP/signing.p12"
+      - name: Build signed universal app and verify notarized archive
+        if: steps.version.outputs.publish == 'true'
+        env:
+          DISTRIBUTION_BUILD: 1
+          REQUIRE_ICUE_SDK: 0
+          ICUE_SDK_FRAMEWORK: /nonexistent/agentic-public-sdk
+          NOTARY_PROFILE: agentic-release
+        run: |
+          bash Scripts/package-app.sh
+          NOTARY_KEYCHAIN="$RUNNER_TEMP/agentic-release.keychain-db" bash Scripts/notarize-release.sh
+      - name: Publish verified files
+        if: steps.version.outputs.publish == 'true'
+        env:
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          cat > "$RUNNER_TEMP/release-notes.md" <<'NOTES'
+          Signed and notarized macOS app for Apple silicon and Intel, macOS 13 or later.
+
+          Download the universal ZIP, extract it, and place AgenticMouse.app in /Applications. Follow the setup guide before using the mouse mappings. Setup still requires Accessibility permission, Karabiner, and your own device configuration.
+
+          The proprietary Corsair SDK is not included. Install it separately for Corsair lighting. Some controls require external integrations or remain marked Needs repair. Automated distribution checks do not establish acceptance on every Mac or mouse.
+
+          [Setup, updates and removal](https://github.com/EthanSK/agentic-mouse/blob/main/docs/SETUP.md) · [Known limitations](https://github.com/EthanSK/agentic-mouse/blob/main/docs/LIMITATIONS.md)
+
+          SHA256SUMS and release.json identify the exact archive, source commit and supported architectures. Keep your previous app and configuration backup when updating.
+          NOTES
+          python3 -c 'import json; print("<!-- agentic-release " + json.dumps(json.load(open("build/release/release.json")), separators=(",", ":")) + " -->")' >> "$RUNNER_TEMP/release-notes.md"
+          if ! gh release view "$TAG" >/dev/null 2>&1; then
+            gh release create "$TAG" --target "$(git rev-parse HEAD)" --draft --title "Agentic Mouse $TAG" --notes-file "$RUNNER_TEMP/release-notes.md"
+          fi
+          gh release upload "$TAG" build/release/*.zip build/release/SHA256SUMS build/release/release.json --clobber
+          gh release edit "$TAG" --draft=false --latest --notes-file "$RUNNER_TEMP/release-notes.md"
+      - name: Remove temporary credentials
+        if: always()
+        run: |
+          rm -f "$RUNNER_TEMP/signing.p12"
+          if test -f "$RUNNER_TEMP/agentic-release.keychain-db"; then
+            security delete-keychain "$RUNNER_TEMP/agentic-release.keychain-db"
+          fi

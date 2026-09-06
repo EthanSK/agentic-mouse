@@ -530,6 +530,7 @@
             The code is open. Take the parts you like.
           </p>
           <div class="end-actions">
+            <a class="pill" data-app-download hidden>Download for Mac</a>
             <a class="pill" href="https://github.com/EthanSK/agentic-mouse"
               >View the source <span aria-hidden="true">↗</span></a
             ><a
@@ -538,12 +539,12 @@
               >Read the setup guide <span aria-hidden="true">→</span></a
             >
           </div>
-          <p class="release-status">Source is available, but setup is manual. There is no signed app download yet.</p>
+          <p class="release-status">Source is available. A signed app download will appear here once its release checks pass.</p>
           <details class="build-note">
             <summary>A personal build, with a few things to know</summary>
             <p>
-              No public binary release. Build the app yourself and set up
-              Karabiner and iCUE by hand. The proprietary iCUE SDK is not
+              Source builds remain available. Set up
+              Karabiner and iCUE for your own mouse. The proprietary iCUE SDK is not
               bundled. Some controls still need physical acceptance; the
               previews keep those marked.
             </p>
@@ -604,6 +605,7 @@
 
     <script src="./lib/gsap.min.js"></script>
     <script src="./lib/ScrollTrigger.min.js"></script>
+    <script type="module" src="./release-download.mjs?v=__SITE_VERSION__"></script>
     <script type="module" src="./showcase.js?v=__SITE_VERSION__"></script>
   </body>
 </html>
