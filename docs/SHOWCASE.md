@@ -115,8 +115,10 @@ Every displayed image retains its source aspect ratio. Hardware thumbnails use
   in iPhone Photos. The portrait, taken on 2 September 2026, supplies his short
   haircut, face and outfit: a black graphic T-shirt and beige shorts. The desk
   photo supplies the bamboo top, laptop, monitors, speakers and microphone setup.
-  The final image was generated afresh from those two original photos, without
-  feeding earlier AI composites back into the face reference.
+  The corrected image uses those original photos for identity and room details,
+  the previous composition for framing, and the official black/yellow Corsair
+  product image for the mouse under his right hand. The wider framing preserves
+  natural leg proportions; the original portrait remains the face reference.
   The reclining pose and chair are AI reimagined. Both mice rest on the main
   desktop, with one in use and the other parked beside it. The image
   remains labelled as AI on the page; it is not a documentary photograph or a

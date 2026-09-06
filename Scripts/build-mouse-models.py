@@ -324,10 +324,10 @@ def make_mouse(brand):
     centers=[]
     if razer:
         cols=[-14,-3.6,6.8,17.2]
-        key_w,key_h=8.2,9.0
+        key_w,key_h=8.2,7.2
         for col,z in enumerate(cols):
             for row in range(3):
-                y=29.4-row*9.8-(abs(col-1.5)*.42)
+                y=4+(29.4-row*9.8-(abs(col-1.5)*.42)-4)*.8  # Bug: Before this fix, the Naga's upper keys crossed its shell seam in the side view. Fix: Fit the complete grid and sockets below the lowest shoulder, preserving the lower shell margin. (Codex task: 01a06ee5-4aa0-7a61-a029-704e5c44a8f2)
                 centers.append((col*3+row+1,z+row*2.0,y,col))
     else:
         cols=[-23,-10,3,16]
