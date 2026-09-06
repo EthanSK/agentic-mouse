@@ -43,14 +43,18 @@ final class CodexPinActionExecutor {
         self.makeSession = makeSession ?? { CodexAXPinMenuSession(inputAllowed: inputAllowed) }
     }
 
-    func perform(_ action: CodexPinAction, feedback: @escaping (String, Bool) -> Void) {
-        guard task == nil, inputAllowed() else { return }
+    func perform(
+        _ action: CodexPinAction,
+        requestAllowed: @escaping () -> Bool = { true },
+        feedback: @escaping (String, Bool) -> Void
+    ) {
+        guard task == nil, inputAllowed(), requestAllowed() else { return }
         generation &+= 1
         let request = generation
         task = Task { [weak self] in
             guard let self else { return }
             defer { if self.generation == request { self.task = nil } }
-            guard self.inputAllowed(), !Task.isCancelled,
+            guard self.inputAllowed(), requestAllowed(), !Task.isCancelled,
                   let session = self.makeSession(), session.isCurrent else {
                 feedback("Main Codex window is not active", true)
                 return
@@ -63,14 +67,14 @@ final class CodexPinActionExecutor {
             for _ in 0..<8 {
                 try? await Task.sleep(for: .milliseconds(50))
                 guard !Task.isCancelled, self.generation == request,
-                      self.inputAllowed(), session.isCurrent else { return }
+                      self.inputAllowed(), requestAllowed(), session.isCurrent else { return }
                 guard let labels = session.readItems() else { continue }
                 switch Self.decision(action, labels: labels) {
                 case .already:
                     feedback(action == .pin ? "Already pinned" : "Already unpinned", false)
                     return
                 case .press(let label):
-                    guard session.isCurrent, self.inputAllowed(), session.press(label) else {
+                    guard session.isCurrent, self.inputAllowed(), requestAllowed(), session.press(label) else {
                         feedback("Could not read the pin state", true)
                         return
                     }

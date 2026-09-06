@@ -1473,7 +1473,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     guard let self, self.mouseCommandsAllowed,
                           let coordinator = self.modePickerCoordinators[step.source],
                           coordinator.isActive, coordinator.appSpecificTarget == .codex else { return }
-                    self.codexPinActionExecutor.perform(action) { [weak self] message, failed in
+                    self.codexPinActionExecutor.perform(action, requestAllowed: { [weak coordinator] in
+                        coordinator?.isActive == true && coordinator?.page == .appSpecific
+                            && coordinator?.appSpecificTarget == .codex
+                    }) { [weak self] message, failed in
                         guard let self else { return }
                         if failed { self.modeHUDPresenters[step.source]?.flashProblem(message) }
                         else { self.modeHUDPresenters[step.source]?.flashFeedback(

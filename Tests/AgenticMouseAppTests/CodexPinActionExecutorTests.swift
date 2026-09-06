@@ -18,29 +18,34 @@ final class CodexPinActionExecutorTests: XCTestCase {
         let menu = PinMenu()
         let executor = CodexPinActionExecutor(inputAllowed: { true }, makeSession: { menu })
         var messages: [String] = []
-        executor.perform(.pin) { message, _ in messages.append(message) }
-        executor.perform(.pin) { message, _ in messages.append(message) }
-        try? await Task.sleep(for: .milliseconds(100))
+        let pinned = expectation(description: "Pin request completed")
+        executor.perform(.pin) { message, _ in messages.append(message); pinned.fulfill() }
+        executor.perform(.pin) { _, _ in XCTFail("Concurrent duplicate must be ignored") }
+        await fulfillment(of: [pinned], timeout: 3)
         XCTAssertEqual(menu.presses, ["Pin"])
-        executor.perform(.pin) { message, _ in messages.append(message) }
-        try? await Task.sleep(for: .milliseconds(100))
+        let already = expectation(description: "Existing pin read")
+        executor.perform(.pin) { message, _ in messages.append(message); already.fulfill() }
+        await fulfillment(of: [already], timeout: 3)
         XCTAssertEqual(menu.presses, ["Pin"])
         XCTAssertEqual(messages.last, "Already pinned")
-        executor.perform(.unpin) { _, _ in }
-        try? await Task.sleep(for: .milliseconds(100))
+        let unpinned = expectation(description: "Unpin request completed")
+        executor.perform(.unpin) { _, _ in unpinned.fulfill() }
+        await fulfillment(of: [unpinned], timeout: 3)
         XCTAssertEqual(menu.presses, ["Pin", "Unpin"])
     }
 
     func testFocusLossLockAndCancellationPreventPendingPin() async {
-        for reason in 0..<3 {
+        for reason in 0..<4 {
             let menu = PinMenu()
             var allowed = true
+            var sourceModeActive = true
             let executor = CodexPinActionExecutor(inputAllowed: { allowed }, makeSession: { menu })
-            executor.perform(.pin) { _, _ in }
+            executor.perform(.pin, requestAllowed: { sourceModeActive }) { _, _ in }
             await Task.yield()
             if reason == 0 { menu.isCurrent = false }
             if reason == 1 { allowed = false }
             if reason == 2 { executor.cancel() }
+            if reason == 3 { sourceModeActive = false }
             try? await Task.sleep(for: .milliseconds(100))
             XCTAssertTrue(menu.presses.isEmpty)
         }
@@ -51,8 +56,9 @@ final class CodexPinActionExecutorTests: XCTestCase {
         menu.labels = ["Pin", "Unpin"]
         let executor = CodexPinActionExecutor(inputAllowed: { true }, makeSession: { menu })
         var failed = false
-        executor.perform(.unpin) { _, error in failed = error }
-        try? await Task.sleep(for: .milliseconds(100))
+        let completed = expectation(description: "Ambiguous menu rejected")
+        executor.perform(.unpin) { _, error in failed = error; completed.fulfill() }
+        await fulfillment(of: [completed], timeout: 3)
         XCTAssertTrue(failed)
         XCTAssertTrue(menu.presses.isEmpty)
         XCTAssertEqual(menu.dismissals, 1)
