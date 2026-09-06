@@ -1703,6 +1703,43 @@ final class ModePickerTests: XCTestCase {
         )
     }
 
+    func testCodexKeepsBlueOutlineAndExitArtworkInBothEntryJourneys() {
+        let paleIcon = ScimitarKit.RGBColor(red: 130, green: 170, blue: 180)
+        for source in [MouseSource.corsair, .razer] {
+            for manual in [false, true] {
+                let hud = RecordingModeHUDPresenter()
+                let coordinator = makeCoordinator(hud: hud)
+                coordinator.resolveFrontmostApp = {
+                    FrontmostAppModeContext(
+                        target: .codex, displayName: "Codex",
+                        bundleIdentifier: CodexMode.bundleIdentifier, iconAccent: paleIcon
+                    )
+                }
+                coordinator.resolveAppSpecificDefinition = { $0.definition(iconAccent: paleIcon) }
+                if manual {
+                    coordinator.enterAppSelector(source: source)
+                    coordinator.handle(.init(action: .select, source: source,
+                                             physicalCell: AppSpecificTarget.codex.selectorCell!))
+                } else {
+                    coordinator.enterAppSpecific(source: source)
+                }
+                let snapshot = hud.snapshots.last
+                XCTAssertEqual(snapshot?.accent, CodexMode.accent)
+                XCTAssertEqual(snapshot?.outlineWidth, 4.5)
+                XCTAssertEqual(snapshot?.legend.filter { $0.appBackdrop != nil }.map(\.cell.rawValue), [2, 10])
+                for item in snapshot?.legend ?? [] {
+                    if item.cell.isAppSpecificModeExit {
+                        XCTAssertEqual(item.appBackdrop?.bundleIdentifier, CodexMode.bundleIdentifier)
+                    } else {
+                        XCTAssertEqual(item, CodexMode.definition.legend.first { $0.cell == item.cell })
+                    }
+                }
+            }
+        }
+        XCTAssertEqual(AppSpecificTarget.chrome.definition(iconAccent: paleIcon).accent, paleIcon)
+        XCTAssertNil(AppSpecificTarget.chrome.definition(iconAccent: paleIcon).outlineWidth)
+    }
+
     func testSelectorCanUseIconDerivedAccentWithoutChangingStaticFallback() {
         let dynamic = ScimitarKit.RGBColor(red: 248, green: 88, blue: 34)
         let selector = AppSpecificMode.selectorDefinition { target in

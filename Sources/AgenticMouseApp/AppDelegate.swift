@@ -2370,8 +2370,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     ) -> AppSpecificModeDefinition {
         let accent = ModeHUDAppBackdrop(bundleIdentifier: target.bundleIdentifier)
             .flatMap { appIconProvider.accent(for: $0) }
-        guard let accent else { return target.definition }
-        return target.definition.replacingIdentityAccent(with: accent)
+        return target.definition(iconAccent: accent)
     }
 
     private func appSelectorDefinition() -> AppSpecificModeDefinition {

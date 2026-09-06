@@ -29,6 +29,7 @@ public struct AppSpecificModeDefinition: Equatable, Sendable {
     public let footerTitle: String
     public let footerHint: String?
     public let accent: RGBColor
+    public let outlineWidth: Double?
     public let legend: [ModeHUDLegendItem]
 
     public init(
@@ -36,12 +37,14 @@ public struct AppSpecificModeDefinition: Equatable, Sendable {
         footerTitle: String,
         footerHint: String? = nil,
         accent: RGBColor,
+        outlineWidth: Double? = nil,
         legend: [ModeHUDLegendItem]
     ) {
         self.title = title
         self.footerTitle = footerTitle
         self.footerHint = footerHint
         self.accent = accent
+        self.outlineWidth = outlineWidth
         self.legend = legend
     }
 
@@ -56,6 +59,7 @@ public struct AppSpecificModeDefinition: Equatable, Sendable {
             footerTitle: footerTitle,
             footerHint: footerHint,
             accent: replacement,
+            outlineWidth: outlineWidth,
             legend: legend.map { item in
                 ModeHUDLegendItem(
                     cell: item.cell,
@@ -686,6 +690,7 @@ public final class ModePickerCoordinator {
                 selection: lastSelection,
                 legend: definition.legend,
                 accent: definition.accent,
+                outlineWidth: definition.outlineWidth,
                 lightingTargets: lightingTargets,
                 footerTitle: definition.footerTitle,
                 footerHint: nil,

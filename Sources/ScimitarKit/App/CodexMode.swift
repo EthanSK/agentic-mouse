@@ -69,7 +69,7 @@ public enum CodexModeAction: String, CaseIterable, Equatable, Sendable {
 
 public enum CodexMode {
     public static let bundleIdentifier = "com.openai.codex"
-    public static let accent = RGBColor(red: 0, green: 218, blue: 184)
+    public static let accent = RGBColor(red: 32, green: 128, blue: 255)
     public static let chatHistoryWheelCell = PhysicalCell(rawValue: 6)! // Swap Codex cells 6 and 11 on both mice; share this cell between routing, the HUD and wheel feedback. (Codex task: 01a039f7-873c-7c30-b3dc-af8a6724ace5)
 
     public static let definition = AppSpecificModeDefinition(
@@ -77,9 +77,15 @@ public enum CodexMode {
         footerTitle: "Codex mode",
         footerHint: nil,
         accent: accent,
+        outlineWidth: 4.5,
         legend: PhysicalCell.all.map { cell in
             if cell.isAppSpecificModeExit {
-                return ModeHUDLegendItem(cell: cell, actionTitle: "Exit Codex mode", accent: accent)
+                return ModeHUDLegendItem(
+                    cell: cell,
+                    actionTitle: "Exit Codex mode",
+                    accent: accent,
+                    appBackdrop: ModeHUDAppBackdrop(bundleIdentifier: bundleIdentifier)
+                )
             }
             if let control = WheelChordControl.appSpecificControl(for: .codex, cell: cell) {
                 return ModeHUDLegendItem(

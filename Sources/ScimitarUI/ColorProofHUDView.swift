@@ -10,6 +10,7 @@ final class ModeHUDViewModel: ObservableObject {
     @Published var selection: ModeHUDSelection?
     @Published var legend: [ModeHUDLegendItem] = []
     @Published var accent = ScimitarKit.RGBColor(red: 94, green: 210, blue: 255)
+    @Published var outlineWidth: Double?
     @Published var lightingTargets: ModeLightingTargets = []
     @Published var footerTitle = ""
     @Published var footerHint: String?
@@ -35,6 +36,7 @@ final class ModeHUDViewModel: ObservableObject {
         selection = snapshot.selection
         legend = snapshot.legend
         accent = snapshot.accent
+        outlineWidth = snapshot.outlineWidth
         lightingTargets = snapshot.lightingTargets
         footerTitle = snapshot.footerTitle
         footerHint = snapshot.footerHint
@@ -439,7 +441,7 @@ struct ModeHUDView: View {
 
             shape.strokeBorder(
                 displayAccent.opacity(model.isActive ? 1 : 0.32),
-                lineWidth: model.presentationStyle == .boldOpaque ? 3 : 2.75
+                lineWidth: model.outlineWidth ?? (model.presentationStyle == .boldOpaque ? 3 : 2.75)
             )
         }
     }

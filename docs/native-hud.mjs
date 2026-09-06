@@ -8,6 +8,7 @@ export function hudPresentation(simulator) {
     visible: state.mode !== "default" || state.legend,
     style: mode.presentationStyle,
     color: mode.color,
+    outlineWidth: mode.outlineWidth,
     title: mode.title,
     source: map.sources[hand].name,
     feedback: state.feedback,
@@ -75,6 +76,7 @@ export function createNativeHUD(element, simulator, { activate, bindHold, keydow
     element.hidden = !hud.visible;
     element.dataset.style = hud.style;
     element.style.setProperty("--hud-accent", hud.color);
+    element.style.setProperty("--hud-outline-width", hud.outlineWidth ? `${hud.outlineWidth / 3 * 2}px` : "2px");
     element.style.setProperty("--hud-card-inset", `${simulator.map.hud.cardInset / 6.51}cqw`);
     grid.setAttribute("aria-label", `${hud.source} · ${hud.title}`);
     for (const [position, card] of hud.cards.entries()) {

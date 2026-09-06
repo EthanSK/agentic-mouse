@@ -161,6 +161,13 @@ public enum AppSpecificTarget: String, CaseIterable, Equatable, Hashable, Sendab
         }
     }
 
+    /// Codex keeps its explicitly chosen blue instead of its pale icon tint.
+    /// Other apps continue to use their installed icon's identity colour.
+    public func definition(iconAccent: RGBColor?) -> AppSpecificModeDefinition {
+        guard self != .codex, let iconAccent else { return definition }
+        return definition.replacingIdentityAccent(with: iconAccent)
+    }
+
     public static func target(for cell: PhysicalCell) -> AppSpecificTarget? {
         allCases.first { $0.selectorCell == cell }
     }
@@ -203,7 +210,8 @@ public struct FrontmostAppModeContext: Equatable, Sendable {
     }
 
     public var definition: AppSpecificModeDefinition {
-        let base = target?.definition ?? AppSpecificMode.unsupportedDefinition(
+        if let target { return target.definition(iconAccent: iconAccent) }
+        let base = AppSpecificMode.unsupportedDefinition(
             appName: displayName,
             bundleIdentifier: bundleIdentifier
         )
