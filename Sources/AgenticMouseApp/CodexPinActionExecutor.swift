@@ -133,7 +133,7 @@ private final class CodexAXPinMenuSession: CodexPinMenuSession {
         guard openers.count == 1, let opener = openers.first,
               Self.value(opener, "AXExpanded") as? Bool == false,
               let parent = Self.element(opener, "AXParent"),
-              let titleGroup = Self.children(parent).first,
+              let titleGroup = Self.children(parent).first(where: { Self.string($0, "AXRole") == "AXGroup" }),
               let titleNodes = Self.nodes(titleGroup, deadline: deadline, limit: 50) else { return nil }
         let titleButtons = titleNodes.filter {
             Self.string($0, "AXRole") == "AXButton" && !Self.string($0, "AXTitle").isEmpty

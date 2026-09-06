@@ -500,6 +500,7 @@ public final class ModePickerCoordinator {
                     guard activeWheelControl == control else { return }
                     onWheelControlRelease?(source, control)
                     clearWheelControl()
+                    if control == .codexPin, isLegendVisible { hud.update(snapshot()) }
                 }
                 return
             }
@@ -689,7 +690,19 @@ public final class ModePickerCoordinator {
                 modeTitle: definition.title,
                 source: source ?? .corsair,
                 selection: lastSelection,
-                legend: definition.legend,
+                legend: definition.legend.map { item in
+                    guard appSpecificTarget == .codex,
+                          activeWheelControl == .codexPin,
+                          item.cell == CodexMode.screenshotPinWheelCell else { return item }
+                    return ModeHUDLegendItem(
+                        cell: item.cell,
+                        actionTitle: "\(WheelChordControl.codexPin.actionTitle) · Wheel",
+                        accent: item.accent,
+                        destinationModeAccent: item.destinationModeAccent,
+                        appBackdrop: item.appBackdrop,
+                        controlStatus: item.controlStatus
+                    )
+                },
                 accent: definition.accent,
                 outlineWidth: definition.outlineWidth,
                 lightingTargets: lightingTargets,

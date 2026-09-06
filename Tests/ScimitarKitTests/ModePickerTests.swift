@@ -2633,6 +2633,25 @@ final class ModePickerTests: XCTestCase {
         XCTAssertEqual(keypadInputs.map(\.1), [.press, .release])
     }
 
+    func testCodexPinHoldShowsWheelLabelAndRestoresScreenshotOnBothMice() {
+        for source in MouseSource.allCases {
+            let hud = RecordingModeHUDPresenter()
+            let coordinator = makeCoordinator(hud: hud)
+            coordinator.resolveFrontmostApp = {
+                FrontmostAppModeContext(target: .codex, displayName: "Codex", bundleIdentifier: CodexMode.bundleIdentifier)
+            }
+            coordinator.enterAppSpecific(source: source)
+            let cell = CodexMode.screenshotPinWheelCell
+            XCTAssertEqual(hud.snapshots.last?.legend.first { $0.cell == cell }?.actionTitle, "Screenshot")
+            coordinator.handle(.init(action: .select, source: source, physicalCell: cell, phase: .press))
+            XCTAssertEqual(hud.snapshots.last?.legend.first { $0.cell == cell }?.actionTitle, "Pin/Unpin · Wheel")
+            coordinator.handle(.init(action: .select, source: source, physicalCell: cell, phase: .release))
+            XCTAssertEqual(hud.snapshots.last?.legend.first { $0.cell == cell }?.actionTitle, "Screenshot")
+            XCTAssertNil(coordinator.activeWheelControl)
+            XCTAssertTrue(coordinator.isActive)
+        }
+    }
+
     private func makeCoordinator(
         lease: RecordingModePickerLease = RecordingModePickerLease(),
         hud: RecordingModeHUDPresenter = RecordingModeHUDPresenter(),
