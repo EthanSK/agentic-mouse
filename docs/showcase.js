@@ -1,5 +1,6 @@
 import { MouseSimulator } from "./simulator.mjs?v=__SITE_VERSION__";
 import { createNativeHUD } from "./native-hud.mjs?v=__SITE_VERSION__";
+import { createMouseMotion } from "./mouse-motion.mjs?v=__SITE_VERSION__";
 
 const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
 const sceneElement = document.querySelector("#button-scene");
@@ -457,16 +458,18 @@ async function createButtonScene() {
   ];
   let width = 0;
   let height = 0;
-  let visible = true;
+  let phase = 0;
+  const motion = createMouseMotion(sceneElement, draw, (delta) => {
+    phase += delta * .28;
+    const settle = Math.exp(-delta * 1.5);
+    pose.dragX *= settle;
+    pose.dragY *= settle; // Note: After manual inspection, ease back to the side-button view instead of leaving idle motion behind the shell. (Codex task: 01a06ee5-4aa0-7a61-a029-704e5c44a8f2)
+  }, () => width > 0 && height > 0 && !sceneElement.classList.contains("scene-fallback"));
+  const render = motion.render;
 
-  /** Render on scroll or input only; project HTML hit targets from the actual key faces. */
-  let renderFrame = 0;
-  function render() {
-    if (!renderFrame) renderFrame = requestAnimationFrame(draw); // Scroll, resize and selection can request the same view in one frame; draw it once.
-  }
+  /** Project HTML hit targets from the actual key faces on each rendered pose. */
   function draw() {
-    renderFrame = 0;
-    if (!visible || !width || !height) return;
+    if (!width || !height || sceneElement.classList.contains("scene-fallback")) return;
     const progress =
       pose.dragProgress ?? (reducedMotion.matches ? 0.7 : pose.progress);
     const model = models[hand];
@@ -474,9 +477,9 @@ async function createButtonScene() {
     const focusedButton = document.activeElement?.matches(".scene-key:focus-visible") ? document.activeElement : null;
     for (const [source, object] of Object.entries(models)) object.group.visible = source === hand;
     assembly.rotation.set(
-      .12 + progress * .14 + pose.dragX,
-      -model.side * Math.PI / 2 + model.side * progress * .17 + pose.dragY,
-      -.025,
+      .12 + progress * .14 + pose.dragX + Math.sin(phase * .7) * .018,
+      -model.side * Math.PI / 2 + model.side * progress * .17 + pose.dragY + Math.sin(phase) * .12,
+      -.025 + Math.sin(phase * .7) * .012,
     );
     assembly.position.y = .4;
     for (const [cell, key] of keys) {
@@ -571,6 +574,7 @@ async function createButtonScene() {
   sceneControls.addEventListener("pointerup", endDrag);
   sceneControls.addEventListener("pointercancel", endDrag);
   resetView = () => {
+    motion.pause();
     pose.dragX = 0;
     pose.dragY = 0;
     pose.dragProgress = 0;
@@ -587,13 +591,14 @@ async function createButtonScene() {
     },
     { passive: false },
   );
-  changeHand = (nextHand) => { // The half-second flip disabled the selector and felt delayed; switch immediately and reserve motion for scrolling and dragging.
+  changeHand = (nextHand) => { // The half-second flip disabled the selector and felt delayed; switch immediately, then resume the gentle side-view motion after idle.
     if (nextHand === hand) return;
     hand = nextHand;
     simulator.chooseHand(hand);
     pose.dragX = 0;
     pose.dragY = 0;
     pose.dragProgress = 0;
+    motion.pause();
     renderAll();
   };
   const resize = new ResizeObserver((entries) => {
@@ -606,14 +611,6 @@ async function createButtonScene() {
     render();
   });
   resize.observe(sceneControls.parentElement); // Mobile puts the output below the model; project keys within the canvas's own box, not the entire chapter.
-  const observer = new IntersectionObserver(
-    (entries) => {
-      visible = entries[0].isIntersecting;
-      if (visible) render();
-    },
-    { rootMargin: "100px" },
-  );
-  observer.observe(sceneElement);
   sceneElement.classList.remove("scene-fallback");
   sceneElement.classList.add("has-mouse-model");
   sceneElement.dataset.engine = `three.js r${THREE.REVISION}`;

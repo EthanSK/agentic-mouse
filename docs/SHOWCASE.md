@@ -10,8 +10,15 @@ Build with `make test-site`, then serve `.build/site`. GitHub Actions runs the s
 
 `Scripts/build-site.py` writes `.build/site`, including generated `simulator-data.json` and a no-JavaScript full map. It applies a content-derived cache version to the homepage, CSS and browser modules. The published data identifies the exact source commit; uncommitted native work is not silently bundled into a deployment. The historical `docs/script.js` table is no longer consumed by the homepage or the generated full map. Do not use it as the showcase’s source of truth.
 
-The Three.js chapter renders on scroll, resize and interaction, with a capped
-pixel ratio. Its camera world matrix must be current **before** projecting HTML
+The hero mice slowly turn; the thumb-button chapter rocks through a small angle
+that keeps the key faces visible. `mouse-motion.mjs` shares their 30 fps idle loop.
+Pointer and keyboard input pause it immediately, with a smooth restart after six
+idle seconds. A held pointer or visible keyboard focus keeps it paused. After a
+drag, the chapter gradually returns to the side view; hero dragging retains its
+chosen orientation. Off-screen, hidden-page, reduced-motion and unavailable-WebGL
+scenes do not run an idle rendering loop. Scroll, resize and interaction still
+request individual frames, with a capped pixel ratio and no per-frame HUD rebuild.
+The camera world matrix must be current **before** projecting HTML
 buttons: projecting before the first render can place focus targets far outside
 the chapter. Keyboard testing caught that failure. The enclosing chapter uses
 `overflow: clip`, which does not create a hidden scroll container. Keep the HTML

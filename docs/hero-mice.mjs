@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { createMouseModel, lightStudio } from "./mouse-model.mjs?v=__SITE_VERSION__";
+import { createMouseMotion } from "./mouse-motion.mjs?v=__SITE_VERSION__";
 
 /** Keep the hero and control chapter on the same photographed hardware geometry. */
 export async function createHeroMouse(figure, source, onCell, labelForCell) {
@@ -9,7 +10,11 @@ export async function createHeroMouse(figure, source, onCell, labelForCell) {
   const line = figure.querySelector(".speech-leader path");
   const dot = figure.querySelector(".speech-leader circle");
   const pose = { x: .70, y: hand === "razer" ? -1.04 : 1.04, z: hand === "razer" ? .20 : -.20 };
-  let width = 0, height = 0, renderModel, modelReady = false, visible = true;
+  let width = 0, height = 0, renderModel, modelReady = false;
+  const motion = createMouseMotion(figure, draw, (delta) => {
+    pose.y += (hand === "razer" ? -1 : 1) * delta * .14;
+  }, () => modelReady && width > 0 && height > 0);
+  const render = motion.render;
 
   /** Join the label edge to the real projected top button, including the photograph fallback. */
   function connect(x, y, show = true) {
@@ -24,8 +29,8 @@ export async function createHeroMouse(figure, source, onCell, labelForCell) {
     figure.querySelector(".speech-leader").style.opacity = show ? "1" : "0";
   }
 
-  function render() {
-    if (!visible || !width || !height) return;
+  function draw() {
+    if (!width || !height) return;
     if (modelReady) renderModel();
     else {
       const rect = figure.getBoundingClientRect();
@@ -41,8 +46,6 @@ export async function createHeroMouse(figure, source, onCell, labelForCell) {
   });
   resize.observe(figure);
   resize.observe(speech);
-  const observer = new IntersectionObserver(([entry]) => { visible = entry.isIntersecting; render(); }, { rootMargin: "100px" });
-  observer.observe(figure);
   figure.querySelector("img").addEventListener("load", render);
 
   try {
@@ -87,7 +90,7 @@ export async function createHeroMouse(figure, source, onCell, labelForCell) {
       connect((point.x * .5 + .5) * width, (-point.y * .5 + .5) * height, !!hit?.object.userData.speech);
       renderer.render(scene, camera);
     };
-    let drag, moved = false, frame = 0;
+    let drag, moved = false;
     canvas.addEventListener("pointerdown", (event) => {
       if (event.button !== 0) return;
       moved = false;
@@ -113,7 +116,7 @@ export async function createHeroMouse(figure, source, onCell, labelForCell) {
       canvas.classList.add("is-dragging");
       pose.y = drag.yaw + x * .01;
       pose.x = Math.max(-1.5, Math.min(1.5, drag.pitch + (drag.touch ? 0 : y * .008)));
-      if (!frame) frame = requestAnimationFrame(() => { frame = 0; render(); });
+      render();
     });
     function release(event) {
       if (!drag || event.pointerId !== drag.id) return;
