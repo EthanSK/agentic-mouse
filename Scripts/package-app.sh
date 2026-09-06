@@ -134,8 +134,8 @@ if [[ "${DISTRIBUTION_BUILD}" == "1" ]]; then
   APP_SIGN_FLAGS=(--entitlements "${REPO_ROOT}/Resources/Distribution.entitlements")
 fi
 log "Building (${CONFIGURATION})"
-swift build --package-path "${REPO_ROOT}" -c "${CONFIGURATION}" "${BUILD_FLAGS[@]}"
-BIN_PATH="$(swift build --package-path "${REPO_ROOT}" -c "${CONFIGURATION}" "${BUILD_FLAGS[@]}" --show-bin-path)"
+swift build --package-path "${REPO_ROOT}" -c "${CONFIGURATION}" ${BUILD_FLAGS[@]+"${BUILD_FLAGS[@]}"}
+BIN_PATH="$(swift build --package-path "${REPO_ROOT}" -c "${CONFIGURATION}" ${BUILD_FLAGS[@]+"${BUILD_FLAGS[@]}"} --show-bin-path)"
 
 log "Assembling ${APP_NAME}.app ${PACKAGE_VERSION_LABEL}"
 rm -rf "${APP_DIR}"
@@ -193,12 +193,12 @@ if [[ "${CODE_SIGN_IDENTITY}" == "-" ]]; then
 else
   log "Signing (${CODE_SIGN_IDENTITY})"
 fi
-if ! codesign --force --sign "${CODE_SIGN_IDENTITY}" "${SIGN_FLAGS[@]}" \
+if ! codesign --force --sign "${CODE_SIGN_IDENTITY}" ${SIGN_FLAGS[@]+"${SIGN_FLAGS[@]}"} \
   "${APP_DIR}/Contents/MacOS/agentic-mouse-doctor"; then
   printf '\033[31m error:\033[0m codesign failed for the bundled doctor; refusing to continue.\n' >&2
   exit 1
 fi
-if ! codesign --force --sign "${CODE_SIGN_IDENTITY}" "${SIGN_FLAGS[@]}" "${SUPERVISOR_APP_DIR}"; then
+if ! codesign --force --sign "${CODE_SIGN_IDENTITY}" ${SIGN_FLAGS[@]+"${SIGN_FLAGS[@]}"} "${SUPERVISOR_APP_DIR}"; then
   printf '\033[31m error:\033[0m codesign failed for the runtime supervisor; refusing to continue.\n' >&2
   exit 1
 fi
@@ -206,7 +206,7 @@ fi
 # Sign the app bundle without --deep. The embedded iCUE framework is an
 # independently signed vendor binary; --deep would rewrite that audited binary
 # even though its existing nested signature is already valid.
-if ! codesign --force --sign "${CODE_SIGN_IDENTITY}" "${SIGN_FLAGS[@]}" "${APP_SIGN_FLAGS[@]}" "${APP_DIR}"; then
+if ! codesign --force --sign "${CODE_SIGN_IDENTITY}" ${SIGN_FLAGS[@]+"${SIGN_FLAGS[@]}"} ${APP_SIGN_FLAGS[@]+"${APP_SIGN_FLAGS[@]}"} "${APP_DIR}"; then
   printf '\033[31m error:\033[0m codesign failed for %s; refusing to produce an installable app.\n' \
     "${CODE_SIGN_IDENTITY}" >&2
   exit 1

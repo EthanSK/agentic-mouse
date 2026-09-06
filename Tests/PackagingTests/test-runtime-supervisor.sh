@@ -20,7 +20,7 @@ grep -Fq "\"${SUPERVISOR_IDENTIFIER}\"" \
 
 grep -Fq 'Contents/Library/LoginItems/AgenticMouseSupervisor.app' "${PACKAGE_SCRIPT}"
 grep -Fq 'agentic-mouse-supervisor' "${PACKAGE_SCRIPT}"
-grep -Fq 'codesign --force --sign "${CODE_SIGN_IDENTITY}" "${SIGN_FLAGS[@]}" "${SUPERVISOR_APP_DIR}"' \
+grep -Fq 'codesign --force --sign "${CODE_SIGN_IDENTITY}" ${SIGN_FLAGS[@]+"${SIGN_FLAGS[@]}"} "${SUPERVISOR_APP_DIR}"' \
   "${PACKAGE_SCRIPT}"
 grep -Fq '"${SUPERVISOR_APP_DIR}/Contents/Info.plist"' "${PACKAGE_SCRIPT}"
 grep -Fq 'SUPERVISOR_MARKETING_VERSION=' "${PACKAGE_SCRIPT}"

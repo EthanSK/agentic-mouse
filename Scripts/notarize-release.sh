@@ -20,7 +20,7 @@ SUBMISSION="$ROOT/build/notary-submission.zip"
 ditto -c -k --keepParent "$APP" "$SUBMISSION"
 NOTARY_FLAGS=()
 if [[ -n "${NOTARY_KEYCHAIN:-}" ]]; then NOTARY_FLAGS=(--keychain "$NOTARY_KEYCHAIN"); fi
-xcrun notarytool submit "$SUBMISSION" --keychain-profile "$NOTARY_PROFILE" "${NOTARY_FLAGS[@]}" --wait --timeout 30m --output-format json > "$OUT/notarization.json"
+xcrun notarytool submit "$SUBMISSION" --keychain-profile "$NOTARY_PROFILE" ${NOTARY_FLAGS[@]+"${NOTARY_FLAGS[@]}"} --wait --timeout 30m --output-format json > "$OUT/notarization.json"
 python3 -c 'import json,sys; assert json.load(open(sys.argv[1]))["status"] == "Accepted", "Apple did not accept this build"' "$OUT/notarization.json"
 xcrun stapler staple "$APP"
 xcrun stapler validate "$APP"
