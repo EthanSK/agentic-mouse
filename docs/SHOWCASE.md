@@ -25,6 +25,23 @@ the chapter. Keyboard testing caught that failure. The enclosing chapter uses
 grid usable if WebGL is unavailable. The scroll tour permanently yields after
 visitor input; mobile and reduced-motion layouts have no long pinned chapter.
 
+## Skills directory
+
+The bottom `#skills` section in `docs/index.html` is a curated, static directory.
+Its native HTML disclosures and public links work without JavaScript. Keep public
+downloads, private workflow descriptions, the AIMVS development reference, and
+earlier experiments clearly distinguished. The automatic pre-commit review is
+disabled in Ethan's setup; the IDE-link patch is a documented failed experiment.
+Neither belongs among current recommended tools.
+
+Public repository visibility and descriptions were checked on 7 September 2026.
+Before changing an entry, verify its current public README or `SKILL.md`; an
+installed skill or a repository name alone does not prove it is published or
+portable. Never commit the local skill inventory, usage/session evidence, private
+skill source, or personal configuration. Private entries describe the workflow
+only. Keep the source links in this HTML as the single maintained catalog; no
+browser request to local skill folders or private GitHub APIs is needed.
+
 ## Native HUD preview
 
 The controls chapter and HUD section share `docs/native-hud.mjs`. A physical mouse

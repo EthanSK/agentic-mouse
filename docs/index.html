@@ -567,6 +567,204 @@
           </details>
         </div>
       </section>
+
+      <section class="skills-section" id="skills" aria-labelledby="skills-title">
+        <div class="wrap">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">The rest of my setup</p>
+              <h2 id="skills-title">Skills I give<br />my agents.</h2>
+            </div>
+            <p>Reusable instructions and small tools for how I work. Take the public ones you like, or have a look at the private workflows behind the setup.</p>
+          </div>
+          <h3 class="skills-heading">Published skills</h3>
+          <div class="skills-grid">
+              <details class="skill-card" id="skill-outstanding-items">
+                <summary>
+                  <span class="skill-platform">Codex · Claude Code</span>
+                  <h4>Outstanding Items</h4>
+                  <p>Keep the list out of the chat. Get one useful next step.</p>
+                </summary>
+                <div class="skill-detail">
+                  <p>A private, editable list keeps track of what you asked for. Adding something records it; it does not tell the agent to start.</p>
+                  <div class="skill-links"><a href="https://github.com/EthanSK/outstanding-items">GitHub <span aria-hidden="true">↗</span></a><a href="https://ethansk.github.io/outstanding-items/">Website <span aria-hidden="true">↗</span></a></div>
+                </div>
+              </details>
+              <details class="skill-card" id="skill-response-preferences">
+                <summary>
+                  <span class="skill-platform">Codex</span>
+                  <h4>Response Preferences</h4>
+                  <p>Consistent replies, useful highlights, and files you can actually read.</p>
+                </summary>
+                <div class="skill-detail">
+                  <p>Fixed meanings for markers and colours, underlined clues, and your original question above the answer. Includes a local Markdown and code editor.</p>
+                  <div class="skill-links"><a href="https://github.com/EthanSK/response-preferences">GitHub <span aria-hidden="true">↗</span></a><a href="https://ethansk.github.io/response-preferences/">Website <span aria-hidden="true">↗</span></a></div>
+                </div>
+              </details>
+              <details class="skill-card" id="skill-submit-chatgpt-feedback">
+                <summary>
+                  <span class="skill-platform">Codex · macOS verified</span>
+                  <h4>Submit ChatGPT Feedback</h4>
+                  <p>Report a problem from the conversation where it happened.</p>
+                </summary>
+                <div class="skill-detail">
+                  <p>Send feedback through the installed Codex client without a dialog taking focus. Submission needs your permission; diagnostic logs stay off by default.</p>
+                  <div class="skill-links"><a href="https://github.com/EthanSK/submit-chatgpt-feedback">GitHub <span aria-hidden="true">↗</span></a><a href="https://ethansk.github.io/submit-chatgpt-feedback/">Website <span aria-hidden="true">↗</span></a></div>
+                </div>
+              </details>
+              <details class="skill-card" id="skill-local-web-debug-mode">
+                <summary>
+                  <span class="skill-platform">Codex · Claude Code</span>
+                  <h4>Local Web Debug Mode</h4>
+                  <p>Let the agent read browser logs while you reproduce the bug.</p>
+                </summary>
+                <div class="skill-detail">
+                  <p>Temporary local logging connects the browser to the agent. Reproduce, inspect, fix, retry, then remove the temporary code.</p>
+                  <div class="skill-links"><a href="https://github.com/EthanSK/local-web-debug-mode">GitHub <span aria-hidden="true">↗</span></a></div>
+                </div>
+              </details>
+          </div>
+          <details class="skills-disclosure">
+            <summary>More published skills</summary>
+            <div class="skills-grid">
+              <details class="skill-card" id="skill-deepgram-stt">
+                <summary>
+                  <span class="skill-platform">Claude Code</span>
+                  <h4>Deepgram transcription</h4>
+                  <p>Turn voice notes and audio files into text.</p>
+                </summary>
+                <div class="skill-detail">
+                  <p>Uses your Deepgram API key and sends the selected audio to Deepgram. Supports Telegram voice notes and standalone audio files.</p>
+                  <div class="skill-links"><a href="https://github.com/EthanSK/claude-code-deepgram-stt-skill">GitHub <span aria-hidden="true">↗</span></a></div>
+                </div>
+              </details>
+              <details class="skill-card" id="skill-emoji-consistency">
+                <summary>
+                  <span class="skill-platform">Claude Code</span>
+                  <h4>Emoji Consistency</h4>
+                  <p>Keep the same emoji for the same project or task.</p>
+                </summary>
+                <div class="skill-detail">
+                  <p>Looks up a saved assignment and reuses it across sessions. This tracks named things; Response Preferences gives reply markers their fixed meanings.</p>
+                  <div class="skill-links"><a href="https://github.com/EthanSK/emoji-consistency">GitHub <span aria-hidden="true">↗</span></a></div>
+                </div>
+              </details>
+              <details class="skill-card" id="skill-self-reload-plugins">
+                <summary>
+                  <span class="skill-platform">Claude Code · macOS / Windows</span>
+                  <h4>Reload Claude plugins</h4>
+                  <p>Reconnect missing plugin tools from the running terminal session.</p>
+                </summary>
+                <div class="skill-detail">
+                  <p>Sends /reload-plugins into the Claude Code terminal. Choose the version for your operating system.</p>
+                  <div class="skill-links"><a href="https://github.com/EthanSK/claude-skill-self-reload-plugins-mac">macOS source <span aria-hidden="true">↗</span></a><a href="https://github.com/EthanSK/claude-skill-self-reload-plugins-windows">Windows source <span aria-hidden="true">↗</span></a></div>
+                </div>
+              </details>
+            </div>
+          </details>
+          <article class="skills-reference">
+            <div>
+              <span class="skill-platform">Development reference</span>
+              <h3>AIMVS Dev Skill</h3>
+              <p>Separate worktrees, isolated dev stacks, browser testing and recorded test results. This is how I work on AI Music Video Studio; adapt its project-specific commands for your own repo.</p>
+            </div>
+            <div class="skill-links"><a href="https://github.com/EthanSK/aimvs-dev-skill">View the reference <span aria-hidden="true">↗</span></a></div>
+          </article>
+          <details class="skills-disclosure" id="private-skills">
+            <summary>Other skills in my setup</summary>
+            <p>These are private skills I use. The descriptions are here as ideas; their source and personal configuration are not published.</p>
+            <div class="skills-grid">
+              <details class="skill-card" id="skill-agent-handoff">
+                <summary>
+                  <span class="skill-platform">Private skill</span>
+                  <h4>Conversation handoffs</h4>
+                  <p>Continue a long conversation without losing what is left to do.</p>
+                </summary>
+                <div class="skill-detail">
+                  <p>Checks what already happened, carries over the unfinished work, and avoids repeating completed actions.</p>
+                </div>
+              </details>
+              <details class="skill-card" id="skill-use-macbook-display">
+                <summary>
+                  <span class="skill-platform">Private skills</span>
+                  <h4>Browser and display control</h4>
+                  <p>Keep agent-controlled windows on the right screen.</p>
+                </summary>
+                <div class="skill-detail">
+                  <p>Checks the target window before acting and leaves my other browser pages, displays and active media alone.</p>
+                </div>
+              </details>
+              <details class="skill-card" id="skill-macos-heads-up-notification">
+                <summary>
+                  <span class="skill-platform">Private integration</span>
+                  <h4>Completion notifications</h4>
+                  <p>Tell me what finished without pulling me out of what I am doing.</p>
+                </summary>
+                <div class="skill-detail">
+                  <p>Short native Mac notifications name the request and its result. The local notification sender is separate from the public Response Preferences skill.</p>
+                </div>
+              </details>
+              <details class="skill-card" id="skill-skill-factory">
+                <summary>
+                  <span class="skill-platform">Private skill</span>
+                  <h4>Skill Factory</h4>
+                  <p>Turn a useful repeated workflow into a maintained skill.</p>
+                </summary>
+                <div class="skill-detail">
+                  <p>Keeps the main instructions short, moves detailed procedures into references, and checks the scripts before calling the skill ready.</p>
+                </div>
+              </details>
+              <details class="skill-card" id="skill-op-agentic-refactor-skill">
+                <summary>
+                  <span class="skill-platform">Private skill</span>
+                  <h4>Refactor diff splitter</h4>
+                  <p>Review the new logic without rereading code that only moved.</p>
+                </summary>
+                <div class="skill-detail">
+                  <p>Stages unchanged relocated code and leaves new logic in the unstaged diff. Preserves the working files and takes an index snapshot first.</p>
+                </div>
+              </details>
+              <details class="skill-card" id="skill-write-user-facing-messages">
+                <summary>
+                  <span class="skill-platform">Private skill</span>
+                  <h4>Product wording</h4>
+                  <p>Write labels and explanations from what the product actually does.</p>
+                </summary>
+                <div class="skill-detail">
+                  <p>Uses my wording corrections and past examples to keep messages plain, short and accurate.</p>
+                </div>
+              </details>
+            </div>
+          </details>
+          <details class="skills-disclosure">
+            <summary>Earlier experiments</summary>
+            <p>Public source, with a couple of important limits.</p>
+            <div class="skills-experiments">
+              <article>
+                <a href="https://github.com/EthanSK/pre-commit-codex-review">Pre-Commit Codex Review <span aria-hidden="true">↗</span></a>
+                <p>An automatic Claude/Codex review loop. I disabled automatic use in my setup because of the usage cost.</p>
+              </article>
+              <article>
+                <a href="https://github.com/EthanSK/codex-file-links-open-in-ide">Codex file-link experiment <span aria-hidden="true">↗</span></a>
+                <p>A documented failed attempt to change where Codex opens file links. Reference only; I do not recommend installing the patch.</p>
+              </article>
+            </div>
+          </details>
+          <details class="skills-disclosure">
+            <summary>Related tools I have published</summary>
+            <div class="skills-experiments">
+              <article>
+                <a href="https://github.com/EthanSK/agent-bridge">Agent Bridge <span aria-hidden="true">↗</span></a>
+                <p>Let agents on your own machines exchange messages over SSH.</p>
+              </article>
+              <article>
+                <a href="https://github.com/EthanSK/ethans-delivery-rankings">Delivery Rankings <span aria-hidden="true">↗</span></a>
+                <p>A forkable dinner board with a skill for recording order history and your own ratings. Private receipt details stay out; it does not place orders.</p>
+              </article>
+            </div>
+          </details>
+        </div>
+      </section>
     </main>
     <dialog class="speech-demo" id="speech-demo" aria-labelledby="speech-title">
       <button type="button" id="close-speech" aria-label="Close speech demo">

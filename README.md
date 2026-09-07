@@ -14,7 +14,7 @@ My personal macOS setup, made public so you can explore it and build your own. â
 
 ## Take it for a spin
 
-The website is a working browser demo of the mouse controls:
+The website is a working browser demo of the mouse controls, with a [skills directory](https://ethansk.github.io/agentic-mouse/#skills) covering other tools and workflows behind the setup:
 
 1. **Rotate either mouse.** Drag the models, then switch hands to try each thumb grid.
 2. **Press a mode button.** The native-style HUD opens beside the mouse with Utility, Keys, or the current appâ€™s controls. Press Exit to return.
