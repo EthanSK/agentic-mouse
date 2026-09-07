@@ -8,11 +8,11 @@ const canvas = document.querySelector("#room-canvas");
 const detail = document.querySelector("#room-detail");
 const reduced = matchMedia("(prefers-reduced-motion: reduce)");
 const hotspots = [...document.querySelectorAll(".room-hotspots [data-topic]")];
-const view = { zoom: 0, x: 0, y: 0 };
-const target = { zoom: 0, x: 0, y: 0 };
+const view = { zoom: 0, x: 0, y: 0, panX: 0, panY: 0 };
+const target = { zoom: 0, x: 0, y: 0, panX: 0, panY: 0 };
 let renderer, camera, scene, photo, frame = 0, width = 0, height = 0, lastFrame = 0;
 let focusPoint = { x: -.7, y: .2 }, pointer = { x: 0, y: 0 };
-const roomWidth = 20, roomHeight = 20 * 941 / 1672;
+const roomWidth = 20, roomHeight = 20 * 941 / 1671;
 const point = new THREE.Vector3();
 
 /** Render the camera only while it is moving; the photograph keeps its original proportions. */
@@ -23,14 +23,14 @@ function draw(now = 0) {
   lastFrame = now;
   const ease = reduced.matches ? 1 : .12;
   let moving = false;
-  for (const key of ["zoom", "x", "y"]) {
+  for (const key of ["zoom", "x", "y", "panX", "panY"]) {
     view[key] += (target[key] - view[key]) * ease;
     if (Math.abs(target[key] - view[key]) > .001) moving = true;
   }
   const distance = Math.max(roomHeight / 2, roomWidth / (2 * camera.aspect)) / Math.tan(THREE.MathUtils.degToRad(22.5)) * 1.04;
   const travel = view.zoom;
-  camera.position.set(view.x + focusPoint.x * travel, view.y + focusPoint.y * travel, distance * (1 - travel * .56));
-  camera.lookAt(focusPoint.x * travel + view.x * .35, focusPoint.y * travel + view.y * .35, 0);
+  camera.position.set(view.panX + view.x + focusPoint.x * travel, view.panY + view.y + focusPoint.y * travel, distance * (1 - travel * .56));
+  camera.lookAt(view.panX + focusPoint.x * travel + view.x * .35, view.panY + focusPoint.y * travel + view.y * .35, 0);
   camera.updateMatrixWorld();
   renderer.render(scene, camera);
   for (const button of hotspots) {
@@ -38,13 +38,14 @@ function draw(now = 0) {
     const x = (point.x + 1) * width / 2, y = (1 - point.y) * height / 2;
     button.style.left = `${x}px`;
     button.style.top = `${y}px`;
-    button.hidden = x < 20 || x > width - 120 || y < 100 || y > height - 160;
+    button.hidden = x < 20 || x - 12 + button.offsetWidth > width - 20 || y < 100 || y > height - 160;
   }
   if (moving) frame = requestAnimationFrame(draw);
 }
 function render() { if (!frame && !document.hidden) frame = requestAnimationFrame(draw); }
 function zoom(value) {
   target.zoom = Math.max(0, Math.min(1, value));
+  if (target.zoom < .15) { target.panX = 0; target.panY = 0; }
   stage.classList.toggle("room-entered", target.zoom > .15);
   document.querySelector("#zoom-label").textContent = target.zoom < .15 ? "Room view" : target.zoom > .8 ? "At the desk" : "Getting closer";
   document.querySelector('[data-view="desk"]').setAttribute("aria-pressed", String(target.zoom > .15));
@@ -61,7 +62,7 @@ async function createRoom() {
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     scene = new THREE.Scene();
     camera = new THREE.PerspectiveCamera(45, 1, .1, 100);
-    const texture = await new THREE.TextureLoader().loadAsync(new URL("./assets/ethan-lounging.webp?v=__SITE_VERSION__", import.meta.url).href);
+    const texture = await new THREE.TextureLoader().loadAsync(new URL("./assets/ethan-sausage-legs.webp?v=__SITE_VERSION__", import.meta.url).href);
     texture.colorSpace = THREE.SRGBColorSpace;
     photo = new THREE.Mesh(new THREE.PlaneGeometry(roomWidth, roomHeight), new THREE.MeshBasicMaterial({ map: texture }));
     scene.add(photo); // A restrained camera over the original photo gives depth without distorting Ethan's face or inventing unseen parts of the room.
@@ -93,23 +94,42 @@ stage.addEventListener("wheel", event => {
   const delta = event.deltaY * (event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? height : 1);
   zoom(target.zoom + Math.max(-.18, Math.min(.18, delta * .001)));
 }, { passive: false });
+let drag;
+canvas.addEventListener("pointerdown", event => {
+  if (event.button !== 0 || !camera || detail.open) return;
+  const visibleHeight = 2 * camera.position.z * Math.tan(THREE.MathUtils.degToRad(22.5)); // Convert pointer movement into the photo's current camera scale so it follows the drag at every zoom level.
+  drag = { id: event.pointerId, x: event.clientX, y: event.clientY, panX: target.panX, panY: target.panY, scale: visibleHeight / height, limitX: Math.max(.4, (roomWidth - visibleHeight * camera.aspect) / 2), limitY: Math.max(.3, (roomHeight - visibleHeight) / 2) };
+  canvas.setPointerCapture(event.pointerId);
+  canvas.classList.add("is-dragging");
+});
 canvas.addEventListener("pointermove", event => {
+  if (drag?.id === event.pointerId) {
+    target.panX = THREE.MathUtils.clamp(drag.panX - (event.clientX - drag.x) * drag.scale, -drag.limitX, drag.limitX);
+    target.panY = THREE.MathUtils.clamp(drag.panY + (event.clientY - drag.y) * drag.scale, -drag.limitY, drag.limitY);
+    target.x = 0; target.y = 0;
+    render();
+    return;
+  }
   if (event.pointerType === "touch" || reduced.matches || detail.open) return;
   pointer = { x: (event.clientX / width - .5) * .28, y: -(event.clientY / height - .5) * .18 };
   target.x = pointer.x; target.y = pointer.y; render();
 });
-canvas.addEventListener("pointerleave", () => { target.x = 0; target.y = 0; render(); });
-let touch;
-canvas.addEventListener("pointerdown", event => { if (event.pointerType === "touch") { touch = { id: event.pointerId, y: event.clientY, zoom: target.zoom }; canvas.setPointerCapture(event.pointerId); } });
-canvas.addEventListener("pointermove", event => { if (touch?.id === event.pointerId) zoom(touch.zoom + (touch.y - event.clientY) / 350); });
-for (const type of ["pointerup", "pointercancel"]) canvas.addEventListener(type, () => { touch = null; });
+/** Release the room drag after pointer release, cancellation or lost capture. */
+function endDrag(event) {
+  if (drag?.id !== event.pointerId) return;
+  drag = null;
+  canvas.classList.remove("is-dragging");
+  if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId);
+}
+for (const type of ["pointerup", "pointercancel", "lostpointercapture"]) canvas.addEventListener(type, endDrag);
+canvas.addEventListener("pointerleave", () => { if (!drag) { target.x = 0; target.y = 0; render(); } });
 canvas.addEventListener("keydown", event => {
   if (!["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Home", "Enter"].includes(event.key)) return;
   event.preventDefault();
   if (event.key === "ArrowUp" || event.key === "Enter") zoom(target.zoom + .2);
   if (event.key === "ArrowDown") zoom(target.zoom - .2);
   if (event.key === "Home") zoom(0);
-  if (event.key === "ArrowLeft" || event.key === "ArrowRight") { target.x = Math.max(-.8, Math.min(.8, target.x + (event.key === "ArrowLeft" ? -.2 : .2))); render(); }
+  if (event.key === "ArrowLeft" || event.key === "ArrowRight") { target.panX = Math.max(-4, Math.min(4, target.panX + (event.key === "ArrowLeft" ? -.3 : .3))); render(); }
 });
 document.querySelector("#enter-room").addEventListener("click", () => { zoom(.85); document.querySelector('[data-view="desk"]').focus({ preventScroll: true }); });
 document.querySelector("#zoom-in").addEventListener("click", () => zoom(target.zoom + .2));
