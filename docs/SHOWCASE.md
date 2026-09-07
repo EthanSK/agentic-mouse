@@ -42,6 +42,14 @@ beside the review workflow and in the existing tools directory. Verify their
 public sources before changing integration claims; the website does not perform
 dictation, Git operations, or cross-machine messaging.
 
+The `#watch-and-talk` feature, lounge copy and speech dialog explain Ethan's
+YouTube dictation workflow. VoiceInk++ emits recording-start/stop notifications;
+his separate YouTube helper and Chrome extension pause the playing video and
+resume only the video they paused on a normal recording stop. This is not passive
+speech detection or a capability provided by the website. The native triple-click
+clipboard route deliberately preserves playback instead of resuming it. Keep
+that exceptional gesture out of a blanket claim that every stop starts a video.
+
 The final `#follow` section links to Ethan's verified public LinkedIn profile,
 `https://www.linkedin.com/in/ethansk/`, and its recent activity. The large LinkedIn
 mark is an inline vector; the banner works without JavaScript or third-party
@@ -195,3 +203,41 @@ limitation. Keep private receipts, invoice files and order URLs outside Git.
 The build advances asset cache versions automatically. After publication, verify
 the exact live HTML, modules and generated data against the build artifact. A website preview cannot prove physical mouse
 acceptance or native command delivery.
+
+## Dark header and room beta
+
+The main walkthrough is dark by default, including the full-map page, error page
+and web manifest. `hero-galaxy.mjs` draws an authored Three.js particle spiral,
+inspired by the [GPT-6 Astra header](https://openai.com/index/gpt-6-astra/).
+The reference's published poster shows cool white and warm stars winding into a
+spiral; its page data describes drag/arrow rotation and scroll dispersion. The
+reference's full animation could not be observed because its script chunks returned
+403 responses. Do not describe our animation as OpenAI's original implementation.
+No OpenAI source or artwork is bundled. One point-cloud draw call replaces a bloom
+pipeline; the existing mouse scheduler caps rendering at 30 fps and suspends it
+for off-screen, hidden-page and reduced-motion states. Pointer input and scroll
+change the field without intercepting mouse model input.
+
+`beta.html`, `beta.css` and `beta.mjs` form a separate desk walkthrough, linked from
+the main header. It uses the existing portrait as a correctly proportioned plane
+with a moving Three.js camera: this is a photo-based 2.5D environment, not a scan
+or a reconstruction of unseen parts of Ethan's room. Wheel input, touch dragging,
+arrow keys and the zoom buttons move the camera; the bottom dock also provides
+keyboard-accessible routes to every feature. Its room canvas renders only while
+the camera changes. It keeps the photograph and navigation when WebGL is unavailable.
+
+The mouse panels reuse `MouseSimulator`, `createNativeHUD` and `createHeroMouse`
+with the same committed Swift export as the main website. Never maintain a separate
+beta mouse map. The code-review panel is explicitly an example of Ethan's current
+300 ms release-to-stage workflow, separate from the published native map. The
+YouTube panel is a silent local illustration: it neither reads a microphone nor
+controls real media, and resumes its example video only if dictation paused it.
+Both sites build and deploy together through the existing Pages workflow.
+
+For local use, run `make site`, then serve `.build/site` and open `/beta.html`.
+The main walkthrough stays at `/`; the beta does not replace it.
+
+Website copy uses the same `write-user-facing-messages` historical examples and
+corrections as AIMVS, following Ethan's explicit request. Prefer his direct,
+single-sentence headings over paired marketing slogans. Keep application-specific
+AIMVS naming constraints scoped to AIMVS.

@@ -772,3 +772,5 @@ import("./hero-mice.mjs?v=__SITE_VERSION__").then(({ createHeroMouse }) => {
     });
   }
 }).catch((error) => console.warn("The interactive hero could not load.", error));
+
+import("./hero-galaxy.mjs?v=__SITE_VERSION__").then(({ createHeroGalaxy }) => createHeroGalaxy(document.querySelector(".hero")));
