@@ -108,3 +108,34 @@
 .video-example.is-playing .video-progress i { animation-play-state: running; }
 
 #room-canvas.is-dragging { cursor: grabbing; }
+
+/* Feature controls expand over their photographed object after the camera moves closer. */
+.room-focused .room-hotspots, .room-focused .room-dock, .room-focused .room-zoom { visibility: hidden; opacity: 0; pointer-events: none; }
+.room-hotspots button > span:last-child, .room-dock { backdrop-filter: none; }
+.room-detail { margin: auto; width: min(1080px, calc(100% - 72px)); height: fit-content; max-height: calc(100svh - 100px); padding: 32px 38px; border-radius: 22px; background: #10141bf5; backdrop-filter: none; box-shadow: 0 30px 130px #0009; }
+.room-detail::backdrop { background: #02040a66; backdrop-filter: none; }
+.room-detail[open] { animation: feature-expand 280ms 120ms both cubic-bezier(.2,.8,.2,1); }
+@keyframes feature-expand { from { opacity: 0; transform: scale(.7); } to { opacity: 1; transform: scale(1); } }
+.detail-heading h1 { max-width: 780px; font-size: clamp(28px, 3vw, 40px); }
+.detail-heading > p:last-child { max-width: 720px; }
+#code-detail { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); column-gap: 30px; align-items: start; }
+#code-detail .code-example { grid-column: 1; grid-row: 1 / 6; margin-top: 22px; min-height: 280px; }
+#code-detail > :not(.code-example) { grid-column: 2; }
+#code-detail .review-demo-buttons { margin-top: 22px; }
+#code-detail #review-feedback { margin-bottom: 0; }
+#mouse-detail { display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); column-gap: 32px; }
+#mouse-detail > :not(.beta-mice):not(.detail-hint) { grid-column: 2; }
+#mouse-detail .beta-mice { grid-column: 1; grid-row: 1 / 5; height: 340px; align-self: center; }
+#mouse-detail .hero-product { height: 340px; }
+#mouse-detail .detail-hint { grid-column: 1; grid-row: 5 / 7; }
+#mouse-detail .beta-app { grid-row: 1; }
+#mouse-detail #beta-hud { grid-row: 2; }
+#mouse-detail #beta-feedback { grid-row: 3; }
+#mouse-detail .beta-gestures { grid-row: 4; }
+.room-detail[data-topic="voice"], .room-detail[data-topic="chair"], .room-detail[data-topic="desk"] { width: min(760px, calc(100% - 72px)); }
+@media (max-width: 760px) {
+ .room-detail, .room-detail[data-topic] { width: calc(100% - 24px); max-height: calc(100svh - 40px); padding: 24px 20px; border-radius: 18px; }
+ #code-detail, #mouse-detail { display: block; }
+ #mouse-detail .beta-mice, #mouse-detail .hero-product { height: 250px; }
+ #code-detail .code-example { min-height: 0; }
+}

@@ -235,6 +235,13 @@ YouTube panel is a silent local illustration: it neither reads a microphone nor
 controls real media, and resumes its example video only if dictation paused it.
 Both sites build and deploy together through the existing Pages workflow.
 
+Selecting an item centres the camera on its photographed position and expands
+the controls over it. Closing the controls restores the previous pan and zoom.
+Room dragging follows pointer movement directly; only camera transitions use
+elapsed-time easing. The photo renders at CSS-pixel resolution, hotspot widths
+are measured on resize, and an idle room schedules no further frames. Keep this
+separate from the shared 30 fps scheduler for the detailed mouse models.
+
 For local use, run `make site`, then serve `.build/site` and open `/beta.html`.
 The main walkthrough stays at `/`; the beta does not replace it.
 

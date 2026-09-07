@@ -8,6 +8,7 @@ const canvas = document.querySelector("#room-canvas");
 const detail = document.querySelector("#room-detail");
 const reduced = matchMedia("(prefers-reduced-motion: reduce)");
 const hotspots = [...document.querySelectorAll(".room-hotspots [data-topic]")];
+const hotspotWidths = new Map();
 const view = { zoom: 0, x: 0, y: 0, panX: 0, panY: 0 };
 const target = { zoom: 0, x: 0, y: 0, panX: 0, panY: 0 };
 let renderer, camera, scene, photo, frame = 0, width = 0, height = 0, lastFrame = 0;
@@ -19,13 +20,14 @@ const point = new THREE.Vector3();
 function draw(now = 0) {
   frame = 0;
   if (!renderer || !width || !height || document.hidden) return;
-  if (now && now - lastFrame < 1000 / 30) { frame = requestAnimationFrame(draw); return; }
+  const elapsed = Math.min(now - lastFrame, 50);
   lastFrame = now;
-  const ease = reduced.matches ? 1 : .12;
+  const ease = reduced.matches ? 1 : 1 - Math.exp(-elapsed / 65);
   let moving = false;
   for (const key of ["zoom", "x", "y", "panX", "panY"]) {
     view[key] += (target[key] - view[key]) * ease;
-    if (Math.abs(target[key] - view[key]) > .001) moving = true;
+    if (Math.abs(target[key] - view[key]) > .003) moving = true;
+    else view[key] = target[key];
   }
   const distance = Math.max(roomHeight / 2, roomWidth / (2 * camera.aspect)) / Math.tan(THREE.MathUtils.degToRad(22.5)) * 1.04;
   const travel = view.zoom;
@@ -38,11 +40,11 @@ function draw(now = 0) {
     const x = (point.x + 1) * width / 2, y = (1 - point.y) * height / 2;
     button.style.left = `${x}px`;
     button.style.top = `${y}px`;
-    button.hidden = x < 20 || x - 12 + button.offsetWidth > width - 20 || y < 100 || y > height - 160;
+    button.hidden = x < 20 || x - 12 + hotspotWidths.get(button) > width - 20 || y < 100 || y > height - 160;
   }
   if (moving) frame = requestAnimationFrame(draw);
 }
-function render() { if (!frame && !document.hidden) frame = requestAnimationFrame(draw); }
+function render() { if (!frame && !document.hidden) { lastFrame = performance.now(); frame = requestAnimationFrame(draw); } }
 function zoom(value) {
   target.zoom = Math.max(0, Math.min(1, value));
   if (target.zoom < .15) { target.panX = 0; target.panY = 0; }
@@ -58,7 +60,7 @@ function zoom(value) {
 async function createRoom() {
   try {
     renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: false, powerPreference: "low-power" });
-    renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
+    renderer.setPixelRatio(1); // The room is a single photograph; supersampling it adds GPU work without adding image detail.
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     scene = new THREE.Scene();
     camera = new THREE.PerspectiveCamera(45, 1, .1, 100);
@@ -68,6 +70,7 @@ async function createRoom() {
     scene.add(photo); // A restrained camera over the original photo gives depth without distorting Ethan's face or inventing unseen parts of the room.
     new ResizeObserver(() => {
       width = stage.clientWidth; height = stage.clientHeight;
+      hotspots.forEach(button => hotspotWidths.set(button, button.offsetWidth)); // Measure labels once per resize, not between style writes on every animation frame.
       camera.aspect = width / height; camera.updateProjectionMatrix();
       renderer.setSize(width, height, false); render();
     }).observe(stage);
@@ -106,7 +109,8 @@ canvas.addEventListener("pointermove", event => {
   if (drag?.id === event.pointerId) {
     target.panX = THREE.MathUtils.clamp(drag.panX - (event.clientX - drag.x) * drag.scale, -drag.limitX, drag.limitX);
     target.panY = THREE.MathUtils.clamp(drag.panY + (event.clientY - drag.y) * drag.scale, -drag.limitY, drag.limitY);
-    target.x = 0; target.y = 0;
+    view.panX = target.panX; view.panY = target.panY; // Dragging tracks the hand directly; easing here made the scene feel detached and laggy.
+    view.x = target.x = 0; view.y = target.y = 0;
     render();
     return;
   }
@@ -147,11 +151,20 @@ const topics = {
   desk: ["My desk setup", "Both mice stay on the desk", "High sensitivity keeps movement small, and I sometimes use both mice to click through code review faster."],
   chair: ["My desk setup", "Lean back without reaching for a keyboard", "I use thumb controls and dictation with the footrest out, switching hands whenever I want."],
 };
-let returnFocus;
+let returnFocus, returnView;
 function openTopic(topic, trigger) {
   const copy = topics[topic];
   if (!copy) return;
-  if (!detail.open) returnFocus = trigger;
+  if (!detail.open) { returnFocus = trigger; returnView = { ...target }; }
+  const anchor = hotspots.find(button => button.dataset.topic === (topic === "desk" ? "corsair" : topic));
+  const zoomLevel = 1.25;
+  target.zoom = zoomLevel;
+  target.panX = (Number(anchor.dataset.x) - .5) * roomWidth - focusPoint.x * zoomLevel;
+  target.panY = (.5 - Number(anchor.dataset.y)) * roomHeight - focusPoint.y * zoomLevel;
+  target.x = 0; target.y = 0;
+  stage.classList.add("room-focused");
+  detail.dataset.topic = topic;
+  render();
   document.querySelector("#detail-kicker").textContent = copy[0];
   document.querySelector("#detail-title").textContent = copy[1];
   document.querySelector("#detail-description").textContent = copy[2];
@@ -173,6 +186,9 @@ document.querySelectorAll("[data-topic]").forEach(button => button.addEventListe
 document.querySelectorAll("[data-voice]").forEach(button => button.addEventListener("click", () => openTopic("voice", button)));
 document.querySelector(".detail-close").addEventListener("click", () => detail.close());
 detail.addEventListener("close", () => {
+  Object.assign(target, returnView); // Closing a feature returns to the exact zoom and pan from which it was opened.
+  stage.classList.remove("room-focused");
+  render();
   document.querySelector(".video-example").classList.remove("is-playing");
   videoPlaying = videoOwned || videoPlaying; // Leaving dictation cancels it and resumes only the example video it paused.
   recording = false; videoOwned = false;
