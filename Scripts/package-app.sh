@@ -149,6 +149,7 @@ cp "${BIN_PATH}/agentic-mouse-doctor" "${APP_DIR}/Contents/MacOS/agentic-mouse-d
 cp "${BIN_PATH}/agentic-mouse-supervisor" \
   "${SUPERVISOR_APP_DIR}/Contents/MacOS/AgenticMouseSupervisor"
 cp "${INFO_PLIST}" "${APP_DIR}/Contents/Info.plist"
+cp "${REPO_ROOT}/Resources/AppIcon.icns" "${APP_DIR}/Contents/Resources/AppIcon.icns"
 cp "${REPO_ROOT}/Resources/SupervisorInfo.plist" \
   "${SUPERVISOR_APP_DIR}/Contents/Info.plist"
 bash "${REPO_ROOT}/Scripts/package-vscode-bridge.sh" \

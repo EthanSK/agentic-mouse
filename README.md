@@ -142,3 +142,7 @@ Agentic Mouse does not edit vendor profile databases. Its runtime modes restore 
 [**Follow me on LinkedIn →**](https://www.linkedin.com/in/ethansk/) for more tips on the agentic future — the tools, skills and setup I use. [See recent posts](https://www.linkedin.com/in/ethansk/recent-activity/all/).
 
 MIT licensed. [Read the license](LICENSE).
+
+### App icon
+
+The macOS app packages the same twelve-button mark as the website. The editable source is `docs/agentic-mouse-mark.svg`; run `bash Scripts/generate-app-icon.sh` on macOS with ImageMagick installed to regenerate the PNG and ICNS in `Resources`. Normal app builds use the committed ICNS and do not need ImageMagick.
