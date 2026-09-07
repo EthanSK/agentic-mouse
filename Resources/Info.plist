@@ -8,6 +8,8 @@
 	<string>Agentic Mouse</string>
 	<key>CFBundleExecutable</key>
 	<string>AgenticMouse</string>
+	<key>CFBundleIconFile</key>
+	<string>AppIcon</string>
 
 	<!-- Stable product identity; an ad-hoc rebuild may still require a new TCC grant. -->
 	<key>CFBundleIdentifier</key>
