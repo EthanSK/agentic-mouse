@@ -1,4 +1,4 @@
-# The Agentic Mouse showcase
+# Ethan S K's personal setup website
 
 Build with `make test-site`, then serve `.build/site`. GitHub Actions runs the same build and tests on every push to `main`, then publishes the artifact to GitHub Pages. Pull requests only build and test. The Pages publishing source must be **GitHub Actions**.
 
@@ -24,6 +24,30 @@ the chapter. Keyboard testing caught that failure. The enclosing chapter uses
 `overflow: clip`, which does not create a hidden scroll container. Keep the HTML
 grid usable if WebGL is unavailable. The scroll tour permanently yields after
 visitor input; mobile and reduced-motion layouts have no long pinned chapter.
+
+## Personal setup and code review
+
+The website presents Ethan's personal setup; Agentic Mouse remains the app and
+repository name. The compact `#engineers` section immediately after the hero
+highlights Better Git VS Code. Its current personal workflow uses printed 5/8 on
+both mice: a short release navigates, while a hold of at least 300 ms stages the
+current file and advances in that direction **on release**, not at the threshold.
+This was verified against the local native `VSCodeModeGestureClassifier` source
+on 7 September 2026. The published native source still has the older staging
+chords. Keep that distinction visible until the native change is released; do
+not copy partial native/exporter changes into a website-only release or silently
+relabel the generated simulator to imply an unreleased gesture is implemented.
+VoiceInk++ is linked in the hero and speech explanation; Agent Bridge is linked
+beside the review workflow and in the existing tools directory. Verify their
+public sources before changing integration claims; the website does not perform
+dictation, Git operations, or cross-machine messaging.
+
+The final `#follow` section links to Ethan's verified public LinkedIn profile,
+`https://www.linkedin.com/in/ethansk/`, and its recent activity. The large LinkedIn
+mark is an inline vector; the banner works without JavaScript or third-party
+requests. LinkedIn's [official embed guidance](https://www.linkedin.com/help/linkedin/answer/a529065/embed-content-from-the-linkedin-feed)
+documents individual public posts, not an automatically updating personal feed.
+Keep the recent-posts link honest; do not present static copy as live activity.
 
 ## Skills directory
 

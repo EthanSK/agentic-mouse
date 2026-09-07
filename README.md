@@ -1,8 +1,8 @@
 # Agentic Mouse
 
-**The setup for the agentic future.**
+**My personal setup for the agentic future.**
 
-Twelve thumb controls, mirrored on both mice. I lean back, talk to agents, and keep the rest under my thumb.
+Twelve thumb controls, mirrored on both mice. I lean back, talk to agents with [VoiceInk++](https://github.com/EthanSK/VoiceInkPlusPlus), and keep the rest under my thumb.
 
 My personal macOS setup, made public so you can explore it and build your own. — **Ethan S K**
 
@@ -11,6 +11,19 @@ My personal macOS setup, made public so you can explore it and build your own. �
 ![An AI recreation of Ethan S K reclining at his studio desk, using one of two mice on the desktop](docs/assets/ethan-lounging.webp)
 
 *My setup, reimagined with AI from my portrait and studio photos.*
+
+## For Agentic Engineers
+
+I use Agentic Mouse with [Better Git VS Code](https://github.com/EthanSK/better-git-vscode) to skim changes and stage files without moving my hand. The full IDE stays available: diffs, navigation and editing.
+
+My current setup uses **button 5 for Previous** and **button 8 for Next**, on either mouse:
+
+- **Quick press:** release to jump to the change.
+- **Hold, then release:** hold for at least 300 ms to stage the current file and jump in that direction.
+
+The [personal setup walkthrough](https://ethansk.github.io/agentic-mouse/#engineers) describes this workflow. Its interactive mouse map follows the published app source; unpublished local controls can differ.
+
+[VoiceInk++](https://github.com/EthanSK/VoiceInkPlusPlus) handles dictation and transcript delivery so I can keep working. [Agent Bridge](https://github.com/EthanSK/agent-bridge) connects my agents across machines.
 
 ## Take it for a spin
 
@@ -42,7 +55,7 @@ The HUD’s labels, card colours, printed-button crosswalk, repair markers, and 
 |---|---|
 | Left hand | [Razer Naga Left-Handed Edition](https://www.razer.com/gb-en/gaming-mice/razer-naga-left-handed-edition), black |
 | Right hand | [Corsair Scimitar Elite Wireless SE](https://www.corsair.com/uk/en/p/gaming-mouse/ch-9314415-ww/scimitar-elite-wireless-se-mmo-gaming-mouse-black-yellow-ch-9314415-ww), black/yellow (`CH-9314415-WW`) |
-| Dictation | VoiceInk++ |
+| Dictation | [VoiceInk++](https://github.com/EthanSK/VoiceInkPlusPlus) |
 | Chair | [Hbada E3 Pro 2026](https://www.hbada.uk/products/hbada-e3-pro-ergonomic-office-chair?variant=57072259858807), grey with footrest |
 | Desk | [FlexiSpot E7 Pro](https://flexispot.co.uk/next-generation-standing-desk-e7-pro), bought in 2025: black frame, 180 × 80 cm bamboo top |
 
@@ -116,5 +129,9 @@ Agentic Mouse does not edit vendor profile databases. Its runtime modes restore 
 - [Karabiner](Karabiner/README.md) — semantic actions and exact-device adapters.
 - [Limitations](docs/LIMITATIONS.md) · [Live proof](docs/LIVE-PROOF.md) — what is verified and what still needs physical acceptance.
 - [Recovery](docs/RECOVERY.md) — return to normal if something goes wrong.
+
+## Follow along
+
+[**Follow me on LinkedIn →**](https://www.linkedin.com/in/ethansk/) for more tips on the agentic future — the tools, skills and setup I use. [See recent posts](https://www.linkedin.com/in/ethansk/recent-activity/all/).
 
 MIT licensed. [Read the license](LICENSE).
