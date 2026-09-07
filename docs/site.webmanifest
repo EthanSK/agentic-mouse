@@ -1,7 +1,7 @@
 {
-  "name": "Agentic Mouse",
-  "short_name": "Agentic Mouse",
-  "description": "Ethan's setup for the agentic future: two twelve-button mice, visible modes and local-first macOS automation.",
+  "name": "Ethan S K — My personal setup",
+  "short_name": "Personal setup",
+  "description": "My personal setup for Agentic Engineers: voice, Agentic Mouse and Better Git VS Code.",
   "start_url": "./",
   "display": "standalone",
   "background_color": "#f5f5f7",
