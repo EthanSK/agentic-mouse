@@ -35,7 +35,7 @@ The website is a working browser demo of the mouse controls, with a [skills dire
 
 The HUD’s labels, card colours, printed-button crosswalk, repair markers, and mode transitions are generated from the native Swift source. On phones, the HUD appears below the mouse and scrolls into view when you press a key. The 3D hardware is recreated from product photographs. The demo does not control your Mac or access your microphone.
 
-The separate [desk beta](https://ethansk.github.io/agentic-mouse/beta.html) starts at my room photo: scroll closer, choose something on the desk, and try its controls. It includes a code-review example and a silent YouTube/dictation example. The room uses a photo with camera depth; the mice are rotatable 3D models.
+The separate [desk beta](https://ethansk.github.io/agentic-mouse/beta.html) starts at my room photo: scroll closer, drag to look around, choose something on the desk, and try its controls. It includes a code-review example and a silent YouTube/dictation example. The room uses a photo with camera depth; the mice are rotatable 3D models.
 
 ## What I use it for
 

@@ -219,10 +219,11 @@ for off-screen, hidden-page and reduced-motion states. Pointer input and scroll
 change the field without intercepting mouse model input.
 
 `beta.html`, `beta.css` and `beta.mjs` form a separate desk walkthrough, linked from
-the main header. It uses the existing portrait as a correctly proportioned plane
+the main header. It uses a version of the portrait as a correctly proportioned plane
 with a moving Three.js camera: this is a photo-based 2.5D environment, not a scan
-or a reconstruction of unseen parts of Ethan's room. Wheel input, touch dragging,
-arrow keys and the zoom buttons move the camera; the bottom dock also provides
+or a reconstruction of unseen parts of Ethan's room. Drag the background with a mouse or touch to pan around the desk; wheel input,
+up/down arrow keys and the zoom buttons move closer or farther away. Left/right
+arrow keys pan, and returning to the room view recentres the camera; the bottom dock also provides
 keyboard-accessible routes to every feature. Its room canvas renders only while
 the camera changes. It keeps the photograph and navigation when WebGL is unavailable.
 
@@ -236,6 +237,11 @@ Both sites build and deploy together through the existing Pages workflow.
 
 For local use, run `make site`, then serve `.build/site` and open `/beta.html`.
 The main walkthrough stays at `/`; the beta does not replace it.
+
+The beta background uses `assets/ethan-sausage-legs.webp`, an image edit Ethan
+requested with two sausage legs emerging from his shorts. Keep its 1671 × 941
+aspect ratio in the poster and camera plane. The original `ethan-lounging.webp`
+remains the main website portrait and the hardware panel's setup photo.
 
 Website copy uses the same `write-user-facing-messages` historical examples and
 corrections as AIMVS, following Ethan's explicit request. Prefer his direct,
