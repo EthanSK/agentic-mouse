@@ -35,7 +35,7 @@ export async function createHeroMouse(figure, source, onCell, labelForCell) {
     else {
       const rect = figure.getBoundingClientRect();
       const photo = figure.querySelector("img").getBoundingClientRect();
-      connect(photo.left - rect.left + photo.width * (hand === "razer" ? .495 : .507), photo.top - rect.top + photo.height * (hand === "razer" ? .317 : .22));
+      connect(photo.left - rect.left + photo.width * (hand === "razer" ? .495 : .507), photo.top - rect.top + photo.height * (hand === "razer" ? .43 : .22));
     }
   }
   const resize = new ResizeObserver(() => {
