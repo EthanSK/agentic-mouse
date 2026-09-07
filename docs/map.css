@@ -1,12 +1,12 @@
 :root {
-  color-scheme: light;
+  color-scheme: dark;
   font:
     15px/1.6 -apple-system,
     BlinkMacSystemFont,
     "Segoe UI",
     sans-serif;
-  color: #2b2432;
-  background: #f6f4f8;
+  color: #f0f2f8;
+  background: #090b10;
 }
 body {
   margin: 0;
@@ -17,7 +17,7 @@ main {
   padding: 60px 24px;
 }
 a {
-  color: #6d4392;
+  color: #b8a4ef;
   text-underline-offset: 4px;
 }
 h1 {
@@ -26,7 +26,7 @@ h1 {
   letter-spacing: -0.05em;
 }
 p {
-  color: #706679;
+  color: #abb1c2;
   max-width: 560px;
 }
 .maps {
@@ -39,7 +39,7 @@ p {
   min-width: 0;
 }
 details {
-  border-bottom: 1px solid #d5cbdc;
+  border-bottom: 1px solid #2b3040;
   padding-block: 15px;
 }
 summary {
@@ -56,17 +56,17 @@ table {
 }
 th,
 td {
-  border-top: 1px solid #e5deeb;
+  border-top: 1px solid #2b3040;
   padding: 8px;
   text-align: left;
   vertical-align: top;
   overflow-wrap: anywhere;
 }
 th:first-child {
-  width: 35px;
+  width: 58px;
 }
 footer {
-  color: #82708e;
+  color: #abb1c2;
   font-size: 12px;
 }
 @media (max-width: 760px) {

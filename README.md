@@ -6,15 +6,15 @@ Twelve thumb controls, mirrored on both mice. I lean back, talk to agents with [
 
 My personal macOS setup, made public so you can explore it and build your own. — **Ethan S K**
 
-[**Try the interactive walkthrough →**](https://ethansk.github.io/agentic-mouse/) · [Every button and mode](https://ethansk.github.io/agentic-mouse/mouse-map.html) · [Setup guide](docs/SETUP.md)
+[**Try the interactive walkthrough →**](https://ethansk.github.io/agentic-mouse/) · [**Explore the desk beta →**](https://ethansk.github.io/agentic-mouse/beta.html) · [Every button and mode](https://ethansk.github.io/agentic-mouse/mouse-map.html) · [Setup guide](docs/SETUP.md)
 
 ![An AI recreation of Ethan S K reclining at his studio desk, using one of two mice on the desktop](docs/assets/ethan-lounging.webp)
 
 *My setup, reimagined with AI from my portrait and studio photos.*
 
-## For Agentic Engineers
+## Great for Agentic Engineers
 
-I use Agentic Mouse with [Better Git VS Code](https://github.com/EthanSK/better-git-vscode) to skim changes and stage files without moving my hand. The full IDE stays available: diffs, navigation and editing.
+**Review code without moving your hand.** I use [Better Git VS Code](https://github.com/EthanSK/better-git-vscode) with my thumb buttons to skim through code and stage files, with the full support of the IDE.
 
 My current setup uses **button 5 for Previous** and **button 8 for Next**, on either mouse:
 
@@ -25,7 +25,7 @@ The [personal setup walkthrough](https://ethansk.github.io/agentic-mouse/#engine
 
 [VoiceInk++](https://github.com/EthanSK/VoiceInkPlusPlus) handles dictation and transcript delivery so I can keep working. [Agent Bridge](https://github.com/EthanSK/agent-bridge) connects my agents across machines.
 
-## Take it for a spin
+## Try the website
 
 The website is a working browser demo of the mouse controls, with a [skills directory](https://ethansk.github.io/agentic-mouse/#skills) covering other tools and workflows behind the setup:
 
@@ -35,7 +35,14 @@ The website is a working browser demo of the mouse controls, with a [skills dire
 
 The HUD’s labels, card colours, printed-button crosswalk, repair markers, and mode transitions are generated from the native Swift source. On phones, the HUD appears below the mouse and scrolls into view when you press a key. The 3D hardware is recreated from product photographs. The demo does not control your Mac or access your microphone.
 
+The separate [desk beta](https://ethansk.github.io/agentic-mouse/beta.html) starts at my room photo: scroll closer, choose something on the desk, and try its controls. It includes a code-review example and a silent YouTube/dictation example. The room uses a photo with camera depth; the mice are rotatable 3D models.
+
 ## What I use it for
+
+**YouTube pauses when I start dictating.** I press a top mouse button to start
+dictation with VoiceInk++, and the video pauses automatically. When I finish,
+my YouTube bridge resumes the video it paused. I can choose where the transcript
+goes and keep working while it’s delivered. [See the workflow](https://ethansk.github.io/agentic-mouse/#watch-and-talk).
 
 | Gesture | What it does |
 |---|---|
