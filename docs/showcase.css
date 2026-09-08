@@ -158,19 +158,10 @@ button {
   letter-spacing: -0.65px;
 }
 .brand-mark {
-  display: grid;
-  grid-template-columns: repeat(3, 4px);
-  gap: 3px;
-  transform: rotate(-8deg);
-}
-.brand-mark i {
-  width: 4px;
-  height: 4px;
-  border-radius: 1px;
-  background: currentColor;
-}
-.brand-mark i:nth-child(3n) {
-  background: var(--violet);
+  display: block;
+  width: 30px;
+  height: 30px;
+  flex: 0 0 auto;
 }
 .site-nav nav {
   display: flex;
