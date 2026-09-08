@@ -145,4 +145,4 @@ MIT licensed. [Read the license](LICENSE).
 
 ### App icon
 
-The macOS app packages the same twelve-button mark as the website. The editable source is `docs/agentic-mouse-mark.svg`; run `bash Scripts/generate-app-icon.sh` on macOS with ImageMagick installed to regenerate the PNG and ICNS in `Resources`. Normal app builds use the committed ICNS and do not need ImageMagick.
+The header, favicon and packaged macOS icon share the twelve-button grid, smooth mouse-shell curves and scroll-wheel detail. The editable source is `docs/agentic-mouse-mark.svg`; run `bash Scripts/generate-app-icon.sh` on macOS with ImageMagick installed to regenerate the PNG and ICNS in `Resources`. Normal app builds use the committed ICNS and do not need ImageMagick. Ethan’s setup syncs this same SVG from the published mouse project.
