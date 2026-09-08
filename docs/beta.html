@@ -3,101 +3,13 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="theme-color" content="#090b10" />
-  <meta name="description" content="Explore Ethan S K’s desk, try his mouse controls and see how he works with agents." />
-  <title>Explore my desk — Ethan S K</title>
-  <link rel="icon" href="./agentic-mouse-mark.svg" type="image/svg+xml" />
-  <link rel="stylesheet" href="./showcase.css?v=__SITE_VERSION__" />
-  <link rel="stylesheet" href="./beta.css?v=__SITE_VERSION__" />
-  <script type="importmap">{ "imports": { "three": "./lib/three.module.min.js" } }</script>
+  <meta http-equiv="refresh" content="0; url=https://ethansk.github.io/ethan-setup/" />
+  <link rel="canonical" href="https://ethansk.github.io/ethan-setup/" />
+  <link rel="icon" type="image/svg+xml" href="./agentic-mouse-mark.svg" />
+  <meta name="color-scheme" content="dark" />
+  <title>Ethan’s setup</title>
 </head>
-<body class="room-beta">
-  <header class="room-header">
-    <a href="./">Ethan S K <span>My personal setup</span></a>
-    <a class="room-classic" href="./">Back to the website ↗</a>
-  </header>
-  <main class="room-stage" id="room-stage">
-    <img class="room-poster" src="./assets/ethan-sausage-legs.webp?v=__SITE_VERSION__" width="1671" height="941" alt="Ethan reclining at his desk with two giant sausage legs coming out of his shorts, a Razer mouse on the left and a Corsair mouse in his right hand" />
-    <canvas id="room-canvas" tabindex="0" aria-label="Explore the desk. Drag to look around. Scroll or use up and down arrow keys to zoom; use left and right arrow keys to move sideways."></canvas>
-    <div class="room-shade" aria-hidden="true"></div>
-    <div class="room-intro">
-      <p class="room-kicker">My setup · Interactive beta</p>
-      <button id="enter-room" type="button">Click to go in <span aria-hidden="true">↗</span></button>
-      <p>Scroll to zoom, then drag to look around</p>
-    </div>
-    <div class="room-hotspots" aria-label="Explore my setup">
-      <button type="button" data-topic="razer" data-x=".235" data-y=".573"><span class="hotspot-dot"></span><span>Left mouse <small>Same controls, mirrored</small></span></button>
-      <button type="button" data-topic="corsair" data-x=".408" data-y=".548"><span class="hotspot-dot"></span><span>Right mouse <small>Try the thumb buttons</small></span></button>
-      <button type="button" data-topic="code" data-x=".416" data-y=".239"><span class="hotspot-dot"></span><span>Code review <small>Keep my hand still</small></span></button>
-      <button type="button" data-topic="voice" data-x=".57" data-y=".367"><span class="hotspot-dot"></span><span>VoiceInk++ <small>YouTube pauses when I talk</small></span></button>
-      <button type="button" data-topic="chair" data-x=".833" data-y=".691"><span class="hotspot-dot"></span><span>The chair <small>Lean back and stay in control</small></span></button>
-    </div>
-    <div class="room-zoom" role="group" aria-label="Room camera">
-      <button type="button" id="zoom-out" aria-label="Zoom out">−</button><span id="zoom-label">Room view</span><button type="button" id="zoom-in" aria-label="Zoom in">+</button>
-    </div>
-    <nav class="room-dock" aria-label="Explore the desk">
-      <button type="button" data-view="room">The room</button>
-      <button type="button" data-view="desk" aria-pressed="false">The desk</button>
-      <span aria-hidden="true"></span>
-      <button type="button" data-topic="razer">Left mouse</button>
-      <button type="button" data-topic="corsair">Right mouse</button>
-      <button type="button" data-topic="code">Review code</button>
-      <button type="button" data-topic="voice">Dictation</button>
-      <button type="button" data-topic="desk">Desk &amp; chair</button>
-    </nav>
-    <p class="room-caption">AI scene from my portrait and desk photos · Drag to look around · Scroll to zoom</p>
-    <p class="room-loading" role="status">Loading the room…</p>
-  </main>
-  <dialog class="room-detail" id="room-detail" aria-labelledby="detail-title">
-    <button type="button" class="detail-close" aria-label="Back to the room">×</button>
-    <div class="detail-heading"><p class="room-kicker" id="detail-kicker"></p><h1 id="detail-title"></h1><p id="detail-description"></p></div>
-    <div id="mouse-detail" hidden inert>
-      <div class="beta-mice">
-        <figure class="hero-product" data-mouse="corsair" hidden>
-          <img src="./assets/corsair.webp" width="1200" height="1200" alt="Corsair Scimitar Elite Wireless SE" />
-          <canvas tabindex="0" aria-label="Drag to rotate the Corsair mouse; click a button to try it"></canvas>
-          <svg class="speech-leader" aria-hidden="true"><path></path><circle r="4"></circle></svg>
-          <button type="button" class="speech-callout" data-voice>Activate speech mode</button>
-          <button type="button" class="hero-reset">Reset view ↻</button>
-        </figure>
-        <figure class="hero-product" data-mouse="razer" hidden>
-          <img src="./assets/razer.webp" width="500" height="500" alt="Razer Naga Left-Handed Edition" />
-          <canvas tabindex="0" aria-label="Drag to rotate the Razer mouse; click a button to try it"></canvas>
-          <svg class="speech-leader" aria-hidden="true"><path></path><circle r="4"></circle></svg>
-          <button type="button" class="speech-callout" data-voice>Activate speech mode</button>
-          <button type="button" class="hero-reset">Reset view ↻</button>
-        </figure>
-      </div>
-      <p class="detail-hint">Drag the mouse to rotate it, then click a button or use the HUD below</p>
-      <label class="beta-app">Current app <select id="beta-app"></select></label>
-      <div id="beta-hud"></div>
-      <p id="beta-feedback" role="status">Loading the mouse controls…</p>
-      <div class="beta-gestures"><button type="button" id="beta-hold">Hold selected button</button><button type="button" id="beta-wheel-up">Wheel up ↑</button><button type="button" id="beta-wheel-down">Wheel down ↓</button><button type="button" id="beta-reset">Reset demo</button></div>
-      <p class="detail-note">This demo follows the published app mapping and only controls this page.</p>
-      <a class="detail-link" href="./mouse-map.html">See every button and mode ↗</a>
-    </div>
-    <div id="code-detail" hidden>
-      <div class="code-example">
-        <div class="code-title"><span>Example code review</span><span id="code-staged">0 staged</span></div>
-        <div class="code-file" id="code-file"></div><pre id="code-lines"></pre>
-      </div>
-      <div class="review-demo-buttons"><button type="button" data-review="-1"><strong>5</strong>Previous ↑</button><button type="button" data-review="1"><strong>8</strong>Next ↓</button></div>
-      <p id="review-feedback" role="status">Quick press to jump, or hold for 300 ms and release to stage the file and jump.</p>
-      <button type="button" id="review-reset" class="detail-link">Reset review</button>
-      <p class="detail-note">This is my current workflow with Better Git VS Code, using button 5 or 8 on either mouse.</p>
-      <a class="detail-link" href="https://github.com/EthanSK/better-git-vscode">Get Better Git VS Code ↗</a>
-    </div>
-    <div id="voice-detail" hidden>
-      <div class="video-example"><div class="video-screen"><span aria-hidden="true">▶</span><p>Watching YouTube while I work</p></div><div class="video-controls"><button type="button" id="video-toggle">Pause video</button><span id="video-status" role="status">Playing</span></div><div class="video-progress"><i></i></div></div>
-      <button type="button" class="dictate-button" id="dictate">Start dictation</button>
-      <div class="transcript" id="transcript" role="status">Press Start dictation to see what happens to the video.</div>
-      <p class="detail-note">An interactive example with no microphone or audio; my real setup uses VoiceInk++ and a separate YouTube bridge.</p>
-      <a class="detail-link" href="https://github.com/EthanSK/VoiceInkPlusPlus">Get VoiceInk++ ↗</a>
-    </div>
-    <div id="setup-detail" hidden></div>
-    <p class="beta-disclaimer">All the wording is AI generated, so sorry if it’s cringe.</p>
-  </dialog>
-  <noscript><p class="beta-no-js">The interactive room needs JavaScript. <a href="./">Explore the main website instead.</a></p></noscript>
-  <script type="module" src="./beta.mjs?v=__SITE_VERSION__"></script>
+<body>
+  <p><a href="https://ethansk.github.io/ethan-setup/">Ethan’s setup ↗</a></p>
 </body>
 </html>
