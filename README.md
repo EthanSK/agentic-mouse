@@ -4,11 +4,11 @@
 
 Twelve thumb controls, mirrored on both mice. I lean back, talk to agents with [VoiceInk++](https://github.com/EthanSK/VoiceInkPlusPlus), and keep the rest under my thumb.
 
-My personal macOS setup, made public so you can explore it and build your own. — **Ethan S K**
+My personal macOS setup, made public so you can explore it and build your own. — **Ethan SK**
 
-[**Try the interactive walkthrough →**](https://ethansk.github.io/agentic-mouse/) · [**Explore the desk beta →**](https://ethansk.github.io/agentic-mouse/beta.html) · [Every button and mode](https://ethansk.github.io/agentic-mouse/mouse-map.html) · [Setup guide](docs/SETUP.md)
+[**Try the interactive walkthrough →**](https://ethansk.github.io/agentic-mouse/) · [**Explore my setup →**](https://ethansk.github.io/ethan-setup/) · [Every button and mode](https://ethansk.github.io/agentic-mouse/mouse-map.html) · [Setup guide](docs/SETUP.md)
 
-![An AI recreation of Ethan S K reclining at his studio desk, using one of two mice on the desktop](docs/assets/ethan-lounging.webp)
+![An AI recreation of Ethan SK reclining at his studio desk, using one of two mice on the desktop](docs/assets/ethan-lounging.webp)
 
 *My setup, reimagined with AI from my portrait and studio photos.*
 
@@ -35,7 +35,7 @@ The website is a working browser demo of the mouse controls, with a [skills dire
 
 The HUD’s labels, card colours, printed-button crosswalk, repair markers, and mode transitions are generated from the native Swift source. On phones, the HUD appears below the mouse and scrolls into view when you press a key. The 3D hardware is recreated from product photographs. The demo does not control your Mac or access your microphone.
 
-The separate [desk beta](https://ethansk.github.io/agentic-mouse/beta.html) starts at my room photo: click to enter, scroll closer and drag to look around. Choosing an item zooms into it and expands its controls; closing it returns to your previous view. It includes rotatable mice, a code-review example and a silent YouTube/dictation example.
+My interactive room now lives in [Ethan’s setup](https://ethansk.github.io/ethan-setup/), with its own [repository and setup inventory](https://github.com/EthanSK/ethan-setup). Scroll or pinch to zoom, drag to look around, and click the hardware or screens to explore them. This repository remains the source of truth for Agentic Mouse, its HUD and the mouse controls used by both websites.
 
 ## What I use it for
 
