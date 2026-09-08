@@ -79,3 +79,8 @@ Read [docs/AGENT-SETUP.md](docs/AGENT-SETUP.md) and [docs/SETUP.md](docs/SETUP.m
 - If I suggest double-click when a wheel action would be better and easier, remind me and suggest the wheel action. Consider the wheel first before just going through with double-click.
 - Screenshot has no double-click action. In Default mode, hold Corsair 3 / Razer 1 and wheel down to paste the saved screenshot, once per hold. Wheel up does nothing and any wheel input suppresses the capture on release. Codex keeps the separately approved Pin/Unpin wheel directions; do not silently replace Unpin with Paste.
 - Extra Utilities physical cell 3 (Corsair 3 / Razer 1) starts Spotify Song Radio through its asynchronous controller. Preserve the current track and playback position, require local playback and the actual radio playback context, and cancel pending work on mode exit, lock, sleep or shutdown. A dispatched command is not verified radio playback.
+
+## Automatic restart after updates
+
+- After a user-requested Agentic Mouse update, restart it automatically as part of the signed installation. Do not wait for me to ask or ask me to approve the routine restart again.
+- If Computer Use cannot reach Agentic Mouse, use direct macOS Accessibility to invoke the exact app's dedicated `Quit Agentic Mouse` menu item, then relaunch the verified `/Applications/AgenticMouse.app`. This fallback is authorized for the normal installation and restart; preserve the supervisor-disarm sequence, rollback, settings, recording, and live verification required above.
