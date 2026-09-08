@@ -11,7 +11,13 @@ const assets = new Map();
 
 /** Load the authored hardware once; derive every physical-key action from the native export. */
 export async function createMouseModel(hand, source) { // Ethan rejected generic rounded-shell substitutes: preserve the separate reference-modelled Naga and Scimitar assets. (Codex task: 01a06ee5-4aa0-7a61-a029-704e5c44a8f2)
-  if (!assets.has(hand)) assets.set(hand, loader.loadAsync(new URL(`./models/${hand}.glb?v=__SITE_VERSION__`, import.meta.url).href));
+  if (!assets.has(hand)) {
+    const url = new URL(`./models/${hand}.glb?v=__SITE_VERSION__`, import.meta.url);
+    assets.set(hand, fetch(url, { signal: AbortSignal.timeout(20000) }).then(response => {
+      if (!response.ok) throw new Error(`Mouse model download failed (${response.status})`);
+      return response.arrayBuffer();
+    }).then(bytes => loader.parseAsync(bytes, new URL("./", url).href)).catch(error => { assets.delete(hand); throw error; })); // A stalled download times out and a rejected cache entry is removed so reopening can retry.
+  }
   const asset = await assets.get(hand);
   const group = asset.scene.clone(true);
   const side = hand === "razer" ? 1 : -1;

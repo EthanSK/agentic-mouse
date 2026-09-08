@@ -3,8 +3,11 @@ import { createMouseModel, lightStudio } from "./mouse-model.mjs?v=__SITE_VERSIO
 import { createMouseMotion } from "./mouse-motion.mjs?v=__SITE_VERSION__";
 
 /** Keep the hero and control chapter on the same photographed hardware geometry. */
-export async function createHeroMouse(figure, source, onCell, labelForCell) {
+export async function createHeroMouse(figure, source, onCell, labelForCell, wheelZoom = false) {
   const hand = figure.dataset.mouse;
+  let model;
+  try { model = await createMouseModel(hand, source); }
+  catch (error) { console.warn("The mouse model could not load", error); return false; } // A failed download must not install duplicate observers or prevent a later retry.
   const canvas = figure.querySelector("canvas");
   const speech = figure.querySelector(".speech-callout");
   const line = figure.querySelector(".speech-leader path");
@@ -55,7 +58,6 @@ export async function createHeroMouse(figure, source, onCell, labelForCell) {
     lightStudio(renderer, scene, 1); // The hero and control chapter photograph the same hardware under the same studio rig.
     const camera = new THREE.PerspectiveCamera(32, 1, .1, 40);
     camera.position.set(0, 0, 13);
-    const model = await createMouseModel(hand, source);
     scene.add(model.group);
     const raycaster = new THREE.Raycaster();
     raycaster.firstHitOnly = true;
@@ -69,17 +71,17 @@ export async function createHeroMouse(figure, source, onCell, labelForCell) {
       raycaster.setFromCamera(new THREE.Vector2((event.clientX - rect.left) / rect.width * 2 - 1, -(event.clientY - rect.top) / rect.height * 2 + 1), camera);
       return raycaster.intersectObjects(model.pickables, false)[0]?.object.userData;
     }
-    let renderWidth = 0, renderHeight = 0;
+    let renderWidth = 0, renderHeight = 0, zoom = 1;
 
     renderModel = () => {
       if (renderWidth !== width || renderHeight !== height) {
         camera.aspect = width / height;
-        camera.position.z = camera.aspect < .9 ? 13 * .9 / camera.aspect : 13;
         camera.updateProjectionMatrix();
         renderer.setSize(width, height, false);
         renderWidth = width;
         renderHeight = height;
       }
+      camera.position.z = (camera.aspect < .9 ? 13 * .9 / camera.aspect : 13) / zoom;
       model.group.rotation.set(pose.x, pose.y, pose.z, "ZXY");
       model.group.position.y = -.1;
       camera.updateMatrixWorld();
@@ -90,6 +92,13 @@ export async function createHeroMouse(figure, source, onCell, labelForCell) {
       connect((point.x * .5 + .5) * width, (-point.y * .5 + .5) * height, !!hit?.object.userData.speech);
       renderer.render(scene, camera);
     };
+    if (wheelZoom) canvas.addEventListener("wheel", event => { // Dialogs opt in; a mouse on the main walkthrough must still let the page scroll.
+      event.preventDefault();
+      const delta = event.deltaY * (event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? height : 1);
+      zoom = THREE.MathUtils.clamp(zoom * Math.exp(delta * .0015), .65, 2.4);
+      figure.classList.add("model-rotated");
+      render();
+    }, { passive: false });
     let drag, moved = false;
     canvas.addEventListener("pointerdown", (event) => {
       if (event.button !== 0) return;
@@ -132,6 +141,7 @@ export async function createHeroMouse(figure, source, onCell, labelForCell) {
     canvas.addEventListener("pointercancel", release);
     canvas.addEventListener("pointerleave", () => { hint.hidden = true; });
     function reset() {
+      zoom = 1;
       pose.x = .70;
       pose.y = hand === "razer" ? -1.04 : 1.04;
       pose.z = hand === "razer" ? .20 : -.20;
@@ -170,4 +180,5 @@ export async function createHeroMouse(figure, source, onCell, labelForCell) {
     console.warn("The mouse model is unavailable; its product photograph remains visible.", error);
   }
   render();
+  return modelReady;
 }
