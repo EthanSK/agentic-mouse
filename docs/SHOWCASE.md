@@ -213,10 +213,32 @@ The reference's published poster shows cool white and warm stars winding into a
 spiral; its page data describes drag/arrow rotation and scroll dispersion. The
 reference's full animation could not be observed because its script chunks returned
 403 responses. Do not describe our animation as OpenAI's original implementation.
-No OpenAI source or artwork is bundled. One point-cloud draw call replaces a bloom
-pipeline; the existing mouse scheduler caps rendering at 30 fps and suspends it
-for off-screen, hidden-page and reduced-motion states. Pointer input and scroll
-change the field without intercepting mouse model input.
+No OpenAI source or artwork is bundled. A fresh check on 8 September 2026 found
+`AstraHero` and `AstraScrollCue` in the rendered page data, with autoplay,
+`particles.disperse: 1`, `flowSpeed: 0.8`, and smoothstep scroll easing. Its
+star-field control advertises drag and arrow-key rotation. The interactive chunks
+still failed to load, so these labels and parameters do not establish the exact
+pointer physics. The current [Codex landing page](https://openai.com/codex/) shows
+a blue/purple background, not this star field.
+
+Our implementation uses a [Three.js ShaderMaterial](https://threejs.org/docs/pages/ShaderMaterial.html)
+on one [Points](https://threejs.org/docs/pages/Points.html) object. Pointer proximity
+pushes and curls nearby stars; six recent stroke segments leave a wake that fades
+within 1.4 seconds. Displacement is calculated in projected screen coordinates
+so the interaction remains under the pointer across particle depths and screen
+sizes. It returns to the flowing spiral without changing the source geometry.
+One point-cloud draw call replaces a bloom pipeline, with no per-particle JavaScript
+loop or new dependency. Rendering runs at up to 60 fps during pointer interaction
+and 30 fps at rest; it stops off-screen, in hidden pages, for reduced motion and
+when WebGL is unavailable. Scroll disperses the spiral and clears stale strokes.
+Touch scrolling, model dragging and speech buttons retain their existing input.
+
+Do not reuse `createMouseMotion` for this background: its six-second input pause
+froze the stars exactly when visitors tried to interact. Test actual local
+particle displacement, wake decay, idle flow during input and mouse-control clicks;
+a screenshot of a tilted spiral does not establish pointer interaction.
+`hero-galaxy.test.mjs` covers the controller timing, screen coordinate mapping,
+suspension and input isolation; real-browser screenshots also check shader output.
 
 `beta.html`, `beta.css` and `beta.mjs` form a separate desk walkthrough, linked from
 the main header. It uses a version of the portrait as a correctly proportioned plane
