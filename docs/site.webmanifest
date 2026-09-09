@@ -1,7 +1,7 @@
 {
-  "name": "Ethan S K — My personal setup",
-  "short_name": "Personal setup",
-  "description": "My personal setup for Agentic Engineers: voice, Agentic Mouse and Better Git VS Code.",
+  "name": "Agentic Mouse",
+  "short_name": "Agentic Mouse",
+  "description": "Mouse control for the agentic future",
   "start_url": "./",
   "display": "standalone",
   "background_color": "#090b10",

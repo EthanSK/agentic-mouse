@@ -42,7 +42,8 @@ Do not add hardware-write flags for an initial inspection. Launching the GUI app
 | Modes, HUD, Keypad, clipboard and basic keys | Agentic Mouse with Accessibility permission | Yes |
 | Corsair neutral transports and temporary RGB | [iCUE 5](https://www.corsair.com/uk/en/s/downloads); audited SDK for RGB | iCUE and SDK are separate |
 | Razer input and mode lighting | Supported Naga Left-Handed `1532:008d` and its onboard transports | Adapter and lighting code; verify your exact unit |
-| Speech mode, YouTube scrub/volume | Ethan's compatible VoiceInk++ / YouTube bridge | **No.** Ordinary VoiceInk is not a verified substitute |
+| Speech mode | [VoiceInk++](https://github.com/EthanSK/VoiceInkPlusPlus) | Separate app; ordinary VoiceInk is not a verified substitute |
+| YouTube pause/resume, seek, volume, 2× speed; Chrome tab history and website opening | VoiceInk YouTube Bridge Chrome extension and macOS helper | **No; bridge source is currently private.** [Setup and checks](YOUTUBE-BRIDGE.md) |
 | VS Code cursor history and terminal toggle | Agentic Mouse VS Code Bridge | Yes; package below |
 | VS Code review navigation and staging | Compatible Better Git extension and its captured-origin commands | **No.** The included bridge does not provide these commands |
 | Window placement and saved layout | Magnet / Stay, matching shortcuts and your own saved layout | No |
