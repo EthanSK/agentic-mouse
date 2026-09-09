@@ -300,17 +300,11 @@ button {
   position: relative;
   background: var(--night);
   color: #f8f8fb;
-  min-height: 920px;
-}
-.control-story.is-scroll-scene {
-  height: 230svh;
 }
 .control-sticky {
-  position: sticky;
-  top: 0;
-  min-height: 840px;
-  height: 100svh;
-  max-height: 1150px;
+  position: relative; /* Keep the demo in normal flow; Ethan rejected the pinned scroll tour. */
+  height: auto;
+  max-height: none;
   overflow: clip;
   display: flex;
   align-items: center;
@@ -454,21 +448,6 @@ button {
   height: 4px;
   background: #8b78b3;
   border-radius: 50%;
-}
-.chapter-progress {
-  position: absolute;
-  left: 50%;
-  bottom: 29px;
-  transform: translateX(-50%);
-  width: min(1240px, calc(100% - 96px));
-  height: 1px;
-  background: #33303a;
-}
-.chapter-progress i {
-  display: block;
-  width: 0;
-  height: 1px;
-  background: #bdace6;
 }
 .scene-fallback .scene-controls {
   display: grid;
@@ -1174,8 +1153,7 @@ button {
     margin: auto;
     font-size: 11px;
   }
-  .control-story,
-  .control-story.is-scroll-scene {
+  .control-story {
     height: auto;
     min-height: 0;
   }
@@ -1242,9 +1220,6 @@ button {
   }
   .control-result p {
     max-width: 380px;
-  }
-  .chapter-progress {
-    display: none;
   }
   .lounge {
     padding: 78px 0;
@@ -1432,9 +1407,6 @@ button {
   *:after {
     animation: none !important;
     transition: none !important;
-  }
-  .control-story.is-scroll-scene {
-    height: auto;
   }
   .control-sticky {
     position: relative;
@@ -2053,7 +2025,6 @@ button {
 @media (min-width: 761px) and (max-height: 800px) {
   .control-sticky {
     min-height: 0;
-    height: 100svh;
   }
   .control-copy {
     padding-block: 28px;
@@ -2081,9 +2052,6 @@ button {
   }
   .scene-origin {
     top: -10px;
-  }
-  .chapter-progress {
-    bottom: 20px;
   }
 }
 

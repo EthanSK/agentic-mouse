@@ -24,7 +24,6 @@ let selectedCell = simulator.state.selected;
 let previewCell = selectedCell;
 let updateScene = () => {};
 let resetView = () => {};
-let tourHasInput = false;
 let suppressClick = false;
 let pendingTimer;
 const feedbackTimers = new Map();
@@ -120,7 +119,6 @@ function activate(cell, button) {
     return;
   }
   if (suppressClick) return;
-  tourHasInput = true;
   simulator.press(cell);
   renderAll();
   const closedHUD = button.closest(".native-hud[hidden]");
@@ -183,7 +181,6 @@ for (const physical of CELLS) {
   button.dataset.cell = physical.id;
   button.addEventListener("pointerenter", (event) => {
     if (event.pointerType !== "touch" && !suppressClick) {
-      tourHasInput = true;
       previewControl(physical.id);
     }
   });
@@ -191,7 +188,6 @@ for (const physical of CELLS) {
     if (!suppressClick) previewControl(selectedCell);
   });
   button.addEventListener("focus", () => {
-    tourHasInput = true;
     previewControl(physical.id);
   });
   button.addEventListener("blur", () => previewControl(selectedCell));
@@ -204,7 +200,6 @@ for (const physical of CELLS) {
 }
 document.querySelectorAll("[data-hand], [data-hud-hand]").forEach((button) =>
   button.addEventListener("click", () => {
-    tourHasInput = true;
     changeHand(button.dataset.hand ?? button.dataset.hudHand);
   }),
 );
@@ -305,7 +300,6 @@ function renderAll() {
 
 document.querySelectorAll("[data-hud-mode]").forEach((button) =>
   button.addEventListener("click", () => {
-    tourHasInput = true;
     simulator.chooseMode(button.dataset.hudMode);
     renderAll();
   }),
@@ -324,7 +318,6 @@ for (const [mode, definition] of Object.entries(map.sources.corsair.modes)) {
 }
 document.querySelector("#more-modes").addEventListener("change", (event) => {
   if (event.target.value) {
-    tourHasInput = true;
     simulator.chooseMode(event.target.value);
     renderAll();
   }
@@ -337,14 +330,12 @@ document.querySelectorAll("[data-current-app]").forEach((select) => {
     select.append(option);
   }
   select.addEventListener("change", () => {
-    tourHasInput = true;
     simulator.chooseApp(select.value);
     renderAll();
   });
 });
 document.querySelectorAll("[data-sim-action]").forEach((button) =>
   button.addEventListener("click", () => {
-    tourHasInput = true;
     switch (button.dataset.simAction) {
       case "hold":
         simulator.state.held === selectedCell
@@ -381,7 +372,6 @@ for (const element of document.querySelectorAll("[data-native-hud]")) {
     bindHold: bindKeypadHold,
     keydown: gridKeydown,
     preview: (cell) => {
-      tourHasInput = true;
       previewControl(cell);
       document.querySelector("#hud-explanation").textContent = describe(simulator.control(cell));
     },
@@ -549,7 +539,6 @@ async function createButtonScene() {
       drag = null;
       return;
     } // A vertical touch gesture scrolls the page; only a horizontal swipe takes ownership of rotation.
-    tourHasInput = true;
     suppressClick = true;
     sceneControls.setPointerCapture(event.pointerId);
     sceneElement.classList.add("is-dragging");
@@ -626,133 +615,12 @@ async function createButtonScene() {
   return { pose, render };
 }
 
-/** Tie movement to native scrolling; small screens retain a short, ordinary document flow. */
-function createScrollStory(scene) {
-  if (!window.gsap || !window.ScrollTrigger) return;
-  gsap.registerPlugin(ScrollTrigger);
-  const media = gsap.matchMedia();
-  media.add("(prefers-reduced-motion: no-preference)", () => {
-    gsap.to(".hero-product.left", {
-      y: -38,
-      ease: "none",
-      scrollTrigger: {
-        trigger: ".hero",
-        start: "top top",
-        end: "bottom top",
-        scrub: 0.6,
-      },
-    });
-    gsap.to(".hero-product.right", {
-      y: -38,
-      ease: "none",
-      scrollTrigger: {
-        trigger: ".hero",
-        start: "top top",
-        end: "bottom top",
-        scrub: 0.6,
-      },
-    });
-    gsap.fromTo(
-      ".lounge-photo",
-      { clipPath: "inset(0 10% round 20px)" },
-      {
-        clipPath: "inset(0 0% round 0px)",
-        ease: "none",
-        scrollTrigger: {
-          trigger: ".lounge-photo",
-          start: "top 85%",
-          end: "center center",
-          scrub: 0.4,
-        },
-      },
-    );
-    gsap.fromTo(
-      ".voice-bars i",
-      { scaleY: 0.3 },
-      {
-        scaleY: 1,
-        repeat: 5,
-        yoyo: true,
-        stagger: 0.09,
-        duration: 0.6,
-        ease: "sine.inOut",
-        scrollTrigger: {
-          trigger: ".voice-feature",
-          start: "top 85%",
-          once: true,
-        },
-      },
-    );
-    gsap.utils
-      .toArray(
-        ".section-heading, .lounge-quote, .hud-features article, .setup-item, .creator-end h2",
-      )
-      .forEach((element) => {
-        gsap.from(element, {
-          y: 25,
-          autoAlpha: 0,
-          duration: 0.8,
-          ease: "power2.out",
-          scrollTrigger: { trigger: element, start: "top 93%", once: true },
-        });
-      });
-  });
-  if (scene)
-    media.add(
-      "(min-width: 761px) and (min-height: 851px) and (prefers-reduced-motion: no-preference)",
-      () => {
-        const story = document.querySelector(".control-story");
-        story.classList.add("is-scroll-scene");
-        gsap.to(scene.pose, {
-          progress: 1,
-          ease: "none",
-          onUpdate: () => {
-            const cell =
-              scene.pose.progress < 0.34
-                ? 3
-                : scene.pose.progress < 0.67
-                  ? 6
-                  : 12;
-            if (!tourHasInput && previewCell !== cell) {
-              simulator.state.selected = cell;
-              renderAll();
-            } else scene.render(); // The scroll tour yields permanently on pointer or keyboard input so it never replaces a visitor's selection.
-          },
-          scrollTrigger: {
-            trigger: story,
-            start: "top top",
-            end: "bottom bottom",
-            scrub: 0.45,
-          },
-        });
-        gsap.to(".chapter-progress i", {
-          width: "100%",
-          ease: "none",
-          scrollTrigger: {
-            trigger: story,
-            start: "top top",
-            end: "bottom bottom",
-            scrub: true,
-          },
-        });
-        return () => {
-          story.classList.remove("is-scroll-scene");
-          scene.pose.progress = 0;
-          scene.render();
-        };
-      },
-    );
-  document.fonts.ready.then(() => ScrollTrigger.refresh());
-}
-
 createButtonScene()
-  .then(createScrollStory)
   .catch((error) => {
     console.warn(
       "The 3D preview is unavailable; the interactive button grid remains available.",
       error,
     );
-    createScrollStory(null);
   });
 
 import("./hero-mice.mjs?v=__SITE_VERSION__").then(({ createHeroMouse }) => {
