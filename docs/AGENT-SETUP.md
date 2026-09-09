@@ -26,7 +26,7 @@ Do not hand-edit generated Karabiner JSON or invent a second browser button map.
 
 Ethan uses `DVORAK - QWERTY CMD`. Some app routes deliberately encode physical keys for that layout. Verify the destination shortcut and actual key lifecycle on the owner's layout before adapting it. Do not copy those chords blindly to QWERTY or change global OS shortcuts to conceal a mismatch.
 
-Consult the dependency table in [SETUP.md](SETUP.md). VoiceInk++ / YouTube Bridge and Better Git are external integrations, not shipped features you can promise on a fresh Mac. Ask which unavailable controls the owner wants to replace or leave unused. Do not silently install an unrelated app or claim that the included VS Code Bridge implements Better Git.
+Consult the dependency table in [SETUP.md](SETUP.md) and the [YouTube/Chrome bridge guide](YOUTUBE-BRIDGE.md). The bridge needs both the Chrome extension and macOS helper; its source is currently private, so do not promise a public install or treat VoiceInk++ alone as the complete integration. VoiceInk++ / YouTube Bridge and Better Git are external integrations, not shipped features you can promise on a fresh Mac. Ask which unavailable controls the owner wants to replace or leave unused. Do not silently install an unrelated app or claim that the included VS Code Bridge implements Better Git.
 
 ## Install only the reviewed candidate
 

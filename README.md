@@ -44,6 +44,8 @@ dictation with VoiceInk++, and the video pauses automatically. When I finish,
 my YouTube bridge resumes the video it paused. I can choose where the transcript
 goes and keep working while it’s delivered. [See the workflow](https://ethansk.github.io/agentic-mouse/#watch-and-talk).
 
+This needs the separate **VoiceInk YouTube Bridge** Chrome extension and **YouTube Spotify Media Key** macOS helper. The bridge source is currently private, so it is not included in the public install. [Bridge setup, dependencies and checks](docs/YOUTUBE-BRIDGE.md).
+
 | Gesture | What it does |
 |---|---|
 | Top button | Activate speech mode with VoiceInk++. DPI stays at 2,750. |
