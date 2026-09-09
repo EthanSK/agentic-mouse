@@ -1,6 +1,6 @@
 # Set up another person's Mac
 
-Give this guide to your coding agent together with the [setup guide](SETUP.md). The repository describes Ethan's setup. His devices, signing certificate, keyboard layout, shortcuts and permissions are **not** facts or authorization about another person's machine.
+Give this guide to your coding agent together with the [reproduction inventory and prompt](REPRODUCE.md) and [setup guide](SETUP.md). The repository describes Ethan's setup. His devices, signing certificate, keyboard layout, shortcuts and permissions are **not** facts or authorization about another person's machine.
 
 ## Establish the owner's setup
 

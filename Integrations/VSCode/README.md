@@ -1,6 +1,6 @@
 # Agentic Mouse VS Code Bridge
 
-This private local companion accepts only four URI paths for the exact
+This included local companion accepts only four URI paths for the exact
 `ethansk.agentic-mouse-vscode-bridge` authority: a no-op health probe, the two
 built-in VS Code Cursor History commands, and the Hide-first Terminal
 alternator. It never accepts an arbitrary command id. Commands also require the

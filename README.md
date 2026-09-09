@@ -72,6 +72,10 @@ These models and options were checked against my purchase confirmations. FlexiSp
 
 The mice share a physical action layout, with their own printed numbers and mirrored presentation. I can switch hands without changing how I work.
 
+## Reproduce the setup with your agent
+
+Give your agent the [reproduction guide and setup prompt](docs/REPRODUCE.md). It lists every included file, the Karabiner and iCUE setup, build checks, external dependencies and physical verification steps. The complete runtime rules, their generator and the guarded installer are already in this repository; you do not need my private Karabiner profile.
+
 ## Build the app
 
 **Ready to build and adapt; manual setup required.** There is no signed, notarized app download yet. Speech mode, YouTube control and some VS Code actions depend on external integrations that are not included. Check the [dependency table](docs/SETUP.md#2-check-which-features-you-can-use) before setting up your mice.

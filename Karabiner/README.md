@@ -1,129 +1,43 @@
-# Karabiner semantic actions
+# Karabiner setup and source files
 
-This folder is Agentic Mouse's source-and-build home for the shared action
-vocabulary used by the Corsair Scimitar and left-handed Razer Naga. It contains
-no implicit installer. The checked-in binding layer now contains the approved
-Corsair adapter and a separate Razer adapter derived from the verified physical
-crosswalk. Both exact-device adapters are now live after separate physical
-captures; their downstream semantic acceptance remains a separate gate.
+Start with the [reproduction guide](../docs/REPRODUCE.md) and [installation steps](../docs/SETUP.md#6-initialize-the-complete-karabiner-rules). This directory contains the complete public rules and their sources, not a copy of Ethan's live Karabiner profile.
 
-## Structure
+## Included files
 
-```text
-Karabiner/
-  actions/                 One commented JSONC file per semantic action
-    app-switching/
-    media/
-    navigation/
-    productivity/
-    vscode/
-  bindings/bindings.json   Exact-device physical adapter layer
-  generated/
-    action-catalog.json    Combined, browsable action vocabulary
-    agentic-mouse.json     Development base export; do not install alone
-    agentic-mouse-runtime.json  Complete runtime-mode replacement
-```
+| File | Purpose |
+|---|---|
+| `actions/**/*.jsonc` | Shared semantic actions; each filename is its action ID. |
+| `bindings/bindings.json` | Exact mouse interfaces, input keys and action bindings. |
+| `generated/action-catalog.json` | Readable action inventory; not installed. |
+| `generated/agentic-mouse.json` | Partial development base; do not install alone. |
+| `generated/agentic-mouse-runtime.json` | Complete runtime rules, including the session gate, bases, app overrides, modes and Exit. |
 
-For a first installation, follow [SETUP.md](../docs/SETUP.md#6-initialize-the-complete-karabiner-rules). The installer supports an explicit `--initialize` dry run and preserves the selected profile's unrelated rules. Only the complete runtime artifact is suitable for installation.
-
-The generator recursively discovers action files, so future modes and submenus
-can live in new named subfolders without turning one source file into a large
-catch-all. Every action filename equals its stable action ID, and the first line
-describes its behavior.
+The native app is also required: Karabiner routes events, while Agentic Mouse owns modes, the HUD, output commands and lighting. Without the app's unlocked-session lease, custom transports stay consumed; this is not a standalone remapping profile.
 
 ## Build and validate
 
-```bash
+```sh
 make karabiner
 make test-karabiner
+make test-install
 ```
 
-`Scripts/generate-karabiner.py` combines the separate actions because
-Karabiner cannot reference action fragments across files. The checked-in
-`generated/agentic-mouse.json` is valid Karabiner complex-modification JSON.
-Runtime modes are deliberately generated into a separate, complete replacement
-file so ordinary base-map work cannot accidentally install partial mode-entry
-rules or expiry gates. The live installer accepts only the complete runtime
-artifact and rejects the five-rule base export because installing it would
-leave mode entry available without the active-mode routing and Exit rule.
+The generator uses the committed actions and bindings. `make test-karabiner` checks that the generated files match their sources, runs generator tests, and runs Karabiner's structural lint when its CLI is installed. `make test-install` exercises first installation, updates, backup preservation and refusal cases using temporary profiles.
 
-`action-catalog.json` proves which action definitions were discovered and is
-useful for review or future UI work. It is not installed into Karabiner. The
-base complex-modification file currently contains 66 manipulators across the
-locked-session sink, the two base rules, and the two VS Code overrides. The
-runtime artifact adds one 58-manipulator Modes layer for 124 total. Colour Proof
-is no longer generated as a live rule. The two artifacts are alternatives, not
-files to enable together. Physical cells 5 and 8 have app-specific duplicates;
-matching base exclusions preserve Forward/Back outside VS Code. Cell 6 always
-holds the source-specific YouTube scrub wheel chord outside runtime modes; Agentic
-Mouse then asks the VoiceInk bridge to seek backward without focusing Chrome.
+Only install `generated/agentic-mouse-runtime.json`, using [the guarded installer](../Scripts/install-live-karabiner.py) and its documented dry-run sequence. Do not enable both rule artifacts, import a whole private profile or paste runtime rules into another profile without checking the selected profile and existing Agentic block.
 
-## Persistent default-map reference
+## Adapt the supported devices
 
-The top-level VS Code navigation/staging overrides depend on Better Git's
-captured-origin commands. Navigation uses Control-Option-Command-F13/F17 for
-Corsair and adds Shift for Razer; the corresponding late-stage press uses
-F18/F19 with the same modifiers. Ordinary held Stage + Next/Previous remains
-unmodified F18/F19. Install this complete rule artifact only after the compatible
-Better Git extension is loaded, or navigation will have no receiver. Each binding
-declares `outputModifiers`; shared action templates substitute
-`$binding_output_modifiers` so both device adapters keep one navigation behavior.
+These are public model/interface identifiers, not private device serials. Re-capture them on the owner's Mac before enabling an adapter.
 
-Both exact-device bases give canonical physical cell 10
-(Corsair printed 10 / Razer printed 12) one source-specific
-`agentic_mouse_default_map_toggle` command outside modes. Canonical cell 11 owns
-the native hold-open Switch App action outside modes. Cell 10 becomes universal
-Exit while its mode lease is active. This persistent HUD takes no mode lease and
-does not alter lighting. Each mouse owns an independent legend, so one mouse's
-press never retargets or closes the other mouse's panel. Physical cell 12
-remains suppressed in the ordinary base because the runtime rule opens Utility
-immediately; universal physical cell 10 owns active exit while that mouse's mode
-lease is active. Physical
-cell 3 sends a source-specific screenshot-toggle command outside modes.
+| Interface | Vendor ID | Product ID | Role |
+|---|---:|---:|---|
+| Corsair iCUE virtual keyboard | 6940 | 65535 | Side-grid and top-button keys |
+| Corsair pointing interface | 6940 | 11008 | Wheel click |
+| Razer keyboard interface | 5426 | 141 | Side-grid and top-button keys |
+| Razer pointing interface | 5426 | 141 | Wheel click |
 
-## Expiring Modes system
-
-Physical cell 12 opens the shared Modes lease immediately:
-Corsair printed 12 or Razer printed 10. While active, all twelve exact-device transports send ordered
-press/release `agentic_mouse_mode_picker` payloads, independent of frontmost-app
-base conditions. Keys cell 6 selects Keypad; top-level cell 2 opens the current
-frontmost app's mode, while Utility cell 11 opens the manual configured-app
-selector. Cell 10 exits from every page; app children also use their matching
-entry cell 2 as Exit, while the parent selector keeps cell 2 for Terminal. App
-children keep cell 12 available for a real app action. VS Code, Terminal, and iTerm use it for one app-targeted
-Ctrl-C interrupt, while Utility uses it to open Extra Utilities. Top-level cell 9 and Utility cell 9 open Keys. Utility
-uses held wheel chords on cell 1 for Brightness and cell 2 for Zoom. Top-level
-cell 4 owns Copy / Paste directly, while top-level cell 1 owns Horizontal Scroll. Utility cell 3 holds Spaces + Wheel, cell 4
-holds Mission Control / Show Desktop + Wheel, cell 5 holds App Exposé + Wheel,
-and cell 6 holds Magnet + Wheel. Utility cell 8 opens Intelligence on Demand
-with one hardware-shaped Option-Space lifecycle. Wheel up means decrease / zoom in / Paste /
-Mission Control / Magnet Left / Space right; wheel down means
-increase / zoom out / Copy / Show Desktop / App Exposé / Magnet Right /
-Space left. Cell 7 types the optional
-device-local Keychain password.
-Agentic Mouse lets only the first accepted Space ratchet in each physical hold
-choose this Mac's exact Control-Fn-Left/Right shortcut after the wheel callback
-returns; later ratchets stay consumed until release. A temporary,
-rate-limited legend footer exposes the raw wheel fields, routing verdict,
-keyboard post, and observed Space-change notification during diagnosis.
-Keys uses cell 3 for Undo as Command-Z, cell 6 for Keypad, cell 9 for the held Next/Previous Track wheel chord,
-cell 8 for Space, and cell 11 for Backspace; cells 2 and 12 are spare. Its four arrows
-use cells 5/4/7/1 on Corsair, with horizontal meanings mirrored on the
-left-handed Razer. Active-mode legends remain visible until cell 10 exits;
-Keypad cell 1 cycles punctuation, cell 3 is the familiar DEF key, cell 11 sends
-Space, and cell 12 taps Backspace or holds Return.
-Every Default and runtime-mode card omits explanatory subtitles and retains
-only the action title plus the source-mouse button label.
-The ordinary base excludes the Modes lease on
-all twelve cells. Colour Proof is not generated or selectable. Each entry receives only a
-1.2-second bootstrap lease, so a missing receiver cannot leave a hidden latch
-and an app crash restores ordinary mappings after the last short renewal.
-
-Karabiner routes cells but does not control lighting or render the HUD. The
-running Agentic Mouse app owns those outputs and uses only transient runtime
-lighting. Generation and linting do not themselves install or enable the rules.
-Do not enable the ordinary base artifact alongside the runtime artifact: it
-already contains gated replacements for both base rules.
+For different hardware, update the source adapter after verifying every input. Preserve exact `device_if` filters, mirrored physical-cell meanings and independent per-hand state. Never broaden a keyboard filter to make an unidentified device work.
 
 ## Corsair neutral transports
 
@@ -161,23 +75,24 @@ mouse's exact pointing interface and inline the same `play-pause-current-media`
 action. Corsair uses `6940:11008`; Razer uses `5426:141`. Vendor software keeps
 the wheel at its default middle-click source instead of owning Play/Pause.
 
-The base is intentionally unfiltered. A future app-specific override should be
+Base actions are app-agnostic except for their explicit app overrides; exact-device and session filters always remain in place. A future app-specific override should be
 added only for the selected transport: give the override a
 `frontmost_application_if` condition and exclude that same app from the base
 binding with `frontmost_application_unless`. Do not clone all twelve bindings.
 
-## Ownership and verification
+## App shortcuts and runtime behavior
 
-- iCUE owns Corsair DPI, profiles, lighting and neutral source transports.
-- The Naga onboard profile owns its hardware transports.
-- Karabiner owns enabled, exact-device live mappings.
-- Agentic Mouse owns these semantic sources, the generator, and its separately
-  approved runtime modes.
+The [current map](https://ethansk.github.io/agentic-mouse/mouse-map.html) is generated from the native mode definitions. Read those definitions and the action sources for current buttons and wheel directions instead of maintaining a second handwritten mode map here.
 
-Static generation and Karabiner lint do not prove a mouse. The generated
-Corsair rules were installed only after EventViewer proved all twelve source
-events from vendor `6940`, product `65535`; downstream semantic acceptance is
-still in progress. The Razer rules were installed after the returned Naga was
-listed as exact keyboard device `5426:141` and Ethan physically produced
-F21/F22 plus its ordered `1–9,0,-,=` side-grid sequence. Acceptance additionally
-requires physical global behavior, rollback, and both-mice coexistence tests.
+VS Code navigation/staging uses Better Git's captured-origin commands. The side-5/8 adapters supply their own `outputModifiers`; the shared action templates substitute `$binding_output_modifiers`. Configure the corresponding Better Git receiver before testing those actions. The [included VS Code bridge](../Integrations/VSCode/README.md) handles cursor history and terminal commands separately.
+
+The [agent guide](../docs/AGENT-SETUP.md) covers Ethan's Dvorak keyboard-layout assumptions. The [YouTube/Chrome bridge guide](../docs/YOUTUBE-BRIDGE.md) covers external media and browser receivers. A successful Karabiner import does not configure those apps.
+
+## Verify and recover
+
+- iCUE owns Corsair profiles, DPI and neutral input assignments; the Razer onboard profile owns its source keys.
+- Karabiner owns the selected profile's exact-device rules; Agentic Mouse owns the runtime and transient lighting.
+- Verify all source keys, both hands independently, ordinary input, mode entry/exit, lock/unlock and sleep/wake using the [physical checklist](../docs/AGENT-SETUP.md#verify-the-owners-real-case).
+- Keep backups private and follow [recovery](../docs/RECOVERY.md) for an update or removal; never overwrite newer unrelated Karabiner settings with an old whole-file backup.
+
+Generated JSON, tests and browser demos do not establish physical acceptance on another Mac.

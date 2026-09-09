@@ -2,7 +2,7 @@
 
 Start with the [browser walkthrough](https://ethansk.github.io/agentic-mouse/). The native app needs manual setup for your own Mac, mice, keyboard layout and installed apps. There is no signed, notarized app download yet.
 
-Using a coding agent? Give it [AGENT-SETUP.md](AGENT-SETUP.md) before letting it change your machine.
+Using a coding agent? Start with the [reproduction guide and copyable prompt](REPRODUCE.md), then give it [AGENT-SETUP.md](AGENT-SETUP.md) before letting it change your machine.
 
 ## 1. Build without changing your Mac
 
@@ -66,7 +66,7 @@ For the supported Corsair, use one iCUE software profile with modifier-free Keyb
 
 Keep **Retain Original Key Output** off. Keep **Imitate Holding Key** off unless EventViewer proves your device needs it for one clean down/up lifecycle. Reopen each saved assignment to confirm its target. The top DPI control uses F19; wheel click stays ordinary middle click. Ethan uses 2,750 DPI in every stage; choose your own sensitivity without assigning semantic actions to DPI changes.
 
-The supported Razer onboard grid emits main-row `1–9`, `0`, `hyphen`, and `equal_sign`. Its printed numbers differ from Corsair's; [PhysicalCell.swift](../Sources/ScimitarKit/App/PhysicalCell.swift) owns the crosswalk, with adapter details in [Karabiner/README.md](../Karabiner/README.md). Verify top-button transports separately. Other Naga or Scimitar models may expose different interfaces.
+The supported Razer onboard grid emits main-row `1–9`, `0`, `hyphen`, and `equal_sign`. Its printed numbers differ from Corsair's; [PhysicalCell.swift](../Sources/ScimitarKit/App/PhysicalCell.swift) owns the crosswalk, with adapter details in [Karabiner/README.md](../Karabiner/README.md). The top controls emit F21/F22; both map to the same VoiceInk++ Control–Option–Shift shortcut on release. Verify those transports separately. Other Naga or Scimitar models may expose different interfaces.
 
 Use vendor settings visibly. Do not edit iCUE's private database or reset unrelated devices. With one supported mouse, the other exact-device adapter has no matching device; it needs no broad fallback.
 
@@ -153,7 +153,7 @@ The same VSIX is included at `Contents/Resources/AgenticMouseVSCodeBridge.vsix`.
 
 ## 8. Verify before relying on it
 
-Start in a disposable text field. Confirm ordinary pointer/scroll/left/right click, each installed mouse's twelve transports, top button and wheel click. Open and exit modes independently on each hand. Test Keys → Keypad, focus changes before a pending character commits, and restoration of the normal map.
+Start in a disposable text field. Confirm ordinary pointer/scroll/left/right click, each installed mouse's twelve transports, top button and wheel click (Play/Pause in the installed map). Open and exit modes independently on each hand. Test Keys → Keypad, focus changes before a pending character commits, and restoration of the normal map.
 
 Then verify wheel polarity, sleep/wake, session lock/unlock, intentional Quit, restart and physical lighting restoration. Test external actions only after their receiver and shortcuts are configured. Avoid testing interruption, screenshots, staging, clipboard or window actions over valuable work.
 
