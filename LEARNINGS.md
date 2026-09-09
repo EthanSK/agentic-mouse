@@ -2683,3 +2683,5 @@ A project chat inserts a Project popup before the task-title group beside Chat a
 - 2026-09-09: Reproduction starts with the whole Git checkout: the site exporter needs Git revision metadata, while generated Karabiner rules alone need the running native app and external receivers. Keep the file inventory and agent prompt in docs/REPRODUCE.md. Avoid handwritten rule/manipulator counts and mode summaries in Karabiner/README.md because they drift from the generator and native map. Verify only committed files plus declared build dependencies, use temporary installer profiles, and report private bridge and physical acceptance boundaries explicitly.
 
 - 2026-09-09: Show Hold → Stage as the third prominent gesture beside 5 Previous and 8 Next in the code-review section. Keep the detailed hold-and-release explanation below, and allow the gesture row to wrap on narrow screens.
+
+- 2026-09-09: Keep the Agentic Mouse page focused on its controls: replace the full personal room-photo section with a compact card linking to Ethan’s setup in a new browser tab. Its thumbnail uses the personal site’s existing social image without stretching or regenerating it.
