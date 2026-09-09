@@ -929,9 +929,10 @@ button {
 .engineer-copy > p:not(.eyebrow) { margin-top: 24px; max-width: 510px; color: #b4bacb; }
 .engineer-copy > .engineer-tools { font-size: 13px; margin-top: 18px; }
 .engineer-copy a { color: var(--ink); text-decoration: underline; text-underline-offset: 3px; }
-.review-directions { display: flex; gap: 24px; padding-bottom: 26px; border-bottom: 1px solid var(--line); }
+.review-directions { display: flex; flex-wrap: wrap; gap: 24px; padding-bottom: 26px; border-bottom: 1px solid var(--line); }
 .review-directions > p { display: flex; align-items: center; gap: 12px; font-size: 13px; font-weight: 700; }
 .review-number { display: grid; place-items: center; flex: 0 0 46px; height: 54px; border: 1px solid #494054; border-bottom-width: 4px; border-radius: 10px; background: #252031; color: #d3c1ff; font-size: 24px; }
+.review-hold { flex-basis: 54px; font-size: 14px; }
 .review-gestures dl { margin: 24px 0 18px; }
 .review-gestures dl > div + div { margin-top: 18px; }
 .review-gestures dt { font-weight: 800; font-size: 15px; }
