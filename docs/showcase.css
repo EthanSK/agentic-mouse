@@ -2779,3 +2779,5 @@ button {
   .setup-preview-copy > span { font-size: 11px; }
   .setup-preview-arrow { padding: 0; font-size: 20px; }
 }
+
+.setup-section .desk-setup-preview { max-width: none; margin: 0 0 36px; }
