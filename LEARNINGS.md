@@ -1,5 +1,15 @@
 # Learnings
 
+## 2026-09-16 — Consume the VS Code adjacent cancel before dispatch
+
+**Trigger:** After Better Git moved short/long hold decisions to button-up, Ethan reported that Corsair 8+7 and 5+4 no longer cancelled reliably.
+
+**Cause:** The adjacent chord emitted source-tagged F14, bare F16 and source-tagged F15 as three separate VS Code commands, then marked its local hold consumed. A semantic one-step cancel therefore depended on cross-command ordering and left a physical-release race before the consumed state was written.
+
+**Fix:** Set the mouse-specific hold state to consumed first, emit one source-tagged modified F16 for Better Git's atomic cancel command, and keep F15 only as feedback cleanup. A higher-priority state-3 sink consumes repeated adjacent presses. The held button's later release cannot emit navigation or staging. Bare F16 remains exact Undo, and normal 200 ms short/long release paths are unchanged.
+
+**Guard:** Generator tests cover both mice, both directions, pre-threshold and ready holds, source-specific F16 modifiers, repeat consumption and inert later release. The native child classifier emits the same one-command semantic cancel. The full clean gate passed 745 Swift tests, 26 generator tests, 14 installation tests, six extension tests, six VS Code bridge tests, packaging checks and 20 site tests. The matching Better Git real-host cases passed on the Mini.
+
 ## 2026-09-06 — Reuse the original portrait for every lounge-image correction
 
 **Trigger:** After the generated lounge image's legs were lengthened, Ethan spotted that the lower torso still looked compressed and asked to supply his real face again.

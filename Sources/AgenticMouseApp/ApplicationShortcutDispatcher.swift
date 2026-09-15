@@ -447,7 +447,8 @@ enum VSCodeModeShortcutResolver {
         case .stageAndNext:
             return .init(keyCode: 79, flags: []) // F18
         case .beginNextChangeHold, .beginPreviousChangeHold,
-             .finishNextChangeHold, .finishPreviousChangeHold, .cancelNavigationHold:
+             .finishNextChangeHold, .finishPreviousChangeHold, .cancelNavigationHold,
+             .cancelNavigationHoldAtomically:
             let flags: CGEventFlags = source == .razer
                 ? [.maskCommand, .maskShift]
                 : [.maskControl, .maskCommand]
@@ -455,6 +456,7 @@ enum VSCodeModeShortcutResolver {
                 .beginNextChangeHold: 105, .beginPreviousChangeHold: 64,
                 .finishNextChangeHold: 79, .finishPreviousChangeHold: 80,
                 .cancelNavigationHold: 107,
+                .cancelNavigationHoldAtomically: 106,
             ]
             return .init(keyCode: codes[command]!, flags: flags)
         case .stageHoldReady, .stageHoldClear:

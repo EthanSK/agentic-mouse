@@ -271,7 +271,7 @@ final class ApplicationShortcutDispatcherTests: XCTestCase {
     func testStageFeedbackCannotContainVoiceInkModifierOnlyChord() throws {
         let voiceInk: CGEventFlags = [.maskControl, .maskShift, .maskAlternate]
         for source in MouseSource.allCases {
-            for command in [VSCodeModeCommand.stageHoldReady, .stageHoldClear, .beginNextChangeHold, .beginPreviousChangeHold, .finishNextChangeHold, .finishPreviousChangeHold, .cancelNavigationHold] {
+            for command in [VSCodeModeCommand.stageHoldReady, .stageHoldClear, .beginNextChangeHold, .beginPreviousChangeHold, .finishNextChangeHold, .finishPreviousChangeHold, .cancelNavigationHold, .cancelNavigationHoldAtomically] {
                 let shortcut = try XCTUnwrap(VSCodeModeShortcutResolver.shortcut(for: command, source: source))
                 XCTAssertNotEqual(shortcut.flags.intersection(voiceInk), voiceInk)
             }

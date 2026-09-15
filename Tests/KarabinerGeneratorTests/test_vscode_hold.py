@@ -134,12 +134,22 @@ class VSCodeHoldTests(unittest.TestCase):
                     self.assertEqual(self.keys, ["f13" if cell == 8 else "f17"])
                     self.assertTrue(self.matches(chord["conditions"]))
                     self.events(chord["to"])
-                    self.events(chord["to"])
+                    self.assertFalse(self.matches(chord["conditions"]))
+                    consumed = generator.vscode_hold_templates({
+                        "id": f"{source}-vscode-side-{cell:02d}",
+                        "action": f"vscode-stage-{'next' if cell == 8 else 'previous'}-while-{source}-held",
+                    })[1]
+                    self.assertTrue(self.matches(consumed["conditions"]))
+                    self.assertEqual(consumed["to"], [{"key_code": "vk_none", "repeat": False}])
                     self.events(nav["to_if_held_down"])
                     self.events(nav["to_if_alone"])
                     self.events(nav["to_after_key_up"])
                     self.assertEqual(self.keys, ["f13" if cell == 8 else "f17", "f16"])
                     self.assertFalse(self.matches(chord["conditions"]))
+
+                    tagged = chord["to"][1]
+                    expected = ["left_command", "left_shift"] if source == "razer" else ["left_control", "left_command"]
+                    self.assertEqual(tagged["modifiers"], expected)
 
     def test_other_mouse_cannot_undo_and_release_leaves_no_late_window(self):
         self.events(self.rule("corsair", 8)["to"])
