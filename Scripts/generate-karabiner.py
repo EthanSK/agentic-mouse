@@ -72,6 +72,50 @@ EXTERNAL_OUTPUT_FIELDS = {
 }
 FORBIDDEN_ACTION_FIELDS = {"from", "type", "manipulator", "manipulators"}
 BINDING_VARIABLE_PLACEHOLDER = "$binding_variable"
+VSCODE_LEGACY_STAGE_FLAG = "agentic_mouse_vscode_legacy_stage_chords_enabled"
+
+
+def vscode_hold_templates(binding: dict[str, Any]) -> list[dict[str, Any]]:
+    """Navigate on press; stage the captured origin on long release; the adjacent chord undoes."""
+    source = binding["id"].split("-", 1)[0]
+    cell = 8 if "next" in binding["action"] else 5
+    pending = f"agentic_mouse_{source}_vscode_hold_{cell}"
+    frontmost = {"type": "frontmost_application_if", "bundle_identifiers": [r"^com\.microsoft\.VSCode(?:Insiders)?$"]}
+    output_conditions = [frontmost, {"type": "expression_unless", "expression": _active_expression(f"agentic_mouse_mode_picker_{source}_expires_at")}]
+    enabled = [frontmost, {"type": "variable_unless", "name": VSCODE_LEGACY_STAGE_FLAG, "value": 1}]
+    feedback_modifiers = ["left_command", "left_shift"] if source == "razer" else ["left_control", "left_option", "left_command"]
+    navigation_modifiers = ["left_command", "left_shift"] if source == "razer" else ["left_control", "left_command"]
+    cancel_origin = {"key_code": "f14", "modifiers": navigation_modifiers, "repeat": False, "conditions": copy.deepcopy(output_conditions)}
+    clear_feedback = {"key_code": "f15", "modifiers": feedback_modifiers, "repeat": False, "conditions": copy.deepcopy(output_conditions)}
+    if "-while-" in binding["action"]:
+        return [{
+            "conditions": enabled + [{"type": "expression_if", "expression": f"{pending} == 1 or {pending} == 2 or {pending} == 3"}],
+            "to": [
+                copy.deepcopy(cancel_origin),
+                {"key_code": "f16", "repeat": False, "conditions": [{"type": "variable_unless", "name": pending, "value": 3}] + copy.deepcopy(output_conditions)},
+                {"set_variable": {"name": pending, "value": 3}},
+                copy.deepcopy(clear_feedback),
+            ],
+        }]
+    short = {"type": "variable_if", "name": pending, "value": 1}
+    held = {"type": "variable_if", "name": pending, "value": 2}
+    return [{
+        "conditions": enabled,
+        "parameters": {"basic.to_if_held_down_threshold_milliseconds": 200, "basic.to_if_alone_timeout_milliseconds": 200},
+        "to": [{"set_variable": {"name": pending, "value": 1}},
+               {"key_code": "f13" if cell == 8 else "f17", "modifiers": navigation_modifiers, "repeat": False, "conditions": copy.deepcopy(output_conditions)}],
+        "to_if_held_down": [
+            {"set_variable": {"name": pending, "value": 2}, "conditions": [short]},
+            {"key_code": "f20", "modifiers": feedback_modifiers, "repeat": False, "conditions": copy.deepcopy(output_conditions)},
+        ],
+        "to_if_alone": [{"set_variable": {"name": pending, "value": 1}, "conditions": [{"type": "expression_if", "expression": f"{pending} == 1 or {pending} == 2"}]}],
+        "to_after_key_up": [
+            {**copy.deepcopy(cancel_origin), "conditions": [short] + copy.deepcopy(output_conditions)},
+            {"key_code": "f18" if cell == 8 else "f19", "modifiers": navigation_modifiers, "repeat": False, "conditions": [held] + copy.deepcopy(output_conditions)},
+            {"set_variable": {"name": pending, "value": 0}},
+            copy.deepcopy(clear_feedback),
+        ],
+    }]
 
 
 class GenerationError(ValueError):
@@ -540,7 +584,12 @@ def build_documents(
                 f"binding {binding['id']} references unknown action {action_id}"
             )
 
-        for index, source_template in enumerate(action["_manipulator_templates"]):
+        templates = copy.deepcopy(action["_manipulator_templates"])
+        if binding["id"].startswith(("corsair-vscode-", "razer-vscode-")):
+            for template in templates:
+                template.setdefault("conditions", []).append({"type": "variable_if", "name": VSCODE_LEGACY_STAGE_FLAG, "value": 1})
+            templates = vscode_hold_templates(binding) + templates
+        for index, source_template in enumerate(templates):
             template = _expand_binding_placeholders(copy.deepcopy(source_template), binding["id"], binding.get("outputModifiers"))
             action_conditions = template.pop("conditions", [])
             action_parameters = template.pop("parameters", {})

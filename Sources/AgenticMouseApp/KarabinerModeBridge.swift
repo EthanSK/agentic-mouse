@@ -121,7 +121,7 @@ final class KarabinerCLIModeLease: ColorProofLeaseControlling {
 /// socket owned by another user-command server; only its own stale crash socket
 /// is reclaimed.
 final class KarabinerUserCommandReceiver {
-    typealias Handler = (Data) -> Void
+    typealias Handler = (Data, TimeInterval) -> Void
 
     static var defaultSocketPath: String {
         "/Library/Application Support/org.pqrs/tmp/user/\(geteuid())/user_command_receiver.sock"
@@ -258,12 +258,13 @@ final class KarabinerUserCommandReceiver {
         while true {
             let count = recv(fd, &buffer, buffer.count, 0)
             if count > 0 {
+                let inputTime = ProcessInfo.processInfo.systemUptime
                 var end = count
                 if end > 0, buffer[end - 1] == 0x0A { end -= 1 }
                 if end > 0, buffer[end - 1] == 0x0D { end -= 1 }
                 guard end > 0 else { continue }
                 let data = Data(buffer[0..<end])
-                DispatchQueue.main.async { handler(data) }
+                DispatchQueue.main.async { handler(data, inputTime) }
                 continue
             }
             if count < 0, errno == EINTR { continue }

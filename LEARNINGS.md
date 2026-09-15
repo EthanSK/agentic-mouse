@@ -2685,3 +2685,19 @@ A project chat inserts a Project popup before the task-title group beside Chat a
 - 2026-09-09: Show Hold → Stage as the third prominent gesture beside 5 Previous and 8 Next in the code-review section. Keep the detailed hold-and-release explanation below, and allow the gesture row to wrap on narrow screens.
 
 - 2026-09-09: Keep the Agentic Mouse page focused on its controls: replace the full personal room-photo section with a compact card linking to Ethan’s setup in a new browser tab. Its thumbnail uses the personal site’s existing social image without stretching or regenerating it.
+
+## Karabiner hold readiness must not depend on an earlier event in the same output list (2026-09-15)
+
+**Trigger:** Better Git 1.2.82 logged the immediate navigation begin and later finish/stage, but never received F20 readiness. It could therefore stage on release without restoring the captured pre-down view while held.
+
+**Cause:** The generated `to_if_held_down` list first changed the source-local pending variable from 1 to 2, then conditioned F20 on that variable already equalling 2. Karabiner evaluates an event's conditions before an earlier event in the same output list mutates the variable, so it applied the state change but suppressed F20. The prior Python state-machine test evaluated list entries sequentially and reproduced the intended model instead of Karabiner's real condition timing.
+
+**Fix and guard:** Keep the state transition guarded by pending 1, but give F20 only the established frontmost, mode and unlocked-session conditions. Assert structurally that all four Corsair/Razer Previous/Next readiness events have no pending-variable condition. Both Default Karabiner and app-owned VS Code paths use Ethan's requested 200 ms threshold. Preserve Corsair Control-Option-Command F20/F15 and Razer Command-Shift F20/F15; do not restore Razer Hyper because Karabiner's intermediate modifiers can start VoiceInk. Better Git must bind the safe Razer transport. Adjacent cancellation marks the hold consumed so the stale release is inert.
+
+## Child VS Code releases close after the final decision (2026-09-15)
+
+- Better Git uses source-tagged `F15` as the transaction boundary that distinguishes a short `F14` release from the adjacent-cancel `F14`/`F16` sequence.
+- The app-owned automatic/manual VS Code child previously emitted `F15` before a ready long release and omitted it after short releases. That ordering could not support the same atomic release semantics as the normal Karabiner path.
+- Keep the child sequence aligned with Karabiner: short `F14` then `F15`; long `F18`/`F19` then `F15`; adjacent cancel `F14`, `F16`, then `F15`. The later physical release after an adjacent cancel must remain consumed and emit no second boundary.
+- `F20` remains readiness-only, and the hold threshold remains 200 ms.
+- Ethan physically accepted the finished gesture on 2026-09-15. A clean extraction onto current `origin/main` passed the complete repository gate: 745 Swift tests, 26 generator tests, 14 installation tests, both JavaScript suites, generated-rule validation, and packaging contracts.

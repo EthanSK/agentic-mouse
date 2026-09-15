@@ -125,7 +125,7 @@ final class SiteProbe {
             effect = String(describing: action)
             return true
         }
-        coordinator.onAppSpecificInput = { [unowned self] _, target, cell, phase in
+        coordinator.onAppSpecificInput = { [unowned self] _, target, cell, phase, _ in
             guard phase == .press else { return true }
             effect = target.definition.legend.first { $0.cell == cell }?.actionTitle
             return effect != "Spare"

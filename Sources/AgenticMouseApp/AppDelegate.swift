@@ -988,6 +988,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 scheduler: DispatchTickScheduler()
             )
             vsCodeModeGestureClassifiers[source] = vsCodeGestures
+            vsCodeGestures.onStageHoldReadyChange = { [weak self] ready in
+                guard let self, self.mouseCommandsAllowed else { return }
+                self.performVSCodeModeCommand(ready ? .stageHoldReady : .stageHoldClear, source: source)
+            }
             coordinator.onAppearanceChange = { [weak self] modeColor, actionColor in
                 guard let self else { return [] }
                 switch source {
@@ -1063,7 +1067,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             coordinator.resolveAppSelectorDefinition = { [weak self] in
                 self?.appSelectorDefinition() ?? AppSpecificMode.selectorDefinition
             }
-            coordinator.onAppSpecificInput = { [weak self] requestedSource, target, cell, phase in
+            coordinator.onAppSpecificInput = { [weak self] requestedSource, target, cell, phase, inputTime in
                 guard let self, requestedSource == source else { return false }
                 let result: Result<Void, ApplicationShortcutDispatcher.DispatchError>
                 switch target {
@@ -1122,13 +1126,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                         return false
                     }
                 case .vsCode:
-                    guard phase == .press else { return true }
                     guard let action = VSCodeModeAction.action(for: cell) else { return false }
                     guard let classifier = self.vsCodeModeGestureClassifiers[source] else {
                         return false
                     }
-                    classifier.handlePress(action: action) { [weak self] command in
-                        self?.performVSCodeModeCommand(command, source: source)
+                    if phase == .press, classifier.handleUndoChord(cell: cell, emit: { [weak self] command in
+                        guard let self, self.mouseCommandsAllowed else { return }
+                        self.performVSCodeModeCommand(command, source: source)
+                    }) { return true }
+                    if action == .nextChange || action == .previousChange {
+                        classifier.handleNavigation(action: action, phase: phase, inputTime: inputTime) { [weak self] command in
+                            guard let self, self.mouseCommandsAllowed else { return }
+                            self.performVSCodeModeCommand(command, source: source)
+                        }
+                    } else if phase == .press {
+                        classifier.handlePress(action: action) { [weak self] command in
+                            self?.performVSCodeModeCommand(command, source: source)
+                        }
                     }
                     return true
                 case .terminal, .iTerm:
@@ -1245,7 +1259,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     return false
                 }
             }
-            coordinator.onNativeAppSpecificInput = { [weak self] requestedSource, target, cell, phase in
+            coordinator.onNativeAppSpecificInput = { [weak self] requestedSource, target, cell, phase, _ in
                 guard let self, requestedSource == source, phase == .press,
                       target == .codex,
                       CodexModeAction.action(for: cell) == .toggleVoiceMode
@@ -1384,7 +1398,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return
         }
 
-        guard let shortcut = VSCodeModeShortcutResolver.shortcut(for: command) else {
+        guard let shortcut = VSCodeModeShortcutResolver.shortcut(for: command, source: source) else {
             modeHUDPresenters[source]?.flashProblem(
                 "Could not resolve Interrupt terminal for the current keyboard layout"
             )
@@ -2125,13 +2139,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         let receiver = KarabinerUserCommandReceiver()
         do {
-            try receiver.start { [weak self] data in
+            try receiver.start { [weak self] data, inputTime in
                 guard let self, self.mouseCommandsAllowed else {
                     self?.log.notice("ignored a mouse command while the macOS session was inactive")
                     return
                 }
                 if let command = try? ModePickerCommand.decode(data) {
-                    self.modePickerCoordinators[command.source]?.handle(command)
+                    self.modePickerCoordinators[command.source]?.handle(command, inputTime: inputTime)
                     return
                 }
                 if let command = try? WheelChordCommand.decodeTopLevel(data) {
