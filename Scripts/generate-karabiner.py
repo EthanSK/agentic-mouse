@@ -76,7 +76,7 @@ VSCODE_LEGACY_STAGE_FLAG = "agentic_mouse_vscode_legacy_stage_chords_enabled"
 
 
 def vscode_hold_templates(binding: dict[str, Any]) -> list[dict[str, Any]]:
-    """Navigate on press; stage the captured origin on long release; the adjacent chord undoes."""
+    """Navigate on press; stage on long release; atomically consume the adjacent cancel chord."""
     source = binding["id"].split("-", 1)[0]
     cell = 8 if "next" in binding["action"] else 5
     pending = f"agentic_mouse_{source}_vscode_hold_{cell}"
@@ -89,13 +89,15 @@ def vscode_hold_templates(binding: dict[str, Any]) -> list[dict[str, Any]]:
     clear_feedback = {"key_code": "f15", "modifiers": feedback_modifiers, "repeat": False, "conditions": copy.deepcopy(output_conditions)}
     if "-while-" in binding["action"]:
         return [{
-            "conditions": enabled + [{"type": "expression_if", "expression": f"{pending} == 1 or {pending} == 2 or {pending} == 3"}],
+            "conditions": enabled + [{"type": "expression_if", "expression": f"{pending} == 1 or {pending} == 2"}],
             "to": [
-                copy.deepcopy(cancel_origin),
-                {"key_code": "f16", "repeat": False, "conditions": [{"type": "variable_unless", "name": pending, "value": 3}] + copy.deepcopy(output_conditions)},
                 {"set_variable": {"name": pending, "value": 3}},
+                {"key_code": "f16", "modifiers": navigation_modifiers, "repeat": False, "conditions": copy.deepcopy(output_conditions)},
                 copy.deepcopy(clear_feedback),
             ],
+        }, {
+            "conditions": enabled + [{"type": "variable_if", "name": pending, "value": 3}],
+            "to": [{"key_code": "vk_none", "repeat": False}],
         }]
     short = {"type": "variable_if", "name": pending, "value": 1}
     held = {"type": "variable_if", "name": pending, "value": 2}

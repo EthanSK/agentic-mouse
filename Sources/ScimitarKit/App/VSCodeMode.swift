@@ -102,6 +102,7 @@ public enum VSCodeModeCommand: String, Equatable, Sendable {
     case finishNextChangeHold
     case finishPreviousChangeHold
     case cancelNavigationHold
+    case cancelNavigationHoldAtomically
     case stageHoldReady
     case stageHoldClear
     case closeTab
@@ -233,8 +234,7 @@ public final class VSCodeModeGestureClassifier {
         guard !undoChordConsumed else { return true }
         scheduler.stop()
         undoChordConsumed = true // Waiting until release to stage lets Undo consume even an already-long hold. Repeated long holds must stage independently, never undo. (Codex task: 01a039f7-873c-7c30-b3dc-af8a6724ace5)
-        emit(.cancelNavigationHold)
-        emit(.undoLastStageAndAdvance)
+        emit(.cancelNavigationHoldAtomically)
         finishStageHoldTransaction()
         return true
     }
@@ -260,9 +260,8 @@ public final class VSCodeModeGestureClassifier {
         onStageHoldReadyChange?(false)
     }
 
-    /// F15 is the release transaction boundary Better Git uses to distinguish
-    /// a short F14 from the adjacent-cancel F14/F16 sequence. Emit it after the
-    /// final release command even when the hold never reached readiness.
+    /// F15 is the short-release transaction boundary and clears any visible
+    /// readiness feedback. Emit it after the final release or cancel command.
     private func finishStageHoldTransaction() {
         scheduler.stop()
         stageHoldReady = false

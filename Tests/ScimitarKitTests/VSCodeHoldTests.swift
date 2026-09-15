@@ -44,7 +44,7 @@ final class VSCodeHoldTests: XCTestCase {
                 XCTAssertTrue(subject.handleUndoChord(cell: partner) { commands.append($0) })
                 XCTAssertTrue(subject.handleUndoChord(cell: partner) { commands.append($0) })
                 subject.handleNavigation(action: action, phase: .release, inputTime: duration) { commands.append($0) }
-                XCTAssertEqual(commands, [action == .nextChange ? .beginNextChangeHold : .beginPreviousChangeHold, .cancelNavigationHold, .undoLastStageAndAdvance])
+                XCTAssertEqual(commands, [action == .nextChange ? .beginNextChangeHold : .beginPreviousChangeHold, .cancelNavigationHoldAtomically])
                 XCTAssertFalse(subject.handleUndoChord(cell: partner) { commands.append($0) })
             }
         }
@@ -107,7 +107,7 @@ final class VSCodeHoldTests: XCTestCase {
             subject.handleNavigation(action: .nextChange, phase: .release, inputTime: 0.6) { commands.append($0) }
             scheduler.fire()
             XCTAssertEqual(feedback, [true, false])
-            XCTAssertEqual(commands, finish == "release" ? [.beginNextChangeHold, .finishNextChangeHold] : finish == "undo" ? [.beginNextChangeHold, .cancelNavigationHold, .undoLastStageAndAdvance] : [.beginNextChangeHold])
+            XCTAssertEqual(commands, finish == "release" ? [.beginNextChangeHold, .finishNextChangeHold] : finish == "undo" ? [.beginNextChangeHold, .cancelNavigationHoldAtomically] : [.beginNextChangeHold])
         }
     }
 
@@ -157,7 +157,7 @@ final class VSCodeHoldTests: XCTestCase {
         }
     }
 
-    func testChildTransportClosesAdjacentCancelAfterF14AndF16() {
+    func testChildTransportClosesAdjacentCancelWithOneSourceTaggedF16() {
         for action in [VSCodeModeAction.nextChange, .previousChange] {
             let subject = VSCodeModeGestureClassifier(clock: ManualClock(), scheduler: ManualTickScheduler())
             var commands: [VSCodeModeCommand] = []
@@ -170,8 +170,7 @@ final class VSCodeHoldTests: XCTestCase {
             subject.handleNavigation(action: action, phase: .release, inputTime: Self.longHoldDuration) { commands.append($0) }
             XCTAssertEqual(commands, [
                 action == .nextChange ? .beginNextChangeHold : .beginPreviousChangeHold,
-                .cancelNavigationHold,
-                .undoLastStageAndAdvance,
+                .cancelNavigationHoldAtomically,
                 .stageHoldClear,
             ])
         }
