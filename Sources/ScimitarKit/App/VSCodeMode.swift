@@ -29,8 +29,8 @@ public enum VSCodeModeAction: String, CaseIterable, Equatable, Sendable {
         switch self {
         case .closeTab: return "Close tab"
         case .find: return "Find"
-        case .previousChange: return "Previous Change"
-        case .nextChange: return "Next Change"
+        case .previousChange: return "Prev / Hold stage"
+        case .nextChange: return "Next / Hold stage"
         case .stageAndNext: return "Stage + Next / Undo Stage ×2"
         case .toggleTerminal: return "Toggle Terminal"
         case .commandPalette: return "Command Palette"
@@ -97,6 +97,13 @@ public enum VSCodeModeAction: String, CaseIterable, Equatable, Sendable {
 /// Semantic commands emitted by both VS Code mode journeys. The app shell is
 /// the only layer that translates these into macOS key codes.
 public enum VSCodeModeCommand: String, Equatable, Sendable {
+    case beginNextChangeHold
+    case beginPreviousChangeHold
+    case finishNextChangeHold
+    case finishPreviousChangeHold
+    case cancelNavigationHold
+    case stageHoldReady
+    case stageHoldClear
     case closeTab
     case find
     case previousChange
@@ -112,9 +119,10 @@ public enum VSCodeModeCommand: String, Equatable, Sendable {
     case navigateForward
 }
 
-/// Applies the proven 300 ms Better Git single/double-click classifier inside
-/// an app-specific page. AppDelegate creates one instance per exact mouse so
-/// the two independent mode/HUD journeys can never combine their clicks.
+/// Owns runtime-page holds and the separate Stage button's existing double click.
+/// Default navigation uses native Karabiner holds; runtime pages dispatch to their
+/// selected app, so they use this source-owned classifier instead. Both share the
+/// 200 ms release-based hold contract. Better Git owns all undo data.
 public final class VSCodeModeGestureClassifier {
     private struct PendingPress {
         let action: VSCodeModeAction
@@ -126,6 +134,11 @@ public final class VSCodeModeGestureClassifier {
     private let scheduler: TickScheduler
     private let doubleClickInterval: TimeInterval
     private var pending: PendingPress?
+    private var heldNavigation: (action: VSCodeModeAction, pressedAt: TimeInterval)?
+    private var undoChordConsumed = false
+    private var stageHoldReady = false
+    public var onStageHoldReadyChange: ((Bool) -> Void)?
+    public static let stageHoldThreshold: TimeInterval = 0.20
 
     public init(
         clock: MonotonicClock,
@@ -141,6 +154,9 @@ public final class VSCodeModeGestureClassifier {
         action: VSCodeModeAction,
         emit: @escaping (VSCodeModeCommand) -> Void
     ) {
+        clearStageHoldFeedback()
+        heldNavigation = nil
+        undoChordConsumed = false
         guard let doubleCommand = action.doublePressCommand else {
             commitPendingSinglePress()
             emit(action.singlePressCommand)
@@ -165,6 +181,64 @@ public final class VSCodeModeGestureClassifier {
         }
     }
 
+    /// Decide on release using socket-ingress timing, never the delayed main-thread clock.
+    public func handleNavigation(
+        action: VSCodeModeAction,
+        phase: ModePickerCommand.Phase,
+        inputTime: TimeInterval,
+        emit: @escaping (VSCodeModeCommand) -> Void
+    ) {
+        guard action == .nextChange || action == .previousChange else { return }
+        switch phase {
+        case .press:
+            guard heldNavigation?.action != action else { return }
+            commitPendingSinglePress()
+            clearStageHoldFeedback()
+            heldNavigation = (action, inputTime)
+            undoChordConsumed = false
+            emit(action == .nextChange ? .beginNextChangeHold : .beginPreviousChangeHold)
+            scheduler.start(interval: max(0.001, Self.stageHoldThreshold - (clock.now - inputTime))) { [weak self] in
+                guard let self, self.heldNavigation?.action == action,
+                      self.heldNavigation?.pressedAt == inputTime, !self.undoChordConsumed else { return }
+                self.scheduler.stop()
+                self.stageHoldReady = true // A delayed timer may show readiness, but must never stage; only the original ingress duration on release decides. (Codex task: 01a039f7-873c-7c30-b3dc-af8a6724ace5)
+                self.onStageHoldReadyChange?(true)
+            }
+        case .release:
+            guard let held = heldNavigation, held.action == action else { return }
+            scheduler.stop()
+            heldNavigation = nil
+            let consumed = undoChordConsumed
+            undoChordConsumed = false
+            guard !consumed else {
+                clearStageHoldFeedback()
+                return
+            }
+            guard inputTime >= held.pressedAt else {
+                finishStageHoldTransaction()
+                return
+            }
+            let isHold = inputTime - held.pressedAt >= Self.stageHoldThreshold
+            emit(isHold ? (action == .nextChange ? .finishNextChangeHold : .finishPreviousChangeHold) : .cancelNavigationHold)
+            finishStageHoldTransaction()
+        }
+    }
+
+    /// Holding Next + Enter, or Previous + Copy, consumes both buttons and undoes once.
+    public func handleUndoChord(cell: PhysicalCell, emit: (VSCodeModeCommand) -> Void) -> Bool {
+        guard let held = heldNavigation,
+              (held.action == .nextChange && cell.rawValue == 7)
+                || (held.action == .previousChange && cell.rawValue == 4)
+        else { return false }
+        guard !undoChordConsumed else { return true }
+        scheduler.stop()
+        undoChordConsumed = true // Waiting until release to stage lets Undo consume even an already-long hold. Repeated long holds must stage independently, never undo. (Codex task: 01a039f7-873c-7c30-b3dc-af8a6724ace5)
+        emit(.cancelNavigationHold)
+        emit(.undoLastStageAndAdvance)
+        finishStageHoldTransaction()
+        return true
+    }
+
     public func commitPendingSinglePress() {
         scheduler.stop()
         guard let pending else { return }
@@ -173,12 +247,36 @@ public final class VSCodeModeGestureClassifier {
     }
 
     public func cancel() {
-        scheduler.stop()
+        clearStageHoldFeedback()
         pending = nil
+        heldNavigation = nil
+        undoChordConsumed = false
+    }
+
+    private func clearStageHoldFeedback() {
+        scheduler.stop()
+        guard stageHoldReady else { return }
+        stageHoldReady = false
+        onStageHoldReadyChange?(false)
+    }
+
+    /// F15 is the release transaction boundary Better Git uses to distinguish
+    /// a short F14 from the adjacent-cancel F14/F16 sequence. Emit it after the
+    /// final release command even when the hold never reached readiness.
+    private func finishStageHoldTransaction() {
+        scheduler.stop()
+        stageHoldReady = false
+        onStageHoldReadyChange?(false)
     }
 }
 
 public enum VSCodeMode {
+    public static func undoHint(source: MouseSource) -> String {
+        let previousPartner = PhysicalCell(rawValue: 4)!.printedSide(on: source)!
+        let nextPartner = PhysicalCell(rawValue: 7)!.printedSide(on: source)!
+        return "Undo: hold 5 + \(previousPartner) or 8 + \(nextPartner)"
+    }
+
     public static let accent = RGBColor(red: 0, green: 168, blue: 255)
     public static let cursorHistoryWheelCell = PhysicalCell(rawValue: 6)!
 

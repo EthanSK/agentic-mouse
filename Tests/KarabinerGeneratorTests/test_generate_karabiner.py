@@ -1139,6 +1139,7 @@ class KarabinerGeneratorTests(unittest.TestCase):
             next_variable,
         ) in cases:
             rule = rules[rule_name]
+            rule = {**rule, "manipulators": [m for m in rule["manipulators"] if {"type": "variable_if", "name": "agentic_mouse_vscode_legacy_stage_chords_enabled", "value": 1} in m["conditions"]]}
             self.assertEqual(len(rule["manipulators"]), 6)
             by_source = {}
             for manipulator in rule["manipulators"]:

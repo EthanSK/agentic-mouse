@@ -114,8 +114,8 @@ public final class ModePickerCoordinator {
     public var onModeChange: ((Bool) -> Void)?
     public var onKeypadModeRequested: ((MouseSource) -> Bool)?
     public var onKeypadInput: ((MouseSource, PhysicalCell, ModePickerCommand.Phase) -> Void)?
-    public var onAppSpecificInput: ((MouseSource, AppSpecificTarget, PhysicalCell, ModePickerCommand.Phase) -> Bool)?
-    public var onNativeAppSpecificInput: ((MouseSource, AppSpecificTarget, PhysicalCell, ModePickerCommand.Phase) -> Bool)?
+    public var onAppSpecificInput: ((MouseSource, AppSpecificTarget, PhysicalCell, ModePickerCommand.Phase, TimeInterval) -> Bool)?
+    public var onNativeAppSpecificInput: ((MouseSource, AppSpecificTarget, PhysicalCell, ModePickerCommand.Phase, TimeInterval) -> Bool)?
     public var onChromeWebsiteInput: ((MouseSource, ChromeWebsiteAction) -> Bool)?
     public var resolveFrontmostApp: (() -> FrontmostAppModeContext)?
     public var resolveAppSpecificDefinition: ((AppSpecificTarget) -> AppSpecificModeDefinition)?
@@ -151,7 +151,7 @@ public final class ModePickerCoordinator {
         _ = reservedHUDScheduler // retained for source compatibility
     }
 
-    public func handle(_ command: ModePickerCommand) {
+    public func handle(_ command: ModePickerCommand, inputTime: TimeInterval = ProcessInfo.processInfo.systemUptime) {
         switch command.action {
         case .open:
             guard command.phase == .press else { return }
@@ -174,7 +174,8 @@ public final class ModePickerCoordinator {
                 source: command.source,
                 cell: command.physicalCell,
                 phase: command.phase,
-                nativeOutputHandled: false
+                nativeOutputHandled: false,
+                inputTime: inputTime
             )
         case .selectNative:
             guard isActive else {
@@ -185,7 +186,8 @@ public final class ModePickerCoordinator {
                 source: command.source,
                 cell: command.physicalCell,
                 phase: command.phase,
-                nativeOutputHandled: true
+                nativeOutputHandled: true,
+                inputTime: inputTime
             )
         }
     }
@@ -347,7 +349,8 @@ public final class ModePickerCoordinator {
         source: MouseSource,
         cell: PhysicalCell,
         phase: ModePickerCommand.Phase,
-        nativeOutputHandled: Bool
+        nativeOutputHandled: Bool,
+        inputTime: TimeInterval
     ) {
         guard self.source == source else {
             log.debug("ignored a mode event from the other exact-device coordinator")
@@ -509,7 +512,7 @@ public final class ModePickerCoordinator {
                 ? onNativeAppSpecificInput
                 : onAppSpecificInput
             if let target = appSpecificTarget,
-               appSpecificInput?(source, target, cell, phase) == true,
+               appSpecificInput?(source, target, cell, phase, inputTime) == true,
                phase == .press {
                 recordSelection(cell: cell)
             }

@@ -211,7 +211,7 @@ public enum DefaultMapLegend {
             ),
             accent: accent,
             footerTitle: "Default mode",
-            footerHint: nil,
+            footerHint: frontmostAppContext?.target == .vsCode ? VSCodeMode.undoHint(source: source) : nil,
             showsOnAllDisplays: true
         )
     }
@@ -232,17 +232,11 @@ public enum DefaultMapLegend {
             } else if cell == .frontmostAppModeSelector {
                 title = frontmostAppContext?.definition.title ?? "App mode"
             } else if frontmostAppContext?.target == .vsCode,
-                      cell == .clipboardWheelControl {
-                title = "Copy / Paste · Stage + Previous after 5"
-            } else if frontmostAppContext?.target == .vsCode,
                       cell == VSCodeModeAction.previousChange.cell {
-                title = "Previous Change · Hold + \(PhysicalCell.clipboardWheelControl.printedSide(on: source)!) to Stage"
-            } else if frontmostAppContext?.target == .vsCode,
-                      cell == PhysicalCell(rawValue: 7)! {
-                title = "Enter · Stage + Next after 8"
+                title = VSCodeModeAction.previousChange.title
             } else if frontmostAppContext?.target == .vsCode,
                       cell == VSCodeModeAction.nextChange.cell {
-                title = "Next Change · Hold + \(PhysicalCell(rawValue: 7)!.printedSide(on: source)!) to Stage"
+                title = VSCodeModeAction.nextChange.title
             } else if youtubeVolumeModifierActive && cell == YouTubeVolumeModifierCommand.triggerCell {
                 title = "YouTube Volume held"
             } else if youtubeVolumeModifierActive && cell == .youtubeScrubWheelControl {

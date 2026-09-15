@@ -429,6 +429,7 @@ final class ApplicationShortcutDispatcher {
 enum VSCodeModeShortcutResolver {
     static func shortcut(
         for command: VSCodeModeCommand,
+        source: MouseSource = .corsair,
         keyCodeForSemanticCharacter: TerminalModeShortcutResolver.SemanticKeyCodeResolver =
             CurrentKeyboardLayoutKeyCodeResolver.keyCode
     ) -> ApplicationShortcutDispatcher.Shortcut? {
@@ -445,6 +446,22 @@ enum VSCodeModeShortcutResolver {
             return .init(keyCode: 80, flags: []) // F19
         case .stageAndNext:
             return .init(keyCode: 79, flags: []) // F18
+        case .beginNextChangeHold, .beginPreviousChangeHold,
+             .finishNextChangeHold, .finishPreviousChangeHold, .cancelNavigationHold:
+            let flags: CGEventFlags = source == .razer
+                ? [.maskCommand, .maskShift]
+                : [.maskControl, .maskCommand]
+            let codes: [VSCodeModeCommand: CGKeyCode] = [
+                .beginNextChangeHold: 105, .beginPreviousChangeHold: 64,
+                .finishNextChangeHold: 79, .finishPreviousChangeHold: 80,
+                .cancelNavigationHold: 107,
+            ]
+            return .init(keyCode: codes[command]!, flags: flags)
+        case .stageHoldReady, .stageHoldClear:
+            let flags: CGEventFlags = source == .razer
+                ? [.maskCommand, .maskShift]
+                : [.maskControl, .maskAlternate, .maskCommand]
+            return .init(keyCode: CGKeyCode(command == .stageHoldReady ? kVK_F20 : kVK_F15), flags: flags)
         case .undoLastStageAndAdvance:
             return .init(keyCode: 106, flags: []) // F16
         case .toggleTerminal:

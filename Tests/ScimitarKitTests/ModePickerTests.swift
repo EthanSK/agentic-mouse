@@ -606,7 +606,7 @@ final class ModePickerTests: XCTestCase {
         let hud = RecordingModeHUDPresenter()
         let coordinator = makeCoordinator(hud: hud)
         var selected: [(AppSpecificTarget, PhysicalCell)] = []
-        coordinator.onAppSpecificInput = { _, target, cell, _ in
+        coordinator.onAppSpecificInput = { _, target, cell, _, _ in
             selected.append((target, cell))
             return true
         }
@@ -705,7 +705,7 @@ final class ModePickerTests: XCTestCase {
             var controls: [(MouseSource, WheelChordControl?)] = []
             var onePressActions: [PhysicalCell] = []
             coordinator.onWheelControlChange = { controls.append(($0, $1)) }
-            coordinator.onAppSpecificInput = { _, _, cell, _ in
+            coordinator.onAppSpecificInput = { _, _, cell, _, _ in
                 onePressActions.append(cell)
                 return true
             }
@@ -749,7 +749,7 @@ final class ModePickerTests: XCTestCase {
                 var controls: [(MouseSource, WheelChordControl?)] = []
                 var onePressActions: [PhysicalCell] = []
                 coordinator.onWheelControlChange = { controls.append(($0, $1)) }
-                coordinator.onAppSpecificInput = { _, _, cell, _ in
+                coordinator.onAppSpecificInput = { _, _, cell, _, _ in
                     onePressActions.append(cell)
                     return true
                 }
@@ -804,7 +804,7 @@ final class ModePickerTests: XCTestCase {
                 var controls: [(MouseSource, WheelChordControl?)] = []
                 var onePressActions: [PhysicalCell] = []
                 coordinator.onWheelControlChange = { controls.append(($0, $1)) }
-                coordinator.onAppSpecificInput = { _, _, cell, _ in
+                coordinator.onAppSpecificInput = { _, _, cell, _, _ in
                     onePressActions.append(cell)
                     return true
                 }
@@ -886,7 +886,7 @@ final class ModePickerTests: XCTestCase {
             let hud = RecordingModeHUDPresenter()
             let coordinator = makeCoordinator(hud: hud)
             var inputs: [(MouseSource, AppSpecificTarget, PhysicalCell, ModePickerCommand.Phase)] = []
-            coordinator.onAppSpecificInput = { source, target, cell, phase in
+            coordinator.onAppSpecificInput = { source, target, cell, phase, _ in
                 inputs.append((source, target, cell, phase))
                 return true
             }
@@ -931,7 +931,7 @@ final class ModePickerTests: XCTestCase {
             let hud = RecordingModeHUDPresenter()
             let coordinator = makeCoordinator(hud: hud)
             var inputs: [(MouseSource, AppSpecificTarget, PhysicalCell, ModePickerCommand.Phase)] = []
-            coordinator.onAppSpecificInput = { source, target, cell, phase in
+            coordinator.onAppSpecificInput = { source, target, cell, phase, _ in
                 inputs.append((source, target, cell, phase))
                 return true
             }
@@ -968,7 +968,7 @@ final class ModePickerTests: XCTestCase {
             let hud = RecordingModeHUDPresenter()
             let coordinator = makeCoordinator(hud: hud)
             var inputs: [(MouseSource, AppSpecificTarget, PhysicalCell, ModePickerCommand.Phase)] = []
-            coordinator.onAppSpecificInput = { source, target, cell, phase in
+            coordinator.onAppSpecificInput = { source, target, cell, phase, _ in
                 inputs.append((source, target, cell, phase))
                 return true
             }
@@ -1015,7 +1015,7 @@ final class ModePickerTests: XCTestCase {
             let hud = RecordingModeHUDPresenter()
             let coordinator = makeCoordinator(hud: hud)
             var inputs: [(MouseSource, AppSpecificTarget, PhysicalCell, ModePickerCommand.Phase)] = []
-            coordinator.onAppSpecificInput = { source, target, cell, phase in
+            coordinator.onAppSpecificInput = { source, target, cell, phase, _ in
                 inputs.append((source, target, cell, phase))
                 return true
             }
@@ -1581,11 +1581,11 @@ final class ModePickerTests: XCTestCase {
                 bundleIdentifier: AppSpecificTarget.codex.bundleIdentifier
             )
         }
-        coordinator.onNativeAppSpecificInput = { _, _, cell, _ in
+        coordinator.onNativeAppSpecificInput = { _, _, cell, _, _ in
             nativeInputs.append(cell)
             return true
         }
-        coordinator.onAppSpecificInput = { _, _, cell, _ in
+        coordinator.onAppSpecificInput = { _, _, cell, _, _ in
             syntheticInputs.append(cell)
             return true
         }
@@ -2116,7 +2116,7 @@ final class ModePickerTests: XCTestCase {
             let hud = RecordingModeHUDPresenter()
             let coordinator = makeCoordinator(hud: hud)
             var inputs: [(AppSpecificTarget, PhysicalCell, ModePickerCommand.Phase)] = []
-            coordinator.onAppSpecificInput = { _, receivedTarget, cell, phase in
+            coordinator.onAppSpecificInput = { _, receivedTarget, cell, phase, _ in
                 inputs.append((receivedTarget, cell, phase))
                 return true
             }
@@ -2323,7 +2323,7 @@ final class ModePickerTests: XCTestCase {
                 let hud = RecordingModeHUDPresenter()
                 let coordinator = makeCoordinator(hud: hud)
                 var presses: [PhysicalCell] = []
-                coordinator.onAppSpecificInput = { _, _, cell, phase in
+                coordinator.onAppSpecificInput = { _, _, cell, phase, _ in
                     if phase == .press { presses.append(cell) }
                     return true
                 }
@@ -2660,7 +2660,7 @@ final class ModePickerTests: XCTestCase {
                     FrontmostAppModeContext(target: .codex, displayName: "Codex", bundleIdentifier: CodexMode.bundleIdentifier)
                 }
                 var actions: [CodexModeAction] = []
-                coordinator.onAppSpecificInput = { _, target, cell, phase in
+                coordinator.onAppSpecificInput = { _, target, cell, phase, _ in
                     if target == .codex, phase == .press, let action = CodexModeAction.action(for: cell) { actions.append(action) }
                     return true
                 }

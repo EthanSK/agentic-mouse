@@ -29,7 +29,7 @@ final class KarabinerModeBridgeTests: XCTestCase {
         let delivered = expectation(description: "user command delivered")
         let receiver = KarabinerUserCommandReceiver(socketPath: socketPath)
 
-        try receiver.start { data in
+        try receiver.start { data, _ in
             XCTAssertEqual(data, payload)
             delivered.fulfill()
         }
@@ -47,7 +47,7 @@ final class KarabinerModeBridgeTests: XCTestCase {
     func testReceiverDetectsAReplacedSocketAndNeverUnlinksTheReplacement() throws {
         let socketPath = temporaryDirectory.appendingPathComponent("replaced.sock").path
         let receiver = KarabinerUserCommandReceiver(socketPath: socketPath)
-        try receiver.start { _ in }
+        try receiver.start { _, _ in }
         XCTAssertTrue(receiver.isHealthy)
 
         unlink(socketPath)
@@ -75,7 +75,7 @@ final class KarabinerModeBridgeTests: XCTestCase {
 
         do {
             let receiver = KarabinerUserCommandReceiver(socketPath: socketPath)
-            XCTAssertThrowsError(try receiver.start { _ in }) { error in
+            XCTAssertThrowsError(try receiver.start { _, _ in }) { error in
                 guard case KarabinerModeBridgeError.socketPathOccupied(let occupiedPath) = error else {
                     return XCTFail("unexpected error: \(error)")
                 }
@@ -97,7 +97,7 @@ final class KarabinerModeBridgeTests: XCTestCase {
         close(crashedFD)
 
         let receiver = KarabinerUserCommandReceiver(socketPath: socketPath)
-        try receiver.start { _ in }
+        try receiver.start { _, _ in }
         XCTAssertTrue(receiver.isHealthy)
         XCTAssertNotEqual(
             KarabinerUserCommandReceiver.socketIdentity(at: socketPath),
@@ -127,7 +127,7 @@ final class KarabinerModeBridgeTests: XCTestCase {
         try writeMarker(staleIdentity, socketPath: socketPath)
 
         let receiver = KarabinerUserCommandReceiver(socketPath: socketPath)
-        XCTAssertThrowsError(try receiver.start { _ in })
+        XCTAssertThrowsError(try receiver.start { _, _ in })
         XCTAssertEqual(KarabinerUserCommandReceiver.socketIdentity(at: socketPath), identity)
     }
 
