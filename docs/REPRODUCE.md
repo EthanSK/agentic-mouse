@@ -2,7 +2,7 @@
 
 The public repository includes the Karabiner sources, complete generated rules, installer, app source, example configuration and tests. Use the whole repository: copying a JSON rule alone does not install the app or its external receivers.
 
-**You can build and test the public core without either mouse. Reproducing every action in Ethan's setup still needs separate integrations, including the currently private YouTube/Chrome bridge.** Check the [dependency table](SETUP.md#2-check-which-features-you-can-use) before choosing which controls to use.
+**You can build and test the public core without either mouse. Reproducing every action in Ethan's setup still needs separate integrations, including the public but separately installed YouTube/Chrome bridge.** Check the [dependency table](SETUP.md#2-check-which-features-you-can-use) before choosing which controls to use.
 
 ## Give your agent this prompt
 
@@ -66,6 +66,6 @@ Ethan uses **DVORAK - QWERTY CMD**. Check every chosen app's shortcuts on your o
 - Karabiner-Elements, iCUE and Corsair's proprietary SDK; the setup guide links their official sources and the accepted SDK version.
 - A Developer ID certificate for your Mac's stable installation; the development build is not a substitute for the documented signed installation.
 - VoiceInk++, Better Git and other external apps; configure them separately.
-- The private YouTube/Chrome bridge; [its guide](YOUTUBE-BRIDGE.md) explains the missing components and conditional setup.
+- The separately installed [YouTube/Chrome bridge](https://github.com/EthanSK/VoiceInkPlusPlus/tree/main/companions/youtube-bridge); [its guide](YOUTUBE-BRIDGE.md) explains the setup.
 
 Finish with the [physical acceptance checklist](AGENT-SETUP.md#verify-the-owners-real-case). Record each feature as working, unavailable or not tested; a successful build does not prove button events, permissions, lighting or another person's physical setup.
