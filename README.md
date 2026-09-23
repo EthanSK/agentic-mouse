@@ -44,7 +44,9 @@ dictation with VoiceInk++, and the video pauses automatically. When I finish,
 my YouTube bridge resumes the video it paused. I can choose where the transcript
 goes and keep working while it’s delivered. [See the workflow](https://ethansk.github.io/agentic-mouse/#watch-and-talk).
 
-This needs the separate **VoiceInk YouTube Bridge** Chrome extension and **YouTube Spotify Media Key** macOS helper. The bridge source is currently private, so it is not included in the public install. [Bridge setup, dependencies and checks](docs/YOUTUBE-BRIDGE.md).
+While I dictate in Codex, VoiceInk++ can capture text I highlight and place a short XML selection reference between the words I spoke before and after it. The current installed build has this feature; it is not yet in the public VoiceInk++ source build. [How Codex selections work](https://github.com/EthanSK/VoiceInkPlusPlus#codex-selections-during-dictation).
+
+YouTube control needs the separate **VoiceInk YouTube Bridge** Chrome extension and **YouTube Spotify Media Key** macOS helper. Their [public source](https://github.com/EthanSK/VoiceInkPlusPlus/tree/main/companions/youtube-bridge) is in VoiceInk++; installing Agentic Mouse alone does not install them. [Bridge setup, dependencies and checks](docs/YOUTUBE-BRIDGE.md).
 
 | Gesture | What it does |
 |---|---|
