@@ -56,7 +56,7 @@ Follow [hardware preparation](SETUP.md#3-prepare-your-hardware), then the [Karab
 
 Capture each mouse's keyboard **and** pointing interface in Karabiner-EventViewer. Match every transport before enabling the rules; a different model needs an audited adapter, not a filter widened to every keyboard. The two mice share physical actions, but their printed numbers differ.
 
-The top-button action currently sends **Control–Option–Shift** to VoiceInk++ on release. Configure that receiver or adapt its [semantic action](../Karabiner/actions/productivity/toggle-voiceink-speech-to-text.jsonc); installing the JSON does not configure VoiceInk++. The vendor wheel click stays `button3`, which the runtime maps to macOS Play/Pause. Other mouse buttons and ordinary scrolling must remain unaffected.
+The top-button action currently sends **Control–Option–Shift** to [AgentFlow](https://ethansk.github.io/AgentFlow/) on release. Configure that receiver or adapt its [semantic action](../Karabiner/actions/productivity/toggle-voiceink-speech-to-text.jsonc); installing the JSON does not configure AgentFlow. The vendor wheel click stays `button3`, which the runtime maps to macOS Play/Pause. Other mouse buttons and ordinary scrolling must remain unaffected.
 
 Ethan uses **DVORAK - QWERTY CMD**. Check every chosen app's shortcuts on your own layout, especially Codex voice, VS Code/Better Git review commands and window controls. Use the source contracts and [generated map](https://ethansk.github.io/agentic-mouse/mouse-map.html); do not copy a private editor settings directory or assume installing the included VS Code bridge supplies Better Git.
 
@@ -65,7 +65,7 @@ Ethan uses **DVORAK - QWERTY CMD**. Check every chosen app's shortcuts on your o
 - Your live Karabiner profile, vendor profile exports, app settings, device serials, Keychain entries and signing keys.
 - Karabiner-Elements, iCUE and Corsair's proprietary SDK; the setup guide links their official sources and the accepted SDK version.
 - A Developer ID certificate for your Mac's stable installation; the development build is not a substitute for the documented signed installation.
-- VoiceInk++, Better Git and other external apps; configure them separately.
-- The separately installed [YouTube/Chrome bridge](https://github.com/EthanSK/VoiceInkPlusPlus/tree/main/companions/youtube-bridge); [its guide](YOUTUBE-BRIDGE.md) explains the setup.
+- AgentFlow, Better Git and other external apps; configure them separately.
+- The separately installed [YouTube/Chrome bridge](https://github.com/EthanSK/AgentFlow/tree/main/companions/youtube-bridge); [its guide](YOUTUBE-BRIDGE.md) explains the setup.
 
 Finish with the [physical acceptance checklist](AGENT-SETUP.md#verify-the-owners-real-case). Record each feature as working, unavailable or not tested; a successful build does not prove button events, permissions, lighting or another person's physical setup.

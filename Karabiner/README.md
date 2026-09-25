@@ -64,8 +64,8 @@ not printed numbers: `C3↔R1`, `C2↔R2`, `C1↔R3`; `C6↔R4`, `C5↔R5`, `C4�
 `C9↔R7`, `C8↔R8`, `C7↔R9`; `C12↔R10`, `C11↔R11`, `C10↔R12`. Keep private
 serials out of Git and recapture the exact device before installing the Razer
 rules on a Mac. The Corsair top DPI transport `F19` and both separately captured
-Razer DPI transports (`F21` up and `F22` down) toggle VoiceInk++ on physical
-release. Both Razer routes emit the same primary shortcut. VoiceInk++ discards
+Razer DPI transports (`F21` up and `F22` down) toggle AgentFlow on physical
+release. Both Razer routes emit the same primary shortcut. AgentFlow discards
 only a second complete Primary chord arriving within 90 ms, before its gesture
 classifier, so a paired release becomes one activation without suppressing
 deliberate double or triple gestures.
