@@ -2,7 +2,7 @@
 
 **My personal setup for the agentic future.**
 
-Twelve thumb controls, mirrored on both mice. I lean back, talk to agents with [VoiceInk++](https://github.com/EthanSK/VoiceInkPlusPlus), and keep the rest under my thumb.
+Twelve thumb controls, mirrored on both mice. I lean back, talk to agents with [AgentFlow](https://ethansk.github.io/AgentFlow/), and keep the rest under my thumb.
 
 My personal macOS setup, made public so you can explore it and build your own. — **Ethan SK**
 
@@ -23,7 +23,7 @@ My current setup uses **button 5 for Previous** and **button 8 for Next**, on ei
 
 The [personal setup walkthrough](https://ethansk.github.io/agentic-mouse/#engineers) describes this workflow. Its interactive mouse map follows the published app source; unpublished local controls can differ.
 
-[VoiceInk++](https://github.com/EthanSK/VoiceInkPlusPlus) handles dictation and transcript delivery so I can keep working. [Agent Bridge](https://github.com/EthanSK/agent-bridge) connects my agents across machines.
+[AgentFlow](https://ethansk.github.io/AgentFlow/) handles dictation and transcript delivery so I can keep working. [Agent Bridge](https://github.com/EthanSK/agent-bridge) connects my agents across machines.
 
 ## Try the website
 
@@ -40,17 +40,17 @@ My interactive room now lives in [Ethan’s setup](https://ethansk.github.io/eth
 ## What I use it for
 
 **YouTube pauses when I start dictating.** I press a top mouse button to start
-dictation with VoiceInk++, and the video pauses automatically. When I finish,
+dictation with AgentFlow, and the video pauses automatically. When I finish,
 my YouTube bridge resumes the video it paused. I can choose where the transcript
 goes and keep working while it’s delivered. [See the workflow](https://ethansk.github.io/agentic-mouse/#watch-and-talk).
 
-While I dictate in Codex, VoiceInk++ can capture text I highlight and place a short XML selection reference between the words I spoke before and after it. The current installed build has this feature; it is not yet in the public VoiceInk++ source build. [How Codex selections work](https://github.com/EthanSK/VoiceInkPlusPlus#codex-selections-during-dictation).
+While I dictate in Codex, AgentFlow can capture text I highlight and place a short XML selection reference between the words I spoke before and after it. [How real-time context works](https://github.com/EthanSK/AgentFlow#real-time-context).
 
-YouTube control needs the separate **VoiceInk YouTube Bridge** Chrome extension and **YouTube Spotify Media Key** macOS helper. Their [public source](https://github.com/EthanSK/VoiceInkPlusPlus/tree/main/companions/youtube-bridge) is in VoiceInk++; installing Agentic Mouse alone does not install them. [Bridge setup, dependencies and checks](docs/YOUTUBE-BRIDGE.md).
+YouTube control needs the separate **AgentFlow YouTube Bridge** Chrome extension and **YouTube Spotify Media Key** macOS helper. Their [public source](https://github.com/EthanSK/AgentFlow/tree/main/companions/youtube-bridge) is in AgentFlow; installing Agentic Mouse alone does not install them. [Bridge setup, dependencies and checks](docs/YOUTUBE-BRIDGE.md).
 
 | Gesture | What it does |
 |---|---|
-| Top button | Activate speech mode with VoiceInk++. DPI stays at 2,750. |
+| Top button | Activate speech mode with AgentFlow. DPI stays at 2,750. |
 | Wheel click | Play or pause the current media. |
 | Thumb button + wheel | Copy/paste, scroll horizontally, scrub YouTube, or use a mode-specific control. |
 | App mode | Bring up controls for the frontmost app, including Codex, Chrome, VS Code, and Spotify. |
@@ -66,7 +66,7 @@ YouTube control needs the separate **VoiceInk YouTube Bridge** Chrome extension 
 |---|---|
 | Left hand | [Razer Naga Left-Handed Edition](https://www.razer.com/gb-en/gaming-mice/razer-naga-left-handed-edition), black |
 | Right hand | [Corsair Scimitar Elite Wireless SE](https://www.corsair.com/uk/en/p/gaming-mouse/ch-9314415-ww/scimitar-elite-wireless-se-mmo-gaming-mouse-black-yellow-ch-9314415-ww), black/yellow (`CH-9314415-WW`) |
-| Dictation | [VoiceInk++](https://github.com/EthanSK/VoiceInkPlusPlus) |
+| Dictation | [AgentFlow](https://ethansk.github.io/AgentFlow/) |
 | Chair | [Hbada E3 Pro 2026](https://www.hbada.uk/products/hbada-e3-pro-ergonomic-office-chair?variant=57072259858807), grey with footrest |
 | Desk | [FlexiSpot E7 Pro](https://flexispot.co.uk/next-generation-standing-desk-e7-pro), bought in 2025: black frame, 180 × 80 cm bamboo top |
 

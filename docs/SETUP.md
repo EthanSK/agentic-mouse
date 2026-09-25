@@ -42,8 +42,8 @@ Do not add hardware-write flags for an initial inspection. Launching the GUI app
 | Modes, HUD, Keypad, clipboard and basic keys | Agentic Mouse with Accessibility permission | Yes |
 | Corsair neutral transports and temporary RGB | [iCUE 5](https://www.corsair.com/uk/en/s/downloads); audited SDK for RGB | iCUE and SDK are separate |
 | Razer input and mode lighting | Supported Naga Left-Handed `1532:008d` and its onboard transports | Adapter and lighting code; verify your exact unit |
-| Speech mode | [VoiceInk++](https://github.com/EthanSK/VoiceInkPlusPlus) | Separate app; ordinary VoiceInk is not a verified substitute |
-| YouTube pause/resume, seek, volume, 2× speed; Chrome tab history and website opening | VoiceInk YouTube Bridge Chrome extension and macOS helper | **Yes, as a separate install.** [Public source](https://github.com/EthanSK/VoiceInkPlusPlus/tree/main/companions/youtube-bridge) and [setup and checks](YOUTUBE-BRIDGE.md) |
+| Speech mode | [AgentFlow](https://ethansk.github.io/AgentFlow/) | Separate app; ordinary VoiceInk is not a verified substitute |
+| YouTube pause/resume, seek, volume, 2× speed; Chrome tab history and website opening | AgentFlow YouTube Bridge Chrome extension and macOS helper | **Yes, as a separate install.** [Public source](https://github.com/EthanSK/AgentFlow/tree/main/companions/youtube-bridge) and [setup and checks](YOUTUBE-BRIDGE.md) |
 | VS Code cursor history and terminal toggle | Agentic Mouse VS Code Bridge | Yes; package below |
 | VS Code review navigation and staging | Compatible Better Git extension and its captured-origin commands | **No.** The included bridge does not provide these commands |
 | Window placement and saved layout | Magnet / Stay, matching shortcuts and your own saved layout | No |
@@ -66,7 +66,7 @@ For the supported Corsair, use one iCUE software profile with modifier-free Keyb
 
 Keep **Retain Original Key Output** off. Keep **Imitate Holding Key** off unless EventViewer proves your device needs it for one clean down/up lifecycle. Reopen each saved assignment to confirm its target. The top DPI control uses F19; wheel click stays ordinary middle click. Ethan uses 2,750 DPI in every stage; choose your own sensitivity without assigning semantic actions to DPI changes.
 
-The supported Razer onboard grid emits main-row `1–9`, `0`, `hyphen`, and `equal_sign`. Its printed numbers differ from Corsair's; [PhysicalCell.swift](../Sources/ScimitarKit/App/PhysicalCell.swift) owns the crosswalk, with adapter details in [Karabiner/README.md](../Karabiner/README.md). The top controls emit F21/F22; both map to the same VoiceInk++ Control–Option–Shift shortcut on release. Verify those transports separately. Other Naga or Scimitar models may expose different interfaces.
+The supported Razer onboard grid emits main-row `1–9`, `0`, `hyphen`, and `equal_sign`. Its printed numbers differ from Corsair's; [PhysicalCell.swift](../Sources/ScimitarKit/App/PhysicalCell.swift) owns the crosswalk, with adapter details in [Karabiner/README.md](../Karabiner/README.md). The top controls emit F21/F22; both map to the same AgentFlow Control–Option–Shift shortcut on release. Verify those transports separately. Other Naga or Scimitar models may expose different interfaces.
 
 Use vendor settings visibly. Do not edit iCUE's private database or reset unrelated devices. With one supported mouse, the other exact-device adapter has no matching device; it needs no broad fallback.
 

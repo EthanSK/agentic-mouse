@@ -78,7 +78,7 @@ and never by editing iCUE's database or profile files.
    default middle-click source (mapped to Play/Pause by exact-device Karabiner),
    and the **DPI Toggle button, which keeps its neutral F19 transport without
    changing DPI**. The exact-device Karabiner rule turns that release into the
-   VoiceInk++ shortcut. None of them are part of the grid and none are ever
+   AgentFlow shortcut. None of them are part of the grid and none are ever
    intercepted by this fallback.
 4. Switch to the copy when you want multi-tap; switch back to the original
    otherwise.
@@ -94,7 +94,7 @@ button outputs. Specifically you lose, until you switch profiles back:
 | 2 | Current frontmost-app mode |
 | 4 | Copy / Paste + Wheel chord |
 | 5 | Forward |
-| 6 | YouTube Scrub + Wheel through the VoiceInk bridge |
+| 6 | YouTube Scrub + Wheel through the AgentFlow bridge |
 | 7 | Enter |
 | 8 | Back |
 | 9 | Keys mode |
@@ -103,7 +103,7 @@ VS Code additionally overrides physical cell 5 to Better Git Previous Change
 and cell 8 to Next Change; those app-scoped actions are also unavailable while
 the fallback profile replaces the neutral transports.
 
-The separate DPI VoiceInk++ control remains available. The primary route keeps
+The separate DPI AgentFlow control remains available. The primary route keeps
 every normal grid action and suspends them only while the mode is actually
 active.
 

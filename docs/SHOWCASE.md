@@ -37,13 +37,13 @@ on 7 September 2026. The published native source still has the older staging
 chords. Keep that distinction visible until the native change is released; do
 not copy partial native/exporter changes into a website-only release or silently
 relabel the generated simulator to imply an unreleased gesture is implemented.
-VoiceInk++ is linked in the hero and speech explanation; Agent Bridge is linked
+AgentFlow's public site is linked in the hero and speech explanation; Agent Bridge is linked
 beside the review workflow and in the existing tools directory. Verify their
 public sources before changing integration claims; the website does not perform
 dictation, Git operations, or cross-machine messaging.
 
 The `#watch-and-talk` feature, lounge copy and speech dialog explain Ethan's
-YouTube dictation workflow. VoiceInk++ emits recording-start/stop notifications;
+YouTube dictation workflow. AgentFlow emits recording-start/stop notifications;
 his separate YouTube helper and Chrome extension pause the playing video and
 resume only the video they paused on a normal recording stop. This is not passive
 speech detection or a capability provided by the website. The native triple-click

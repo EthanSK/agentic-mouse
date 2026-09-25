@@ -13,7 +13,7 @@ temporary lighting, but it does not write iCUE settings.
 | Control | Assignment |
 |---|---|
 | Wheel press | Default middle-click source → exact-device Karabiner Play / Pause |
-| Top DPI button | iCUE F19 neutral transport → exact-device Karabiner VoiceInk++ on release; all DPI stages remain 2,750 |
+| Top DPI button | iCUE F19 neutral transport → exact-device Karabiner AgentFlow on release; all DPI stages remain 2,750 |
 | Button 3 | Screenshot outside modes; rapid double-press pastes its last saved result; mode-specific action inside modes |
 | Button 1 | Hold + wheel for at most one macOS Space; first sign wins until release |
 | Button 2 | Open the current frontmost app mode |
@@ -134,8 +134,8 @@ adapter is live after raw EventViewer proof but still needs full semantic
 acceptance. The Razer adapter is also live after the exact device was present
 and the returned mouse physically produced F21/F22 plus its ordered main-row
 side-grid namespace; its global semantics still need acceptance.
-Both Razer DPI transports map to the existing VoiceInk++ action on release:
-upper `F21` and lower `F22`. Their output is identical. VoiceInk++ discards only
+Both Razer DPI transports map to the existing AgentFlow action on release:
+upper `F21` and lower `F22`. Their output is identical. AgentFlow discards only
 a second complete Primary chord arriving within 90 ms, before its gesture
 classifier; deliberate double and triple gestures remain available.
 
