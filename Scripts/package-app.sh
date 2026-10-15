@@ -121,6 +121,16 @@ fi
 log() { printf '\033[1m==>\033[0m %s\n' "$1"; }
 warn() { printf '\033[33m warning:\033[0m %s\n' "$1" >&2; }
 
+PROVENANCE_FILE=""
+if [[ "${INSTALL_CANDIDATE}" == "1" ]]; then
+  PROVENANCE_FILE="$(mktemp /tmp/agentic-mouse-provenance.XXXXXX)"
+  trap 'rm -f -- "${PROVENANCE_FILE}"' EXIT
+  python3 "${REPO_ROOT}/Scripts/install-provenance.py" prepare \
+    --repo "${REPO_ROOT}" --manifest "${PROVENANCE_FILE}" \
+    --marketing "${PACKAGE_MARKETING_VERSION}" --build "${PACKAGE_BUILD_VERSION}"
+fi
+
+
 BUILD_FLAGS=()
 SIGN_FLAGS=()
 APP_SIGN_FLAGS=()
@@ -138,6 +148,9 @@ swift build --package-path "${REPO_ROOT}" -c "${CONFIGURATION}" ${BUILD_FLAGS[@]
 BIN_PATH="$(swift build --package-path "${REPO_ROOT}" -c "${CONFIGURATION}" ${BUILD_FLAGS[@]+"${BUILD_FLAGS[@]}"} --show-bin-path)"
 
 log "Assembling ${APP_NAME}.app ${PACKAGE_VERSION_LABEL}"
+if [[ -n "${PROVENANCE_FILE}" ]]; then
+  python3 "${REPO_ROOT}/Scripts/install-provenance.py" check-source --manifest "${PROVENANCE_FILE}"
+fi
 rm -rf "${APP_DIR}"
 mkdir -p "${APP_DIR}/Contents/MacOS"
 mkdir -p "${APP_DIR}/Contents/Resources"
@@ -150,6 +163,9 @@ cp "${BIN_PATH}/agentic-mouse-supervisor" \
   "${SUPERVISOR_APP_DIR}/Contents/MacOS/AgenticMouseSupervisor"
 cp "${INFO_PLIST}" "${APP_DIR}/Contents/Info.plist"
 cp "${REPO_ROOT}/Resources/AppIcon.icns" "${APP_DIR}/Contents/Resources/AppIcon.icns"
+if [[ -n "${PROVENANCE_FILE}" ]]; then
+  cp "${PROVENANCE_FILE}" "${APP_DIR}/Contents/Resources/BuildProvenance.json"
+fi
 cp "${REPO_ROOT}/Resources/SupervisorInfo.plist" \
   "${SUPERVISOR_APP_DIR}/Contents/Info.plist"
 bash "${REPO_ROOT}/Scripts/package-vscode-bridge.sh" \
@@ -219,6 +235,7 @@ if ! codesign --verify --deep --strict "${APP_DIR}"; then
 fi
 
 if [[ "${INSTALL_CANDIDATE}" == "1" ]]; then
+  python3 "${REPO_ROOT}/Scripts/install-provenance.py" verify --candidate "${APP_DIR}"
   # Record the exact successfully signed candidate only after all packaging and
   # signature gates pass. A failed candidate never consumes either version.
   LATEST_MARKETING_VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "${INFO_PLIST}")"
