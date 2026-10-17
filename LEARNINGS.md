@@ -1,5 +1,11 @@
 # Learnings
 
+## 2026-10-17 — Generated artifacts need a shared path change
+
+Packaged apps and SwiftPM/site outputs now use `build.noindex/` and `.build.noindex/`. Keep the package builder, SwiftPM scratch flags, version/signature preflight fixtures, VSIX packager, release-upload globs and site tests on those same paths. Preserve legacy ignored roots during migration; a Privacy exclusion on one old build directory does not establish coverage for a new checkout. Source and the canonical installed app remain searchable.
+
+A clean Swift build, 340 Swift tests (two skipped), installation/version/supervisor checks and a real non-installing ad-hoc package passed using the new paths. Existing indexed sources provided a query control while the new package root returned no indexed items; that does not establish fresh-file ingestion timing or Spotlight GUI ranking.
+
 ## 2026-10-17 — Separate Stay display drift from shortcut delivery
 
 **Trigger:** Organize Windows dispatches but Stay Restore is disabled after the display arrangement changes.

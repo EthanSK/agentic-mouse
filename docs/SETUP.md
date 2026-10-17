@@ -20,15 +20,15 @@ make check
 make app
 ```
 
-The npm step installs the locked local VS Code packaging tool; it does not install an editor extension. Tests use fake hardware. `make app` writes an **ad-hoc development bundle** to `build/AgenticMouse.app`; it does not install or launch it. Do not use it to replace an app with Accessibility permission.
+The npm step installs the locked local VS Code packaging tool; it does not install an editor extension. Tests use fake hardware. `make app` writes an **ad-hoc development bundle** to `build.noindex/AgenticMouse.app`; it does not install or launch it. Do not use it to replace an app with Accessibility permission.
 
 Read-only diagnostics:
 
 ```sh
-swift run agentic-mouse-doctor config
-swift run agentic-mouse-doctor mapping
-swift run agentic-mouse-doctor icue
-swift run agentic-mouse-doctor razer
+swift run --scratch-path .build.noindex agentic-mouse-doctor config
+swift run --scratch-path .build.noindex agentic-mouse-doctor mapping
+swift run --scratch-path .build.noindex agentic-mouse-doctor icue
+swift run --scratch-path .build.noindex agentic-mouse-doctor razer
 make simulate
 ```
 
@@ -101,11 +101,11 @@ REQUIRE_ICUE_SDK=0 ICUE_SDK_FRAMEWORK='/nonexistent/agentic-mouse-sdk' \
 make install-candidate
 ```
 
-`REQUIRE_ICUE_SDK=0` allows the SDK to be absent; it does not remove a framework found at the supplied path. With no certificate, stop at build/tests and the browser demo. Do not bypass the installation guard with an ad-hoc signature.
+`REQUIRE_ICUE_SDK=0` allows the SDK to be absent; it does not remove a framework found at the supplied path. With no certificate, stop at build.noindex/tests and the browser demo. Do not bypass the installation guard with an ad-hoc signature.
 
 A successful candidate advances the patch version and build number in `Resources/Info.plist` once. Failed candidates consume no version. To choose a higher release version, also pass `RELEASE_VERSION=1.2.0` (or another version above the recorded one). Review that source change before committing.
 
-This packages but does not install. At a safe time, preserve any existing `/Applications/AgenticMouse.app` as a rollback, then copy the signed candidate to **that exact path**. Keep the same signing identity, bundle ID and installation path on updates. Do not launch a second copy from `build/`.
+This packages but does not install. At a safe time, preserve any existing `/Applications/AgenticMouse.app` as a rollback, then copy the signed candidate to **that exact path**. Keep the same signing identity, bundle ID and installation path on updates. Do not launch a second copy from `build.noindex/`.
 
 ## 6. Initialize the complete Karabiner rules
 
@@ -136,7 +136,7 @@ For updates, omit `--initialize`, use a fresh hash and unused backup path, and k
 
 ## 7. Launch and grant permissions
 
-Optionally copy [config.example.json](../Config/config.example.json) to `~/.config/agentic-mouse/config.json` **only if no config exists**. Keep it private with `chmod 600`. Missing settings use defaults. Validate with `swift run agentic-mouse-doctor config`. Keep personal identifiers and credentials out of Git.
+Optionally copy [config.example.json](../Config/config.example.json) to `~/.config/agentic-mouse/config.json` **only if no config exists**. Keep it private with `chmod 600`. Missing settings use defaults. Validate with `swift run --scratch-path .build.noindex agentic-mouse-doctor config`. Keep personal identifiers and credentials out of Git.
 
 Launch `/Applications/AgenticMouse.app`. It is a menu-bar app with no Dock icon. Add that exact app under **System Settings → Privacy & Security → Accessibility**, then use **Quit Agentic Mouse** and relaunch. Follow Karabiner's separate permission and background-service prompts. Do not reset all Accessibility permissions or edit TCC databases.
 
@@ -146,7 +146,7 @@ Optional VS Code bridge:
 
 ```sh
 make vscode-bridge
-code --install-extension build/agentic-mouse-vscode-bridge-0.1.1.vsix --force
+code --install-extension build.noindex/agentic-mouse-vscode-bridge-0.1.1.vsix --force
 ```
 
 The same VSIX is included at `Contents/Resources/AgenticMouseVSCodeBridge.vsix`. Reload your editor at a safe time if needed. It accepts only its narrow commands in a focused VS Code window, adds no user keybindings, and does not replace Better Git.

@@ -10,11 +10,11 @@ import subprocess
 
 
 ROOT = Path(__file__).resolve().parents[1]
-OUTPUT = ROOT / ".build" / "site"
+OUTPUT = ROOT / ".build.noindex" / "site"
 
 
 def build():
-    raw = subprocess.check_output(["swift", "run", "agentic-mouse-site"], cwd=ROOT)
+    raw = subprocess.check_output(["swift", "run", "--scratch-path", str(ROOT / ".build.noindex"), "agentic-mouse-site"], cwd=ROOT)
     data = json.loads(raw)
     revision = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
     data["revision"] = revision

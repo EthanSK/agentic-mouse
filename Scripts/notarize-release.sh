@@ -2,8 +2,8 @@
 # Run only against a clean, checked public-source distribution build.
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-APP="$ROOT/build/AgenticMouse.app"
-OUT="$ROOT/build/release"
+APP="$ROOT/build.noindex/AgenticMouse.app"
+OUT="$ROOT/build.noindex/release"
 : "${NOTARY_PROFILE:?Set NOTARY_PROFILE to an existing notarytool Keychain profile}"
 VERSION=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$APP/Contents/Info.plist")
 BUILD=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$APP/Contents/Info.plist")
@@ -16,7 +16,7 @@ for executable in "$APP/Contents/MacOS/AgenticMouse" "$APP/Contents/MacOS/agenti
   lipo "$executable" -verify_arch arm64 x86_64
 done
 mkdir -p "$OUT"
-SUBMISSION="$ROOT/build/notary-submission.zip"
+SUBMISSION="$ROOT/build.noindex/notary-submission.zip"
 ditto -c -k --keepParent "$APP" "$SUBMISSION"
 NOTARY_FLAGS=()
 if [[ -n "${NOTARY_KEYCHAIN:-}" ]]; then NOTARY_FLAGS=(--keychain "$NOTARY_KEYCHAIN"); fi
@@ -39,7 +39,7 @@ spctl --assess --type execute --verbose=2 "$VERIFY/AgenticMouse.app"
 python3 - "$ROOT" "$VERSION" "$BUILD" "$ARCHIVE" <<'PY'
 import hashlib,json,pathlib,subprocess,sys
 root=pathlib.Path(sys.argv[1]); version,build,archive=sys.argv[2:]
-path=root/'build/release'/archive
+path=root/'build.noindex/release'/archive
 manifest=dict(version=version,build=int(build),commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=root,text=True).strip(),archive=archive,sha256=hashlib.sha256(path.read_bytes()).hexdigest(),architectures=['arm64','x86_64'],minimumMacOS='13.0',notarized=True,stapled=True,bundledCorsairSDK=False)
 (path.parent/'release.json').write_text(json.dumps(manifest,indent=2)+'\n')
 PY

@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 import { MouseSimulator } from "../../docs/simulator.mjs";
 import { hudPresentation } from "../../docs/native-hud.mjs";
 
-const map = JSON.parse(readFileSync(new URL("../../.build/site/simulator-data.json", import.meta.url)));
+const map = JSON.parse(readFileSync(new URL("../../.build.noindex/site/simulator-data.json", import.meta.url)));
 
 test("the native HUD preserves each hand's physical order and printed repair markers", () => {
   const simulator = new MouseSimulator(map);

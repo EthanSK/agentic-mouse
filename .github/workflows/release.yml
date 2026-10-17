@@ -115,11 +115,11 @@ jobs:
 
           SHA256SUMS and release.json identify the exact archive, source commit and supported architectures. Keep your previous app and configuration backup when updating.
           NOTES
-          python3 -c 'import json; print("<!-- agentic-release " + json.dumps(json.load(open("build/release/release.json")), separators=(",", ":")) + " -->")' >> "$RUNNER_TEMP/release-notes.md"
+          python3 -c 'import json; print("<!-- agentic-release " + json.dumps(json.load(open("build.noindex/release/release.json")), separators=(",", ":")) + " -->")' >> "$RUNNER_TEMP/release-notes.md"
           if ! gh release view "$TAG" >/dev/null 2>&1; then
             gh release create "$TAG" --target "$(git rev-parse HEAD)" --draft --title "Agentic Mouse $TAG" --notes-file "$RUNNER_TEMP/release-notes.md"
           fi
-          gh release upload "$TAG" build/release/*.zip build/release/SHA256SUMS build/release/release.json --clobber
+          gh release upload "$TAG" build.noindex/release/*.zip build.noindex/release/SHA256SUMS build.noindex/release/release.json --clobber
           gh release edit "$TAG" --draft=false --latest --notes-file "$RUNNER_TEMP/release-notes.md"
       - name: Remove temporary credentials
         if: always()

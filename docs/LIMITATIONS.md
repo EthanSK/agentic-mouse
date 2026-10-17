@@ -145,7 +145,7 @@ multi-tap mode, the mode exits.
 
 ## Scope
 
-**Nothing is installed by the build.** `make app` writes to `build/` and stops.
+**Nothing is installed by the build.** `make app` writes to `build.noindex/` and stops.
 When the packaged GUI app is launched, it attempts to register
 its signed nested runtime supervisor through `SMAppService.loginItem`. The
 helper starts at login and relaunches an unexpectedly absent main process with
