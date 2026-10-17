@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 #
-# Builds AgenticMouse.app into ./build/.
+# Builds AgenticMouse.app into ./build.noindex/.
 #
 # Deterministic and self-contained: given the same source tree it produces the
 # same bundle layout every time. It does not install anything, does not touch
 # ~/Library, does not register its bundled login item, and does not modify any
-# system setting. Copying the result out of ./build/ is a separate decision.
+# system setting. Copying the result out of ./build.noindex/ is a separate decision.
 #
 # The proprietary iCUE SDK is never vendored into this repository. If it is
 # available at package time it is copied into the bundle so the app can find it
@@ -16,7 +16,7 @@
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-BUILD_DIR="${REPO_ROOT}/build"
+BUILD_DIR="${REPO_ROOT}/build.noindex"
 APP_NAME="AgenticMouse"
 APP_DIR="${BUILD_DIR}/${APP_NAME}.app"
 SUPERVISOR_APP_DIR="${APP_DIR}/Contents/Library/LoginItems/AgenticMouseSupervisor.app"
@@ -144,8 +144,8 @@ if [[ "${DISTRIBUTION_BUILD}" == "1" ]]; then
   APP_SIGN_FLAGS=(--entitlements "${REPO_ROOT}/Resources/Distribution.entitlements")
 fi
 log "Building (${CONFIGURATION})"
-swift build --package-path "${REPO_ROOT}" -c "${CONFIGURATION}" ${BUILD_FLAGS[@]+"${BUILD_FLAGS[@]}"}
-BIN_PATH="$(swift build --package-path "${REPO_ROOT}" -c "${CONFIGURATION}" ${BUILD_FLAGS[@]+"${BUILD_FLAGS[@]}"} --show-bin-path)"
+swift build --package-path "${REPO_ROOT}" --scratch-path "${REPO_ROOT}/.build.noindex" -c "${CONFIGURATION}" ${BUILD_FLAGS[@]+"${BUILD_FLAGS[@]}"}
+BIN_PATH="$(swift build --package-path "${REPO_ROOT}" --scratch-path "${REPO_ROOT}/.build.noindex" -c "${CONFIGURATION}" ${BUILD_FLAGS[@]+"${BUILD_FLAGS[@]}"} --show-bin-path)"
 
 log "Assembling ${APP_NAME}.app ${PACKAGE_VERSION_LABEL}"
 if [[ -n "${PROVENANCE_FILE}" ]]; then

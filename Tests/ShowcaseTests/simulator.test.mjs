@@ -5,7 +5,7 @@ import { MouseSimulator } from "../../docs/simulator.mjs";
 
 const map = JSON.parse(
   readFileSync(
-    new URL("../../.build/site/simulator-data.json", import.meta.url),
+    new URL("../../.build.noindex/site/simulator-data.json", import.meta.url),
   ),
 );
 const enter = (simulator, destination) => {

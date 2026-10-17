@@ -92,7 +92,7 @@ make check
 make app
 ```
 
-`make app` packages an ad-hoc development bundle at `build/AgenticMouse.app`. It does **not** install or launch it. Follow the signing steps in the setup guide before a real installation; launching the GUI app starts input handling and registers its login supervisor.
+`make app` packages an ad-hoc development bundle at `build.noindex/AgenticMouse.app`. It does **not** install or launch it. Follow the signing steps in the setup guide before a real installation; launching the GUI app starts input handling and registers its login supervisor.
 
 For real hardware, follow the [setup guide](docs/SETUP.md): configure the neutral button transports, provide the iCUE SDK for Corsair lighting, review the generated Karabiner runtime rules, and grant the required macOS permissions. This is a personal setup to commission, not a universal plug-and-play installer.
 
@@ -100,10 +100,10 @@ For real hardware, follow the [setup guide](docs/SETUP.md): configure the neutra
 <summary>Read-only diagnostics</summary>
 
 ```sh
-swift run agentic-mouse-doctor config
-swift run agentic-mouse-doctor mapping
-swift run agentic-mouse-doctor icue
-swift run agentic-mouse-doctor razer
+swift run --scratch-path .build.noindex agentic-mouse-doctor config
+swift run --scratch-path .build.noindex agentic-mouse-doctor mapping
+swift run --scratch-path .build.noindex agentic-mouse-doctor icue
+swift run --scratch-path .build.noindex agentic-mouse-doctor razer
 make simulate
 ```
 
@@ -115,10 +115,10 @@ These commands inspect or simulate. They do not rewrite iCUE profiles or system 
 
 ```sh
 make test-site
-python3 -m http.server 8841 --directory .build/site
+python3 -m http.server 8841 --directory .build.noindex/site
 ```
 
-Open [localhost:8841](http://localhost:8841/). The build runs the native mode coordinator with inert outputs and writes a fresh website to `.build/site`.
+Open [localhost:8841](http://localhost:8841/). The build runs the native mode coordinator with inert outputs and writes a fresh website to `.build.noindex/site`.
 
 Every push to `main` automatically rebuilds, tests, and publishes the website through [GitHub Actions](.github/workflows/showcase.yml). Pull requests build and test without publishing. Change the app definitions, push the change, and the public map follows; there is no second website button table to update.
 

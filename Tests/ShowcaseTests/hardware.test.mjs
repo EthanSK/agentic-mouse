@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
-const site = new URL("../../.build/site/", import.meta.url);
+const site = new URL("../../.build.noindex/site/", import.meta.url);
 const map = JSON.parse(readFileSync(new URL("simulator-data.json", site)));
 
 test("published mouse assets expose every native printed button and the speech control", () => {

@@ -1,6 +1,6 @@
 # Ethan S K's personal setup website
 
-Build with `make test-site`, then serve `.build/site`. GitHub Actions runs the same build and tests on every push to `main`, then publishes the artifact to GitHub Pages. Pull requests only build and test. The Pages publishing source must be **GitHub Actions**.
+Build with `make test-site`, then serve `.build.noindex/site`. GitHub Actions runs the same build and tests on every push to `main`, then publishes the artifact to GitHub Pages. Pull requests only build and test. The Pages publishing source must be **GitHub Actions**.
 
 ## Source of truth
 
@@ -8,7 +8,7 @@ Build with `make test-site`, then serve `.build/site`. GitHub Actions runs the s
 
 `docs/simulator.mjs` consumes that generated graph. Both hands keep their own mode and Default-legend state. Automatic app mode follows the browser’s Current app selector; manual selection stays fixed, including through Chrome’s website submenu. Keypad text and action feedback are disposable browser examples. Third-party apps, OS actions, external bridge execution, and the native input security system are not emulated. The hero and controls chapter load the same separately authored Naga Left-Handed Edition and Scimitar Elite Wireless SE meshes. Each physical key carries only its printed number; the browser resolves its action through the native crosswalk. The hardware geometry is a photo-based reconstruction, not manufacturer CAD or an automatic scan.
 
-`Scripts/build-site.py` writes `.build/site`, including generated `simulator-data.json` and a no-JavaScript full map. It applies a content-derived cache version to the homepage, CSS and browser modules. The published data identifies the exact source commit; uncommitted native work is not silently bundled into a deployment. The historical `docs/script.js` table is no longer consumed by the homepage or the generated full map. Do not use it as the showcase’s source of truth.
+`Scripts/build-site.py` writes `.build.noindex/site`, including generated `simulator-data.json` and a no-JavaScript full map. It applies a content-derived cache version to the homepage, CSS and browser modules. The published data identifies the exact source commit; uncommitted native work is not silently bundled into a deployment. The historical `docs/script.js` table is no longer consumed by the homepage or the generated full map. Do not use it as the showcase’s source of truth.
 
 The hero mice slowly turn; the thumb-button chapter rocks through a small angle
 that keeps the key faces visible. `mouse-motion.mjs` shares their 30 fps idle loop.
@@ -264,7 +264,7 @@ elapsed-time easing. The photo renders at CSS-pixel resolution, hotspot widths
 are measured on resize, and an idle room schedules no further frames. Keep this
 separate from the shared 30 fps scheduler for the detailed mouse models.
 
-For local use, run `make site`, then serve `.build/site` and open `/beta.html`.
+For local use, run `make site`, then serve `.build.noindex/site` and open `/beta.html`.
 The main walkthrough stays at `/`; the beta does not replace it.
 
 The beta background uses `assets/ethan-sausage-legs.webp`, an image edit Ethan

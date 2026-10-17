@@ -10,7 +10,7 @@ if [[ ! -x "${VSCE}" ]]; then # Fresh clones have no npx cache; require the repo
   exit 1
 fi
 VERSION="$(node -p "require('${EXTENSION_DIR}/package.json').version")"
-OUTPUT_PATH="${1:-${REPO_ROOT}/build/agentic-mouse-vscode-bridge-${VERSION}.vsix}"
+OUTPUT_PATH="${1:-${REPO_ROOT}/build.noindex/agentic-mouse-vscode-bridge-${VERSION}.vsix}"
 if [[ "${OUTPUT_PATH}" != /* ]]; then
   OUTPUT_PATH="${REPO_ROOT}/${OUTPUT_PATH}"
 fi

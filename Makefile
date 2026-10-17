@@ -11,20 +11,20 @@ help: ## Show this help
 		| awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-14s\033[0m %s\n", $$1, $$2}'
 
 build: ## Debug build
-	swift build
+	swift build --scratch-path .build.noindex
 
 release: ## Release build
-	swift build -c release
+	swift build --scratch-path .build.noindex -c release
 
 test: ## Run the hardware-free test suite
-	swift test
+	swift test --scratch-path .build.noindex
 
 test-extension: ## Test the fail-closed Musixmatch Chrome extension
 	node --test extensions/musixmatch-playback/tests/*.test.mjs
 
 test-vscode-bridge: ## Test and package-check the direct VS Code command bridge
 	node --test Integrations/VSCode/test/*.test.js
-	bash Scripts/package-vscode-bridge.sh .build/agentic-mouse-vscode-bridge-test.vsix
+	bash Scripts/package-vscode-bridge.sh .build.noindex/agentic-mouse-vscode-bridge-test.vsix
 
 vscode-bridge: ## Package the local VS Code command bridge VSIX
 	bash Scripts/package-vscode-bridge.sh
@@ -52,7 +52,7 @@ test-karabiner: ## Validate semantic action sources and generated Karabiner JSON
 	fi
 
 test-verbose: ## Run tests with full output
-	swift test --verbose
+	swift test --scratch-path .build.noindex --verbose
 
 check: clean build test test-extension test-vscode-bridge test-karabiner test-install test-packaging test-site ## Clean build followed by the full test suite
 	bash -n Scripts/package-app.sh
@@ -67,23 +67,23 @@ test-site: site ## Verify the generated mode graph and browser simulation
 	node --test Tests/ShowcaseTests/*.test.mjs
 
 clean: ## Remove build products
-	swift package clean
-	rm -rf .build build
+	swift package --scratch-path .build.noindex clean
+	rm -rf .build.noindex build.noindex .build build
 
-app: ## Package AgenticMouse.app into ./build (installs nothing)
+app: ## Package AgenticMouse.app into ./build.noindex (installs nothing)
 	bash ./Scripts/package-app.sh
 
 install-candidate: ## Package a stable Developer-ID app for guarded installation
 	INSTALL_CANDIDATE=1 CODE_SIGN_IDENTITY="$(CODE_SIGN_IDENTITY)" REQUIRE_ICUE_SDK="$(REQUIRE_ICUE_SDK)" bash ./Scripts/package-app.sh
 
 doctor: build ## Show the resolved configuration, redacted
-	swift run agentic-mouse-doctor config
+	swift run --scratch-path .build.noindex agentic-mouse-doctor config
 
 keymap: build ## Print the multi-tap keymap
-	swift run agentic-mouse-doctor keymap
+	swift run --scratch-path .build.noindex agentic-mouse-doctor keymap
 
 mapping: build ## Print the normal / VS Code iCUE assignments this helper assumes
-	swift run agentic-mouse-doctor mapping
+	swift run --scratch-path .build.noindex agentic-mouse-doctor mapping
 
 simulate: build ## Drive the whole coordinator against fakes, no hardware needed
-	swift run agentic-mouse-doctor simulate
+	swift run --scratch-path .build.noindex agentic-mouse-doctor simulate

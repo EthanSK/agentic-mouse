@@ -27,7 +27,7 @@ jobs:
       - uses: actions/upload-pages-artifact@v4
         if: github.event_name != 'pull_request'
         with:
-          path: .build/site
+          path: .build.noindex/site
 
   deploy:
     if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'

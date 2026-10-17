@@ -20,13 +20,15 @@ class PackagePreflightTests(unittest.TestCase):
         shutil.copy2(ROOT / "Scripts/package-app.sh", self.root / "Scripts/package-app.sh")
         shutil.copy2(ROOT / "Resources/Info.plist", self.root / "Resources/Info.plist")
         self.version = (self.root / "Resources/Info.plist").read_bytes()
-        self.candidate = self.root / "build/AgenticMouse.app/preserved"
+        self.candidate = self.root / "build.noindex/AgenticMouse.app/preserved"
         self.candidate.parent.mkdir(parents=True)
         self.candidate.write_text("previous candidate")
         self.bin = self.root / "bin"
         self.bin.mkdir()
         self.fake("security", 'printf \'  1) ABC "Developer ID Application: Test Owner (TEST)"\\n\'')
         self.fake("swift", "exit 91")
+        # Isolate signing/SDK preflight from the separate source-lineage gate.
+        self.fake("python3", "exit 0")
 
     def fake(self, name, body):
         path = self.bin / name

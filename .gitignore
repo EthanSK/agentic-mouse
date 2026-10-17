@@ -1,5 +1,8 @@
 # ---- Build products ----
+# Generated artifacts stay outside Spotlight in every checkout.
+*.noindex/
 .build/
+.build.noindex/
 build/
 DerivedData/
 *.o
