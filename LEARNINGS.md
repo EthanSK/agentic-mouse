@@ -8,6 +8,8 @@
 
 **Guard and verification limit:** Preserve the intended saved frames; do not overwrite a profile to repair accidental origin drift or edit Stay's private database. The subsequent app-targeted synthetic shortcut probe produced no observed window movement, so it does not establish a working global hotkey or physical mouse acceptance. Record Restore enabled, dispatch, actual restoration and physical acceptance separately. The project recovery procedure is [repair-stay-window-layouts](.agents/skills/repair-stay-window-layouts/SKILL.md).
 
+**User acceptance:** After the display-origin repair and a request to test Organize Windows from the mouse, Ethan confirmed: “Aye, nice, it actually works.” This closes the pending user check for this repair; the report does not identify which mouse or establish independent acceptance of both device routes. The synthetic shortcut probe remains a separate unsuccessful test.
+
 ## 2026-09-04 — Late VS Code staging owns the pre-navigation file
 
 **Trigger:** Ethan reported that a slower stage follow-up inside the one-second mouse window stages the newly selected file rather than the file he had just reviewed.

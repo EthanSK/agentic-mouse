@@ -1,11 +1,13 @@
 ---
 name: repair-stay-window-layouts
-description: Diagnose and repair Stay (Cordless Dog) saved window layouts for Agentic Mouse when Restore is disabled, the monitor layout does not match, or Organize Windows fires without moving windows. Also use after monitor replacement, rearrangement or rescaling, or a stored app changes such as OBS Studio to OBS++. Does not cover generic macOS search or unrelated mouse mappings.
+description: Diagnose and repair Stay (Cordless Dog) saved window layouts when Ethan reports issues with Stay, says Stay is broken or windows are not restoring, Restore is disabled, the monitor layout does not match, or Organize Windows fires without moving windows. Also use after monitor replacement, rearrangement or rescaling, or a stored app changes such as OBS Studio to OBS++. Does not cover the ordinary word stay, generic macOS search or unrelated mouse mappings.
 ---
 
 # Repair Stay window layouts
 
 Recover the existing intended layout without replacing good saved windows with the current broken arrangement.
+
+Project: [Agentic Mouse](../../../README.md).
 
 ## Continuous improvement
 
@@ -20,6 +22,12 @@ Mark agent-initiated additions or material changes with a visible `Self-improved
 ## Skill usage announcement
 
 Whenever this skill is used, tell Ethan in commentary before taking any skill-directed action. Name the skill and briefly say why it applies. Use the **Skill use** announcement format defined in `$response-preferences`, and preserve explicit silent-use exceptions.
+
+## Discovery across chats
+
+Use this skill automatically when Ethan says there are issues with Stay in the future, including “Stay is broken”, “Stay is not restoring windows”, or “Organize Windows does nothing”; he does not need to name the skill. Keep diagnosis and any authorized repair within the safeguards below.
+
+The canonical skill belongs to the Agentic Mouse project. A user-scope installation can symlink to this folder so the same procedure is discoverable outside the project without maintaining another copy. Resolve the loaded skill folder's real path before following project-relative links.
 
 ## Diagnose before changing anything
 
