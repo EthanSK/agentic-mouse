@@ -1,5 +1,13 @@
 # Learnings
 
+## 2026-10-17 — Separate Stay display drift from shortcut delivery
+
+**Trigger:** Organize Windows dispatches but Stay Restore is disabled after the display arrangement changes.
+
+**Cause and repair:** Compare identities, dimensions and origins separately. In this repair the existing display identities and resolutions matched the intended saved workspace; one external display's origin differed. A consistent Stay backup and a complete display rollback were saved first. Returning only that display to the stored origin through the existing display-configuration tool made Stay's live Restore Windows menu enabled again. Every saved data table remained semantically unchanged, including the nine-window, seven-app target workspace and the unrelated older workspace.
+
+**Guard and verification limit:** Preserve the intended saved frames; do not overwrite a profile to repair accidental origin drift or edit Stay's private database. The subsequent app-targeted synthetic shortcut probe produced no observed window movement, so it does not establish a working global hotkey or physical mouse acceptance. Record Restore enabled, dispatch, actual restoration and physical acceptance separately. The project recovery procedure is [repair-stay-window-layouts](.agents/skills/repair-stay-window-layouts/SKILL.md).
+
 ## 2026-09-04 — Late VS Code staging owns the pre-navigation file
 
 **Trigger:** Ethan reported that a slower stage follow-up inside the one-second mouse window stages the newly selected file rather than the file he had just reviewed.
