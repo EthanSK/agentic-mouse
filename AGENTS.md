@@ -84,3 +84,7 @@ Read [docs/AGENT-SETUP.md](docs/AGENT-SETUP.md) and [docs/SETUP.md](docs/SETUP.m
 
 - After a user-requested Agentic Mouse update, restart it automatically as part of the signed installation. Do not wait for me to ask or ask me to approve the routine restart again.
 - If Computer Use cannot reach Agentic Mouse, use direct macOS Accessibility to invoke the exact app's dedicated `Quit Agentic Mouse` menu item, then relaunch the verified `/Applications/AgenticMouse.app`. This fallback is authorized for the normal installation and restart; preserve the supervisor-disarm sequence, rollback, settings, recording, and live verification required above.
+
+## Stay recovery project skill
+
+When Stay Restore is disabled, the saved monitor layout does not match, Organize Windows fires without moving windows, or monitors/stored apps change, use [repair-stay-window-layouts](.agents/skills/repair-stay-window-layouts/SKILL.md) before changing the layout or dispatch code.
