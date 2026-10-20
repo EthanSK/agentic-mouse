@@ -592,8 +592,8 @@ class KarabinerGeneratorTests(unittest.TestCase):
                 self.assertEqual(
                     manipulator["to"][-1],
                     {
-                        "key_code": "period",
-                        "modifiers": ["left_control", "left_shift"],
+                        "key_code": "f17",
+                        "modifiers": ["left_command", "left_control", "left_option", "left_shift"],
                         "repeat": False,
                         "conditions": [
                             {

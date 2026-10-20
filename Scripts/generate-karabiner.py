@@ -871,8 +871,8 @@ def build_mode_picker_rule(
         if native:
             to.append(
                 {
-                    "key_code": "period",  # Ethan's Dvorak layout puts semantic V on the ANSI period key; sending ANSI V produced Control-Shift-. and Codex ignored it.
-                    "modifiers": ["left_control", "left_shift"],
+                    "key_code": "f17",  # Hello Chat parity: configured composer.startVoiceMode (Toggle voice chat), independent of Dvorak letter positions.
+                    "modifiers": ["left_command", "left_control", "left_option", "left_shift"],
                     "repeat": False,
                 }
             )

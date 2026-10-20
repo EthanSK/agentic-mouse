@@ -2701,3 +2701,7 @@ A project chat inserts a Project popup before the task-title group beside Chat a
 - 2026-09-09: Show Hold → Stage as the third prominent gesture beside 5 Previous and 8 Next in the code-review section. Keep the detailed hold-and-release explanation below, and allow the gesture row to wrap on narrow screens.
 
 - 2026-09-09: Keep the Agentic Mouse page focused on its controls: replace the full personal room-photo section with a compact card linking to Ethan’s setup in a new browser tab. Its thumbnail uses the personal site’s existing social image without stretching or regenerating it.
+
+## 2026-10-20 — Voice toggle parity with Hello Chat
+
+Ethan confirmed Corsair 12 Voice works and requested clearing its stale cross. Match Hello Chat’s verified `composer.startVoiceMode` binding (Hyper-F17) through the existing exact-device Karabiner route, not the older global `realtimeVoice` Control-Shift-V route. This supersedes the September global-shortcut lesson. One deliberate button press toggles Voice; never blindly retry a start since it can end an active call. New Chat remains Command-N. Read actual Voice controls for start-only/end-only automation; process-wide microphone activity alone does not prove a call or dictation. No call should be opened/ended merely to test packaging.

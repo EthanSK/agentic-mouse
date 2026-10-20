@@ -16,7 +16,8 @@
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-BUILD_DIR="${REPO_ROOT}/build.noindex"
+BUILD_DIR="${AGENTIC_MOUSE_BUILD_DIR:-${REPO_ROOT}/build.noindex}"
+SWIFT_SCRATCH_PATH="${AGENTIC_MOUSE_SWIFT_SCRATCH_PATH:-${REPO_ROOT}/.build.noindex}"
 APP_NAME="AgenticMouse"
 APP_DIR="${BUILD_DIR}/${APP_NAME}.app"
 SUPERVISOR_APP_DIR="${APP_DIR}/Contents/Library/LoginItems/AgenticMouseSupervisor.app"
@@ -144,8 +145,8 @@ if [[ "${DISTRIBUTION_BUILD}" == "1" ]]; then
   APP_SIGN_FLAGS=(--entitlements "${REPO_ROOT}/Resources/Distribution.entitlements")
 fi
 log "Building (${CONFIGURATION})"
-swift build --package-path "${REPO_ROOT}" --scratch-path "${REPO_ROOT}/.build.noindex" -c "${CONFIGURATION}" ${BUILD_FLAGS[@]+"${BUILD_FLAGS[@]}"}
-BIN_PATH="$(swift build --package-path "${REPO_ROOT}" --scratch-path "${REPO_ROOT}/.build.noindex" -c "${CONFIGURATION}" ${BUILD_FLAGS[@]+"${BUILD_FLAGS[@]}"} --show-bin-path)"
+swift build --package-path "${REPO_ROOT}" --scratch-path "${SWIFT_SCRATCH_PATH}" -c "${CONFIGURATION}" ${BUILD_FLAGS[@]+"${BUILD_FLAGS[@]}"}
+BIN_PATH="$(swift build --package-path "${REPO_ROOT}" --scratch-path "${SWIFT_SCRATCH_PATH}" -c "${CONFIGURATION}" ${BUILD_FLAGS[@]+"${BUILD_FLAGS[@]}"} --show-bin-path)"
 
 log "Assembling ${APP_NAME}.app ${PACKAGE_VERSION_LABEL}"
 if [[ -n "${PROVENANCE_FILE}" ]]; then
