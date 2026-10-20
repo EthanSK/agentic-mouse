@@ -54,9 +54,9 @@ public enum CodexModeAction: String, CaseIterable, Equatable, Sendable {
     /// acceptance is the clearing boundary.
     public var hudControlStatus: ModeHUDControlStatus {
         switch self {
-        case .toggleVoiceMode, .editQueuedMessage:
+        case .editQueuedMessage:
             return .reportedBroken
-        case .newTask, .togglePin, .toggleMicrophoneMute, .openSideChat,
+        case .toggleVoiceMode, .newTask, .togglePin, .toggleMicrophoneMute, .openSideChat,
              .steerQueuedMessage, .pressEnter:
             return .normal
         }

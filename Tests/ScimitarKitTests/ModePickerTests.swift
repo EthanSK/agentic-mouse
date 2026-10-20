@@ -98,7 +98,6 @@ final class ModePickerTests: XCTestCase {
 
     func testCodexAndVSCodeMarkersFollowLatestPhysicalReports() {
         let brokenCodexActions: [CodexModeAction] = [
-            .toggleVoiceMode,
             .editQueuedMessage,
         ]
         for action in CodexModeAction.allCases {

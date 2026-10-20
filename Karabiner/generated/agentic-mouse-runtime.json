@@ -2866,9 +2866,11 @@
               ]
             },
             {
-              "key_code": "period",
+              "key_code": "f17",
               "modifiers": [
+                "left_command",
                 "left_control",
+                "left_option",
                 "left_shift"
               ],
               "repeat": false,
@@ -2939,9 +2941,11 @@
               ]
             },
             {
-              "key_code": "period",
+              "key_code": "f17",
               "modifiers": [
+                "left_command",
                 "left_control",
+                "left_option",
                 "left_shift"
               ],
               "repeat": false,
@@ -5011,9 +5015,11 @@
               ]
             },
             {
-              "key_code": "period",
+              "key_code": "f17",
               "modifiers": [
+                "left_command",
                 "left_control",
+                "left_option",
                 "left_shift"
               ],
               "repeat": false,
@@ -5084,9 +5090,11 @@
               ]
             },
             {
-              "key_code": "period",
+              "key_code": "f17",
               "modifiers": [
+                "left_command",
                 "left_control",
+                "left_option",
                 "left_shift"
               ],
               "repeat": false,
