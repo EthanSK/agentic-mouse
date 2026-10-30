@@ -328,7 +328,6 @@ private struct WandRadialFocusOutline: View {
             angle: wedge.centerAngle,
             pullX: pullX,
             pullY: pullY,
-            towardCenter: onCenter,
             wedge: wedge.expanded(by: WandWheelMetrics.focusOutset),
             discRadius: WandWheelMetrics.centerRadius + WandWheelMetrics.focusOutset
         )

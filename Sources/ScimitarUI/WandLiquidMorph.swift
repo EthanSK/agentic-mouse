@@ -8,9 +8,17 @@ import SwiftUI
 /// `progress` 0 is the centre disc and 1 is the ring card at `angle`.
 /// Between them the centre drop first reaches toward the card, then the
 /// outline flows into the card's shape as one blob: its centre travels and its
-/// edge morphs, so it never disappears. Moving back runs the same path in
-/// reverse. At either end the outline is exactly the existing disc or wedge
-/// outline with its live pull, so the morph adds nothing at rest.
+/// edge morphs, so it never disappears. At either end the outline is exactly
+/// the existing disc or wedge outline with its live pull, so the morph adds
+/// nothing at rest.
+///
+/// Ethan (2026-10-30): "make that item animation fully seamless so it animates
+/// all the way instead of jumps at a certain point ... like a blob moving
+/// around." The outline depends only on the animated values (progress, angle,
+/// live pull, wedge), never on which card currently has focus. It used to
+/// switch formulas with a `towardCenter` flag that flips at once when focus
+/// changes, so the first frame of a centre/ring move dropped the drop's stretch
+/// (about 40 pt) and a mid-flight reversal changed shape (about 10 pt).
 enum WandLiquidMorph {
     /// Outline samples used while morphing; the ends use their own outlines.
     static let samples = 144
@@ -21,49 +29,41 @@ enum WandLiquidMorph {
     }
 
     /// - Parameters:
-    ///   - pull: the live screen-space pull of the focused card.
-    ///   - towardCenter: the focus is on the centre, so `pull` is the disc's
-    ///     and the morph is the departure from a ring card.
+    ///   - pull: the live screen-space pull, animated with progress: the
+    ///     centre disc's at progress 0 and the ring card's at progress 1.
     static func outline(
         progress: Double,
         angle: Double,
         pull: CGPoint,
-        towardCenter: Bool,
         wedge template: WandWedge,
         discRadius: CGFloat
     ) -> [CGPoint] {
         var wedge = template
         wedge.centerAngle = angle
-        let p = progress.isFinite ? max(0, min(1, progress)) : (towardCenter ? 0 : 1)
+        let p = progress.isFinite ? max(0, min(1, progress)) : 1
+        let live = wedge.components(ofPull: pull)
         if p <= 0.0001 {
-            return WandLiquidDisc.outline(radius: discRadius, pull: towardCenter ? pull : .zero)
+            return WandLiquidDisc.outline(radius: discRadius, pull: pull)
         }
         if p >= 0.9999 {
-            let parts = towardCenter ? (along: 0.0, inward: 0.0) : wedge.components(ofPull: pull)
-            return wedge.liquidOutline(along: parts.along, inward: parts.inward)
+            return wedge.liquidOutline(along: live.along, inward: live.inward)
         }
         let direction = WandWedge.radial(angle)
-        // The centre drop reaches toward the card first...
-        let reach = smoothstep(p / 0.55)
-        var discPull = CGPoint(x: direction.x * reach, y: direction.y * reach)
-        if towardCenter {
-            // ...and settles back into the live centre pull as it arrives.
-            discPull = CGPoint(x: pull.x + (discPull.x - pull.x) * reach, y: pull.y + (discPull.y - pull.y) * reach)
-        }
-        // ...then the card's outline flows in from the centre side.
-        let settle = smoothstep((p - 0.45) / 0.55)
-        let wedgePoints: [CGPoint]
-        if towardCenter {
-            // Ease out of the resting wedge too. A full inward pull here
-            // snapped the outline by 14 points on the first animation frame.
-            wedgePoints = wedge.liquidOutline(along: 0, inward: 1 - settle)
-        } else {
-            let live = wedge.components(ofPull: pull)
-            wedgePoints = wedge.liquidOutline(along: live.along * settle,
-                                              inward: 1 + (live.inward - 1) * settle)
-        }
+        // The centre drop leans from its live pull toward the card...
+        let reach = smoothstep(p / 0.6)
+        let discPull = CGPoint(x: pull.x + (direction.x - pull.x) * reach,
+                               y: pull.y + (direction.y - pull.y) * reach)
+        // ...while the card's outline flows from fully drawn in toward the
+        // centre into its live pull.
+        let settle = smoothstep((p - 0.4) / 0.6)
+        let wedgePoints = wedge.liquidOutline(along: live.along * settle, inward: 1 + (live.inward - 1) * settle)
         let discPoints = WandLiquidDisc.outline(radius: discRadius, pull: discPull)
-        return blend(discPoints, wedgePoints, weight: smoothstep((p - 0.25) / 0.5))
+        // The blob's body travels in step with progress across the whole move,
+        // so the focus spring alone sets its pace. A blend squeezed into the
+        // middle half (smoothstep from 0.25 to 0.75) tripled the spring's peak
+        // speed and crossed about 80 pt in one 60 Hz frame: Ethan's "jumps at
+        // a certain point".
+        return blend(discPoints, wedgePoints, weight: p)
     }
 
     /// One continuous blob between two star-shaped outlines: its centre moves
@@ -125,7 +125,6 @@ struct WandLiquidMorphOutline: Shape {
     var angle: Double
     var pullX: Double
     var pullY: Double
-    let towardCenter: Bool
     /// Its radii and width animate too, so moving between a ring card and an
     /// outer-layer card flows outward instead of cutting.
     var wedge: WandWedge
@@ -151,7 +150,7 @@ struct WandLiquidMorphOutline: Shape {
     func path(in rect: CGRect) -> Path {
         let points = WandLiquidMorph.outline(
             progress: progress, angle: angle, pull: CGPoint(x: pullX, y: pullY),
-            towardCenter: towardCenter, wedge: wedge, discRadius: discRadius
+            wedge: wedge, discRadius: discRadius
         )
         var path = Path()
         guard let first = points.first else { return path }
