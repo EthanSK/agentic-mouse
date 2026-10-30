@@ -32,3 +32,26 @@ public struct SelectedAreaScreenshotCommand: Equatable, Codable, Sendable {
         return decoded
     }
 }
+
+
+/// Receiver-only start for Ethan's Bottom triple-click. Retries never toggle
+/// an existing native selection off. The ordinary mouse toggle is unchanged.
+public struct WandScreenshotStartCommand: Decodable, Equatable, Sendable {
+    public static let commandName = "agentic_mouse_wand_screenshot_start"
+    public let command:String
+    public let version:Int
+    public let id:String
+
+    public static func decode(_ data:Data) throws -> Self {
+        guard data.count <= 256,
+              let fields=try JSONSerialization.jsonObject(with:data) as? [String:Any],
+              Set(fields.keys) == ["command","version","id"] else {
+            throw DecodingError.dataCorrupted(.init(codingPath:[],debugDescription:"invalid wand screenshot request"))
+        }
+        let value=try JSONDecoder().decode(Self.self,from:data)
+        guard value.command == commandName,value.version == 1,UUID(uuidString:value.id) != nil else {
+            throw DecodingError.dataCorrupted(.init(codingPath:[],debugDescription:"invalid wand screenshot request"))
+        }
+        return value
+    }
+}

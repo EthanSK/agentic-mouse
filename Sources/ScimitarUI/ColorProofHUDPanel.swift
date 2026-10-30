@@ -17,6 +17,7 @@ public final class AppKitModeHUDPresenter: NSObject, ModeHUDPresenting {
         case all
     }
 
+    public var onCloseRequested:(()->Void)?
     private var panels: [ObjectIdentifier: PanelInstance] = [:]
     private let model: ModeHUDViewModel
     private let source: MouseSource
@@ -24,6 +25,7 @@ public final class AppKitModeHUDPresenter: NSObject, ModeHUDPresenting {
     private let scaleStore: HUDScaleStore
     private let workspaceNotificationCenter: NotificationCenter
     private var scaleObservation: AnyCancellable?
+    private var wandPlacementAnchor: WandHUDPlacement.Anchor?
     private var problemDismissWorkItem: DispatchWorkItem?
     private var feedbackDismissWorkItem: DispatchWorkItem?
     private var delayedScreenReconcileWorkItem: DispatchWorkItem?
@@ -87,10 +89,12 @@ public final class AppKitModeHUDPresenter: NSObject, ModeHUDPresenting {
 
     public func update(_ snapshot: ModeHUDSnapshot) {
         guard snapshot.source == source else { return }
-        model.apply(snapshot)
+        let focusOnly = model.apply(snapshot)
         displayScope = snapshot.showsOnAllDisplays ? .all : .target
         updatePanelOpacity(for: snapshot)
-        if isVisible { reconcilePanels(show: true) }
+        // Rotating the wand changes only an overlay. Repositioning/orderFront
+        // on every sample remeasures SwiftUI mid-animation and shakes the HUD.
+        if isVisible && !(source == .wand && focusOnly) { reconcilePanels(show: true) }
     }
 
     public func hide() {
@@ -98,8 +102,7 @@ public final class AppKitModeHUDPresenter: NSObject, ModeHUDPresenting {
         feedbackDismissWorkItem?.cancel()
         delayedScreenReconcileWorkItem?.cancel()
         delayedSpaceReattachWorkItem?.cancel()
-        model.isActive = false
-        model.feedback = nil
+        model.resetAfterHide()
         discardPanels()
         displayScope = .target
     }
@@ -144,6 +147,7 @@ public final class AppKitModeHUDPresenter: NSObject, ModeHUDPresenting {
     }
 
     @objc private func screenParametersDidChange(_ notification: Notification) {
+        wandPlacementAnchor = nil
         guard isVisible else { return }
         reconcilePanels(show: true)
         scheduleSettledScreenReconciliation()
@@ -194,6 +198,7 @@ public final class AppKitModeHUDPresenter: NSObject, ModeHUDPresenting {
     }
 
     private func reconcilePanels(show: Bool) {
+
         let screens = targetScreens()
         let targetKeys = Set(screens.map(ObjectIdentifier.init))
 
@@ -213,6 +218,7 @@ public final class AppKitModeHUDPresenter: NSObject, ModeHUDPresenting {
     }
 
     private func discardPanels() {
+        wandPlacementAnchor = nil
         panels.values.forEach {
             HUDScaleHoverCoordinator.shared.unregister(hudPanel: $0.panel)
             $0.scaleControlPanel.orderOut(nil)
@@ -233,7 +239,10 @@ public final class AppKitModeHUDPresenter: NSObject, ModeHUDPresenting {
         let panel = HUDPanel(contentRect: NSRect(origin: .zero, size: size))
         panel.contentView = hosting
         panel.alphaValue = panelOpacity
-        let scaleControlPanel = HUDScaleControlPanel(scaleStore: scaleStore)
+        let scaleControlPanel = HUDScaleControlPanel(scaleStore: scaleStore) { [weak self] in
+            self?.onCloseRequested?()
+            self?.hide()
+        }
         HUDScaleHoverCoordinator.shared.register(
             hudPanel: panel,
             controlPanel: scaleControlPanel
@@ -270,6 +279,9 @@ public final class AppKitModeHUDPresenter: NSObject, ModeHUDPresenting {
             origin = NSPoint(x: visible.minX + margin, y: visible.minY + margin)
         case .bottomRight:
             origin = NSPoint(x: visible.maxX - size.width - margin, y: visible.minY + margin)
+        case .bottomCenter:
+            if wandPlacementAnchor == nil { wandPlacementAnchor = .init() }
+            origin = wandPlacementAnchor!.frame(size:size,on:screen,margin:margin).origin
         case .center:
             origin = NSPoint(x: visible.midX - size.width / 2, y: visible.midY - size.height / 2)
         }
@@ -284,7 +296,7 @@ public final class AppKitModeHUDPresenter: NSObject, ModeHUDPresenting {
         switch AppConfiguration.HUDConfiguration.sourceCorner(for: source) {
         case .topLeft, .bottomLeft:
             x = instance.panel.frame.minX + inset
-        case .topRight, .bottomRight, .center:
+        case .topRight, .bottomRight, .center, .bottomCenter:
             x = instance.panel.frame.maxX - HUDScaleControlPanel.size.width - inset
         }
         instance.scaleControlPanel.setFrameOrigin(NSPoint(

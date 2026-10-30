@@ -94,8 +94,9 @@ still a separate physical acceptance gate.
 
 The physical-cell crosswalk is the semantic contract. Naming a printed Corsair
 or Razer button identifies its canonical physical cell; it does not create a
-device-specific action. One press of canonical cell 10 toggles that source
-mouse's Default legend outside modes and exits its active mode, while canonical
+device-specific action. A tap of canonical cell 10 toggles that source
+mouse's Default legend outside modes, while holding it supplies a lazy Command
+modifier to another control. The same cell exits its active mode, while canonical
 cell 11 holds open Switch App and cell 12 opens Utility immediately. Only explicit hardware or handedness behavior
 may diverge. The left-handed Razer mirrors only the explicitly handed Keys
 arrows. One-cell wheel controls keep the same accepted physical polarity on
@@ -310,7 +311,8 @@ above individual modes. A single press of physical cell 12 (Corsair 12 / Razer 1
 opens that mouse's Utility page and expiring exact-device lease immediately. While it is alive,
 all twelve transports feed one ordered press/release stream, independent of
 ordinary frontmost-app conditions. Universal physical cell 10 exits any active
-mode and toggles that source mouse's independent Default legend outside modes.
+mode; outside modes, tapping it toggles that source mouse's independent Default
+legend and holding it supplies Command to another control.
 Keys cell 6 selects Keypad. Outside modes,
 cell 6 emits the exact-device YouTube scrub press/release lifecycle. Top-level
 cell 2 opens a live frontmost-app child that refreshes on workspace activation;
@@ -346,7 +348,7 @@ to the Spaces wheel chord, cell 4 to the Mission Control / Show Desktop
 wheel chord, cell 5 to a down-only, one-action-per-hold native App Exposé chord, cell 6
 to the Magnet Left / Right wheel chord, cell 7 to Paste Password, and uses cell
 12 to enter the nested Extra Utilities page. Extra Utilities maps cell 1 to one
-manual hardware-like Control-Option-Shift-Command-A lifecycle, which invokes Stay's verified global restore
+manual hardware-like Control-Option-Command-A lifecycle, which invokes Stay's verified global restore
 hotkey for `Agentic Mouse Layout v1`; no automatic restore, AppleScript, or Stay
 UI automation exists in Agentic Mouse. Extra Utilities cell 9 sends one
 hardware-like Command-Q lifecycle to the frontmost external process. It
@@ -394,7 +396,7 @@ presenters, and lighting callbacks, so their HUDs and modes may coexist. Colour 
 its lighting source remains only as internal regression infrastructure.
 
 The same `ModeHUDSnapshot` and non-activating presenter supports the persistent
-ordinary Default mode legend. A single press of shared physical cell 10
+ordinary Default mode legend. A tap of shared physical cell 10
 toggles each source's respective copy with one exact-device command and no lease or lighting
 change. Each source owns an independent legend; hiding
 one never retargets or closes the other. Mode entry suspends only that source's panel; exit restores it only

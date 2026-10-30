@@ -82,18 +82,43 @@ final class YouTubeScrubHoldControllerTests: XCTestCase {
         XCTAssertFalse(h.hold.release(source: .corsair))
     }
 
-    func testWheelBeforeThresholdPermanentlyInhibitsSpeedForThisHold() {
+    func testWheelBeforeThresholdStillAllowsSpeedDuringTheSameHold() {
         let h = Harness()
         h.press()
-        h.hold.inhibitSpeed(source: .corsair)
+        // The wheel monitor routes a scrub without inhibiting this hold.
         h.advance(1)
-        h.press()
-        h.advance(1)
-        XCTAssertTrue(h.events.isEmpty)
+        XCTAssertEqual(h.events, [ChromeYouTubeSpeedHoldController.beginNotification])
         XCTAssertFalse(h.hold.release(source: .corsair))
+        XCTAssertEqual(h.events.last, ChromeYouTubeSpeedHoldController.endNotification)
     }
 
-    func testWheelAfterBoostRestoresImmediatelyAndDoesNotRearm() {
+    func testScrubAfterBoostKeepsLeaseUntilPhysicalRelease() {
+        let h = Harness()
+        let wheel = WheelChordStateMachine()
+        wheel.setActive(.youtubeScrub, for: .corsair)
+        h.press()
+        h.advance(0.4)
+        guard case .consume(let forward) = wheel.route(verticalDelta: -1, isContinuous: false),
+              case .consume(let backward) = wheel.route(verticalDelta: 1, isContinuous: false)
+        else { return XCTFail("Both scrub ratchets must be routed") }
+        XCTAssertEqual(forward.control, .youtubeScrub)
+        XCTAssertEqual(backward.control, .youtubeScrub)
+        XCTAssertEqual(wheel.release(.youtubeScrub, for: .corsair)?.didObserveWheelInput, true)
+        h.advance(2)
+        h.renewal.fire()
+        XCTAssertEqual(h.events, [
+            ChromeYouTubeSpeedHoldController.beginNotification,
+            ChromeYouTubeSpeedHoldController.renewNotification,
+        ])
+        XCTAssertFalse(h.hold.release(source: .corsair))
+        XCTAssertEqual(h.events, [
+            ChromeYouTubeSpeedHoldController.beginNotification,
+            ChromeYouTubeSpeedHoldController.renewNotification,
+            ChromeYouTubeSpeedHoldController.endNotification,
+        ])
+    }
+
+    func testVolumeModifierStillEndsSpeedAndDoesNotRearm() {
         let h = Harness()
         h.press()
         h.advance(0.4)
@@ -160,4 +185,37 @@ final class YouTubeScrubHoldControllerTests: XCTestCase {
         XCTAssertTrue(h.events.isEmpty)
         XCTAssertFalse(h.hold.release(source: .corsair))
     }
+    func testDelayedReleaseUsesIngressDurationForAShortClick() {
+        let h = Harness()
+        h.hold.press(source: .razer, volumeModifierActive: false, inputTime: 0)
+        h.clock.advance(by: 2)
+        XCTAssertTrue(h.hold.release(source: .razer, inputTime: 0.2))
+        XCTAssertTrue(h.events.isEmpty)
+    }
+
+    func testBoostedHoldCannotRewindEvenIfInputTimesDisagree() {
+        let h = Harness()
+        h.hold.press(source: .corsair, volumeModifierActive: false, inputTime: 10)
+        h.advance(0.4)
+        XCTAssertFalse(h.hold.release(source: .corsair, inputTime: 10.1))
+        XCTAssertEqual(h.events.last, ChromeYouTubeSpeedHoldController.endNotification)
+    }
+
+    func testInhibitedBoostCannotBecomeARewind() {
+        let h = Harness()
+        h.hold.press(source: .corsair, volumeModifierActive: false, inputTime: 10)
+        h.advance(0.4)
+        h.hold.inhibitSpeed(source: .corsair)
+        XCTAssertFalse(h.hold.release(source: .corsair, inputTime: 10.1))
+        XCTAssertEqual(h.events.count, 2)
+    }
+
+    func testDuplicatePressKeepsOriginalIngressTime() {
+        let h = Harness()
+        h.hold.press(source: .razer, volumeModifierActive: false, inputTime: 10)
+        h.hold.press(source: .razer, volumeModifierActive: false, inputTime: 10.4)
+        XCTAssertFalse(h.hold.release(source: .razer, inputTime: 10.5))
+        XCTAssertTrue(h.events.isEmpty)
+    }
+
 }

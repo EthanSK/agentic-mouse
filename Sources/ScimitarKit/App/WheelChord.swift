@@ -16,14 +16,21 @@ public enum WheelChordControl: String, Codable, CaseIterable, Sendable {
     case systemOverview
     case applicationWindows
     case magnetWindow
+    case windowWidth
+    case windowHeight
+    case chromeVSCodeLayout
     case spaces
     case mediaTracks
     case chromeTabs
     case spotifyVolume
     case vsCodeCursorHistory
+    case vsCodeStageRange
     case codexReasoningEffort
+    case codexResponseSpeed
     case codexChatHistory
     case codexPin
+    case claudePin
+    case claudeTabs
 
     public var actionTitle: String {
         switch self {
@@ -36,15 +43,22 @@ public enum WheelChordControl: String, Codable, CaseIterable, Sendable {
         case .clipboard: return "Copy / Paste"
         case .systemOverview: return "Mission / Desktop"
         case .applicationWindows: return "App Exposé"
+        case .windowWidth: return "Width"
+        case .windowHeight: return "Height"
+        case .chromeVSCodeLayout: return "Split Chrome / VS Code"
         case .magnetWindow: return "Magnet"
         case .spaces: return "Spaces"
         case .mediaTracks: return "Tracks"
         case .chromeTabs: return "Tabs"
         case .spotifyVolume: return "Volume"
         case .vsCodeCursorHistory: return "Cursor History"
+        case .vsCodeStageRange: return "Stage Range"
         case .codexReasoningEffort: return "Reasoning Effort"
+        case .codexResponseSpeed: return "Speed"
         case .codexChatHistory: return "Chats Selection"
         case .codexPin: return "Pin/Unpin"
+        case .claudePin: return "Pin/Unpin"
+        case .claudeTabs: return "Tabs"
         }
     }
 
@@ -58,15 +72,17 @@ public enum WheelChordControl: String, Codable, CaseIterable, Sendable {
         case .clipboard: return ModeHUDActionFamilyPalette.clipboard
         case .systemOverview: return ModeHUDActionFamilyPalette.systemOverview
         case .applicationWindows: return ModeHUDActionFamilyPalette.windowManagement
-        case .magnetWindow: return ModeHUDActionFamilyPalette.windowManagement
+        case .chromeVSCodeLayout, .windowWidth, .windowHeight, .magnetWindow: return ModeHUDActionFamilyPalette.windowManagement
         case .spaces: return ModeHUDActionFamilyPalette.desktopSpaces
         case .mediaTracks: return ModeHUDActionFamilyPalette.media
         case .chromeTabs: return ModeHUDActionFamilyPalette.browserTabs
         case .spotifyVolume: return ModeHUDActionFamilyPalette.media
-        case .vsCodeCursorHistory: return ModeHUDActionFamilyPalette.historyNavigation
+        case .vsCodeCursorHistory, .vsCodeStageRange: return ModeHUDActionFamilyPalette.historyNavigation
         case .codexReasoningEffort: return ModeHUDActionFamilyPalette.reasoningEffort
+        case .codexResponseSpeed: return CodexMode.accent
         case .codexChatHistory: return ModeHUDActionFamilyPalette.historyNavigation
-        case .codexPin: return RGBColor(red: 255, green: 188, blue: 58)
+        case .codexPin, .claudePin: return RGBColor(red: 255, green: 188, blue: 58)
+        case .claudeTabs: return ModeHUDActionFamilyPalette.historyNavigation
         }
     }
 
@@ -74,7 +90,7 @@ public enum WheelChordControl: String, Codable, CaseIterable, Sendable {
     /// added or otherwise untested control remains normal; only an explicit
     /// unresolved failure report earns a repair marker.
     public var hudControlStatus: ModeHUDControlStatus {
-        self == .codexPin ? .reportedBroken : .normal
+        .normal
     }
 
     /// Utility deliberately spends one cell per two-way family. The opposite
@@ -85,10 +101,11 @@ public enum WheelChordControl: String, Codable, CaseIterable, Sendable {
         case .zoom: return .zoomWheelControl
         case .spaces: return .spacesWheelControl
         case .systemOverview: return .systemOverviewWheelControl
-        case .applicationWindows: return .applicationWindowsWheelControl
+        case .applicationWindows: return nil
         case .magnetWindow: return .magnetWheelControl
-        case .screenshotPaste, .clipboard, .horizontalScroll, .youtubeScrub, .youtubeVolume, .mediaTracks, .chromeTabs, .spotifyVolume,
-             .vsCodeCursorHistory, .codexReasoningEffort, .codexChatHistory, .codexPin: return nil
+        case .chromeVSCodeLayout, .windowWidth, .windowHeight, .screenshotPaste, .clipboard, .horizontalScroll, .youtubeScrub, .youtubeVolume, .mediaTracks, .chromeTabs, .spotifyVolume,
+             .vsCodeCursorHistory, .vsCodeStageRange, .codexReasoningEffort, .codexResponseSpeed, .codexChatHistory, .codexPin,
+             .claudePin, .claudeTabs: return nil
         }
     }
 
@@ -104,14 +121,47 @@ public enum WheelChordControl: String, Codable, CaseIterable, Sendable {
         case .clipboard: return .clipboardWheelControl
         case .horizontalScroll: return .horizontalScrollWheelControl
         case .youtubeScrub: return .youtubeScrubWheelControl
-        case .brightness, .zoom, .spaces, .systemOverview, .applicationWindows, .youtubeVolume,
+        case .chromeVSCodeLayout, .windowWidth, .windowHeight, .brightness, .zoom, .spaces, .systemOverview, .applicationWindows, .youtubeVolume,
              .magnetWindow, .mediaTracks, .chromeTabs, .spotifyVolume,
-             .vsCodeCursorHistory, .codexReasoningEffort, .codexChatHistory, .codexPin: return nil
+             .vsCodeCursorHistory, .vsCodeStageRange, .codexReasoningEffort, .codexResponseSpeed, .codexChatHistory, .codexPin,
+             .claudePin, .claudeTabs: return nil
         }
     }
 
     public static func topLevelControl(for cell: PhysicalCell) -> WheelChordControl? {
         allCases.first { $0.topLevelCell == cell }
+    }
+
+    public var windowResizeAxis: WindowResizeAxis? {
+        switch self {
+        case .windowWidth: return .width
+        case .windowHeight: return .height
+        default: return nil
+        }
+    }
+
+    public static func extraUtilitiesControl(for cell: PhysicalCell) -> WheelChordControl? {
+        switch cell {
+        case .applicationWindowsWheelControl: return .applicationWindows
+        case .windowWidthWheelControl: return .windowWidth
+        case .windowHeightWheelControl: return .windowHeight
+        case .chromeVSCodeLayoutWheelControl: return .chromeVSCodeLayout
+        default: return nil
+        }
+    }
+
+    /// The shared dispatcher must validate the page that owns this control.
+    /// App Exposé moved to Extra Utilities; the remaining ordinary Utility
+    /// wheel controls stay on the Modes page.
+    public func isActiveUtilityRoute(
+        page: ModePickerPage,
+        activeControl: WheelChordControl?
+    ) -> Bool {
+        guard activeControl == self else { return false }
+        if self == .applicationWindows {
+            return page == .extraUtilities
+        }
+        return utilityCell != nil && page == .modes
     }
 
     public static func keysControl(for cell: PhysicalCell) -> WheelChordControl? {
@@ -125,12 +175,16 @@ public enum WheelChordControl: String, Codable, CaseIterable, Sendable {
         cell: PhysicalCell
     ) -> WheelChordControl? {
         switch target {
-        case .codex where cell == CodexMode.screenshotPinWheelCell:
-            return .codexPin
+        case .codex where cell == CodexMode.responseSpeedWheelCell:
+            return .codexResponseSpeed
+        case .claude where cell == ClaudeMode.pinToggleCell:
+            return .claudePin
         case .codex where cell == PhysicalCell(rawValue: 4)!:
             return .codexReasoningEffort
         case .codex where cell == CodexMode.chatHistoryWheelCell:
             return .codexChatHistory
+        case .claude where cell == ClaudeMode.tabsWheelCell:
+            return .claudeTabs
         case .chrome where ChromeModeAction.action(for: cell) == .cycleTabsWithWheel:
             return .chromeTabs
         case .spotify where cell == StandardAppMode.spotifyVolumeWheelCell:
@@ -152,9 +206,13 @@ public enum WheelChordControl: String, Codable, CaseIterable, Sendable {
                 preconditionFailure("top-level wheel control is missing its canonical cell")
             }
             return topLevelCell
+        case .windowWidth: return .windowWidthWheelControl
+        case .windowHeight: return .windowHeightWheelControl
+        case .chromeVSCodeLayout: return .chromeVSCodeLayoutWheelControl
         case .youtubeVolume:
             return .youtubeScrubWheelControl // Holding Forward changes the existing YouTube Scrub wheel into Volume, so diagnostics still belong to the scrub control's physical cell; leaving this in the generic fallback crashed on the first volume ratchet because neither generic cell exists. (Codex task: 01a039f7-873c-7c30-b3dc-af8a6724ace5)
-        case .brightness, .zoom, .systemOverview, .applicationWindows, .magnetWindow, .spaces:
+        case .applicationWindows: return .applicationWindowsWheelControl
+        case .brightness, .zoom, .systemOverview, .magnetWindow, .spaces:
             guard let utilityCell else {
                 preconditionFailure("Utility wheel control is missing its canonical cell")
             }
@@ -165,12 +223,20 @@ public enum WheelChordControl: String, Codable, CaseIterable, Sendable {
             return StandardAppMode.spotifyVolumeWheelCell
         case .vsCodeCursorHistory:
             return VSCodeMode.cursorHistoryWheelCell
+        case .vsCodeStageRange:
+            return VSCodeModeAction.nextChange.cell
         case .codexPin:
             return CodexMode.screenshotPinWheelCell
+        case .claudePin:
+            return ClaudeMode.pinToggleCell
         case .codexReasoningEffort:
             return PhysicalCell(rawValue: 4)!
+        case .codexResponseSpeed:
+            return CodexMode.responseSpeedWheelCell
         case .codexChatHistory:
             return CodexMode.chatHistoryWheelCell
+        case .claudeTabs:
+            return ClaudeMode.tabsWheelCell
         case .mediaTracks:
             return .mediaTracksWheelControl
         }
@@ -203,9 +269,9 @@ public enum WheelChordControl: String, Codable, CaseIterable, Sendable {
         case (.magnetWindow, .down): return .moveWindowRightWithMagnet
         case (.spaces, .up): return .moveToSpaceRight
         case (.spaces, .down): return .moveToSpaceLeft
-        case (.screenshotPaste, _), (.horizontalScroll, _), (.youtubeScrub, _), (.youtubeVolume, _), (.mediaTracks, _), (.chromeTabs, _), (.spotifyVolume, _),
-             (.vsCodeCursorHistory, _), (.codexReasoningEffort, _),
-             (.codexChatHistory, _), (.codexPin, _): return nil
+        case (.chromeVSCodeLayout, _), (.windowWidth, _), (.windowHeight, _), (.screenshotPaste, _), (.horizontalScroll, _), (.youtubeScrub, _), (.youtubeVolume, _), (.mediaTracks, _), (.chromeTabs, _), (.spotifyVolume, _),
+             (.vsCodeCursorHistory, _), (.vsCodeStageRange, _), (.codexReasoningEffort, _), (.codexResponseSpeed, _),
+             (.codexChatHistory, _), (.codexPin, _), (.claudePin, _), (.claudeTabs, _): return nil
         }
     }
 
@@ -256,6 +322,31 @@ public enum WheelChordControl: String, Codable, CaseIterable, Sendable {
         return direction == .up ? .navigateForward : .navigateBack
     }
 
+    public func vsCodeStageSelectionDirection(
+        for direction: WheelChordDirection
+    ) -> VSCodeStageSelectionDirection? {
+        guard self == .vsCodeStageRange else { return nil }
+        // Both accepted mice report a physical upward ratchet as `.down`.
+        return direction == .down ? .up : .down
+    }
+
+    public func vsCodeStagePreviewDirection(
+        for direction: WheelChordDirection
+    ) -> VSCodeStagePreviewDirection? {
+        guard self == .vsCodeStageRange else { return nil }
+        // Both accepted mice report physical wheel down as `.up`. Match the
+        // document direction: down advances to the next change, up returns to
+        // the previous change.
+        return direction == .up ? .next : .previous
+    }
+
+    public func codexResponseSpeedAction(for direction: WheelChordDirection) -> CodexResponseSpeedAction? {
+        guard self == .codexResponseSpeed else { return nil }
+        // Both accepted mice deliver physical wheel up as Quartz `.down`.
+        // Model Bar owns available tiers, bounds and draft-safe selection.
+        return direction == .down ? .increase : .decrease
+    }
+
     public func codexReasoningEffortAction(
         for direction: WheelChordDirection
     ) -> CodexReasoningEffortAction? {
@@ -268,12 +359,6 @@ public enum WheelChordControl: String, Codable, CaseIterable, Sendable {
         return direction == .down ? .increase : .decrease
     }
 
-    public func codexPinAction(for direction: WheelChordDirection) -> CodexPinAction? {
-        guard self == .codexPin else { return nil }
-        // Both accepted mice report a physical upward ratchet as `.down`.
-        return direction == .down ? .pin : .unpin
-    }
-
     public func codexChatHistoryAction(
         for direction: WheelChordDirection
     ) -> CodexChatHistoryAction? {
@@ -281,6 +366,10 @@ public enum WheelChordControl: String, Codable, CaseIterable, Sendable {
         // Match the shared held-wheel navigation convention: wheel up moves
         // right/forward and wheel down moves left/back.
         return direction == .up ? .forward : .back
+    }
+
+    public func claudeTabDirection(for direction: WheelChordDirection) -> WheelChordDirection? {
+        self == .claudeTabs ? direction : nil
     }
 
     /// Concise action copy for the shared HUD footer after the corresponding
@@ -291,6 +380,12 @@ public enum WheelChordControl: String, Codable, CaseIterable, Sendable {
             return action.actionTitle
         }
         switch self {
+        case .chromeVSCodeLayout:
+            return nil // The native controller reports only verified window frames.
+        case .windowWidth:
+            return direction == .down ? "Width increased" : "Width decreased"
+        case .windowHeight:
+            return direction == .down ? "Height increased" : "Height decreased"
         case .screenshotPaste:
             return direction == .up ? "Paste screenshot" : nil
         case .horizontalScroll:
@@ -315,16 +410,27 @@ public enum WheelChordControl: String, Codable, CaseIterable, Sendable {
             return vsCodeCursorHistoryCommand(for: direction) == .navigateForward
                 ? "Cursor History Forward"
                 : "Cursor History Back"
+        case .vsCodeStageRange:
+            return vsCodeStageSelectionDirection(for: direction) == .up
+                ? "Stage Selection Up"
+                : "Stage Selection Down"
         case .codexReasoningEffort:
             return codexReasoningEffortAction(for: direction) == .increase
                 ? "Reasoning Effort Up"
                 : "Reasoning Effort Down"
+        case .codexResponseSpeed:
+            return codexResponseSpeedAction(for: direction) == .increase
+                ? "Speed Up request" : "Speed Down request"
         case .codexPin:
-            return codexPinAction(for: direction) == .pin ? "Pin" : "Unpin"
+            return accepts(direction) ? "Pin/Unpin" : nil
+        case .claudePin:
+            return accepts(direction) ? "Pin/Unpin" : nil
         case .codexChatHistory:
             return codexChatHistoryAction(for: direction) == .forward
                 ? "Chat Forward"
                 : "Chat Back"
+        case .claudeTabs:
+            return direction == .up ? "Tab Forward" : "Tab Back"
         case .applicationWindows:
             // Wheel-up is intentionally consumed without an action.
             return nil
@@ -355,6 +461,84 @@ public enum WheelChordControl: String, Codable, CaseIterable, Sendable {
         return self != .applicationWindows || direction == .down
     }
 
+    /// The Quartz delta sign a physical upward ratchet produces for this
+    /// family. These families normalize the physical ratchet to the opposite
+    /// Quartz enum sign; keep that exception local as the runtime does. The
+    /// website export and the HUD motion arrow both read this one table.
+    public var physicalUpDirection: WheelChordDirection {
+        switch self {
+        case .windowWidth, .windowHeight, .chromeVSCodeLayout, .youtubeScrub, .codexResponseSpeed,
+             .codexReasoningEffort, .vsCodeCursorHistory, .vsCodeStageRange, .codexPin, .claudePin,
+             .screenshotPaste:
+            return .down
+        case .horizontalScroll, .youtubeVolume, .brightness, .zoom, .clipboard, .systemOverview,
+             .applicationWindows, .magnetWindow, .spaces, .mediaTracks, .chromeTabs, .spotifyVolume,
+             .codexChatHistory, .claudeTabs:
+            return .up
+        }
+    }
+
+    /// Which physical directions act, derived from `accepts` so the arrow can
+    /// never claim a direction the dispatcher consumes without an action.
+    public var hudMotion: ModeHUDGesture.Motion {
+        let up = accepts(physicalUpDirection)
+        let down = accepts(physicalUpDirection == .up ? .down : .up)
+        switch (up, down) {
+        case (true, false): return .up
+        case (false, true): return .down
+        default: return .upDown
+        }
+    }
+
+    /// What a wheel-free click does on release, or nil when release is inert.
+    /// Mirrors the app shell's wheel-chord release handling: Copy / Paste
+    /// inserts a space, Tracks plays the next track, Screenshot captures and
+    /// YouTube rewinds five seconds. Every other family only acts while held.
+    public var hudClickTitle: String? {
+        switch self {
+        case .clipboard: return "Space"
+        case .mediaTracks: return MediaTrackAction.next.actionTitle
+        case .screenshotPaste: return "Screenshot"
+        case .youtubeScrub: return "YouTube −5 sec"
+        case .horizontalScroll, .youtubeVolume, .brightness, .zoom, .systemOverview,
+             .applicationWindows, .magnetWindow, .windowWidth, .windowHeight, .chromeVSCodeLayout,
+             .spaces, .chromeTabs, .spotifyVolume, .vsCodeCursorHistory, .vsCodeStageRange,
+             .codexReasoningEffort, .codexResponseSpeed, .codexChatHistory, .codexPin, .claudePin,
+             .claudeTabs:
+            return nil
+        }
+    }
+
+    /// The held part of a card's title. Usually the family name; a few cards
+    /// name it in their own page's vocabulary.
+    public var hudHoldTitle: String {
+        switch self {
+        case .screenshotPaste: return "Paste"
+        // Holding also requests temporary 2× speed before any wheel input.
+        case .youtubeScrub: return "Hold 2× / Scrub"
+        case .chromeTabs: return ChromeModeAction.cycleTabsWithWheel.title
+        default: return actionTitle
+        }
+    }
+
+    /// The one gesture definition every HUD card for this family uses.
+    public var hudGesture: ModeHUDGesture {
+        ModeHUDGesture(
+            click: hudClickTitle,
+            hold: hudHoldTitle,
+            motion: hudMotion,
+            isAvailableOnWand: supportsWandAdjustment,
+            wandMotion: wandHUDMotion
+        )
+    }
+
+    /// The wand's arrow, from the one axis definition its movement and its
+    /// adjustment arrows use: horizontal controls read ↔; vertical ones keep
+    /// the wheel's arrow (including single-direction ↑ or ↓).
+    public var wandHUDMotion: ModeHUDGesture.Motion {
+        wandAxis == .horizontal ? .leftRight : hudMotion
+    }
+
     /// One physical ratchet is not guaranteed to arrive as one Quartz event.
     /// Choose action cadence from semantics rather than treating each event as
     /// a new user request.
@@ -362,16 +546,16 @@ public enum WheelChordControl: String, Codable, CaseIterable, Sendable {
         switch self {
         case .brightness, .zoom:
             return .everyAcceptedEvent
-        case .systemOverview, .applicationWindows, .spaces, .codexPin, .screenshotPaste, .mediaTracks:
+        case .systemOverview, .applicationWindows, .spaces, .codexPin, .claudePin, .screenshotPaste:
             return .oncePerHold
         case .clipboard:
             return .debounced(minimumInterval: 0.12)
-        case .horizontalScroll, .youtubeScrub, .youtubeVolume, .chromeTabs, .spotifyVolume, .codexChatHistory:
+        case .chromeVSCodeLayout, .windowWidth, .windowHeight, .horizontalScroll, .youtubeScrub, .youtubeVolume, .mediaTracks, .chromeTabs, .spotifyVolume, .codexChatHistory, .codexResponseSpeed, .claudeTabs:
             // Chats Selection deliberately uses this fixed leading-edge window:
             // collapse one detent's duplicate raw events, but do not let those
             // duplicates extend a quiet gap and swallow later ratchets.
             return .debounced(minimumInterval: 0.08)
-        case .vsCodeCursorHistory, .codexReasoningEffort:
+        case .vsCodeCursorHistory, .vsCodeStageRange, .codexReasoningEffort:
             // Measure duplicate same-direction bursts from the latest raw
             // event rather than the last dispatched action. This reconstructs
             // one semantic step per physical ratchet while preserving an
@@ -422,6 +606,27 @@ public enum YouTubeVolumeAction: Equatable, Sendable {
 public enum CodexReasoningEffortAction: Equatable, Sendable {
     case increase
     case decrease
+
+    public var modelBarURL: URL {
+        switch self {
+        case .increase: return URL(string: "codex-model-bar://reasoning-up")!
+        case .decrease: return URL(string: "codex-model-bar://reasoning-down")!
+        }
+    }
+}
+
+public enum CodexResponseSpeedAction: Equatable, Sendable {
+    case increase
+    case decrease
+    case cancel
+
+    public var modelBarURL: URL {
+        switch self {
+        case .increase: return URL(string: "codex-model-bar://speed-up")!
+        case .decrease: return URL(string: "codex-model-bar://speed-down")!
+        case .cancel: return URL(string: "codex-model-bar://speed-cancel")!
+        }
+    }
 }
 
 public enum CodexChatHistoryAction: Equatable, Sendable {
@@ -501,6 +706,16 @@ public enum WheelChordDirection: Equatable, Sendable {
         case .down: return 1
         }
     }
+}
+
+public enum VSCodeStageSelectionDirection: String, Equatable, Sendable {
+    case up
+    case down
+}
+
+public enum VSCodeStagePreviewDirection: String, Codable, Equatable, Sendable {
+    case next
+    case previous
 }
 
 /// Bounded per-source throttle for the temporary wheel trace shown in the HUD.
@@ -638,6 +853,15 @@ public final class WheelChordStateMachine {
         }
     }
 
+    /// Wand only: a held one-action control (Mission Control, Spaces, Pin)
+    /// may act again after a fresh deliberate swipe, without releasing it.
+    /// Its wheel-input record stays, so the eventual release never clicks.
+    /// The physical mice never call this and keep one action per hold.
+    public func rearmHoldAction(for source: MouseSource) {
+        guard activeBySource[source] != nil else { return }
+        didActBySource[source] = false
+    }
+
     public func setYouTubeVolumeModifierActive(
         _ active: Bool,
         for source: MouseSource
@@ -725,7 +949,8 @@ public final class WheelChordStateMachine {
         verticalDelta: Int64,
         isContinuous: Bool,
         scrollPhase: Int64 = 0,
-        momentumPhase: Int64 = 0
+        momentumPhase: Int64 = 0,
+        stagePreviewSource: MouseSource? = nil
     ) -> Routing {
         guard let direction = WheelChordDirection(verticalDelta: verticalDelta) else {
             return .passThrough
@@ -768,7 +993,16 @@ public final class WheelChordStateMachine {
         guard control.accepts(direction) else {
             return .consumeInactiveDirection(step)
         }
-        switch control.dispatchPolicy {
+        // Ethan wants every ratchet while the same-source adjacent preview
+        // button is held, even inside the ordinary range-selection quiet gap.
+        // Keep the override local: all other wheel controls retain their policy.
+        let isStagePreview = control == .vsCodeStageRange && stagePreviewSource == source
+        if isStagePreview {
+            // Returning to range selection starts a fresh quiet gap instead of
+            // inheriting the last range ratchet from before preview navigation.
+            lastActionBySource[source] = nil
+        }
+        switch isStagePreview ? .everyAcceptedEvent : control.dispatchPolicy {
         case .everyAcceptedEvent:
             break
         case .oncePerHold:
@@ -842,7 +1076,7 @@ public struct WheelChordCommand: Equatable, Codable, Sendable {
     /// active mode coordinator and must not cross this ingress boundary.
     public static func decodeTopLevel(_ data: Data) throws -> WheelChordCommand {
         let decoded = try decode(data)
-        guard decoded.control.topLevelCell != nil else {
+        guard decoded.control.topLevelCell != nil || decoded.control == .vsCodeStageRange else {
             throw DecodingError.dataCorrupted(
                 .init(codingPath: [], debugDescription: "control has no top-level cell")
             )

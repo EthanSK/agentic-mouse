@@ -15,12 +15,12 @@ import ScimitarKit
 /// Two simultaneously held source chords are consumed without guessing.
 final class ScrollWheelChordMonitor {
     typealias StepHandler = (WheelChordStateMachine.Step) -> Bool
-    typealias ReleaseHandler = (WheelChordStateMachine.Release) -> Void
+    typealias ReleaseHandler = (WheelChordStateMachine.Release, TimeInterval) -> Void
     typealias YouTubeVolumeModifierReleaseHandler = (
         WheelChordStateMachine.YouTubeVolumeModifierRelease
     ) -> Void
     typealias YouTubeVolumeModifierChangeHandler = (_ source: MouseSource) -> Void
-    typealias ProblemHandler = (String) -> Void
+    typealias ProblemHandler = (MouseSource, String) -> Void
     typealias DiagnosticHandler = (_ source: MouseSource, _ message: String) -> Void
     typealias InputAllowed = () -> Bool
 
@@ -37,9 +37,9 @@ final class ScrollWheelChordMonitor {
     var onYouTubeVolumeModifierChange: YouTubeVolumeModifierChangeHandler?
     var onProblem: ProblemHandler?
     var onDiagnostic: DiagnosticHandler?
-    var onControlChange: ((_ source: MouseSource, _ control: WheelChordControl) -> Void)?
-    var onWheelInput: ((_ source: MouseSource) -> Void)?
-    var onClear: ((_ source: MouseSource) -> Void)?
+    var onControlChange: ((_ source: MouseSource, _ control: WheelChordControl, _ inputTime: TimeInterval) -> Void)?
+    var onClear: ((_ source: MouseSource, _ nextControl: WheelChordControl?) -> Void)?
+    var isStagePreviewNavigationActive: ((_ source: MouseSource) -> Bool)?
 
     private var tap: CFMachPort?
     private var runLoopSource: CFRunLoopSource?
@@ -113,15 +113,16 @@ final class ScrollWheelChordMonitor {
 
     func setActive(
         _ control: WheelChordControl?,
-        for source: MouseSource
+        for source: MouseSource,
+        inputTime: TimeInterval = ProcessInfo.processInfo.systemUptime
     ) {
         guard let control else {
-            finishHold(for: source)
+            finishHold(for: source, inputTime: inputTime)
             return
         }
-        if state.activeControl(for: source) != control { onClear?(source) }
+        if state.activeControl(for: source) != control { onClear?(source, control) }
         state.setActive(control, for: source)
-        onControlChange?(source, control)
+        onControlChange?(source, control, inputTime)
         diagnosticThrottle.reset(source: source)
         emitDiagnostic(
             source: source,
@@ -131,12 +132,12 @@ final class ScrollWheelChordMonitor {
 
     /// Preserves the exact top-level control on release so an old command
     /// cannot finish a newer hold from the same mouse source.
-    func handle(_ command: WheelChordCommand) {
+    func handle(_ command: WheelChordCommand, inputTime: TimeInterval = ProcessInfo.processInfo.systemUptime) {
         switch command.phase {
         case .press:
-            setActive(command.control, for: command.source)
+            setActive(command.control, for: command.source, inputTime: inputTime)
         case .release:
-            finishHold(command.control, for: command.source)
+            finishHold(command.control, for: command.source, inputTime: inputTime)
         }
     }
 
@@ -153,22 +154,23 @@ final class ScrollWheelChordMonitor {
 
     private func finishHold(
         _ expectedControl: WheelChordControl? = nil,
-        for source: MouseSource
+        for source: MouseSource,
+        inputTime: TimeInterval
     ) {
         guard let release = state.release(expectedControl, for: source) else { return }
         diagnosticThrottle.reset(source: source)
         log.info("\(controlLabel(release.control, source: source)) released")
-        onRelease?(release)
+        onRelease?(release, inputTime)
     }
 
     func clear(source: MouseSource) {
-        onClear?(source)
+        onClear?(source, nil)
         state.clear(source: source)
         diagnosticThrottle.reset(source: source)
     }
 
     func clearAll() {
-        for source in MouseSource.allCases { onClear?(source) }
+        for source in MouseSource.allCases { onClear?(source, nil) }
         state.clearAll()
         diagnosticThrottle.resetAll()
     }
@@ -202,16 +204,15 @@ final class ScrollWheelChordMonitor {
         let isContinuous = event.getIntegerValueField(.scrollWheelEventIsContinuous) != 0
         let scrollPhase = event.getIntegerValueField(.scrollWheelEventScrollPhase)
         let momentumPhase = event.getIntegerValueField(.scrollWheelEventMomentumPhase)
-        if delta != 0 {
-            for source in MouseSource.allCases where state.activeControl(for: source) != nil {
-                onWheelInput?(source) // Even filtered or ambiguous wheel input must end speed before routing the scrub/volume action.
-            }
+        let stagePreviewSource = state.soleActiveChord.flatMap { chord in
+            isStagePreviewNavigationActive?(chord.source) == true ? chord.source : nil
         }
         let routing = state.route(
             verticalDelta: delta,
             isContinuous: isContinuous,
             scrollPhase: scrollPhase,
-            momentumPhase: momentumPhase
+            momentumPhase: momentumPhase,
+            stagePreviewSource: stagePreviewSource
         )
         switch routing {
         case .passThrough:
@@ -233,7 +234,9 @@ final class ScrollWheelChordMonitor {
             }
             return Unmanaged.passUnretained(event)
         case .consumeAmbiguous:
-            onProblem?("Release one mouse control before using the wheel")
+            for source in MouseSource.allCases where state.activeControl(for: source) != nil {
+                onProblem?(source, "Release one mouse control before using the wheel")
+            }
             return nil
         case .consumeInactiveDirection(let step):
             emitWheelDiagnostic(
@@ -304,7 +307,7 @@ final class ScrollWheelChordMonitor {
                     + (routed ? "CONSUMED + ROUTED" : "ROUTE FAILED")
             )
             guard routed else {
-                onProblem?("\(step.control.actionTitle) wheel action could not be performed")
+                onProblem?(step.source, "\(step.control.actionTitle) wheel action could not be performed")
                 return nil
             }
             return nil

@@ -935,6 +935,78 @@
       ]
     },
     {
+      "description": "Agentic Mouse — Floating Mouse clutch",
+      "manipulators": [
+        {
+          "type": "basic",
+          "from": {
+            "key_code": "keypad_1",
+            "modifiers": {
+              "optional": [
+                "any"
+              ]
+            }
+          },
+          "conditions": [
+            {
+              "type": "device_if",
+              "identifiers": [
+                {
+                  "vendor_id": 6940,
+                  "product_id": 65535,
+                  "is_keyboard": true
+                }
+              ]
+            },
+            {
+              "type": "expression_if",
+              "expression": "(agentic_mouse_floating_corsair1_expires_at > system.now.milliseconds) and (agentic_mouse_floating_corsair1_expires_at <= system.now.milliseconds + 15000)"
+            },
+            {
+              "type": "expression_if",
+              "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+            }
+          ],
+          "to": [
+            {
+              "send_user_command": {
+                "payload": {
+                  "command": "agentic_mouse_floating_clutch",
+                  "source": "corsair1",
+                  "phase": "press"
+                }
+              },
+              "repeat": false,
+              "conditions": [
+                {
+                  "type": "expression_if",
+                  "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+                }
+              ]
+            }
+          ],
+          "to_after_key_up": [
+            {
+              "send_user_command": {
+                "payload": {
+                  "command": "agentic_mouse_floating_clutch",
+                  "source": "corsair1",
+                  "phase": "release"
+                }
+              },
+              "repeat": false,
+              "conditions": [
+                {
+                  "type": "expression_if",
+                  "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
       "description": "Agentic Mouse — Modes (expiring, exact-device)",
       "manipulators": [
         {
@@ -1103,6 +1175,22 @@
                   "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
                 }
               ]
+            },
+            {
+              "send_user_command": {
+                "payload": {
+                  "command": "agentic_mouse_floating_clutch",
+                  "source": "corsair1",
+                  "phase": "press"
+                }
+              },
+              "repeat": false,
+              "conditions": [
+                {
+                  "type": "expression_if",
+                  "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+                }
+              ]
             }
           ],
           "to_after_key_up": [
@@ -1113,6 +1201,22 @@
                   "action": "select",
                   "source": "corsair",
                   "physical_cell": 1,
+                  "phase": "release"
+                }
+              },
+              "repeat": false,
+              "conditions": [
+                {
+                  "type": "expression_if",
+                  "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+                }
+              ]
+            },
+            {
+              "send_user_command": {
+                "payload": {
+                  "command": "agentic_mouse_floating_clutch",
+                  "source": "corsair1",
                   "phase": "release"
                 }
               },
@@ -1192,6 +1296,22 @@
                   "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
                 }
               ]
+            },
+            {
+              "send_user_command": {
+                "payload": {
+                  "command": "agentic_mouse_floating_clutch",
+                  "source": "corsair1",
+                  "phase": "press"
+                }
+              },
+              "repeat": false,
+              "conditions": [
+                {
+                  "type": "expression_if",
+                  "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+                }
+              ]
             }
           ],
           "conditions": [
@@ -1216,6 +1336,24 @@
             {
               "type": "expression_if",
               "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+            }
+          ],
+          "to_after_key_up": [
+            {
+              "send_user_command": {
+                "payload": {
+                  "command": "agentic_mouse_floating_clutch",
+                  "source": "corsair1",
+                  "phase": "release"
+                }
+              },
+              "repeat": false,
+              "conditions": [
+                {
+                  "type": "expression_if",
+                  "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+                }
+              ]
             }
           ]
         },
@@ -1259,6 +1397,22 @@
                   "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
                 }
               ]
+            },
+            {
+              "send_user_command": {
+                "payload": {
+                  "command": "agentic_mouse_floating_clutch",
+                  "source": "corsair1",
+                  "phase": "press"
+                }
+              },
+              "repeat": false,
+              "conditions": [
+                {
+                  "type": "expression_if",
+                  "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+                }
+              ]
             }
           ],
           "conditions": [
@@ -1283,6 +1437,24 @@
             {
               "type": "expression_if",
               "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+            }
+          ],
+          "to_after_key_up": [
+            {
+              "send_user_command": {
+                "payload": {
+                  "command": "agentic_mouse_floating_clutch",
+                  "source": "corsair1",
+                  "phase": "release"
+                }
+              },
+              "repeat": false,
+              "conditions": [
+                {
+                  "type": "expression_if",
+                  "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+                }
+              ]
             }
           ]
         },
@@ -1356,6 +1528,14 @@
               "expression": "agentic_mouse_mode_picker_corsair_page == 2"
             },
             {
+              "type": "expression_unless",
+              "expression": "agentic_mouse_mode_picker_corsair_page == 1"
+            },
+            {
+              "type": "expression_unless",
+              "expression": "agentic_mouse_mode_picker_corsair_page == 3"
+            },
+            {
               "type": "expression_if",
               "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
             }
@@ -1391,11 +1571,8 @@
               ]
             },
             {
-              "key_code": "w",
-              "modifiers": [
-                "left_command"
-              ],
-              "repeat": false,
+              "key_code": "left_shift",
+              "repeat": true,
               "conditions": [
                 {
                   "type": "expression_if",
@@ -1422,6 +1599,140 @@
             {
               "type": "expression_if",
               "expression": "agentic_mouse_mode_picker_corsair_page == 2"
+            },
+            {
+              "type": "expression_if",
+              "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+            }
+          ]
+        },
+        {
+          "type": "basic",
+          "from": {
+            "key_code": "keypad_2",
+            "modifiers": {
+              "optional": [
+                "any"
+              ]
+            }
+          },
+          "to": [
+            {
+              "set_variable": {
+                "name": "agentic_mouse_mode_picker_corsair_page",
+                "value": 3
+              }
+            },
+            {
+              "set_variable": {
+                "name": "agentic_mouse_mode_picker_corsair_app_selection",
+                "value": 2
+              }
+            },
+            {
+              "send_user_command": {
+                "payload": {
+                  "command": "agentic_mouse_mode_picker",
+                  "action": "select",
+                  "source": "corsair",
+                  "physical_cell": 2,
+                  "phase": "press"
+                }
+              },
+              "repeat": false,
+              "conditions": [
+                {
+                  "type": "expression_if",
+                  "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+                }
+              ]
+            }
+          ],
+          "conditions": [
+            {
+              "type": "device_if",
+              "identifiers": [
+                {
+                  "vendor_id": 6940,
+                  "product_id": 65535,
+                  "is_keyboard": true
+                }
+              ]
+            },
+            {
+              "type": "expression_if",
+              "expression": "(agentic_mouse_mode_picker_corsair_expires_at > system.now.milliseconds) and (agentic_mouse_mode_picker_corsair_expires_at <= system.now.milliseconds + 15000)"
+            },
+            {
+              "type": "expression_if",
+              "expression": "agentic_mouse_mode_picker_corsair_page == 1"
+            },
+            {
+              "type": "expression_if",
+              "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+            }
+          ]
+        },
+        {
+          "type": "basic",
+          "from": {
+            "key_code": "keypad_2",
+            "modifiers": {
+              "optional": [
+                "any"
+              ]
+            }
+          },
+          "to": [
+            {
+              "set_variable": {
+                "name": "agentic_mouse_mode_picker_corsair_page",
+                "value": 4
+              }
+            },
+            {
+              "set_variable": {
+                "name": "agentic_mouse_mode_picker_corsair_app_selection",
+                "value": 2
+              }
+            },
+            {
+              "send_user_command": {
+                "payload": {
+                  "command": "agentic_mouse_mode_picker",
+                  "action": "select",
+                  "source": "corsair",
+                  "physical_cell": 2,
+                  "phase": "press"
+                }
+              },
+              "repeat": false,
+              "conditions": [
+                {
+                  "type": "expression_if",
+                  "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+                }
+              ]
+            }
+          ],
+          "conditions": [
+            {
+              "type": "device_if",
+              "identifiers": [
+                {
+                  "vendor_id": 6940,
+                  "product_id": 65535,
+                  "is_keyboard": true
+                }
+              ]
+            },
+            {
+              "type": "expression_if",
+              "expression": "(agentic_mouse_mode_picker_corsair_expires_at > system.now.milliseconds) and (agentic_mouse_mode_picker_corsair_expires_at <= system.now.milliseconds + 15000)"
+            },
+            {
+              "type": "expression_if",
+              "expression": "agentic_mouse_mode_picker_corsair_page == 3"
             },
             {
               "type": "expression_if",
@@ -1497,6 +1808,10 @@
             {
               "type": "expression_unless",
               "expression": "agentic_mouse_mode_picker_corsair_page == 2"
+            },
+            {
+              "type": "expression_unless",
+              "expression": "agentic_mouse_mode_picker_corsair_page == 3"
             },
             {
               "type": "expression_if",
@@ -1565,6 +1880,73 @@
             {
               "type": "expression_if",
               "expression": "agentic_mouse_mode_picker_corsair_page == 2"
+            },
+            {
+              "type": "expression_if",
+              "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+            }
+          ]
+        },
+        {
+          "type": "basic",
+          "from": {
+            "key_code": "keypad_3",
+            "modifiers": {
+              "optional": [
+                "any"
+              ]
+            }
+          },
+          "to": [
+            {
+              "set_variable": {
+                "name": "agentic_mouse_mode_picker_corsair_page",
+                "value": 4
+              }
+            },
+            {
+              "set_variable": {
+                "name": "agentic_mouse_mode_picker_corsair_app_selection",
+                "value": 2
+              }
+            },
+            {
+              "send_user_command": {
+                "payload": {
+                  "command": "agentic_mouse_mode_picker",
+                  "action": "select",
+                  "source": "corsair",
+                  "physical_cell": 3,
+                  "phase": "press"
+                }
+              },
+              "repeat": false,
+              "conditions": [
+                {
+                  "type": "expression_if",
+                  "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+                }
+              ]
+            }
+          ],
+          "conditions": [
+            {
+              "type": "device_if",
+              "identifiers": [
+                {
+                  "vendor_id": 6940,
+                  "product_id": 65535,
+                  "is_keyboard": true
+                }
+              ]
+            },
+            {
+              "type": "expression_if",
+              "expression": "(agentic_mouse_mode_picker_corsair_expires_at > system.now.milliseconds) and (agentic_mouse_mode_picker_corsair_expires_at <= system.now.milliseconds + 15000)"
+            },
+            {
+              "type": "expression_if",
+              "expression": "agentic_mouse_mode_picker_corsair_page == 3"
             },
             {
               "type": "expression_if",
@@ -1736,7 +2118,7 @@
             {
               "set_variable": {
                 "name": "agentic_mouse_mode_picker_corsair_app_selection",
-                "value": 2
+                "value": 3
               }
             },
             {
@@ -1853,6 +2235,10 @@
               "expression": "agentic_mouse_mode_picker_corsair_page == 2"
             },
             {
+              "type": "expression_unless",
+              "expression": "agentic_mouse_mode_picker_corsair_page == 3"
+            },
+            {
               "type": "expression_if",
               "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
             }
@@ -1916,6 +2302,73 @@
             {
               "type": "expression_if",
               "expression": "agentic_mouse_mode_picker_corsair_page == 2"
+            },
+            {
+              "type": "expression_if",
+              "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+            }
+          ]
+        },
+        {
+          "type": "basic",
+          "from": {
+            "key_code": "keypad_5",
+            "modifiers": {
+              "optional": [
+                "any"
+              ]
+            }
+          },
+          "to": [
+            {
+              "set_variable": {
+                "name": "agentic_mouse_mode_picker_corsair_page",
+                "value": 4
+              }
+            },
+            {
+              "set_variable": {
+                "name": "agentic_mouse_mode_picker_corsair_app_selection",
+                "value": 2
+              }
+            },
+            {
+              "send_user_command": {
+                "payload": {
+                  "command": "agentic_mouse_mode_picker",
+                  "action": "select",
+                  "source": "corsair",
+                  "physical_cell": 5,
+                  "phase": "press"
+                }
+              },
+              "repeat": false,
+              "conditions": [
+                {
+                  "type": "expression_if",
+                  "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+                }
+              ]
+            }
+          ],
+          "conditions": [
+            {
+              "type": "device_if",
+              "identifiers": [
+                {
+                  "vendor_id": 6940,
+                  "product_id": 65535,
+                  "is_keyboard": true
+                }
+              ]
+            },
+            {
+              "type": "expression_if",
+              "expression": "(agentic_mouse_mode_picker_corsair_expires_at > system.now.milliseconds) and (agentic_mouse_mode_picker_corsair_expires_at <= system.now.milliseconds + 15000)"
+            },
+            {
+              "type": "expression_if",
+              "expression": "agentic_mouse_mode_picker_corsair_page == 3"
             },
             {
               "type": "expression_if",
@@ -1993,6 +2446,10 @@
               "expression": "agentic_mouse_mode_picker_corsair_page == 2"
             },
             {
+              "type": "expression_unless",
+              "expression": "agentic_mouse_mode_picker_corsair_page == 3"
+            },
+            {
               "type": "expression_if",
               "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
             }
@@ -2052,6 +2509,73 @@
             {
               "type": "expression_if",
               "expression": "agentic_mouse_mode_picker_corsair_page == 2"
+            },
+            {
+              "type": "expression_if",
+              "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+            }
+          ]
+        },
+        {
+          "type": "basic",
+          "from": {
+            "key_code": "keypad_6",
+            "modifiers": {
+              "optional": [
+                "any"
+              ]
+            }
+          },
+          "to": [
+            {
+              "set_variable": {
+                "name": "agentic_mouse_mode_picker_corsair_page",
+                "value": 4
+              }
+            },
+            {
+              "set_variable": {
+                "name": "agentic_mouse_mode_picker_corsair_app_selection",
+                "value": 2
+              }
+            },
+            {
+              "send_user_command": {
+                "payload": {
+                  "command": "agentic_mouse_mode_picker",
+                  "action": "select",
+                  "source": "corsair",
+                  "physical_cell": 6,
+                  "phase": "press"
+                }
+              },
+              "repeat": false,
+              "conditions": [
+                {
+                  "type": "expression_if",
+                  "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+                }
+              ]
+            }
+          ],
+          "conditions": [
+            {
+              "type": "device_if",
+              "identifiers": [
+                {
+                  "vendor_id": 6940,
+                  "product_id": 65535,
+                  "is_keyboard": true
+                }
+              ]
+            },
+            {
+              "type": "expression_if",
+              "expression": "(agentic_mouse_mode_picker_corsair_expires_at > system.now.milliseconds) and (agentic_mouse_mode_picker_corsair_expires_at <= system.now.milliseconds + 15000)"
+            },
+            {
+              "type": "expression_if",
+              "expression": "agentic_mouse_mode_picker_corsair_page == 3"
             },
             {
               "type": "expression_if",
@@ -2282,6 +2806,263 @@
           },
           "to": [
             {
+              "set_variable": {
+                "name": "agentic_mouse_mode_picker_corsair_page",
+                "value": 4
+              }
+            },
+            {
+              "send_user_command": {
+                "payload": {
+                  "command": "agentic_mouse_mode_picker",
+                  "action": "select",
+                  "source": "corsair",
+                  "physical_cell": 8,
+                  "phase": "press"
+                }
+              },
+              "repeat": false,
+              "conditions": [
+                {
+                  "type": "expression_if",
+                  "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+                }
+              ]
+            }
+          ],
+          "to_after_key_up": [
+            {
+              "send_user_command": {
+                "payload": {
+                  "command": "agentic_mouse_mode_picker",
+                  "action": "select",
+                  "source": "corsair",
+                  "physical_cell": 8,
+                  "phase": "release"
+                }
+              },
+              "repeat": false,
+              "conditions": [
+                {
+                  "type": "expression_if",
+                  "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+                }
+              ]
+            }
+          ],
+          "conditions": [
+            {
+              "type": "device_if",
+              "identifiers": [
+                {
+                  "vendor_id": 6940,
+                  "product_id": 65535,
+                  "is_keyboard": true
+                }
+              ]
+            },
+            {
+              "type": "expression_if",
+              "expression": "(agentic_mouse_mode_picker_corsair_expires_at > system.now.milliseconds) and (agentic_mouse_mode_picker_corsair_expires_at <= system.now.milliseconds + 15000)"
+            },
+            {
+              "type": "expression_if",
+              "expression": "agentic_mouse_mode_picker_corsair_page == 7"
+            },
+            {
+              "type": "expression_if",
+              "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+            }
+          ]
+        },
+        {
+          "type": "basic",
+          "from": {
+            "key_code": "keypad_8",
+            "modifiers": {
+              "optional": [
+                "any"
+              ]
+            }
+          },
+          "to": [
+            {
+              "set_variable": {
+                "name": "agentic_mouse_mode_picker_corsair_page",
+                "value": 7
+              }
+            },
+            {
+              "send_user_command": {
+                "payload": {
+                  "command": "agentic_mouse_mode_picker",
+                  "action": "select",
+                  "source": "corsair",
+                  "physical_cell": 8,
+                  "phase": "press"
+                }
+              },
+              "repeat": false,
+              "conditions": [
+                {
+                  "type": "expression_if",
+                  "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+                }
+              ]
+            }
+          ],
+          "to_after_key_up": [
+            {
+              "send_user_command": {
+                "payload": {
+                  "command": "agentic_mouse_mode_picker",
+                  "action": "select",
+                  "source": "corsair",
+                  "physical_cell": 8,
+                  "phase": "release"
+                }
+              },
+              "repeat": false,
+              "conditions": [
+                {
+                  "type": "expression_if",
+                  "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+                }
+              ]
+            }
+          ],
+          "conditions": [
+            {
+              "type": "device_if",
+              "identifiers": [
+                {
+                  "vendor_id": 6940,
+                  "product_id": 65535,
+                  "is_keyboard": true
+                }
+              ]
+            },
+            {
+              "type": "expression_if",
+              "expression": "(agentic_mouse_mode_picker_corsair_expires_at > system.now.milliseconds) and (agentic_mouse_mode_picker_corsair_expires_at <= system.now.milliseconds + 15000)"
+            },
+            {
+              "type": "expression_if",
+              "expression": "agentic_mouse_mode_picker_corsair_page == 4"
+            },
+            {
+              "type": "expression_if",
+              "expression": "agentic_mouse_mode_picker_corsair_app_selection == 3"
+            },
+            {
+              "type": "expression_if",
+              "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+            }
+          ]
+        },
+        {
+          "type": "basic",
+          "from": {
+            "key_code": "keypad_8",
+            "modifiers": {
+              "optional": [
+                "any"
+              ]
+            }
+          },
+          "to": [
+            {
+              "set_variable": {
+                "name": "agentic_mouse_mode_picker_corsair_page",
+                "value": 7
+              }
+            },
+            {
+              "send_user_command": {
+                "payload": {
+                  "command": "agentic_mouse_mode_picker",
+                  "action": "select",
+                  "source": "corsair",
+                  "physical_cell": 8,
+                  "phase": "press"
+                }
+              },
+              "repeat": false,
+              "conditions": [
+                {
+                  "type": "expression_if",
+                  "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+                }
+              ]
+            }
+          ],
+          "to_after_key_up": [
+            {
+              "send_user_command": {
+                "payload": {
+                  "command": "agentic_mouse_mode_picker",
+                  "action": "select",
+                  "source": "corsair",
+                  "physical_cell": 8,
+                  "phase": "release"
+                }
+              },
+              "repeat": false,
+              "conditions": [
+                {
+                  "type": "expression_if",
+                  "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+                }
+              ]
+            }
+          ],
+          "conditions": [
+            {
+              "type": "device_if",
+              "identifiers": [
+                {
+                  "vendor_id": 6940,
+                  "product_id": 65535,
+                  "is_keyboard": true
+                }
+              ]
+            },
+            {
+              "type": "expression_if",
+              "expression": "(agentic_mouse_mode_picker_corsair_expires_at > system.now.milliseconds) and (agentic_mouse_mode_picker_corsair_expires_at <= system.now.milliseconds + 15000)"
+            },
+            {
+              "type": "expression_if",
+              "expression": "agentic_mouse_mode_picker_corsair_page == 4"
+            },
+            {
+              "type": "expression_if",
+              "expression": "agentic_mouse_mode_picker_corsair_app_selection == 0"
+            },
+            {
+              "type": "frontmost_application_if",
+              "bundle_identifiers": [
+                "^com\\.google\\.Chrome$"
+              ]
+            },
+            {
+              "type": "expression_if",
+              "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+            }
+          ]
+        },
+        {
+          "type": "basic",
+          "from": {
+            "key_code": "keypad_8",
+            "modifiers": {
+              "optional": [
+                "any"
+              ]
+            }
+          },
+          "to": [
+            {
               "send_user_command": {
                 "payload": {
                   "command": "agentic_mouse_mode_picker",
@@ -2338,6 +3119,10 @@
             {
               "type": "expression_unless",
               "expression": "agentic_mouse_mode_picker_corsair_page == 2"
+            },
+            {
+              "type": "expression_unless",
+              "expression": "agentic_mouse_mode_picker_corsair_page == 3"
             },
             {
               "type": "expression_if",
@@ -2413,6 +3198,73 @@
         {
           "type": "basic",
           "from": {
+            "key_code": "keypad_8",
+            "modifiers": {
+              "optional": [
+                "any"
+              ]
+            }
+          },
+          "to": [
+            {
+              "set_variable": {
+                "name": "agentic_mouse_mode_picker_corsair_page",
+                "value": 4
+              }
+            },
+            {
+              "set_variable": {
+                "name": "agentic_mouse_mode_picker_corsair_app_selection",
+                "value": 2
+              }
+            },
+            {
+              "send_user_command": {
+                "payload": {
+                  "command": "agentic_mouse_mode_picker",
+                  "action": "select",
+                  "source": "corsair",
+                  "physical_cell": 8,
+                  "phase": "press"
+                }
+              },
+              "repeat": false,
+              "conditions": [
+                {
+                  "type": "expression_if",
+                  "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+                }
+              ]
+            }
+          ],
+          "conditions": [
+            {
+              "type": "device_if",
+              "identifiers": [
+                {
+                  "vendor_id": 6940,
+                  "product_id": 65535,
+                  "is_keyboard": true
+                }
+              ]
+            },
+            {
+              "type": "expression_if",
+              "expression": "(agentic_mouse_mode_picker_corsair_expires_at > system.now.milliseconds) and (agentic_mouse_mode_picker_corsair_expires_at <= system.now.milliseconds + 15000)"
+            },
+            {
+              "type": "expression_if",
+              "expression": "agentic_mouse_mode_picker_corsair_page == 3"
+            },
+            {
+              "type": "expression_if",
+              "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+            }
+          ]
+        },
+        {
+          "type": "basic",
+          "from": {
             "key_code": "keypad_9",
             "modifiers": {
               "optional": [
@@ -2480,6 +3332,10 @@
               "expression": "agentic_mouse_mode_picker_corsair_page == 1"
             },
             {
+              "type": "expression_unless",
+              "expression": "agentic_mouse_mode_picker_corsair_page == 3"
+            },
+            {
               "type": "expression_if",
               "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
             }
@@ -2539,6 +3395,73 @@
             {
               "type": "expression_if",
               "expression": "agentic_mouse_mode_picker_corsair_page == 1"
+            },
+            {
+              "type": "expression_if",
+              "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+            }
+          ]
+        },
+        {
+          "type": "basic",
+          "from": {
+            "key_code": "keypad_9",
+            "modifiers": {
+              "optional": [
+                "any"
+              ]
+            }
+          },
+          "to": [
+            {
+              "set_variable": {
+                "name": "agentic_mouse_mode_picker_corsair_page",
+                "value": 4
+              }
+            },
+            {
+              "set_variable": {
+                "name": "agentic_mouse_mode_picker_corsair_app_selection",
+                "value": 2
+              }
+            },
+            {
+              "send_user_command": {
+                "payload": {
+                  "command": "agentic_mouse_mode_picker",
+                  "action": "select",
+                  "source": "corsair",
+                  "physical_cell": 9,
+                  "phase": "press"
+                }
+              },
+              "repeat": false,
+              "conditions": [
+                {
+                  "type": "expression_if",
+                  "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+                }
+              ]
+            }
+          ],
+          "conditions": [
+            {
+              "type": "device_if",
+              "identifiers": [
+                {
+                  "vendor_id": 6940,
+                  "product_id": 65535,
+                  "is_keyboard": true
+                }
+              ]
+            },
+            {
+              "type": "expression_if",
+              "expression": "(agentic_mouse_mode_picker_corsair_expires_at > system.now.milliseconds) and (agentic_mouse_mode_picker_corsair_expires_at <= system.now.milliseconds + 15000)"
+            },
+            {
+              "type": "expression_if",
+              "expression": "agentic_mouse_mode_picker_corsair_page == 3"
             },
             {
               "type": "expression_if",
@@ -2617,7 +3540,7 @@
             },
             {
               "type": "expression_unless",
-              "expression": "agentic_mouse_mode_picker_corsair_page == 1"
+              "expression": "agentic_mouse_mode_picker_corsair_page == 3"
             },
             {
               "type": "expression_if",
@@ -2704,7 +3627,7 @@
             {
               "set_variable": {
                 "name": "agentic_mouse_mode_picker_corsair_page",
-                "value": 3
+                "value": 4
               }
             },
             {
@@ -2721,6 +3644,87 @@
                   "source": "corsair",
                   "physical_cell": 11,
                   "phase": "press"
+                }
+              },
+              "repeat": false,
+              "conditions": [
+                {
+                  "type": "expression_if",
+                  "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+                }
+              ]
+            }
+          ],
+          "conditions": [
+            {
+              "type": "device_if",
+              "identifiers": [
+                {
+                  "vendor_id": 6940,
+                  "product_id": 65535,
+                  "is_keyboard": true
+                }
+              ]
+            },
+            {
+              "type": "expression_if",
+              "expression": "(agentic_mouse_mode_picker_corsair_expires_at > system.now.milliseconds) and (agentic_mouse_mode_picker_corsair_expires_at <= system.now.milliseconds + 15000)"
+            },
+            {
+              "type": "expression_if",
+              "expression": "agentic_mouse_mode_picker_corsair_page == 3"
+            },
+            {
+              "type": "expression_if",
+              "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+            }
+          ]
+        },
+        {
+          "type": "basic",
+          "from": {
+            "key_code": "keypad_plus",
+            "modifiers": {
+              "optional": [
+                "any"
+              ]
+            }
+          },
+          "to": [
+            {
+              "set_variable": {
+                "name": "agentic_mouse_mode_picker_corsair_page",
+                "value": 6
+              }
+            },
+            {
+              "send_user_command": {
+                "payload": {
+                  "command": "agentic_mouse_mode_picker",
+                  "action": "select",
+                  "source": "corsair",
+                  "physical_cell": 12,
+                  "phase": "press"
+                }
+              },
+              "repeat": false,
+              "conditions": [
+                {
+                  "type": "expression_if",
+                  "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+                }
+              ]
+            }
+          ],
+          "to_after_key_up": [
+            {
+              "send_user_command": {
+                "payload": {
+                  "command": "agentic_mouse_mode_picker",
+                  "action": "select",
+                  "source": "corsair",
+                  "physical_cell": 12,
+                  "phase": "release"
                 }
               },
               "repeat": false,
@@ -2828,6 +3832,10 @@
             },
             {
               "type": "expression_unless",
+              "expression": "agentic_mouse_mode_picker_corsair_page == 3"
+            },
+            {
+              "type": "expression_unless",
               "expression": "agentic_mouse_mode_picker_corsair_page == 4"
             },
             {
@@ -2866,9 +3874,11 @@
               ]
             },
             {
-              "key_code": "period",
+              "key_code": "f17",
               "modifiers": [
+                "left_command",
                 "left_control",
+                "left_option",
                 "left_shift"
               ],
               "repeat": false,
@@ -2939,9 +3949,11 @@
               ]
             },
             {
-              "key_code": "period",
+              "key_code": "f17",
               "modifiers": [
+                "left_command",
                 "left_control",
+                "left_option",
                 "left_shift"
               ],
               "repeat": false,
@@ -3039,7 +4051,7 @@
             },
             {
               "type": "expression_if",
-              "expression": "agentic_mouse_mode_picker_corsair_app_selection == 2"
+              "expression": "agentic_mouse_mode_picker_corsair_app_selection == 2 or agentic_mouse_mode_picker_corsair_app_selection == 3"
             },
             {
               "type": "expression_if",
@@ -3213,6 +4225,73 @@
             {
               "type": "expression_if",
               "expression": "agentic_mouse_mode_picker_corsair_page == 2"
+            },
+            {
+              "type": "expression_if",
+              "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+            }
+          ]
+        },
+        {
+          "type": "basic",
+          "from": {
+            "key_code": "keypad_plus",
+            "modifiers": {
+              "optional": [
+                "any"
+              ]
+            }
+          },
+          "to": [
+            {
+              "set_variable": {
+                "name": "agentic_mouse_mode_picker_corsair_page",
+                "value": 4
+              }
+            },
+            {
+              "set_variable": {
+                "name": "agentic_mouse_mode_picker_corsair_app_selection",
+                "value": 2
+              }
+            },
+            {
+              "send_user_command": {
+                "payload": {
+                  "command": "agentic_mouse_mode_picker",
+                  "action": "select",
+                  "source": "corsair",
+                  "physical_cell": 12,
+                  "phase": "press"
+                }
+              },
+              "repeat": false,
+              "conditions": [
+                {
+                  "type": "expression_if",
+                  "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+                }
+              ]
+            }
+          ],
+          "conditions": [
+            {
+              "type": "device_if",
+              "identifiers": [
+                {
+                  "vendor_id": 6940,
+                  "product_id": 65535,
+                  "is_keyboard": true
+                }
+              ]
+            },
+            {
+              "type": "expression_if",
+              "expression": "(agentic_mouse_mode_picker_corsair_expires_at > system.now.milliseconds) and (agentic_mouse_mode_picker_corsair_expires_at <= system.now.milliseconds + 15000)"
+            },
+            {
+              "type": "expression_if",
+              "expression": "agentic_mouse_mode_picker_corsair_page == 3"
             },
             {
               "type": "expression_if",
@@ -3501,6 +4580,14 @@
               "expression": "agentic_mouse_mode_picker_razer_page == 2"
             },
             {
+              "type": "expression_unless",
+              "expression": "agentic_mouse_mode_picker_razer_page == 1"
+            },
+            {
+              "type": "expression_unless",
+              "expression": "agentic_mouse_mode_picker_razer_page == 3"
+            },
+            {
               "type": "expression_if",
               "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
             }
@@ -3536,11 +4623,8 @@
               ]
             },
             {
-              "key_code": "w",
-              "modifiers": [
-                "left_command"
-              ],
-              "repeat": false,
+              "key_code": "left_shift",
+              "repeat": true,
               "conditions": [
                 {
                   "type": "expression_if",
@@ -3567,6 +4651,140 @@
             {
               "type": "expression_if",
               "expression": "agentic_mouse_mode_picker_razer_page == 2"
+            },
+            {
+              "type": "expression_if",
+              "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+            }
+          ]
+        },
+        {
+          "type": "basic",
+          "from": {
+            "key_code": "2",
+            "modifiers": {
+              "optional": [
+                "any"
+              ]
+            }
+          },
+          "to": [
+            {
+              "set_variable": {
+                "name": "agentic_mouse_mode_picker_razer_page",
+                "value": 3
+              }
+            },
+            {
+              "set_variable": {
+                "name": "agentic_mouse_mode_picker_razer_app_selection",
+                "value": 2
+              }
+            },
+            {
+              "send_user_command": {
+                "payload": {
+                  "command": "agentic_mouse_mode_picker",
+                  "action": "select",
+                  "source": "razer",
+                  "physical_cell": 2,
+                  "phase": "press"
+                }
+              },
+              "repeat": false,
+              "conditions": [
+                {
+                  "type": "expression_if",
+                  "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+                }
+              ]
+            }
+          ],
+          "conditions": [
+            {
+              "type": "device_if",
+              "identifiers": [
+                {
+                  "vendor_id": 5426,
+                  "product_id": 141,
+                  "is_keyboard": true
+                }
+              ]
+            },
+            {
+              "type": "expression_if",
+              "expression": "(agentic_mouse_mode_picker_razer_expires_at > system.now.milliseconds) and (agentic_mouse_mode_picker_razer_expires_at <= system.now.milliseconds + 15000)"
+            },
+            {
+              "type": "expression_if",
+              "expression": "agentic_mouse_mode_picker_razer_page == 1"
+            },
+            {
+              "type": "expression_if",
+              "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+            }
+          ]
+        },
+        {
+          "type": "basic",
+          "from": {
+            "key_code": "2",
+            "modifiers": {
+              "optional": [
+                "any"
+              ]
+            }
+          },
+          "to": [
+            {
+              "set_variable": {
+                "name": "agentic_mouse_mode_picker_razer_page",
+                "value": 4
+              }
+            },
+            {
+              "set_variable": {
+                "name": "agentic_mouse_mode_picker_razer_app_selection",
+                "value": 2
+              }
+            },
+            {
+              "send_user_command": {
+                "payload": {
+                  "command": "agentic_mouse_mode_picker",
+                  "action": "select",
+                  "source": "razer",
+                  "physical_cell": 2,
+                  "phase": "press"
+                }
+              },
+              "repeat": false,
+              "conditions": [
+                {
+                  "type": "expression_if",
+                  "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+                }
+              ]
+            }
+          ],
+          "conditions": [
+            {
+              "type": "device_if",
+              "identifiers": [
+                {
+                  "vendor_id": 5426,
+                  "product_id": 141,
+                  "is_keyboard": true
+                }
+              ]
+            },
+            {
+              "type": "expression_if",
+              "expression": "(agentic_mouse_mode_picker_razer_expires_at > system.now.milliseconds) and (agentic_mouse_mode_picker_razer_expires_at <= system.now.milliseconds + 15000)"
+            },
+            {
+              "type": "expression_if",
+              "expression": "agentic_mouse_mode_picker_razer_page == 3"
             },
             {
               "type": "expression_if",
@@ -3644,6 +4862,10 @@
               "expression": "agentic_mouse_mode_picker_razer_page == 2"
             },
             {
+              "type": "expression_unless",
+              "expression": "agentic_mouse_mode_picker_razer_page == 3"
+            },
+            {
               "type": "expression_if",
               "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
             }
@@ -3710,6 +4932,73 @@
             {
               "type": "expression_if",
               "expression": "agentic_mouse_mode_picker_razer_page == 2"
+            },
+            {
+              "type": "expression_if",
+              "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+            }
+          ]
+        },
+        {
+          "type": "basic",
+          "from": {
+            "key_code": "1",
+            "modifiers": {
+              "optional": [
+                "any"
+              ]
+            }
+          },
+          "to": [
+            {
+              "set_variable": {
+                "name": "agentic_mouse_mode_picker_razer_page",
+                "value": 4
+              }
+            },
+            {
+              "set_variable": {
+                "name": "agentic_mouse_mode_picker_razer_app_selection",
+                "value": 2
+              }
+            },
+            {
+              "send_user_command": {
+                "payload": {
+                  "command": "agentic_mouse_mode_picker",
+                  "action": "select",
+                  "source": "razer",
+                  "physical_cell": 3,
+                  "phase": "press"
+                }
+              },
+              "repeat": false,
+              "conditions": [
+                {
+                  "type": "expression_if",
+                  "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+                }
+              ]
+            }
+          ],
+          "conditions": [
+            {
+              "type": "device_if",
+              "identifiers": [
+                {
+                  "vendor_id": 5426,
+                  "product_id": 141,
+                  "is_keyboard": true
+                }
+              ]
+            },
+            {
+              "type": "expression_if",
+              "expression": "(agentic_mouse_mode_picker_razer_expires_at > system.now.milliseconds) and (agentic_mouse_mode_picker_razer_expires_at <= system.now.milliseconds + 15000)"
+            },
+            {
+              "type": "expression_if",
+              "expression": "agentic_mouse_mode_picker_razer_page == 3"
             },
             {
               "type": "expression_if",
@@ -3881,7 +5170,7 @@
             {
               "set_variable": {
                 "name": "agentic_mouse_mode_picker_razer_app_selection",
-                "value": 2
+                "value": 3
               }
             },
             {
@@ -3998,6 +5287,10 @@
               "expression": "agentic_mouse_mode_picker_razer_page == 2"
             },
             {
+              "type": "expression_unless",
+              "expression": "agentic_mouse_mode_picker_razer_page == 3"
+            },
+            {
               "type": "expression_if",
               "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
             }
@@ -4061,6 +5354,73 @@
             {
               "type": "expression_if",
               "expression": "agentic_mouse_mode_picker_razer_page == 2"
+            },
+            {
+              "type": "expression_if",
+              "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+            }
+          ]
+        },
+        {
+          "type": "basic",
+          "from": {
+            "key_code": "5",
+            "modifiers": {
+              "optional": [
+                "any"
+              ]
+            }
+          },
+          "to": [
+            {
+              "set_variable": {
+                "name": "agentic_mouse_mode_picker_razer_page",
+                "value": 4
+              }
+            },
+            {
+              "set_variable": {
+                "name": "agentic_mouse_mode_picker_razer_app_selection",
+                "value": 2
+              }
+            },
+            {
+              "send_user_command": {
+                "payload": {
+                  "command": "agentic_mouse_mode_picker",
+                  "action": "select",
+                  "source": "razer",
+                  "physical_cell": 5,
+                  "phase": "press"
+                }
+              },
+              "repeat": false,
+              "conditions": [
+                {
+                  "type": "expression_if",
+                  "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+                }
+              ]
+            }
+          ],
+          "conditions": [
+            {
+              "type": "device_if",
+              "identifiers": [
+                {
+                  "vendor_id": 5426,
+                  "product_id": 141,
+                  "is_keyboard": true
+                }
+              ]
+            },
+            {
+              "type": "expression_if",
+              "expression": "(agentic_mouse_mode_picker_razer_expires_at > system.now.milliseconds) and (agentic_mouse_mode_picker_razer_expires_at <= system.now.milliseconds + 15000)"
+            },
+            {
+              "type": "expression_if",
+              "expression": "agentic_mouse_mode_picker_razer_page == 3"
             },
             {
               "type": "expression_if",
@@ -4138,6 +5498,10 @@
               "expression": "agentic_mouse_mode_picker_razer_page == 2"
             },
             {
+              "type": "expression_unless",
+              "expression": "agentic_mouse_mode_picker_razer_page == 3"
+            },
+            {
               "type": "expression_if",
               "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
             }
@@ -4197,6 +5561,73 @@
             {
               "type": "expression_if",
               "expression": "agentic_mouse_mode_picker_razer_page == 2"
+            },
+            {
+              "type": "expression_if",
+              "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+            }
+          ]
+        },
+        {
+          "type": "basic",
+          "from": {
+            "key_code": "4",
+            "modifiers": {
+              "optional": [
+                "any"
+              ]
+            }
+          },
+          "to": [
+            {
+              "set_variable": {
+                "name": "agentic_mouse_mode_picker_razer_page",
+                "value": 4
+              }
+            },
+            {
+              "set_variable": {
+                "name": "agentic_mouse_mode_picker_razer_app_selection",
+                "value": 2
+              }
+            },
+            {
+              "send_user_command": {
+                "payload": {
+                  "command": "agentic_mouse_mode_picker",
+                  "action": "select",
+                  "source": "razer",
+                  "physical_cell": 6,
+                  "phase": "press"
+                }
+              },
+              "repeat": false,
+              "conditions": [
+                {
+                  "type": "expression_if",
+                  "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+                }
+              ]
+            }
+          ],
+          "conditions": [
+            {
+              "type": "device_if",
+              "identifiers": [
+                {
+                  "vendor_id": 5426,
+                  "product_id": 141,
+                  "is_keyboard": true
+                }
+              ]
+            },
+            {
+              "type": "expression_if",
+              "expression": "(agentic_mouse_mode_picker_razer_expires_at > system.now.milliseconds) and (agentic_mouse_mode_picker_razer_expires_at <= system.now.milliseconds + 15000)"
+            },
+            {
+              "type": "expression_if",
+              "expression": "agentic_mouse_mode_picker_razer_page == 3"
             },
             {
               "type": "expression_if",
@@ -4427,6 +5858,263 @@
           },
           "to": [
             {
+              "set_variable": {
+                "name": "agentic_mouse_mode_picker_razer_page",
+                "value": 4
+              }
+            },
+            {
+              "send_user_command": {
+                "payload": {
+                  "command": "agentic_mouse_mode_picker",
+                  "action": "select",
+                  "source": "razer",
+                  "physical_cell": 8,
+                  "phase": "press"
+                }
+              },
+              "repeat": false,
+              "conditions": [
+                {
+                  "type": "expression_if",
+                  "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+                }
+              ]
+            }
+          ],
+          "to_after_key_up": [
+            {
+              "send_user_command": {
+                "payload": {
+                  "command": "agentic_mouse_mode_picker",
+                  "action": "select",
+                  "source": "razer",
+                  "physical_cell": 8,
+                  "phase": "release"
+                }
+              },
+              "repeat": false,
+              "conditions": [
+                {
+                  "type": "expression_if",
+                  "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+                }
+              ]
+            }
+          ],
+          "conditions": [
+            {
+              "type": "device_if",
+              "identifiers": [
+                {
+                  "vendor_id": 5426,
+                  "product_id": 141,
+                  "is_keyboard": true
+                }
+              ]
+            },
+            {
+              "type": "expression_if",
+              "expression": "(agentic_mouse_mode_picker_razer_expires_at > system.now.milliseconds) and (agentic_mouse_mode_picker_razer_expires_at <= system.now.milliseconds + 15000)"
+            },
+            {
+              "type": "expression_if",
+              "expression": "agentic_mouse_mode_picker_razer_page == 7"
+            },
+            {
+              "type": "expression_if",
+              "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+            }
+          ]
+        },
+        {
+          "type": "basic",
+          "from": {
+            "key_code": "8",
+            "modifiers": {
+              "optional": [
+                "any"
+              ]
+            }
+          },
+          "to": [
+            {
+              "set_variable": {
+                "name": "agentic_mouse_mode_picker_razer_page",
+                "value": 7
+              }
+            },
+            {
+              "send_user_command": {
+                "payload": {
+                  "command": "agentic_mouse_mode_picker",
+                  "action": "select",
+                  "source": "razer",
+                  "physical_cell": 8,
+                  "phase": "press"
+                }
+              },
+              "repeat": false,
+              "conditions": [
+                {
+                  "type": "expression_if",
+                  "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+                }
+              ]
+            }
+          ],
+          "to_after_key_up": [
+            {
+              "send_user_command": {
+                "payload": {
+                  "command": "agentic_mouse_mode_picker",
+                  "action": "select",
+                  "source": "razer",
+                  "physical_cell": 8,
+                  "phase": "release"
+                }
+              },
+              "repeat": false,
+              "conditions": [
+                {
+                  "type": "expression_if",
+                  "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+                }
+              ]
+            }
+          ],
+          "conditions": [
+            {
+              "type": "device_if",
+              "identifiers": [
+                {
+                  "vendor_id": 5426,
+                  "product_id": 141,
+                  "is_keyboard": true
+                }
+              ]
+            },
+            {
+              "type": "expression_if",
+              "expression": "(agentic_mouse_mode_picker_razer_expires_at > system.now.milliseconds) and (agentic_mouse_mode_picker_razer_expires_at <= system.now.milliseconds + 15000)"
+            },
+            {
+              "type": "expression_if",
+              "expression": "agentic_mouse_mode_picker_razer_page == 4"
+            },
+            {
+              "type": "expression_if",
+              "expression": "agentic_mouse_mode_picker_razer_app_selection == 3"
+            },
+            {
+              "type": "expression_if",
+              "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+            }
+          ]
+        },
+        {
+          "type": "basic",
+          "from": {
+            "key_code": "8",
+            "modifiers": {
+              "optional": [
+                "any"
+              ]
+            }
+          },
+          "to": [
+            {
+              "set_variable": {
+                "name": "agentic_mouse_mode_picker_razer_page",
+                "value": 7
+              }
+            },
+            {
+              "send_user_command": {
+                "payload": {
+                  "command": "agentic_mouse_mode_picker",
+                  "action": "select",
+                  "source": "razer",
+                  "physical_cell": 8,
+                  "phase": "press"
+                }
+              },
+              "repeat": false,
+              "conditions": [
+                {
+                  "type": "expression_if",
+                  "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+                }
+              ]
+            }
+          ],
+          "to_after_key_up": [
+            {
+              "send_user_command": {
+                "payload": {
+                  "command": "agentic_mouse_mode_picker",
+                  "action": "select",
+                  "source": "razer",
+                  "physical_cell": 8,
+                  "phase": "release"
+                }
+              },
+              "repeat": false,
+              "conditions": [
+                {
+                  "type": "expression_if",
+                  "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+                }
+              ]
+            }
+          ],
+          "conditions": [
+            {
+              "type": "device_if",
+              "identifiers": [
+                {
+                  "vendor_id": 5426,
+                  "product_id": 141,
+                  "is_keyboard": true
+                }
+              ]
+            },
+            {
+              "type": "expression_if",
+              "expression": "(agentic_mouse_mode_picker_razer_expires_at > system.now.milliseconds) and (agentic_mouse_mode_picker_razer_expires_at <= system.now.milliseconds + 15000)"
+            },
+            {
+              "type": "expression_if",
+              "expression": "agentic_mouse_mode_picker_razer_page == 4"
+            },
+            {
+              "type": "expression_if",
+              "expression": "agentic_mouse_mode_picker_razer_app_selection == 0"
+            },
+            {
+              "type": "frontmost_application_if",
+              "bundle_identifiers": [
+                "^com\\.google\\.Chrome$"
+              ]
+            },
+            {
+              "type": "expression_if",
+              "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+            }
+          ]
+        },
+        {
+          "type": "basic",
+          "from": {
+            "key_code": "8",
+            "modifiers": {
+              "optional": [
+                "any"
+              ]
+            }
+          },
+          "to": [
+            {
               "send_user_command": {
                 "payload": {
                   "command": "agentic_mouse_mode_picker",
@@ -4483,6 +6171,10 @@
             {
               "type": "expression_unless",
               "expression": "agentic_mouse_mode_picker_razer_page == 2"
+            },
+            {
+              "type": "expression_unless",
+              "expression": "agentic_mouse_mode_picker_razer_page == 3"
             },
             {
               "type": "expression_if",
@@ -4558,6 +6250,73 @@
         {
           "type": "basic",
           "from": {
+            "key_code": "8",
+            "modifiers": {
+              "optional": [
+                "any"
+              ]
+            }
+          },
+          "to": [
+            {
+              "set_variable": {
+                "name": "agentic_mouse_mode_picker_razer_page",
+                "value": 4
+              }
+            },
+            {
+              "set_variable": {
+                "name": "agentic_mouse_mode_picker_razer_app_selection",
+                "value": 2
+              }
+            },
+            {
+              "send_user_command": {
+                "payload": {
+                  "command": "agentic_mouse_mode_picker",
+                  "action": "select",
+                  "source": "razer",
+                  "physical_cell": 8,
+                  "phase": "press"
+                }
+              },
+              "repeat": false,
+              "conditions": [
+                {
+                  "type": "expression_if",
+                  "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+                }
+              ]
+            }
+          ],
+          "conditions": [
+            {
+              "type": "device_if",
+              "identifiers": [
+                {
+                  "vendor_id": 5426,
+                  "product_id": 141,
+                  "is_keyboard": true
+                }
+              ]
+            },
+            {
+              "type": "expression_if",
+              "expression": "(agentic_mouse_mode_picker_razer_expires_at > system.now.milliseconds) and (agentic_mouse_mode_picker_razer_expires_at <= system.now.milliseconds + 15000)"
+            },
+            {
+              "type": "expression_if",
+              "expression": "agentic_mouse_mode_picker_razer_page == 3"
+            },
+            {
+              "type": "expression_if",
+              "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+            }
+          ]
+        },
+        {
+          "type": "basic",
+          "from": {
             "key_code": "7",
             "modifiers": {
               "optional": [
@@ -4625,6 +6384,10 @@
               "expression": "agentic_mouse_mode_picker_razer_page == 1"
             },
             {
+              "type": "expression_unless",
+              "expression": "agentic_mouse_mode_picker_razer_page == 3"
+            },
+            {
               "type": "expression_if",
               "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
             }
@@ -4684,6 +6447,73 @@
             {
               "type": "expression_if",
               "expression": "agentic_mouse_mode_picker_razer_page == 1"
+            },
+            {
+              "type": "expression_if",
+              "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+            }
+          ]
+        },
+        {
+          "type": "basic",
+          "from": {
+            "key_code": "7",
+            "modifiers": {
+              "optional": [
+                "any"
+              ]
+            }
+          },
+          "to": [
+            {
+              "set_variable": {
+                "name": "agentic_mouse_mode_picker_razer_page",
+                "value": 4
+              }
+            },
+            {
+              "set_variable": {
+                "name": "agentic_mouse_mode_picker_razer_app_selection",
+                "value": 2
+              }
+            },
+            {
+              "send_user_command": {
+                "payload": {
+                  "command": "agentic_mouse_mode_picker",
+                  "action": "select",
+                  "source": "razer",
+                  "physical_cell": 9,
+                  "phase": "press"
+                }
+              },
+              "repeat": false,
+              "conditions": [
+                {
+                  "type": "expression_if",
+                  "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+                }
+              ]
+            }
+          ],
+          "conditions": [
+            {
+              "type": "device_if",
+              "identifiers": [
+                {
+                  "vendor_id": 5426,
+                  "product_id": 141,
+                  "is_keyboard": true
+                }
+              ]
+            },
+            {
+              "type": "expression_if",
+              "expression": "(agentic_mouse_mode_picker_razer_expires_at > system.now.milliseconds) and (agentic_mouse_mode_picker_razer_expires_at <= system.now.milliseconds + 15000)"
+            },
+            {
+              "type": "expression_if",
+              "expression": "agentic_mouse_mode_picker_razer_page == 3"
             },
             {
               "type": "expression_if",
@@ -4762,7 +6592,7 @@
             },
             {
               "type": "expression_unless",
-              "expression": "agentic_mouse_mode_picker_razer_page == 1"
+              "expression": "agentic_mouse_mode_picker_razer_page == 3"
             },
             {
               "type": "expression_if",
@@ -4849,7 +6679,7 @@
             {
               "set_variable": {
                 "name": "agentic_mouse_mode_picker_razer_page",
-                "value": 3
+                "value": 4
               }
             },
             {
@@ -4866,6 +6696,87 @@
                   "source": "razer",
                   "physical_cell": 11,
                   "phase": "press"
+                }
+              },
+              "repeat": false,
+              "conditions": [
+                {
+                  "type": "expression_if",
+                  "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+                }
+              ]
+            }
+          ],
+          "conditions": [
+            {
+              "type": "device_if",
+              "identifiers": [
+                {
+                  "vendor_id": 5426,
+                  "product_id": 141,
+                  "is_keyboard": true
+                }
+              ]
+            },
+            {
+              "type": "expression_if",
+              "expression": "(agentic_mouse_mode_picker_razer_expires_at > system.now.milliseconds) and (agentic_mouse_mode_picker_razer_expires_at <= system.now.milliseconds + 15000)"
+            },
+            {
+              "type": "expression_if",
+              "expression": "agentic_mouse_mode_picker_razer_page == 3"
+            },
+            {
+              "type": "expression_if",
+              "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+            }
+          ]
+        },
+        {
+          "type": "basic",
+          "from": {
+            "key_code": "0",
+            "modifiers": {
+              "optional": [
+                "any"
+              ]
+            }
+          },
+          "to": [
+            {
+              "set_variable": {
+                "name": "agentic_mouse_mode_picker_razer_page",
+                "value": 6
+              }
+            },
+            {
+              "send_user_command": {
+                "payload": {
+                  "command": "agentic_mouse_mode_picker",
+                  "action": "select",
+                  "source": "razer",
+                  "physical_cell": 12,
+                  "phase": "press"
+                }
+              },
+              "repeat": false,
+              "conditions": [
+                {
+                  "type": "expression_if",
+                  "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+                }
+              ]
+            }
+          ],
+          "to_after_key_up": [
+            {
+              "send_user_command": {
+                "payload": {
+                  "command": "agentic_mouse_mode_picker",
+                  "action": "select",
+                  "source": "razer",
+                  "physical_cell": 12,
+                  "phase": "release"
                 }
               },
               "repeat": false,
@@ -4973,6 +6884,10 @@
             },
             {
               "type": "expression_unless",
+              "expression": "agentic_mouse_mode_picker_razer_page == 3"
+            },
+            {
+              "type": "expression_unless",
               "expression": "agentic_mouse_mode_picker_razer_page == 4"
             },
             {
@@ -5011,9 +6926,11 @@
               ]
             },
             {
-              "key_code": "period",
+              "key_code": "f17",
               "modifiers": [
+                "left_command",
                 "left_control",
+                "left_option",
                 "left_shift"
               ],
               "repeat": false,
@@ -5084,9 +7001,11 @@
               ]
             },
             {
-              "key_code": "period",
+              "key_code": "f17",
               "modifiers": [
+                "left_command",
                 "left_control",
+                "left_option",
                 "left_shift"
               ],
               "repeat": false,
@@ -5184,7 +7103,7 @@
             },
             {
               "type": "expression_if",
-              "expression": "agentic_mouse_mode_picker_razer_app_selection == 2"
+              "expression": "agentic_mouse_mode_picker_razer_app_selection == 2 or agentic_mouse_mode_picker_razer_app_selection == 3"
             },
             {
               "type": "expression_if",
@@ -5368,6 +7287,73 @@
         {
           "type": "basic",
           "from": {
+            "key_code": "0",
+            "modifiers": {
+              "optional": [
+                "any"
+              ]
+            }
+          },
+          "to": [
+            {
+              "set_variable": {
+                "name": "agentic_mouse_mode_picker_razer_page",
+                "value": 4
+              }
+            },
+            {
+              "set_variable": {
+                "name": "agentic_mouse_mode_picker_razer_app_selection",
+                "value": 2
+              }
+            },
+            {
+              "send_user_command": {
+                "payload": {
+                  "command": "agentic_mouse_mode_picker",
+                  "action": "select",
+                  "source": "razer",
+                  "physical_cell": 12,
+                  "phase": "press"
+                }
+              },
+              "repeat": false,
+              "conditions": [
+                {
+                  "type": "expression_if",
+                  "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+                }
+              ]
+            }
+          ],
+          "conditions": [
+            {
+              "type": "device_if",
+              "identifiers": [
+                {
+                  "vendor_id": 5426,
+                  "product_id": 141,
+                  "is_keyboard": true
+                }
+              ]
+            },
+            {
+              "type": "expression_if",
+              "expression": "(agentic_mouse_mode_picker_razer_expires_at > system.now.milliseconds) and (agentic_mouse_mode_picker_razer_expires_at <= system.now.milliseconds + 15000)"
+            },
+            {
+              "type": "expression_if",
+              "expression": "agentic_mouse_mode_picker_razer_page == 3"
+            },
+            {
+              "type": "expression_if",
+              "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+            }
+          ]
+        },
+        {
+          "type": "basic",
+          "from": {
             "key_code": "keypad_0",
             "modifiers": {
               "optional": [
@@ -5376,6 +7362,81 @@
             }
           },
           "to": [
+            {
+              "set_variable": {
+                "name": "agentic_mouse_corsair_side_07_enter_pending",
+                "value": 2
+              }
+            },
+            {
+              "key_code": "return_or_enter",
+              "modifiers": [
+                "left_command"
+              ],
+              "repeat": false,
+              "conditions": [
+                {
+                  "type": "expression_if",
+                  "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+                }
+              ]
+            }
+          ],
+          "conditions": [
+            {
+              "type": "device_if",
+              "identifiers": [
+                {
+                  "vendor_id": 6940,
+                  "product_id": 65535,
+                  "is_keyboard": true
+                }
+              ]
+            },
+            {
+              "type": "expression_unless",
+              "expression": "(agentic_mouse_mode_picker_corsair_expires_at > system.now.milliseconds) and (agentic_mouse_mode_picker_corsair_expires_at <= system.now.milliseconds + 15000)"
+            },
+            {
+              "type": "variable_if",
+              "name": "agentic_mouse_corsair_side_07_enter_pending",
+              "value": 1
+            },
+            {
+              "type": "expression_if",
+              "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+            }
+          ]
+        },
+        {
+          "type": "basic",
+          "from": {
+            "key_code": "keypad_0",
+            "modifiers": {
+              "optional": [
+                "any"
+              ]
+            }
+          },
+          "to": [
+            {
+              "set_variable": {
+                "name": "agentic_mouse_corsair_default_command_held",
+                "value": 1
+              }
+            },
+            {
+              "key_code": "left_command",
+              "lazy": true,
+              "conditions": [
+                {
+                  "type": "expression_if",
+                  "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+                }
+              ]
+            }
+          ],
+          "to_if_alone": [
             {
               "send_user_command": {
                 "payload": {
@@ -5393,6 +7454,17 @@
               ]
             }
           ],
+          "to_after_key_up": [
+            {
+              "set_variable": {
+                "name": "agentic_mouse_corsair_default_command_held",
+                "value": 0
+              }
+            }
+          ],
+          "parameters": {
+            "basic.to_if_alone_timeout_milliseconds": 300
+          },
           "conditions": [
             {
               "type": "device_if",
@@ -5495,6 +7567,81 @@
           },
           "to": [
             {
+              "set_variable": {
+                "name": "agentic_mouse_razer_side_09_enter_pending",
+                "value": 2
+              }
+            },
+            {
+              "key_code": "return_or_enter",
+              "modifiers": [
+                "left_command"
+              ],
+              "repeat": false,
+              "conditions": [
+                {
+                  "type": "expression_if",
+                  "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+                }
+              ]
+            }
+          ],
+          "conditions": [
+            {
+              "type": "device_if",
+              "identifiers": [
+                {
+                  "vendor_id": 5426,
+                  "product_id": 141,
+                  "is_keyboard": true
+                }
+              ]
+            },
+            {
+              "type": "expression_unless",
+              "expression": "(agentic_mouse_mode_picker_razer_expires_at > system.now.milliseconds) and (agentic_mouse_mode_picker_razer_expires_at <= system.now.milliseconds + 15000)"
+            },
+            {
+              "type": "variable_if",
+              "name": "agentic_mouse_razer_side_09_enter_pending",
+              "value": 1
+            },
+            {
+              "type": "expression_if",
+              "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+            }
+          ]
+        },
+        {
+          "type": "basic",
+          "from": {
+            "key_code": "equal_sign",
+            "modifiers": {
+              "optional": [
+                "any"
+              ]
+            }
+          },
+          "to": [
+            {
+              "set_variable": {
+                "name": "agentic_mouse_razer_default_command_held",
+                "value": 1
+              }
+            },
+            {
+              "key_code": "left_command",
+              "lazy": true,
+              "conditions": [
+                {
+                  "type": "expression_if",
+                  "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+                }
+              ]
+            }
+          ],
+          "to_if_alone": [
+            {
               "send_user_command": {
                 "payload": {
                   "command": "agentic_mouse_default_map_toggle",
@@ -5511,6 +7658,17 @@
               ]
             }
           ],
+          "to_after_key_up": [
+            {
+              "set_variable": {
+                "name": "agentic_mouse_razer_default_command_held",
+                "value": 0
+              }
+            }
+          ],
+          "parameters": {
+            "basic.to_if_alone_timeout_milliseconds": 300
+          },
           "conditions": [
             {
               "type": "device_if",
@@ -5618,6 +7776,153 @@
           },
           "to": [
             {
+              "send_user_command": {
+                "payload": {
+                  "command": "agentic_mouse_wheel_chord",
+                  "control": "vsCodeStageRange",
+                  "source": "corsair",
+                  "phase": "release"
+                }
+              },
+              "repeat": false,
+              "conditions": [
+                {
+                  "type": "expression_if",
+                  "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+                }
+              ]
+            },
+            {
+              "set_variable": {
+                "name": "agentic_mouse_corsair_vscode_hold_5_wheel_armed",
+                "value": 0
+              }
+            },
+            {
+              "key_code": "f14",
+              "modifiers": [
+                "left_control",
+                "left_command"
+              ],
+              "repeat": false,
+              "conditions": [
+                {
+                  "type": "frontmost_application_if",
+                  "bundle_identifiers": [
+                    "^com\\.microsoft\\.VSCode(?:Insiders)?$"
+                  ]
+                },
+                {
+                  "type": "expression_unless",
+                  "expression": "(agentic_mouse_mode_picker_corsair_expires_at > system.now.milliseconds) and (agentic_mouse_mode_picker_corsair_expires_at <= system.now.milliseconds + 15000)"
+                },
+                {
+                  "type": "expression_if",
+                  "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+                }
+              ]
+            },
+            {
+              "key_code": "f16",
+              "repeat": false,
+              "conditions": [
+                {
+                  "type": "variable_unless",
+                  "name": "agentic_mouse_corsair_vscode_hold_5",
+                  "value": 3
+                },
+                {
+                  "type": "frontmost_application_if",
+                  "bundle_identifiers": [
+                    "^com\\.microsoft\\.VSCode(?:Insiders)?$"
+                  ]
+                },
+                {
+                  "type": "expression_unless",
+                  "expression": "(agentic_mouse_mode_picker_corsair_expires_at > system.now.milliseconds) and (agentic_mouse_mode_picker_corsair_expires_at <= system.now.milliseconds + 15000)"
+                },
+                {
+                  "type": "expression_if",
+                  "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+                }
+              ]
+            },
+            {
+              "set_variable": {
+                "name": "agentic_mouse_corsair_vscode_hold_5",
+                "value": 3
+              }
+            },
+            {
+              "key_code": "f15",
+              "modifiers": [
+                "left_control",
+                "left_option",
+                "left_command"
+              ],
+              "repeat": false,
+              "conditions": [
+                {
+                  "type": "frontmost_application_if",
+                  "bundle_identifiers": [
+                    "^com\\.microsoft\\.VSCode(?:Insiders)?$"
+                  ]
+                },
+                {
+                  "type": "expression_unless",
+                  "expression": "(agentic_mouse_mode_picker_corsair_expires_at > system.now.milliseconds) and (agentic_mouse_mode_picker_corsair_expires_at <= system.now.milliseconds + 15000)"
+                },
+                {
+                  "type": "expression_if",
+                  "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+                }
+              ]
+            }
+          ],
+          "conditions": [
+            {
+              "type": "frontmost_application_if",
+              "bundle_identifiers": [
+                "^com\\.microsoft\\.VSCode(?:Insiders)?$"
+              ]
+            },
+            {
+              "type": "variable_unless",
+              "name": "agentic_mouse_vscode_legacy_stage_chords_enabled",
+              "value": 1
+            },
+            {
+              "type": "expression_if",
+              "expression": "agentic_mouse_corsair_vscode_hold_5 == 1 or agentic_mouse_corsair_vscode_hold_5 == 2 or agentic_mouse_corsair_vscode_hold_5 == 3"
+            },
+            {
+              "type": "device_if",
+              "identifiers": [
+                {
+                  "vendor_id": 6940,
+                  "product_id": 65535,
+                  "is_keyboard": true
+                }
+              ]
+            },
+            {
+              "type": "expression_if",
+              "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+            }
+          ]
+        },
+        {
+          "type": "basic",
+          "from": {
+            "key_code": "keypad_4",
+            "modifiers": {
+              "optional": [
+                "any"
+              ]
+            }
+          },
+          "to": [
+            {
               "set_variable": {
                 "name": "agentic_mouse_corsair_vscode_side_05_previous_change_pending",
                 "value": 2
@@ -5645,6 +7950,11 @@
               "bundle_identifiers": [
                 "^com\\.microsoft\\.VSCode(?:Insiders)?$"
               ]
+            },
+            {
+              "type": "variable_if",
+              "name": "agentic_mouse_vscode_legacy_stage_chords_enabled",
+              "value": 1
             },
             {
               "type": "device_if",
@@ -5707,6 +8017,11 @@
               ]
             },
             {
+              "type": "variable_if",
+              "name": "agentic_mouse_vscode_legacy_stage_chords_enabled",
+              "value": 1
+            },
+            {
               "type": "device_if",
               "identifiers": [
                 {
@@ -5721,6 +8036,314 @@
               "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
             }
           ]
+        },
+        {
+          "type": "basic",
+          "from": {
+            "key_code": "keypad_5",
+            "modifiers": {
+              "optional": [
+                "any"
+              ]
+            }
+          },
+          "to": [
+            {
+              "set_variable": {
+                "name": "agentic_mouse_corsair_vscode_hold_5",
+                "value": 1
+              }
+            },
+            {
+              "set_variable": {
+                "name": "agentic_mouse_corsair_vscode_hold_5_wheel_armed",
+                "value": 0
+              }
+            },
+            {
+              "key_code": "f17",
+              "modifiers": [
+                "left_control",
+                "left_command"
+              ],
+              "repeat": false,
+              "conditions": [
+                {
+                  "type": "frontmost_application_if",
+                  "bundle_identifiers": [
+                    "^com\\.microsoft\\.VSCode(?:Insiders)?$"
+                  ]
+                },
+                {
+                  "type": "expression_unless",
+                  "expression": "(agentic_mouse_mode_picker_corsair_expires_at > system.now.milliseconds) and (agentic_mouse_mode_picker_corsair_expires_at <= system.now.milliseconds + 15000)"
+                },
+                {
+                  "type": "expression_if",
+                  "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+                }
+              ]
+            }
+          ],
+          "to_if_held_down": [
+            {
+              "set_variable": {
+                "name": "agentic_mouse_corsair_vscode_hold_5",
+                "value": 2
+              },
+              "conditions": [
+                {
+                  "type": "variable_if",
+                  "name": "agentic_mouse_corsair_vscode_hold_5",
+                  "value": 1
+                }
+              ]
+            },
+            {
+              "key_code": "f20",
+              "modifiers": [
+                "left_control",
+                "left_option",
+                "left_command"
+              ],
+              "repeat": false,
+              "conditions": [
+                {
+                  "type": "variable_unless",
+                  "name": "agentic_mouse_corsair_vscode_hold_5",
+                  "value": 3
+                },
+                {
+                  "type": "frontmost_application_if",
+                  "bundle_identifiers": [
+                    "^com\\.microsoft\\.VSCode(?:Insiders)?$"
+                  ]
+                },
+                {
+                  "type": "expression_unless",
+                  "expression": "(agentic_mouse_mode_picker_corsair_expires_at > system.now.milliseconds) and (agentic_mouse_mode_picker_corsair_expires_at <= system.now.milliseconds + 15000)"
+                },
+                {
+                  "type": "expression_if",
+                  "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+                }
+              ]
+            },
+            {
+              "send_user_command": {
+                "payload": {
+                  "command": "agentic_mouse_wheel_chord",
+                  "control": "vsCodeStageRange",
+                  "source": "corsair",
+                  "phase": "press"
+                }
+              },
+              "repeat": false,
+              "conditions": [
+                {
+                  "type": "variable_unless",
+                  "name": "agentic_mouse_corsair_vscode_hold_5",
+                  "value": 3
+                },
+                {
+                  "type": "frontmost_application_if",
+                  "bundle_identifiers": [
+                    "^com\\.microsoft\\.VSCode(?:Insiders)?$"
+                  ]
+                },
+                {
+                  "type": "expression_unless",
+                  "expression": "(agentic_mouse_mode_picker_corsair_expires_at > system.now.milliseconds) and (agentic_mouse_mode_picker_corsair_expires_at <= system.now.milliseconds + 15000)"
+                },
+                {
+                  "type": "expression_if",
+                  "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+                }
+              ]
+            },
+            {
+              "set_variable": {
+                "name": "agentic_mouse_corsair_vscode_hold_5_wheel_armed",
+                "value": 1
+              },
+              "conditions": [
+                {
+                  "type": "variable_unless",
+                  "name": "agentic_mouse_corsair_vscode_hold_5",
+                  "value": 3
+                },
+                {
+                  "type": "frontmost_application_if",
+                  "bundle_identifiers": [
+                    "^com\\.microsoft\\.VSCode(?:Insiders)?$"
+                  ]
+                },
+                {
+                  "type": "expression_unless",
+                  "expression": "(agentic_mouse_mode_picker_corsair_expires_at > system.now.milliseconds) and (agentic_mouse_mode_picker_corsair_expires_at <= system.now.milliseconds + 15000)"
+                }
+              ]
+            }
+          ],
+          "to_if_alone": [
+            {
+              "set_variable": {
+                "name": "agentic_mouse_corsair_vscode_hold_5",
+                "value": 1
+              },
+              "conditions": [
+                {
+                  "type": "expression_if",
+                  "expression": "agentic_mouse_corsair_vscode_hold_5 == 1 or agentic_mouse_corsair_vscode_hold_5 == 2"
+                }
+              ]
+            }
+          ],
+          "to_after_key_up": [
+            {
+              "send_user_command": {
+                "payload": {
+                  "command": "agentic_mouse_wheel_chord",
+                  "control": "vsCodeStageRange",
+                  "source": "corsair",
+                  "phase": "release"
+                }
+              },
+              "repeat": false,
+              "conditions": [
+                {
+                  "type": "expression_if",
+                  "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+                }
+              ]
+            },
+            {
+              "set_variable": {
+                "name": "agentic_mouse_corsair_vscode_hold_5_wheel_armed",
+                "value": 0
+              }
+            },
+            {
+              "key_code": "f14",
+              "modifiers": [
+                "left_control",
+                "left_command"
+              ],
+              "repeat": false,
+              "conditions": [
+                {
+                  "type": "variable_if",
+                  "name": "agentic_mouse_corsair_vscode_hold_5",
+                  "value": 1
+                },
+                {
+                  "type": "frontmost_application_if",
+                  "bundle_identifiers": [
+                    "^com\\.microsoft\\.VSCode(?:Insiders)?$"
+                  ]
+                },
+                {
+                  "type": "expression_unless",
+                  "expression": "(agentic_mouse_mode_picker_corsair_expires_at > system.now.milliseconds) and (agentic_mouse_mode_picker_corsair_expires_at <= system.now.milliseconds + 15000)"
+                },
+                {
+                  "type": "expression_if",
+                  "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+                }
+              ]
+            },
+            {
+              "key_code": "f19",
+              "modifiers": [
+                "left_control",
+                "left_command"
+              ],
+              "repeat": false,
+              "conditions": [
+                {
+                  "type": "variable_if",
+                  "name": "agentic_mouse_corsair_vscode_hold_5",
+                  "value": 2
+                },
+                {
+                  "type": "frontmost_application_if",
+                  "bundle_identifiers": [
+                    "^com\\.microsoft\\.VSCode(?:Insiders)?$"
+                  ]
+                },
+                {
+                  "type": "expression_unless",
+                  "expression": "(agentic_mouse_mode_picker_corsair_expires_at > system.now.milliseconds) and (agentic_mouse_mode_picker_corsair_expires_at <= system.now.milliseconds + 15000)"
+                },
+                {
+                  "type": "expression_if",
+                  "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+                }
+              ]
+            },
+            {
+              "set_variable": {
+                "name": "agentic_mouse_corsair_vscode_hold_5",
+                "value": 0
+              }
+            },
+            {
+              "key_code": "f15",
+              "modifiers": [
+                "left_control",
+                "left_option",
+                "left_command"
+              ],
+              "repeat": false,
+              "conditions": [
+                {
+                  "type": "frontmost_application_if",
+                  "bundle_identifiers": [
+                    "^com\\.microsoft\\.VSCode(?:Insiders)?$"
+                  ]
+                },
+                {
+                  "type": "expression_unless",
+                  "expression": "(agentic_mouse_mode_picker_corsair_expires_at > system.now.milliseconds) and (agentic_mouse_mode_picker_corsair_expires_at <= system.now.milliseconds + 15000)"
+                },
+                {
+                  "type": "expression_if",
+                  "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+                }
+              ]
+            }
+          ],
+          "conditions": [
+            {
+              "type": "frontmost_application_if",
+              "bundle_identifiers": [
+                "^com\\.microsoft\\.VSCode(?:Insiders)?$"
+              ]
+            },
+            {
+              "type": "variable_unless",
+              "name": "agentic_mouse_vscode_legacy_stage_chords_enabled",
+              "value": 1
+            },
+            {
+              "type": "device_if",
+              "identifiers": [
+                {
+                  "vendor_id": 6940,
+                  "product_id": 65535,
+                  "is_keyboard": true
+                }
+              ]
+            },
+            {
+              "type": "expression_if",
+              "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+            }
+          ],
+          "parameters": {
+            "basic.to_if_held_down_threshold_milliseconds": 200,
+            "basic.to_if_alone_timeout_milliseconds": 200
+          }
         },
         {
           "type": "basic",
@@ -5796,6 +8419,158 @@
               ]
             },
             {
+              "type": "variable_if",
+              "name": "agentic_mouse_vscode_legacy_stage_chords_enabled",
+              "value": 1
+            },
+            {
+              "type": "device_if",
+              "identifiers": [
+                {
+                  "vendor_id": 6940,
+                  "product_id": 65535,
+                  "is_keyboard": true
+                }
+              ]
+            },
+            {
+              "type": "expression_if",
+              "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+            }
+          ]
+        },
+        {
+          "type": "basic",
+          "from": {
+            "key_code": "keypad_7",
+            "modifiers": {
+              "optional": [
+                "any"
+              ]
+            }
+          },
+          "to": [
+            {
+              "send_user_command": {
+                "payload": {
+                  "command": "agentic_mouse_wheel_chord",
+                  "control": "vsCodeStageRange",
+                  "source": "corsair",
+                  "phase": "release"
+                }
+              },
+              "repeat": false,
+              "conditions": [
+                {
+                  "type": "expression_if",
+                  "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+                }
+              ]
+            },
+            {
+              "set_variable": {
+                "name": "agentic_mouse_corsair_vscode_hold_8_wheel_armed",
+                "value": 0
+              }
+            },
+            {
+              "key_code": "f14",
+              "modifiers": [
+                "left_control",
+                "left_command"
+              ],
+              "repeat": false,
+              "conditions": [
+                {
+                  "type": "frontmost_application_if",
+                  "bundle_identifiers": [
+                    "^com\\.microsoft\\.VSCode(?:Insiders)?$"
+                  ]
+                },
+                {
+                  "type": "expression_unless",
+                  "expression": "(agentic_mouse_mode_picker_corsair_expires_at > system.now.milliseconds) and (agentic_mouse_mode_picker_corsair_expires_at <= system.now.milliseconds + 15000)"
+                },
+                {
+                  "type": "expression_if",
+                  "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+                }
+              ]
+            },
+            {
+              "key_code": "f16",
+              "repeat": false,
+              "conditions": [
+                {
+                  "type": "variable_unless",
+                  "name": "agentic_mouse_corsair_vscode_hold_8",
+                  "value": 3
+                },
+                {
+                  "type": "frontmost_application_if",
+                  "bundle_identifiers": [
+                    "^com\\.microsoft\\.VSCode(?:Insiders)?$"
+                  ]
+                },
+                {
+                  "type": "expression_unless",
+                  "expression": "(agentic_mouse_mode_picker_corsair_expires_at > system.now.milliseconds) and (agentic_mouse_mode_picker_corsair_expires_at <= system.now.milliseconds + 15000)"
+                },
+                {
+                  "type": "expression_if",
+                  "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+                }
+              ]
+            },
+            {
+              "set_variable": {
+                "name": "agentic_mouse_corsair_vscode_hold_8",
+                "value": 3
+              }
+            },
+            {
+              "key_code": "f15",
+              "modifiers": [
+                "left_control",
+                "left_option",
+                "left_command"
+              ],
+              "repeat": false,
+              "conditions": [
+                {
+                  "type": "frontmost_application_if",
+                  "bundle_identifiers": [
+                    "^com\\.microsoft\\.VSCode(?:Insiders)?$"
+                  ]
+                },
+                {
+                  "type": "expression_unless",
+                  "expression": "(agentic_mouse_mode_picker_corsair_expires_at > system.now.milliseconds) and (agentic_mouse_mode_picker_corsair_expires_at <= system.now.milliseconds + 15000)"
+                },
+                {
+                  "type": "expression_if",
+                  "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+                }
+              ]
+            }
+          ],
+          "conditions": [
+            {
+              "type": "frontmost_application_if",
+              "bundle_identifiers": [
+                "^com\\.microsoft\\.VSCode(?:Insiders)?$"
+              ]
+            },
+            {
+              "type": "variable_unless",
+              "name": "agentic_mouse_vscode_legacy_stage_chords_enabled",
+              "value": 1
+            },
+            {
+              "type": "expression_if",
+              "expression": "agentic_mouse_corsair_vscode_hold_8 == 1 or agentic_mouse_corsair_vscode_hold_8 == 2 or agentic_mouse_corsair_vscode_hold_8 == 3"
+            },
+            {
               "type": "device_if",
               "identifiers": [
                 {
@@ -5850,6 +8625,11 @@
               "bundle_identifiers": [
                 "^com\\.microsoft\\.VSCode(?:Insiders)?$"
               ]
+            },
+            {
+              "type": "variable_if",
+              "name": "agentic_mouse_vscode_legacy_stage_chords_enabled",
+              "value": 1
             },
             {
               "type": "device_if",
@@ -5912,6 +8692,11 @@
               ]
             },
             {
+              "type": "variable_if",
+              "name": "agentic_mouse_vscode_legacy_stage_chords_enabled",
+              "value": 1
+            },
+            {
               "type": "device_if",
               "identifiers": [
                 {
@@ -5926,6 +8711,314 @@
               "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
             }
           ]
+        },
+        {
+          "type": "basic",
+          "from": {
+            "key_code": "keypad_8",
+            "modifiers": {
+              "optional": [
+                "any"
+              ]
+            }
+          },
+          "to": [
+            {
+              "set_variable": {
+                "name": "agentic_mouse_corsair_vscode_hold_8",
+                "value": 1
+              }
+            },
+            {
+              "set_variable": {
+                "name": "agentic_mouse_corsair_vscode_hold_8_wheel_armed",
+                "value": 0
+              }
+            },
+            {
+              "key_code": "f13",
+              "modifiers": [
+                "left_control",
+                "left_command"
+              ],
+              "repeat": false,
+              "conditions": [
+                {
+                  "type": "frontmost_application_if",
+                  "bundle_identifiers": [
+                    "^com\\.microsoft\\.VSCode(?:Insiders)?$"
+                  ]
+                },
+                {
+                  "type": "expression_unless",
+                  "expression": "(agentic_mouse_mode_picker_corsair_expires_at > system.now.milliseconds) and (agentic_mouse_mode_picker_corsair_expires_at <= system.now.milliseconds + 15000)"
+                },
+                {
+                  "type": "expression_if",
+                  "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+                }
+              ]
+            }
+          ],
+          "to_if_held_down": [
+            {
+              "set_variable": {
+                "name": "agentic_mouse_corsair_vscode_hold_8",
+                "value": 2
+              },
+              "conditions": [
+                {
+                  "type": "variable_if",
+                  "name": "agentic_mouse_corsair_vscode_hold_8",
+                  "value": 1
+                }
+              ]
+            },
+            {
+              "key_code": "f20",
+              "modifiers": [
+                "left_control",
+                "left_option",
+                "left_command"
+              ],
+              "repeat": false,
+              "conditions": [
+                {
+                  "type": "variable_unless",
+                  "name": "agentic_mouse_corsair_vscode_hold_8",
+                  "value": 3
+                },
+                {
+                  "type": "frontmost_application_if",
+                  "bundle_identifiers": [
+                    "^com\\.microsoft\\.VSCode(?:Insiders)?$"
+                  ]
+                },
+                {
+                  "type": "expression_unless",
+                  "expression": "(agentic_mouse_mode_picker_corsair_expires_at > system.now.milliseconds) and (agentic_mouse_mode_picker_corsair_expires_at <= system.now.milliseconds + 15000)"
+                },
+                {
+                  "type": "expression_if",
+                  "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+                }
+              ]
+            },
+            {
+              "send_user_command": {
+                "payload": {
+                  "command": "agentic_mouse_wheel_chord",
+                  "control": "vsCodeStageRange",
+                  "source": "corsair",
+                  "phase": "press"
+                }
+              },
+              "repeat": false,
+              "conditions": [
+                {
+                  "type": "variable_unless",
+                  "name": "agentic_mouse_corsair_vscode_hold_8",
+                  "value": 3
+                },
+                {
+                  "type": "frontmost_application_if",
+                  "bundle_identifiers": [
+                    "^com\\.microsoft\\.VSCode(?:Insiders)?$"
+                  ]
+                },
+                {
+                  "type": "expression_unless",
+                  "expression": "(agentic_mouse_mode_picker_corsair_expires_at > system.now.milliseconds) and (agentic_mouse_mode_picker_corsair_expires_at <= system.now.milliseconds + 15000)"
+                },
+                {
+                  "type": "expression_if",
+                  "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+                }
+              ]
+            },
+            {
+              "set_variable": {
+                "name": "agentic_mouse_corsair_vscode_hold_8_wheel_armed",
+                "value": 1
+              },
+              "conditions": [
+                {
+                  "type": "variable_unless",
+                  "name": "agentic_mouse_corsair_vscode_hold_8",
+                  "value": 3
+                },
+                {
+                  "type": "frontmost_application_if",
+                  "bundle_identifiers": [
+                    "^com\\.microsoft\\.VSCode(?:Insiders)?$"
+                  ]
+                },
+                {
+                  "type": "expression_unless",
+                  "expression": "(agentic_mouse_mode_picker_corsair_expires_at > system.now.milliseconds) and (agentic_mouse_mode_picker_corsair_expires_at <= system.now.milliseconds + 15000)"
+                }
+              ]
+            }
+          ],
+          "to_if_alone": [
+            {
+              "set_variable": {
+                "name": "agentic_mouse_corsair_vscode_hold_8",
+                "value": 1
+              },
+              "conditions": [
+                {
+                  "type": "expression_if",
+                  "expression": "agentic_mouse_corsair_vscode_hold_8 == 1 or agentic_mouse_corsair_vscode_hold_8 == 2"
+                }
+              ]
+            }
+          ],
+          "to_after_key_up": [
+            {
+              "send_user_command": {
+                "payload": {
+                  "command": "agentic_mouse_wheel_chord",
+                  "control": "vsCodeStageRange",
+                  "source": "corsair",
+                  "phase": "release"
+                }
+              },
+              "repeat": false,
+              "conditions": [
+                {
+                  "type": "expression_if",
+                  "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+                }
+              ]
+            },
+            {
+              "set_variable": {
+                "name": "agentic_mouse_corsair_vscode_hold_8_wheel_armed",
+                "value": 0
+              }
+            },
+            {
+              "key_code": "f14",
+              "modifiers": [
+                "left_control",
+                "left_command"
+              ],
+              "repeat": false,
+              "conditions": [
+                {
+                  "type": "variable_if",
+                  "name": "agentic_mouse_corsair_vscode_hold_8",
+                  "value": 1
+                },
+                {
+                  "type": "frontmost_application_if",
+                  "bundle_identifiers": [
+                    "^com\\.microsoft\\.VSCode(?:Insiders)?$"
+                  ]
+                },
+                {
+                  "type": "expression_unless",
+                  "expression": "(agentic_mouse_mode_picker_corsair_expires_at > system.now.milliseconds) and (agentic_mouse_mode_picker_corsair_expires_at <= system.now.milliseconds + 15000)"
+                },
+                {
+                  "type": "expression_if",
+                  "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+                }
+              ]
+            },
+            {
+              "key_code": "f18",
+              "modifiers": [
+                "left_control",
+                "left_command"
+              ],
+              "repeat": false,
+              "conditions": [
+                {
+                  "type": "variable_if",
+                  "name": "agentic_mouse_corsair_vscode_hold_8",
+                  "value": 2
+                },
+                {
+                  "type": "frontmost_application_if",
+                  "bundle_identifiers": [
+                    "^com\\.microsoft\\.VSCode(?:Insiders)?$"
+                  ]
+                },
+                {
+                  "type": "expression_unless",
+                  "expression": "(agentic_mouse_mode_picker_corsair_expires_at > system.now.milliseconds) and (agentic_mouse_mode_picker_corsair_expires_at <= system.now.milliseconds + 15000)"
+                },
+                {
+                  "type": "expression_if",
+                  "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+                }
+              ]
+            },
+            {
+              "set_variable": {
+                "name": "agentic_mouse_corsair_vscode_hold_8",
+                "value": 0
+              }
+            },
+            {
+              "key_code": "f15",
+              "modifiers": [
+                "left_control",
+                "left_option",
+                "left_command"
+              ],
+              "repeat": false,
+              "conditions": [
+                {
+                  "type": "frontmost_application_if",
+                  "bundle_identifiers": [
+                    "^com\\.microsoft\\.VSCode(?:Insiders)?$"
+                  ]
+                },
+                {
+                  "type": "expression_unless",
+                  "expression": "(agentic_mouse_mode_picker_corsair_expires_at > system.now.milliseconds) and (agentic_mouse_mode_picker_corsair_expires_at <= system.now.milliseconds + 15000)"
+                },
+                {
+                  "type": "expression_if",
+                  "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+                }
+              ]
+            }
+          ],
+          "conditions": [
+            {
+              "type": "frontmost_application_if",
+              "bundle_identifiers": [
+                "^com\\.microsoft\\.VSCode(?:Insiders)?$"
+              ]
+            },
+            {
+              "type": "variable_unless",
+              "name": "agentic_mouse_vscode_legacy_stage_chords_enabled",
+              "value": 1
+            },
+            {
+              "type": "device_if",
+              "identifiers": [
+                {
+                  "vendor_id": 6940,
+                  "product_id": 65535,
+                  "is_keyboard": true
+                }
+              ]
+            },
+            {
+              "type": "expression_if",
+              "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+            }
+          ],
+          "parameters": {
+            "basic.to_if_held_down_threshold_milliseconds": 200,
+            "basic.to_if_alone_timeout_milliseconds": 200
+          }
         },
         {
           "type": "basic",
@@ -5999,6 +9092,11 @@
               "bundle_identifiers": [
                 "^com\\.microsoft\\.VSCode(?:Insiders)?$"
               ]
+            },
+            {
+              "type": "variable_if",
+              "name": "agentic_mouse_vscode_legacy_stage_chords_enabled",
+              "value": 1
             },
             {
               "type": "device_if",
@@ -6091,6 +9189,22 @@
                   "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
                 }
               ]
+            },
+            {
+              "send_user_command": {
+                "payload": {
+                  "command": "agentic_mouse_floating_clutch",
+                  "source": "corsair1",
+                  "phase": "press"
+                }
+              },
+              "repeat": false,
+              "conditions": [
+                {
+                  "type": "expression_if",
+                  "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+                }
+              ]
             }
           ],
           "to_after_key_up": [
@@ -6100,6 +9214,22 @@
                   "command": "agentic_mouse_wheel_chord",
                   "control": "horizontalScroll",
                   "source": "corsair",
+                  "phase": "release"
+                }
+              },
+              "repeat": false,
+              "conditions": [
+                {
+                  "type": "expression_if",
+                  "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+                }
+              ]
+            },
+            {
+              "send_user_command": {
+                "payload": {
+                  "command": "agentic_mouse_floating_clutch",
+                  "source": "corsair1",
                   "phase": "release"
                 }
               },
@@ -6170,6 +9300,26 @@
                   "source": "corsair",
                   "physical_cell": 2,
                   "phase": "press"
+                }
+              },
+              "repeat": false,
+              "conditions": [
+                {
+                  "type": "expression_if",
+                  "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+                }
+              ]
+            }
+          ],
+          "to_after_key_up": [
+            {
+              "send_user_command": {
+                "payload": {
+                  "command": "agentic_mouse_mode_picker",
+                  "action": "openAppSpecific",
+                  "source": "corsair",
+                  "physical_cell": 2,
+                  "phase": "release"
                 }
               },
               "repeat": false,
@@ -6427,6 +9577,86 @@
             {
               "send_user_command": {
                 "payload": {
+                  "command": "agentic_mouse_vscode_stage_preview_modifier",
+                  "source": "corsair",
+                  "event": "toggle"
+                }
+              },
+              "repeat": false,
+              "conditions": [
+                {
+                  "type": "expression_if",
+                  "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+                }
+              ]
+            },
+            {
+              "send_user_command": {
+                "payload": {
+                  "command": "agentic_mouse_vscode_stage_preview",
+                  "source": "corsair",
+                  "direction": "previous"
+                }
+              },
+              "repeat": false,
+              "conditions": [
+                {
+                  "type": "expression_if",
+                  "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+                }
+              ]
+            }
+          ],
+          "conditions": [
+            {
+              "type": "frontmost_application_if",
+              "bundle_identifiers": [
+                "^com\\.microsoft\\.VSCode(?:Insiders)?$"
+              ]
+            },
+            {
+              "type": "variable_unless",
+              "name": "agentic_mouse_vscode_legacy_stage_chords_enabled",
+              "value": 1
+            },
+            {
+              "type": "expression_if",
+              "expression": "agentic_mouse_corsair_vscode_hold_5 == 1 or agentic_mouse_corsair_vscode_hold_5 == 2"
+            },
+            {
+              "type": "device_if",
+              "identifiers": [
+                {
+                  "vendor_id": 6940,
+                  "product_id": 65535,
+                  "is_keyboard": true
+                }
+              ]
+            },
+            {
+              "type": "expression_unless",
+              "expression": "(agentic_mouse_mode_picker_corsair_expires_at > system.now.milliseconds) and (agentic_mouse_mode_picker_corsair_expires_at <= system.now.milliseconds + 15000)"
+            },
+            {
+              "type": "expression_if",
+              "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+            }
+          ]
+        },
+        {
+          "type": "basic",
+          "from": {
+            "key_code": "keypad_6",
+            "modifiers": {
+              "optional": [
+                "any"
+              ]
+            }
+          },
+          "to": [
+            {
+              "send_user_command": {
+                "payload": {
                   "command": "agentic_mouse_wheel_chord",
                   "control": "youtubeScrub",
                   "source": "corsair",
@@ -6494,14 +9724,64 @@
           },
           "to": [
             {
+              "set_variable": {
+                "name": "agentic_mouse_corsair_side_07_enter_pending",
+                "value": 1
+              }
+            },
+            {
               "key_code": "return_or_enter",
+              "modifiers": [
+                "left_command"
+              ],
               "repeat": false,
               "conditions": [
+                {
+                  "type": "variable_if",
+                  "name": "agentic_mouse_corsair_default_command_held",
+                  "value": 1
+                },
                 {
                   "type": "expression_if",
                   "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
                 }
               ]
+            },
+            {
+              "set_variable": {
+                "name": "agentic_mouse_corsair_side_07_enter_pending",
+                "value": 2
+              },
+              "conditions": [
+                {
+                  "type": "variable_if",
+                  "name": "agentic_mouse_corsair_default_command_held",
+                  "value": 1
+                }
+              ]
+            }
+          ],
+          "to_after_key_up": [
+            {
+              "key_code": "return_or_enter",
+              "repeat": false,
+              "conditions": [
+                {
+                  "type": "variable_if",
+                  "name": "agentic_mouse_corsair_side_07_enter_pending",
+                  "value": 1
+                },
+                {
+                  "type": "expression_if",
+                  "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+                }
+              ]
+            },
+            {
+              "set_variable": {
+                "name": "agentic_mouse_corsair_side_07_enter_pending",
+                "value": 0
+              }
             }
           ],
           "conditions": [
@@ -6561,6 +9841,86 @@
               "type": "frontmost_application_unless",
               "bundle_identifiers": [
                 "^com\\.microsoft\\.VSCode(?:Insiders)?$"
+              ]
+            },
+            {
+              "type": "expression_unless",
+              "expression": "(agentic_mouse_mode_picker_corsair_expires_at > system.now.milliseconds) and (agentic_mouse_mode_picker_corsair_expires_at <= system.now.milliseconds + 15000)"
+            },
+            {
+              "type": "expression_if",
+              "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+            }
+          ]
+        },
+        {
+          "type": "basic",
+          "from": {
+            "key_code": "keypad_9",
+            "modifiers": {
+              "optional": [
+                "any"
+              ]
+            }
+          },
+          "to": [
+            {
+              "send_user_command": {
+                "payload": {
+                  "command": "agentic_mouse_vscode_stage_preview_modifier",
+                  "source": "corsair",
+                  "event": "toggle"
+                }
+              },
+              "repeat": false,
+              "conditions": [
+                {
+                  "type": "expression_if",
+                  "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+                }
+              ]
+            },
+            {
+              "send_user_command": {
+                "payload": {
+                  "command": "agentic_mouse_vscode_stage_preview",
+                  "source": "corsair",
+                  "direction": "next"
+                }
+              },
+              "repeat": false,
+              "conditions": [
+                {
+                  "type": "expression_if",
+                  "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+                }
+              ]
+            }
+          ],
+          "conditions": [
+            {
+              "type": "frontmost_application_if",
+              "bundle_identifiers": [
+                "^com\\.microsoft\\.VSCode(?:Insiders)?$"
+              ]
+            },
+            {
+              "type": "variable_unless",
+              "name": "agentic_mouse_vscode_legacy_stage_chords_enabled",
+              "value": 1
+            },
+            {
+              "type": "expression_if",
+              "expression": "agentic_mouse_corsair_vscode_hold_8 == 1 or agentic_mouse_corsair_vscode_hold_8 == 2"
+            },
+            {
+              "type": "device_if",
+              "identifiers": [
+                {
+                  "vendor_id": 6940,
+                  "product_id": 65535,
+                  "is_keyboard": true
+                }
               ]
             },
             {
@@ -6832,6 +10192,312 @@
           "to": [
             {
               "set_variable": {
+                "name": "agentic_mouse_razer_vscode_hold_5",
+                "value": 1
+              }
+            },
+            {
+              "set_variable": {
+                "name": "agentic_mouse_razer_vscode_hold_5_wheel_armed",
+                "value": 0
+              }
+            },
+            {
+              "key_code": "f17",
+              "modifiers": [
+                "left_command",
+                "left_shift"
+              ],
+              "repeat": false,
+              "conditions": [
+                {
+                  "type": "frontmost_application_if",
+                  "bundle_identifiers": [
+                    "^com\\.microsoft\\.VSCode(?:Insiders)?$"
+                  ]
+                },
+                {
+                  "type": "expression_unless",
+                  "expression": "(agentic_mouse_mode_picker_razer_expires_at > system.now.milliseconds) and (agentic_mouse_mode_picker_razer_expires_at <= system.now.milliseconds + 15000)"
+                },
+                {
+                  "type": "expression_if",
+                  "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+                }
+              ]
+            }
+          ],
+          "to_if_held_down": [
+            {
+              "set_variable": {
+                "name": "agentic_mouse_razer_vscode_hold_5",
+                "value": 2
+              },
+              "conditions": [
+                {
+                  "type": "variable_if",
+                  "name": "agentic_mouse_razer_vscode_hold_5",
+                  "value": 1
+                }
+              ]
+            },
+            {
+              "key_code": "f20",
+              "modifiers": [
+                "left_command",
+                "left_shift"
+              ],
+              "repeat": false,
+              "conditions": [
+                {
+                  "type": "variable_unless",
+                  "name": "agentic_mouse_razer_vscode_hold_5",
+                  "value": 3
+                },
+                {
+                  "type": "frontmost_application_if",
+                  "bundle_identifiers": [
+                    "^com\\.microsoft\\.VSCode(?:Insiders)?$"
+                  ]
+                },
+                {
+                  "type": "expression_unless",
+                  "expression": "(agentic_mouse_mode_picker_razer_expires_at > system.now.milliseconds) and (agentic_mouse_mode_picker_razer_expires_at <= system.now.milliseconds + 15000)"
+                },
+                {
+                  "type": "expression_if",
+                  "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+                }
+              ]
+            },
+            {
+              "send_user_command": {
+                "payload": {
+                  "command": "agentic_mouse_wheel_chord",
+                  "control": "vsCodeStageRange",
+                  "source": "razer",
+                  "phase": "press"
+                }
+              },
+              "repeat": false,
+              "conditions": [
+                {
+                  "type": "variable_unless",
+                  "name": "agentic_mouse_razer_vscode_hold_5",
+                  "value": 3
+                },
+                {
+                  "type": "frontmost_application_if",
+                  "bundle_identifiers": [
+                    "^com\\.microsoft\\.VSCode(?:Insiders)?$"
+                  ]
+                },
+                {
+                  "type": "expression_unless",
+                  "expression": "(agentic_mouse_mode_picker_razer_expires_at > system.now.milliseconds) and (agentic_mouse_mode_picker_razer_expires_at <= system.now.milliseconds + 15000)"
+                },
+                {
+                  "type": "expression_if",
+                  "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+                }
+              ]
+            },
+            {
+              "set_variable": {
+                "name": "agentic_mouse_razer_vscode_hold_5_wheel_armed",
+                "value": 1
+              },
+              "conditions": [
+                {
+                  "type": "variable_unless",
+                  "name": "agentic_mouse_razer_vscode_hold_5",
+                  "value": 3
+                },
+                {
+                  "type": "frontmost_application_if",
+                  "bundle_identifiers": [
+                    "^com\\.microsoft\\.VSCode(?:Insiders)?$"
+                  ]
+                },
+                {
+                  "type": "expression_unless",
+                  "expression": "(agentic_mouse_mode_picker_razer_expires_at > system.now.milliseconds) and (agentic_mouse_mode_picker_razer_expires_at <= system.now.milliseconds + 15000)"
+                }
+              ]
+            }
+          ],
+          "to_if_alone": [
+            {
+              "set_variable": {
+                "name": "agentic_mouse_razer_vscode_hold_5",
+                "value": 1
+              },
+              "conditions": [
+                {
+                  "type": "expression_if",
+                  "expression": "agentic_mouse_razer_vscode_hold_5 == 1 or agentic_mouse_razer_vscode_hold_5 == 2"
+                }
+              ]
+            }
+          ],
+          "to_after_key_up": [
+            {
+              "send_user_command": {
+                "payload": {
+                  "command": "agentic_mouse_wheel_chord",
+                  "control": "vsCodeStageRange",
+                  "source": "razer",
+                  "phase": "release"
+                }
+              },
+              "repeat": false,
+              "conditions": [
+                {
+                  "type": "expression_if",
+                  "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+                }
+              ]
+            },
+            {
+              "set_variable": {
+                "name": "agentic_mouse_razer_vscode_hold_5_wheel_armed",
+                "value": 0
+              }
+            },
+            {
+              "key_code": "f14",
+              "modifiers": [
+                "left_command",
+                "left_shift"
+              ],
+              "repeat": false,
+              "conditions": [
+                {
+                  "type": "variable_if",
+                  "name": "agentic_mouse_razer_vscode_hold_5",
+                  "value": 1
+                },
+                {
+                  "type": "frontmost_application_if",
+                  "bundle_identifiers": [
+                    "^com\\.microsoft\\.VSCode(?:Insiders)?$"
+                  ]
+                },
+                {
+                  "type": "expression_unless",
+                  "expression": "(agentic_mouse_mode_picker_razer_expires_at > system.now.milliseconds) and (agentic_mouse_mode_picker_razer_expires_at <= system.now.milliseconds + 15000)"
+                },
+                {
+                  "type": "expression_if",
+                  "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+                }
+              ]
+            },
+            {
+              "key_code": "f19",
+              "modifiers": [
+                "left_command",
+                "left_shift"
+              ],
+              "repeat": false,
+              "conditions": [
+                {
+                  "type": "variable_if",
+                  "name": "agentic_mouse_razer_vscode_hold_5",
+                  "value": 2
+                },
+                {
+                  "type": "frontmost_application_if",
+                  "bundle_identifiers": [
+                    "^com\\.microsoft\\.VSCode(?:Insiders)?$"
+                  ]
+                },
+                {
+                  "type": "expression_unless",
+                  "expression": "(agentic_mouse_mode_picker_razer_expires_at > system.now.milliseconds) and (agentic_mouse_mode_picker_razer_expires_at <= system.now.milliseconds + 15000)"
+                },
+                {
+                  "type": "expression_if",
+                  "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+                }
+              ]
+            },
+            {
+              "set_variable": {
+                "name": "agentic_mouse_razer_vscode_hold_5",
+                "value": 0
+              }
+            },
+            {
+              "key_code": "f15",
+              "modifiers": [
+                "left_command",
+                "left_shift"
+              ],
+              "repeat": false,
+              "conditions": [
+                {
+                  "type": "frontmost_application_if",
+                  "bundle_identifiers": [
+                    "^com\\.microsoft\\.VSCode(?:Insiders)?$"
+                  ]
+                },
+                {
+                  "type": "expression_unless",
+                  "expression": "(agentic_mouse_mode_picker_razer_expires_at > system.now.milliseconds) and (agentic_mouse_mode_picker_razer_expires_at <= system.now.milliseconds + 15000)"
+                },
+                {
+                  "type": "expression_if",
+                  "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+                }
+              ]
+            }
+          ],
+          "conditions": [
+            {
+              "type": "frontmost_application_if",
+              "bundle_identifiers": [
+                "^com\\.microsoft\\.VSCode(?:Insiders)?$"
+              ]
+            },
+            {
+              "type": "variable_unless",
+              "name": "agentic_mouse_vscode_legacy_stage_chords_enabled",
+              "value": 1
+            },
+            {
+              "type": "device_if",
+              "identifiers": [
+                {
+                  "vendor_id": 5426,
+                  "product_id": 141,
+                  "is_keyboard": true
+                }
+              ]
+            },
+            {
+              "type": "expression_if",
+              "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+            }
+          ],
+          "parameters": {
+            "basic.to_if_held_down_threshold_milliseconds": 200,
+            "basic.to_if_alone_timeout_milliseconds": 200
+          }
+        },
+        {
+          "type": "basic",
+          "from": {
+            "key_code": "5",
+            "modifiers": {
+              "optional": [
+                "any"
+              ]
+            }
+          },
+          "to": [
+            {
+              "set_variable": {
                 "name": "agentic_mouse_razer_vscode_side_05_previous_change_pending",
                 "value": 1
               }
@@ -6894,6 +10560,157 @@
               ]
             },
             {
+              "type": "variable_if",
+              "name": "agentic_mouse_vscode_legacy_stage_chords_enabled",
+              "value": 1
+            },
+            {
+              "type": "device_if",
+              "identifiers": [
+                {
+                  "vendor_id": 5426,
+                  "product_id": 141,
+                  "is_keyboard": true
+                }
+              ]
+            },
+            {
+              "type": "expression_if",
+              "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+            }
+          ]
+        },
+        {
+          "type": "basic",
+          "from": {
+            "key_code": "6",
+            "modifiers": {
+              "optional": [
+                "any"
+              ]
+            }
+          },
+          "to": [
+            {
+              "send_user_command": {
+                "payload": {
+                  "command": "agentic_mouse_wheel_chord",
+                  "control": "vsCodeStageRange",
+                  "source": "razer",
+                  "phase": "release"
+                }
+              },
+              "repeat": false,
+              "conditions": [
+                {
+                  "type": "expression_if",
+                  "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+                }
+              ]
+            },
+            {
+              "set_variable": {
+                "name": "agentic_mouse_razer_vscode_hold_5_wheel_armed",
+                "value": 0
+              }
+            },
+            {
+              "key_code": "f14",
+              "modifiers": [
+                "left_command",
+                "left_shift"
+              ],
+              "repeat": false,
+              "conditions": [
+                {
+                  "type": "frontmost_application_if",
+                  "bundle_identifiers": [
+                    "^com\\.microsoft\\.VSCode(?:Insiders)?$"
+                  ]
+                },
+                {
+                  "type": "expression_unless",
+                  "expression": "(agentic_mouse_mode_picker_razer_expires_at > system.now.milliseconds) and (agentic_mouse_mode_picker_razer_expires_at <= system.now.milliseconds + 15000)"
+                },
+                {
+                  "type": "expression_if",
+                  "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+                }
+              ]
+            },
+            {
+              "key_code": "f16",
+              "repeat": false,
+              "conditions": [
+                {
+                  "type": "variable_unless",
+                  "name": "agentic_mouse_razer_vscode_hold_5",
+                  "value": 3
+                },
+                {
+                  "type": "frontmost_application_if",
+                  "bundle_identifiers": [
+                    "^com\\.microsoft\\.VSCode(?:Insiders)?$"
+                  ]
+                },
+                {
+                  "type": "expression_unless",
+                  "expression": "(agentic_mouse_mode_picker_razer_expires_at > system.now.milliseconds) and (agentic_mouse_mode_picker_razer_expires_at <= system.now.milliseconds + 15000)"
+                },
+                {
+                  "type": "expression_if",
+                  "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+                }
+              ]
+            },
+            {
+              "set_variable": {
+                "name": "agentic_mouse_razer_vscode_hold_5",
+                "value": 3
+              }
+            },
+            {
+              "key_code": "f15",
+              "modifiers": [
+                "left_command",
+                "left_shift"
+              ],
+              "repeat": false,
+              "conditions": [
+                {
+                  "type": "frontmost_application_if",
+                  "bundle_identifiers": [
+                    "^com\\.microsoft\\.VSCode(?:Insiders)?$"
+                  ]
+                },
+                {
+                  "type": "expression_unless",
+                  "expression": "(agentic_mouse_mode_picker_razer_expires_at > system.now.milliseconds) and (agentic_mouse_mode_picker_razer_expires_at <= system.now.milliseconds + 15000)"
+                },
+                {
+                  "type": "expression_if",
+                  "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+                }
+              ]
+            }
+          ],
+          "conditions": [
+            {
+              "type": "frontmost_application_if",
+              "bundle_identifiers": [
+                "^com\\.microsoft\\.VSCode(?:Insiders)?$"
+              ]
+            },
+            {
+              "type": "variable_unless",
+              "name": "agentic_mouse_vscode_legacy_stage_chords_enabled",
+              "value": 1
+            },
+            {
+              "type": "expression_if",
+              "expression": "agentic_mouse_razer_vscode_hold_5 == 1 or agentic_mouse_razer_vscode_hold_5 == 2 or agentic_mouse_razer_vscode_hold_5 == 3"
+            },
+            {
               "type": "device_if",
               "identifiers": [
                 {
@@ -6948,6 +10765,11 @@
               "bundle_identifiers": [
                 "^com\\.microsoft\\.VSCode(?:Insiders)?$"
               ]
+            },
+            {
+              "type": "variable_if",
+              "name": "agentic_mouse_vscode_legacy_stage_chords_enabled",
+              "value": 1
             },
             {
               "type": "device_if",
@@ -7011,6 +10833,11 @@
               ]
             },
             {
+              "type": "variable_if",
+              "name": "agentic_mouse_vscode_legacy_stage_chords_enabled",
+              "value": 1
+            },
+            {
               "type": "device_if",
               "identifiers": [
                 {
@@ -7025,6 +10852,312 @@
               "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
             }
           ]
+        },
+        {
+          "type": "basic",
+          "from": {
+            "key_code": "8",
+            "modifiers": {
+              "optional": [
+                "any"
+              ]
+            }
+          },
+          "to": [
+            {
+              "set_variable": {
+                "name": "agentic_mouse_razer_vscode_hold_8",
+                "value": 1
+              }
+            },
+            {
+              "set_variable": {
+                "name": "agentic_mouse_razer_vscode_hold_8_wheel_armed",
+                "value": 0
+              }
+            },
+            {
+              "key_code": "f13",
+              "modifiers": [
+                "left_command",
+                "left_shift"
+              ],
+              "repeat": false,
+              "conditions": [
+                {
+                  "type": "frontmost_application_if",
+                  "bundle_identifiers": [
+                    "^com\\.microsoft\\.VSCode(?:Insiders)?$"
+                  ]
+                },
+                {
+                  "type": "expression_unless",
+                  "expression": "(agentic_mouse_mode_picker_razer_expires_at > system.now.milliseconds) and (agentic_mouse_mode_picker_razer_expires_at <= system.now.milliseconds + 15000)"
+                },
+                {
+                  "type": "expression_if",
+                  "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+                }
+              ]
+            }
+          ],
+          "to_if_held_down": [
+            {
+              "set_variable": {
+                "name": "agentic_mouse_razer_vscode_hold_8",
+                "value": 2
+              },
+              "conditions": [
+                {
+                  "type": "variable_if",
+                  "name": "agentic_mouse_razer_vscode_hold_8",
+                  "value": 1
+                }
+              ]
+            },
+            {
+              "key_code": "f20",
+              "modifiers": [
+                "left_command",
+                "left_shift"
+              ],
+              "repeat": false,
+              "conditions": [
+                {
+                  "type": "variable_unless",
+                  "name": "agentic_mouse_razer_vscode_hold_8",
+                  "value": 3
+                },
+                {
+                  "type": "frontmost_application_if",
+                  "bundle_identifiers": [
+                    "^com\\.microsoft\\.VSCode(?:Insiders)?$"
+                  ]
+                },
+                {
+                  "type": "expression_unless",
+                  "expression": "(agentic_mouse_mode_picker_razer_expires_at > system.now.milliseconds) and (agentic_mouse_mode_picker_razer_expires_at <= system.now.milliseconds + 15000)"
+                },
+                {
+                  "type": "expression_if",
+                  "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+                }
+              ]
+            },
+            {
+              "send_user_command": {
+                "payload": {
+                  "command": "agentic_mouse_wheel_chord",
+                  "control": "vsCodeStageRange",
+                  "source": "razer",
+                  "phase": "press"
+                }
+              },
+              "repeat": false,
+              "conditions": [
+                {
+                  "type": "variable_unless",
+                  "name": "agentic_mouse_razer_vscode_hold_8",
+                  "value": 3
+                },
+                {
+                  "type": "frontmost_application_if",
+                  "bundle_identifiers": [
+                    "^com\\.microsoft\\.VSCode(?:Insiders)?$"
+                  ]
+                },
+                {
+                  "type": "expression_unless",
+                  "expression": "(agentic_mouse_mode_picker_razer_expires_at > system.now.milliseconds) and (agentic_mouse_mode_picker_razer_expires_at <= system.now.milliseconds + 15000)"
+                },
+                {
+                  "type": "expression_if",
+                  "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+                }
+              ]
+            },
+            {
+              "set_variable": {
+                "name": "agentic_mouse_razer_vscode_hold_8_wheel_armed",
+                "value": 1
+              },
+              "conditions": [
+                {
+                  "type": "variable_unless",
+                  "name": "agentic_mouse_razer_vscode_hold_8",
+                  "value": 3
+                },
+                {
+                  "type": "frontmost_application_if",
+                  "bundle_identifiers": [
+                    "^com\\.microsoft\\.VSCode(?:Insiders)?$"
+                  ]
+                },
+                {
+                  "type": "expression_unless",
+                  "expression": "(agentic_mouse_mode_picker_razer_expires_at > system.now.milliseconds) and (agentic_mouse_mode_picker_razer_expires_at <= system.now.milliseconds + 15000)"
+                }
+              ]
+            }
+          ],
+          "to_if_alone": [
+            {
+              "set_variable": {
+                "name": "agentic_mouse_razer_vscode_hold_8",
+                "value": 1
+              },
+              "conditions": [
+                {
+                  "type": "expression_if",
+                  "expression": "agentic_mouse_razer_vscode_hold_8 == 1 or agentic_mouse_razer_vscode_hold_8 == 2"
+                }
+              ]
+            }
+          ],
+          "to_after_key_up": [
+            {
+              "send_user_command": {
+                "payload": {
+                  "command": "agentic_mouse_wheel_chord",
+                  "control": "vsCodeStageRange",
+                  "source": "razer",
+                  "phase": "release"
+                }
+              },
+              "repeat": false,
+              "conditions": [
+                {
+                  "type": "expression_if",
+                  "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+                }
+              ]
+            },
+            {
+              "set_variable": {
+                "name": "agentic_mouse_razer_vscode_hold_8_wheel_armed",
+                "value": 0
+              }
+            },
+            {
+              "key_code": "f14",
+              "modifiers": [
+                "left_command",
+                "left_shift"
+              ],
+              "repeat": false,
+              "conditions": [
+                {
+                  "type": "variable_if",
+                  "name": "agentic_mouse_razer_vscode_hold_8",
+                  "value": 1
+                },
+                {
+                  "type": "frontmost_application_if",
+                  "bundle_identifiers": [
+                    "^com\\.microsoft\\.VSCode(?:Insiders)?$"
+                  ]
+                },
+                {
+                  "type": "expression_unless",
+                  "expression": "(agentic_mouse_mode_picker_razer_expires_at > system.now.milliseconds) and (agentic_mouse_mode_picker_razer_expires_at <= system.now.milliseconds + 15000)"
+                },
+                {
+                  "type": "expression_if",
+                  "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+                }
+              ]
+            },
+            {
+              "key_code": "f18",
+              "modifiers": [
+                "left_command",
+                "left_shift"
+              ],
+              "repeat": false,
+              "conditions": [
+                {
+                  "type": "variable_if",
+                  "name": "agentic_mouse_razer_vscode_hold_8",
+                  "value": 2
+                },
+                {
+                  "type": "frontmost_application_if",
+                  "bundle_identifiers": [
+                    "^com\\.microsoft\\.VSCode(?:Insiders)?$"
+                  ]
+                },
+                {
+                  "type": "expression_unless",
+                  "expression": "(agentic_mouse_mode_picker_razer_expires_at > system.now.milliseconds) and (agentic_mouse_mode_picker_razer_expires_at <= system.now.milliseconds + 15000)"
+                },
+                {
+                  "type": "expression_if",
+                  "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+                }
+              ]
+            },
+            {
+              "set_variable": {
+                "name": "agentic_mouse_razer_vscode_hold_8",
+                "value": 0
+              }
+            },
+            {
+              "key_code": "f15",
+              "modifiers": [
+                "left_command",
+                "left_shift"
+              ],
+              "repeat": false,
+              "conditions": [
+                {
+                  "type": "frontmost_application_if",
+                  "bundle_identifiers": [
+                    "^com\\.microsoft\\.VSCode(?:Insiders)?$"
+                  ]
+                },
+                {
+                  "type": "expression_unless",
+                  "expression": "(agentic_mouse_mode_picker_razer_expires_at > system.now.milliseconds) and (agentic_mouse_mode_picker_razer_expires_at <= system.now.milliseconds + 15000)"
+                },
+                {
+                  "type": "expression_if",
+                  "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+                }
+              ]
+            }
+          ],
+          "conditions": [
+            {
+              "type": "frontmost_application_if",
+              "bundle_identifiers": [
+                "^com\\.microsoft\\.VSCode(?:Insiders)?$"
+              ]
+            },
+            {
+              "type": "variable_unless",
+              "name": "agentic_mouse_vscode_legacy_stage_chords_enabled",
+              "value": 1
+            },
+            {
+              "type": "device_if",
+              "identifiers": [
+                {
+                  "vendor_id": 5426,
+                  "product_id": 141,
+                  "is_keyboard": true
+                }
+              ]
+            },
+            {
+              "type": "expression_if",
+              "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+            }
+          ],
+          "parameters": {
+            "basic.to_if_held_down_threshold_milliseconds": 200,
+            "basic.to_if_alone_timeout_milliseconds": 200
+          }
         },
         {
           "type": "basic",
@@ -7101,6 +11234,157 @@
               ]
             },
             {
+              "type": "variable_if",
+              "name": "agentic_mouse_vscode_legacy_stage_chords_enabled",
+              "value": 1
+            },
+            {
+              "type": "device_if",
+              "identifiers": [
+                {
+                  "vendor_id": 5426,
+                  "product_id": 141,
+                  "is_keyboard": true
+                }
+              ]
+            },
+            {
+              "type": "expression_if",
+              "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+            }
+          ]
+        },
+        {
+          "type": "basic",
+          "from": {
+            "key_code": "9",
+            "modifiers": {
+              "optional": [
+                "any"
+              ]
+            }
+          },
+          "to": [
+            {
+              "send_user_command": {
+                "payload": {
+                  "command": "agentic_mouse_wheel_chord",
+                  "control": "vsCodeStageRange",
+                  "source": "razer",
+                  "phase": "release"
+                }
+              },
+              "repeat": false,
+              "conditions": [
+                {
+                  "type": "expression_if",
+                  "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+                }
+              ]
+            },
+            {
+              "set_variable": {
+                "name": "agentic_mouse_razer_vscode_hold_8_wheel_armed",
+                "value": 0
+              }
+            },
+            {
+              "key_code": "f14",
+              "modifiers": [
+                "left_command",
+                "left_shift"
+              ],
+              "repeat": false,
+              "conditions": [
+                {
+                  "type": "frontmost_application_if",
+                  "bundle_identifiers": [
+                    "^com\\.microsoft\\.VSCode(?:Insiders)?$"
+                  ]
+                },
+                {
+                  "type": "expression_unless",
+                  "expression": "(agentic_mouse_mode_picker_razer_expires_at > system.now.milliseconds) and (agentic_mouse_mode_picker_razer_expires_at <= system.now.milliseconds + 15000)"
+                },
+                {
+                  "type": "expression_if",
+                  "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+                }
+              ]
+            },
+            {
+              "key_code": "f16",
+              "repeat": false,
+              "conditions": [
+                {
+                  "type": "variable_unless",
+                  "name": "agentic_mouse_razer_vscode_hold_8",
+                  "value": 3
+                },
+                {
+                  "type": "frontmost_application_if",
+                  "bundle_identifiers": [
+                    "^com\\.microsoft\\.VSCode(?:Insiders)?$"
+                  ]
+                },
+                {
+                  "type": "expression_unless",
+                  "expression": "(agentic_mouse_mode_picker_razer_expires_at > system.now.milliseconds) and (agentic_mouse_mode_picker_razer_expires_at <= system.now.milliseconds + 15000)"
+                },
+                {
+                  "type": "expression_if",
+                  "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+                }
+              ]
+            },
+            {
+              "set_variable": {
+                "name": "agentic_mouse_razer_vscode_hold_8",
+                "value": 3
+              }
+            },
+            {
+              "key_code": "f15",
+              "modifiers": [
+                "left_command",
+                "left_shift"
+              ],
+              "repeat": false,
+              "conditions": [
+                {
+                  "type": "frontmost_application_if",
+                  "bundle_identifiers": [
+                    "^com\\.microsoft\\.VSCode(?:Insiders)?$"
+                  ]
+                },
+                {
+                  "type": "expression_unless",
+                  "expression": "(agentic_mouse_mode_picker_razer_expires_at > system.now.milliseconds) and (agentic_mouse_mode_picker_razer_expires_at <= system.now.milliseconds + 15000)"
+                },
+                {
+                  "type": "expression_if",
+                  "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+                }
+              ]
+            }
+          ],
+          "conditions": [
+            {
+              "type": "frontmost_application_if",
+              "bundle_identifiers": [
+                "^com\\.microsoft\\.VSCode(?:Insiders)?$"
+              ]
+            },
+            {
+              "type": "variable_unless",
+              "name": "agentic_mouse_vscode_legacy_stage_chords_enabled",
+              "value": 1
+            },
+            {
+              "type": "expression_if",
+              "expression": "agentic_mouse_razer_vscode_hold_8 == 1 or agentic_mouse_razer_vscode_hold_8 == 2 or agentic_mouse_razer_vscode_hold_8 == 3"
+            },
+            {
               "type": "device_if",
               "identifiers": [
                 {
@@ -7155,6 +11439,11 @@
               "bundle_identifiers": [
                 "^com\\.microsoft\\.VSCode(?:Insiders)?$"
               ]
+            },
+            {
+              "type": "variable_if",
+              "name": "agentic_mouse_vscode_legacy_stage_chords_enabled",
+              "value": 1
             },
             {
               "type": "device_if",
@@ -7216,6 +11505,11 @@
               "bundle_identifiers": [
                 "^com\\.microsoft\\.VSCode(?:Insiders)?$"
               ]
+            },
+            {
+              "type": "variable_if",
+              "name": "agentic_mouse_vscode_legacy_stage_chords_enabled",
+              "value": 1
             },
             {
               "type": "device_if",
@@ -7291,14 +11585,9 @@
               ]
             }
           },
-          "to_after_key_up": [
+          "to": [
             {
-              "key_code": "left_shift",
-              "modifiers": [
-                "left_control",
-                "left_option"
-              ],
-              "repeat": false,
+              "key_code": "vk_none",
               "conditions": [
                 {
                   "type": "expression_if",
@@ -7441,6 +11730,26 @@
               ]
             }
           ],
+          "to_after_key_up": [
+            {
+              "send_user_command": {
+                "payload": {
+                  "command": "agentic_mouse_mode_picker",
+                  "action": "openAppSpecific",
+                  "source": "razer",
+                  "physical_cell": 2,
+                  "phase": "release"
+                }
+              },
+              "repeat": false,
+              "conditions": [
+                {
+                  "type": "expression_if",
+                  "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+                }
+              ]
+            }
+          ],
           "conditions": [
             {
               "type": "device_if",
@@ -7511,6 +11820,86 @@
             }
           ],
           "conditions": [
+            {
+              "type": "device_if",
+              "identifiers": [
+                {
+                  "vendor_id": 5426,
+                  "product_id": 141,
+                  "is_keyboard": true
+                }
+              ]
+            },
+            {
+              "type": "expression_unless",
+              "expression": "(agentic_mouse_mode_picker_razer_expires_at > system.now.milliseconds) and (agentic_mouse_mode_picker_razer_expires_at <= system.now.milliseconds + 15000)"
+            },
+            {
+              "type": "expression_if",
+              "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+            }
+          ]
+        },
+        {
+          "type": "basic",
+          "from": {
+            "key_code": "4",
+            "modifiers": {
+              "optional": [
+                "any"
+              ]
+            }
+          },
+          "to": [
+            {
+              "send_user_command": {
+                "payload": {
+                  "command": "agentic_mouse_vscode_stage_preview_modifier",
+                  "source": "razer",
+                  "event": "toggle"
+                }
+              },
+              "repeat": false,
+              "conditions": [
+                {
+                  "type": "expression_if",
+                  "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+                }
+              ]
+            },
+            {
+              "send_user_command": {
+                "payload": {
+                  "command": "agentic_mouse_vscode_stage_preview",
+                  "source": "razer",
+                  "direction": "previous"
+                }
+              },
+              "repeat": false,
+              "conditions": [
+                {
+                  "type": "expression_if",
+                  "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+                }
+              ]
+            }
+          ],
+          "conditions": [
+            {
+              "type": "frontmost_application_if",
+              "bundle_identifiers": [
+                "^com\\.microsoft\\.VSCode(?:Insiders)?$"
+              ]
+            },
+            {
+              "type": "variable_unless",
+              "name": "agentic_mouse_vscode_legacy_stage_chords_enabled",
+              "value": 1
+            },
+            {
+              "type": "expression_if",
+              "expression": "agentic_mouse_razer_vscode_hold_5 == 1 or agentic_mouse_razer_vscode_hold_5 == 2"
+            },
             {
               "type": "device_if",
               "identifiers": [
@@ -7754,6 +12143,86 @@
           },
           "to": [
             {
+              "send_user_command": {
+                "payload": {
+                  "command": "agentic_mouse_vscode_stage_preview_modifier",
+                  "source": "razer",
+                  "event": "toggle"
+                }
+              },
+              "repeat": false,
+              "conditions": [
+                {
+                  "type": "expression_if",
+                  "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+                }
+              ]
+            },
+            {
+              "send_user_command": {
+                "payload": {
+                  "command": "agentic_mouse_vscode_stage_preview",
+                  "source": "razer",
+                  "direction": "next"
+                }
+              },
+              "repeat": false,
+              "conditions": [
+                {
+                  "type": "expression_if",
+                  "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+                }
+              ]
+            }
+          ],
+          "conditions": [
+            {
+              "type": "frontmost_application_if",
+              "bundle_identifiers": [
+                "^com\\.microsoft\\.VSCode(?:Insiders)?$"
+              ]
+            },
+            {
+              "type": "variable_unless",
+              "name": "agentic_mouse_vscode_legacy_stage_chords_enabled",
+              "value": 1
+            },
+            {
+              "type": "expression_if",
+              "expression": "agentic_mouse_razer_vscode_hold_8 == 1 or agentic_mouse_razer_vscode_hold_8 == 2"
+            },
+            {
+              "type": "device_if",
+              "identifiers": [
+                {
+                  "vendor_id": 5426,
+                  "product_id": 141,
+                  "is_keyboard": true
+                }
+              ]
+            },
+            {
+              "type": "expression_unless",
+              "expression": "(agentic_mouse_mode_picker_razer_expires_at > system.now.milliseconds) and (agentic_mouse_mode_picker_razer_expires_at <= system.now.milliseconds + 15000)"
+            },
+            {
+              "type": "expression_if",
+              "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+            }
+          ]
+        },
+        {
+          "type": "basic",
+          "from": {
+            "key_code": "7",
+            "modifiers": {
+              "optional": [
+                "any"
+              ]
+            }
+          },
+          "to": [
+            {
               "set_variable": {
                 "name": "agentic_mouse_mode_picker_razer_expires_at",
                 "expression": "system.now.milliseconds + 1200"
@@ -7865,14 +12334,64 @@
           },
           "to": [
             {
+              "set_variable": {
+                "name": "agentic_mouse_razer_side_09_enter_pending",
+                "value": 1
+              }
+            },
+            {
               "key_code": "return_or_enter",
+              "modifiers": [
+                "left_command"
+              ],
               "repeat": false,
               "conditions": [
+                {
+                  "type": "variable_if",
+                  "name": "agentic_mouse_razer_default_command_held",
+                  "value": 1
+                },
                 {
                   "type": "expression_if",
                   "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
                 }
               ]
+            },
+            {
+              "set_variable": {
+                "name": "agentic_mouse_razer_side_09_enter_pending",
+                "value": 2
+              },
+              "conditions": [
+                {
+                  "type": "variable_if",
+                  "name": "agentic_mouse_razer_default_command_held",
+                  "value": 1
+                }
+              ]
+            }
+          ],
+          "to_after_key_up": [
+            {
+              "key_code": "return_or_enter",
+              "repeat": false,
+              "conditions": [
+                {
+                  "type": "variable_if",
+                  "name": "agentic_mouse_razer_side_09_enter_pending",
+                  "value": 1
+                },
+                {
+                  "type": "expression_if",
+                  "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+                }
+              ]
+            },
+            {
+              "set_variable": {
+                "name": "agentic_mouse_razer_side_09_enter_pending",
+                "value": 0
+              }
             }
           ],
           "conditions": [

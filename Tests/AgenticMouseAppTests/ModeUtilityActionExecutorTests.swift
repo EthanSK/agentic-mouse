@@ -229,13 +229,13 @@ final class ModeUtilityActionExecutorTests: XCTestCase {
         }
 
         XCTAssertEqual(submitted.count, 1)
-        XCTAssertEqual(submitted[0].map(\.keyCode), [59, 58, 56, 55, 0, 0, 55, 56, 58, 59])
+        XCTAssertEqual(submitted[0].map(\.keyCode), [59, 58, 55, 0, 0, 55, 58, 59])
         XCTAssertEqual(
             submitted[0].map(\.type),
             [
-                .flagsChanged, .flagsChanged, .flagsChanged, .flagsChanged,
+                .flagsChanged, .flagsChanged, .flagsChanged,
                 .keyDown, .keyUp,
-                .flagsChanged, .flagsChanged, .flagsChanged, .flagsChanged,
+                .flagsChanged, .flagsChanged, .flagsChanged,
             ]
         )
         XCTAssertEqual(
@@ -243,11 +243,9 @@ final class ModeUtilityActionExecutorTests: XCTestCase {
             [
                 [.maskControl],
                 [.maskControl, .maskAlternate],
-                [.maskControl, .maskAlternate, .maskShift],
-                [.maskControl, .maskAlternate, .maskShift, .maskCommand],
-                [.maskControl, .maskAlternate, .maskShift, .maskCommand],
-                [.maskControl, .maskAlternate, .maskShift, .maskCommand],
-                [.maskControl, .maskAlternate, .maskShift],
+                [.maskControl, .maskAlternate, .maskCommand],
+                [.maskControl, .maskAlternate, .maskCommand],
+                [.maskControl, .maskAlternate, .maskCommand],
                 [.maskControl, .maskAlternate],
                 [.maskControl],
                 [],
@@ -255,13 +253,34 @@ final class ModeUtilityActionExecutorTests: XCTestCase {
         )
         XCTAssertEqual(
             submitted[0].map(\.timestampOffset),
-            [0, 0.006, 0.012, 0.018, 0.024, 0.050, 0.056, 0.062, 0.068, 0.074]
+            [0, 0.006, 0.012, 0.018, 0.044, 0.050, 0.056, 0.062]
         )
         XCTAssertEqual(ModeUtilityActionExecutor.stayRestoreKeyCode, 0)
         XCTAssertEqual(
             ModeUtilityActionExecutor.stayRestoreModifierFlags,
-            [.maskControl, .maskAlternate, .maskShift, .maskCommand]
+            [.maskControl, .maskAlternate, .maskCommand]
         )
+    }
+
+    func testOrganizeWindowsNeverEmitsEitherAgentFlowRecordingChord() {
+        var submitted: [SyntheticKeyboardChordPoster.Event] = []
+        let executor = ModeUtilityActionExecutor(
+            postKeyboardChord: { submitted = $0; return true },
+            accessibilityTrusted: { true }
+        )
+        guard case .success = executor.perform(.organizeWindows) else {
+            return XCTFail("Stay restore hotkey should be posted")
+        }
+
+        let recordingChords: [CGEventFlags] = [
+            [.maskControl, .maskAlternate, .maskShift],
+            [.maskCommand, .maskAlternate, .maskShift],
+        ]
+        XCTAssertFalse(submitted.isEmpty)
+        for event in submitted {
+            XCTAssertFalse(event.flags.contains(.maskShift))
+            XCTAssertFalse(recordingChords.contains(event.flags))
+        }
     }
 
     func testOrganizeWindowsFailsClosedWhenLockedUntrustedOrPostingFails() {
@@ -380,6 +399,61 @@ final class ModeUtilityActionExecutorTests: XCTestCase {
             currentProcessIdentifier: 42,
             mainBundleIdentifier: "com.ethan.agentic-mouse"
         ))
+    }
+
+    func testSelectAllAndSaveSendOneCommandCycleAndRespectInputGates() {
+        for (action, key) in [(ModeUtilityAction.selectAll, CGKeyCode(0)), (.save, CGKeyCode(1))] {
+            var events: [SyntheticKeyboardChordPoster.Event] = []
+            let executor = ModeUtilityActionExecutor(postKeyboardChord: { events = $0; return true }, accessibilityTrusted: { true })
+            guard case .success = executor.perform(action) else { return XCTFail("shortcut failed") }
+            XCTAssertEqual(events.map(\.keyCode), [55, key, key, 55])
+            XCTAssertEqual(events.map(\.type), [.flagsChanged, .keyDown, .keyUp, .flagsChanged])
+            XCTAssertEqual(events.map(\.flags), [[.maskCommand], [.maskCommand], [.maskCommand], []])
+            let blocked = ModeUtilityActionExecutor(postKeyboardChord: { _ in XCTFail("blocked"); return true }, accessibilityTrusted: { true }, inputAllowed: { false })
+            guard case .failure(.clipboardInputBlocked) = blocked.perform(action) else { return XCTFail("lock bypassed") }
+            let untrusted = ModeUtilityActionExecutor(postKeyboardChord: { _ in XCTFail("untrusted"); return true }, accessibilityTrusted: { false })
+            guard case .failure(.clipboardAccessibilityPermissionMissing) = untrusted.perform(action) else { return XCTFail("permission bypassed") }
+        }
+    }
+
+    func testTabSendsOneUnmodifiedKeyCycleAndRespectsInputGates() {
+        var events: [SyntheticKeyboardChordPoster.Event] = []
+        let executor = ModeUtilityActionExecutor(
+            postKeyboardChord: { events = $0; return true },
+            accessibilityTrusted: { true }
+        )
+
+        guard case .success = executor.perform(.tab) else {
+            return XCTFail("Tab shortcut failed")
+        }
+        XCTAssertEqual(events.map(\.keyCode), [48, 48])
+        XCTAssertEqual(events.map(\.type), [.keyDown, .keyUp])
+        XCTAssertEqual(events.map(\.flags), [[], []])
+
+        let blocked = ModeUtilityActionExecutor(
+            postKeyboardChord: { _ in XCTFail("blocked"); return true },
+            accessibilityTrusted: { true },
+            inputAllowed: { false }
+        )
+        guard case .failure(.tabInputBlocked) = blocked.perform(.tab) else {
+            return XCTFail("lock bypassed")
+        }
+
+        let untrusted = ModeUtilityActionExecutor(
+            postKeyboardChord: { _ in XCTFail("untrusted"); return true },
+            accessibilityTrusted: { false }
+        )
+        guard case .failure(.tabAccessibilityPermissionMissing) = untrusted.perform(.tab) else {
+            return XCTFail("permission bypassed")
+        }
+
+        let failed = ModeUtilityActionExecutor(
+            postKeyboardChord: { _ in false },
+            accessibilityTrusted: { true }
+        )
+        guard case .failure(.tabEventCreationFailed) = failed.perform(.tab) else {
+            return XCTFail("failed Tab events should be surfaced")
+        }
     }
 
     func testClipboardActionsPostExactlyOneCommandKeyCycle() {

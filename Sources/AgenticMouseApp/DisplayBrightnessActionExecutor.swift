@@ -44,7 +44,7 @@ struct DisplayBrightnessActionExecutor {
             keyType = Int32(NX_KEYTYPE_BRIGHTNESS_DOWN)
         case .rewindYouTubeFiveSeconds, .openIntelligenceOnDemand,
              .zoomIn, .zoomOut, .moveToSpaceLeft, .moveToSpaceRight,
-             .copy, .paste, .showDesktop, .missionControl, .pasteStoredPassword,
+             .selectAll, .tab, .save, .copy, .paste, .showDesktop, .missionControl, .pasteStoredPassword,
              .moveWindowLeftWithMagnet, .moveWindowRightWithMagnet,
              .showApplicationWindows, .organizeWindows, .spotifySongRadio, .quitApp:
             preconditionFailure("This action is owned by ModeUtilityActionExecutor")

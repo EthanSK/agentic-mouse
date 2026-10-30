@@ -121,7 +121,7 @@ final class KarabinerCLIModeLease: ColorProofLeaseControlling {
 /// socket owned by another user-command server; only its own stale crash socket
 /// is reclaimed.
 final class KarabinerUserCommandReceiver {
-    typealias Handler = (Data) -> Void
+    typealias Handler = (Data, TimeInterval) -> Void
 
     static var defaultSocketPath: String {
         "/Library/Application Support/org.pqrs/tmp/user/\(geteuid())/user_command_receiver.sock"
@@ -170,7 +170,12 @@ final class KarabinerUserCommandReceiver {
             let recordedIdentity = Self.recordedSocketIdentity(from: openedLock)
             guard lockExisted,
                   let currentIdentity = Self.socketIdentity(at: socketPath),
-                  currentIdentity == recordedIdentity
+                  let recordedIdentity,
+                  (currentIdentity == recordedIdentity || Self.isRebootOrphan(
+                      at: socketPath,
+                      recorded: recordedIdentity,
+                      current: currentIdentity
+                  ))
             else {
                 releaseLock(removeMarker: !lockExisted)
                 throw KarabinerModeBridgeError.socketPathOccupied(socketPath)
@@ -258,12 +263,13 @@ final class KarabinerUserCommandReceiver {
         while true {
             let count = recv(fd, &buffer, buffer.count, 0)
             if count > 0 {
+                let inputTime = ProcessInfo.processInfo.systemUptime // A stalled UI thread must not inflate a mouse hold; timestamp ingress on the dedicated receive queue before dispatch. (Codex task: 01a039f7-873c-7c30-b3dc-af8a6724ace5)
                 var end = count
                 if end > 0, buffer[end - 1] == 0x0A { end -= 1 }
                 if end > 0, buffer[end - 1] == 0x0D { end -= 1 }
                 guard end > 0 else { continue }
                 let data = Data(buffer[0..<end])
-                DispatchQueue.main.async { handler(data) }
+                DispatchQueue.main.async { handler(data, inputTime) }
                 continue
             }
             if count < 0, errno == EINTR { continue }
@@ -323,6 +329,48 @@ final class KarabinerUserCommandReceiver {
               let type = mode_t(fields[3])
         else { return nil }
         return SocketIdentity(device: device, inode: inode, user: user, type: type)
+    }
+
+    /// The temporary socket can survive a reboot while macOS assigns its
+    /// volume a new st_dev. Reclaim it only when the marker still identifies
+    /// the same inode, owner and socket type, and a datagram connect proves
+    /// that no process is listening. A live or ambiguous socket stays intact.
+    private static func isRebootOrphan(
+        at path: String,
+        recorded: SocketIdentity,
+        current: SocketIdentity
+    ) -> Bool {
+        guard recorded.device != current.device,
+              recorded.inode == current.inode,
+              recorded.user == current.user,
+              current.user == geteuid(),
+              recorded.type == S_IFSOCK,
+              current.type == S_IFSOCK
+        else { return false }
+
+        let fd = socket(AF_UNIX, SOCK_DGRAM, 0)
+        guard fd >= 0 else { return false }
+        defer { close(fd) }
+
+        var address = sockaddr_un()
+        address.sun_family = sa_family_t(AF_UNIX)
+        let capacity = MemoryLayout.size(ofValue: address.sun_path)
+        guard path.utf8CString.count <= capacity else { return false }
+        path.withCString { source in
+            withUnsafeMutablePointer(to: &address.sun_path) { pointer in
+                pointer.withMemoryRebound(to: CChar.self, capacity: capacity) { destination in
+                    strncpy(destination, source, capacity - 1)
+                    destination[capacity - 1] = 0
+                }
+            }
+        }
+        let result = withUnsafePointer(to: &address) { pointer in
+            pointer.withMemoryRebound(to: sockaddr.self, capacity: 1) { sockaddrPointer in
+                Darwin.connect(fd, sockaddrPointer, socklen_t(MemoryLayout<sockaddr_un>.size))
+            }
+        }
+        guard result == -1, errno == ECONNREFUSED else { return false }
+        return socketIdentity(at: path) == current
     }
 
     private static func bindDatagramSocket(path: String) throws -> Int32 {

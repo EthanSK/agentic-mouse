@@ -10,6 +10,9 @@ enum ModeUtilityActionError: Error, Equatable {
     case clipboardInputBlocked
     case clipboardAccessibilityPermissionMissing
     case clipboardEventCreationFailed
+    case tabInputBlocked
+    case tabAccessibilityPermissionMissing
+    case tabEventCreationFailed
     case magnetInputBlocked
     case magnetAccessibilityPermissionMissing
     case magnetEventCreationFailed
@@ -42,14 +45,16 @@ enum ModeUtilityActionError: Error, Equatable {
 struct ModeUtilityActionExecutor {
     /// Stay 1.5.1's verified global Restore Windows hotkey for the saved
     /// `Agentic Mouse Layout v1` profile. Stay records physical key code 0 with
-    /// Control-Option-Shift-Command. Its Carbon hotkey does not accept a
+    /// Control-Option-Command. Shift must stay absent throughout the complete
+    /// lifecycle: intermediate three-modifier chords can start or stop Agent
+    /// Flow even when the final Stay shortcut is different. Its Carbon hotkey does not accept a
     /// Quartz-posted F14 even though event creation succeeds, while this
     /// reserved ordinary-key chord is physically equivalent and live-proven.
     /// The action remains manual and never drives Stay through AppleScript or
     /// UI automation.
     static let stayRestoreKeyCode: CGKeyCode = 0
     static let stayRestoreModifierFlags: CGEventFlags = [
-        .maskControl, .maskAlternate, .maskShift, .maskCommand,
+        .maskControl, .maskAlternate, .maskCommand,
     ]
 
     static let youtubeSeekBackwardFiveSecondsNotification =
@@ -178,12 +183,31 @@ struct ModeUtilityActionExecutor {
             case .failure:
                 return .failure(.desktopSpaceEventCreationFailed)
             }
-        case .copy, .paste:
+        case .tab:
+            guard inputAllowed() else { return .failure(.tabInputBlocked) }
+            guard accessibilityTrusted() else {
+                return .failure(.tabAccessibilityPermissionMissing)
+            }
+            let tabKeyCode: CGKeyCode = 48
+            let events: [SyntheticKeyboardChordPoster.Event] = [
+                .key(keyCode: tabKeyCode, flags: [], isDown: true, at: 0),
+                .key(keyCode: tabKeyCode, flags: [], isDown: false, at: 0.020),
+            ]
+            return postKeyboardChord(events)
+                ? .success(())
+                : .failure(.tabEventCreationFailed)
+        case .selectAll, .save, .copy, .paste:
             guard inputAllowed() else { return .failure(.clipboardInputBlocked) }
             guard accessibilityTrusted() else {
                 return .failure(.clipboardAccessibilityPermissionMissing)
             }
-            let keyCode: CGKeyCode = action == .copy ? 8 : 9
+            let keyCode: CGKeyCode
+            switch action {
+            case .selectAll: keyCode = 0
+            case .save: keyCode = 1
+            case .copy: keyCode = 8
+            default: keyCode = 9
+            }
             let commandKeyCode: CGKeyCode = 55
             let events: [SyntheticKeyboardChordPoster.Event] = [
                 .modifier(keyCode: commandKeyCode, flags: [.maskCommand], at: 0),
@@ -223,31 +247,26 @@ struct ModeUtilityActionExecutor {
             }
             let control: CGEventFlags = [.maskControl]
             let controlOption: CGEventFlags = [.maskControl, .maskAlternate]
-            let controlOptionShift: CGEventFlags = [
-                .maskControl, .maskAlternate, .maskShift,
-            ]
             let allModifiers = Self.stayRestoreModifierFlags
             let events: [SyntheticKeyboardChordPoster.Event] = [
                 .modifier(keyCode: 59, flags: control, at: 0),
                 .modifier(keyCode: 58, flags: controlOption, at: 0.006),
-                .modifier(keyCode: 56, flags: controlOptionShift, at: 0.012),
-                .modifier(keyCode: 55, flags: allModifiers, at: 0.018),
+                .modifier(keyCode: 55, flags: allModifiers, at: 0.012),
                 .key(
                     keyCode: Self.stayRestoreKeyCode,
                     flags: allModifiers,
                     isDown: true,
-                    at: 0.024
+                    at: 0.018
                 ),
                 .key(
                     keyCode: Self.stayRestoreKeyCode,
                     flags: allModifiers,
                     isDown: false,
-                    at: 0.050
+                    at: 0.044
                 ),
-                .modifier(keyCode: 55, flags: controlOptionShift, at: 0.056),
-                .modifier(keyCode: 56, flags: controlOption, at: 0.062),
-                .modifier(keyCode: 58, flags: control, at: 0.068),
-                .modifier(keyCode: 59, flags: [], at: 0.074),
+                .modifier(keyCode: 55, flags: controlOption, at: 0.050),
+                .modifier(keyCode: 58, flags: control, at: 0.056),
+                .modifier(keyCode: 59, flags: [], at: 0.062),
             ]
             return postKeyboardChord(events)
                 ? .success(())
@@ -276,7 +295,7 @@ struct ModeUtilityActionExecutor {
                 return .failure(.storedPasswordAccessibilityPermissionMissing)
             case .failure(.passwordNotConfigured):
                 return .failure(.storedPasswordNotConfigured)
-            case .failure(.eventCreationFailed):
+            case .failure(.eventCreationFailed), .failure(.nativeInputRequired):
                 return .failure(.storedPasswordEventCreationFailed)
             }
         }

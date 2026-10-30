@@ -62,7 +62,7 @@ function describe(control) {
   if (simulator.state.mode === "websites")
     return `Open ${control.title} in Chrome.`;
   const target = map.apps.find((app) => app.id === simulator.state.mode)?.title;
-  return `${control.title}${target ? ` in ${target}` : ""}.${control.doublePress ? " Double press for the secondary action." : ""}${control.reportedBroken ? " Ethan reported this button as not working. The marker comes from the app source." : ""}`;
+  return `${control.title}${target ? ` in ${target}` : ""}.${control.doublePress ? " Double press for the secondary action." : ""}${control.reportedBroken ? " Ethan reported this button as not working. The marker comes from the app source." : ""}${control.unavailable ? " Claude has no verified equivalent for this control." : ""}`;
 }
 
 function previewControl(cell) {

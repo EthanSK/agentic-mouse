@@ -13,6 +13,7 @@ enum InteractiveScreenshotResult: Equatable {
 @MainActor
 protocol InteractiveScreenshotProcess: AnyObject {
     var isRunning: Bool { get }
+    var hasCompletedSelection: Bool { get }
     var onTermination: ((InteractiveScreenshotResult) -> Void)? { get set }
     func run() throws
     func cancel()
@@ -481,6 +482,9 @@ final class SelectedAreaScreenshotController {
     private var activeSource: MouseSource?
     private var pasteWhenCaptureResolvesForSource: MouseSource?
     private var generation: UInt64 = 0
+    // Bounded retry history survives capture completion/cancel, so a delayed
+    // duplicate triple-click request cannot reopen the screenshot overlay.
+    private var recentWandStarts:[UUID] = []
     var onStateChange: (() -> Void)?
     var onCompletion: ((InteractiveScreenshotResult) -> Void)?
     var onAsynchronousResult: ((MouseSource, TriggerResult) -> Void)?
@@ -515,6 +519,15 @@ final class SelectedAreaScreenshotController {
         }
     }
 
+    func handleWandStart(_ command:WandScreenshotStartCommand) -> TriggerResult? {
+        guard inputAllowed() else { return .blocked }
+        guard let id=UUID(uuidString:command.id),!recentWandStarts.contains(id) else { return nil }
+        recentWandStarts.append(id)
+        if recentWandStarts.count > 64 { recentWandStarts.removeFirst() }
+        guard activeProcess == nil else { return nil }
+        return startCapture(from:.wand)
+    }
+
     func handlePress(from source: MouseSource) -> TriggerResult {
         guard inputAllowed() else { return .blocked }
 
@@ -531,8 +544,9 @@ final class SelectedAreaScreenshotController {
     }
 
     func handlePaste(from source: MouseSource) -> TriggerResult {
-        guard inputAllowed(), !isCapturing else { return .blocked }
-        if clipboardCoordinator.isCapturePending {
+        guard inputAllowed() else { return .blocked }
+        if isCapturing, activeProcess?.hasCompletedSelection != true { return .blocked }
+        if isCapturing || clipboardCoordinator.isCapturePending {
             pasteWhenCaptureResolvesForSource = source
             onStateChange?()
             return .pasteQueued
@@ -556,45 +570,48 @@ final class SelectedAreaScreenshotController {
 
         pasteWhenCaptureResolvesForSource = nil
         let process = makeProcess()
+        if clipboardCoordinator.isCapturePending {
+            clipboardCoordinator.cancel(clearOwnership: false)
+        }
         clipboardCoordinator.prepareForCapture()
         generation &+= 1
         let token = generation
         process.onTermination = { [weak self] result in
-            DispatchQueue.main.async { [weak self] in
-                guard let self, self.generation == token else { return }
-                let completedSource = self.activeSource ?? source
-                self.activeProcess = nil
-                self.activeSource = nil
+            // Both native completion and the controller are MainActor-owned.
+            // Publish the pending-save state before another wheel event runs.
+            guard let self, self.generation == token else { return }
+            let completedSource = self.activeSource ?? source
+            self.activeProcess = nil
+            self.activeSource = nil
 
-                if result == .completed {
-                    self.clipboardCoordinator.resolveCompletedCapture { [weak self] resolutionResult in
-                        guard let self, self.generation == token else { return }
-                        if case .success = resolutionResult,
-                           let pasteSource = self.pasteWhenCaptureResolvesForSource {
-                            self.pasteWhenCaptureResolvesForSource = nil
-                            let pasteResult = self.pasteScreenshot()
-                            self.onAsynchronousResult?(pasteSource, pasteResult)
-                        } else if case .failure = resolutionResult {
-                            self.pasteWhenCaptureResolvesForSource = nil
-                        }
-                        self.onStateChange?()
-                        switch resolutionResult {
-                        case .success:
-                            self.onScreenshotReady?(completedSource, resolutionResult)
-                            self.onCompletion?(.completed)
-                        case .failure(.screenshotFileNotFound):
-                            self.onCompletion?(.cancelled)
-                        case .failure(let error):
-                            self.onScreenshotReady?(completedSource, resolutionResult)
-                            self.onCompletion?(.failed(error.localizedDescription))
-                        }
+            if result == .completed {
+                self.clipboardCoordinator.resolveCompletedCapture { [weak self] resolutionResult in
+                    guard let self, self.generation == token else { return }
+                    if case .success = resolutionResult,
+                       let pasteSource = self.pasteWhenCaptureResolvesForSource {
+                        self.pasteWhenCaptureResolvesForSource = nil
+                        let pasteResult = self.pasteScreenshot()
+                        self.onAsynchronousResult?(pasteSource, pasteResult)
+                    } else if case .failure = resolutionResult {
+                        self.pasteWhenCaptureResolvesForSource = nil
                     }
-                } else {
-                    self.clipboardCoordinator.discardPreparedCapture()
-                    self.onCompletion?(result)
+                    self.onStateChange?()
+                    switch resolutionResult {
+                    case .success:
+                        self.onScreenshotReady?(completedSource, resolutionResult)
+                        self.onCompletion?(.completed)
+                    case .failure(.screenshotFileNotFound):
+                        self.onCompletion?(.cancelled)
+                    case .failure(let error):
+                        self.onScreenshotReady?(completedSource, resolutionResult)
+                        self.onCompletion?(.failed(error.localizedDescription))
+                    }
                 }
-                self.onStateChange?()
+            } else {
+                self.clipboardCoordinator.discardPreparedCapture()
+                self.onCompletion?(result)
             }
+            self.onStateChange?()
         }
         activeProcess = process
         activeSource = source
@@ -754,8 +771,9 @@ final class NativeInteractiveScreenshotProcess: InteractiveScreenshotProcess {
     private let interactionIsActive: InteractionActiveProvider
     private var lifecycleMonitor: Any?
     private var observedActiveInteraction = false
-    private var observedSelectionMouseUp = false
+    private(set) var hasCompletedSelection = false
     private var activationPollCount = 0
+    private var missingInteractionPollCount = 0
     var onTermination: ((InteractiveScreenshotResult) -> Void)?
     private(set) var isRunning = false
 
@@ -780,7 +798,7 @@ final class NativeInteractiveScreenshotProcess: InteractiveScreenshotProcess {
             guard let self else { return }
             switch result {
             case .completed:
-                self.observedSelectionMouseUp = true
+                self.hasCompletedSelection = true
                 self.pollInteractionState()
             case .cancelled, .failed:
                 self.finish(with: result)
@@ -791,8 +809,9 @@ final class NativeInteractiveScreenshotProcess: InteractiveScreenshotProcess {
         lifecycleMonitor = monitor
         isRunning = true
         observedActiveInteraction = false
-        observedSelectionMouseUp = false
+        hasCompletedSelection = false
         activationPollCount = 0
+        missingInteractionPollCount = 0
 
         let down = postEvent(Self.screenshotKeyCode, Self.screenshotFlags, true)
         let up = postEvent(Self.screenshotKeyCode, Self.screenshotFlags, false)
@@ -831,10 +850,19 @@ final class NativeInteractiveScreenshotProcess: InteractiveScreenshotProcess {
         guard isRunning else { return }
         if interactionIsActive() {
             observedActiveInteraction = true
+            missingInteractionPollCount = 0
             return
         }
-        if observedActiveInteraction || observedSelectionMouseUp {
-            finish(with: observedSelectionMouseUp ? .completed : .cancelled)
+        if hasCompletedSelection {
+            finish(with: .completed)
+            return
+        }
+        if observedActiveInteraction {
+            // The window-list timer can run before the event tap's queued
+            // MainActor callback. Keep the monitor for one more bounded tick
+            // so a completed selection cannot be misclassified as cancelled.
+            missingInteractionPollCount += 1
+            if missingInteractionPollCount >= 2 { finish(with: .cancelled) }
             return
         }
         activationPollCount += 1

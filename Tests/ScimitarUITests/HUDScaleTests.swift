@@ -77,6 +77,21 @@ final class HUDScaleTests: XCTestCase {
         XCTAssertEqual(store.scale, HUDScaleStore.defaultScale)
     }
 
+    func testCloseControlUsesNativeButtonAndCallsItsOwnerWithoutFocus() throws {
+        var closes = 0
+        let panel = HUDScaleControlPanel(scaleStore: HUDScaleStore(defaults: defaults)) { closes += 1 }
+        panel.contentView?.layoutSubtreeIfNeeded()
+        func buttons(_ view:NSView)->[NSButton] {
+            (view as? NSButton).map { [$0] } ?? view.subviews.flatMap(buttons)
+        }
+        let button = try XCTUnwrap(panel.contentView.flatMap { buttons($0).first })
+        XCTAssertFalse(panel.canBecomeKey)
+        XCTAssertFalse(panel.canBecomeMain)
+        button.performClick(nil)
+        XCTAssertEqual(closes, 1)
+        XCTAssertEqual(HUDScaleControlPanel.sliderSize.width, 30)
+    }
+
     func testScaleControlIsTheOnlyMouseInteractiveHUDPanel() {
         let store = HUDScaleStore(defaults: defaults)
         let hudPanel = HUDPanel(contentRect: NSRect(x: 0, y: 0, width: 100, height: 100))

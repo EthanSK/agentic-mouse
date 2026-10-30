@@ -32,7 +32,8 @@ public enum ChromeModeAction: String, CaseIterable, Equatable, Sendable {
         case .closeCurrentTab: return "Close current tab"
         case .holdYouTubeDoubleSpeed: return "Hold 2× speed"
         case .openDevTools: return "Open DevTools"
-        case .cycleTabsWithWheel: return "Tab History + Wheel"
+        // The HUD adds the wheel arrow from the card's typed gesture.
+        case .cycleTabsWithWheel: return "Tab History"
         case .reloadCurrentTab: return "Reload current tab"
         case .newTab: return "New tab"
         case .openWebsites: return "Open website"
@@ -57,6 +58,13 @@ public enum ChromeMode {
         legend: PhysicalCell.all.map { cell in
             if cell.isAppSpecificModeExit {
                 return ModeHUDLegendItem(cell: cell, actionTitle: "Exit Chrome mode", accent: accent)
+            }
+            if let control = WheelChordControl.appSpecificControl(for: .chrome, cell: cell) {
+                return ModeHUDLegendItem(
+                    cell: cell,
+                    gesture: control.hudGesture,
+                    accent: RGBColor(red: 66, green: 133, blue: 244)
+                )
             }
             if let action = ChromeModeAction.action(for: cell) {
                 return ModeHUDLegendItem(

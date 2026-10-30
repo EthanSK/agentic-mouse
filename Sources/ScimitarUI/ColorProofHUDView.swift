@@ -8,6 +8,8 @@ final class ModeHUDViewModel: ObservableObject {
     @Published var modeTitle = "Mouse map"
     @Published var source: MouseSource = .corsair
     @Published var selection: ModeHUDSelection?
+    @Published var pointerFocus: ModeHUDPointerFocus?
+    @Published var wandReviewSelection: PhysicalCell?
     @Published var legend: [ModeHUDLegendItem] = []
     @Published var accent = ScimitarKit.RGBColor(red: 94, green: 210, blue: 255)
     @Published var outlineWidth: Double?
@@ -18,6 +20,13 @@ final class ModeHUDViewModel: ObservableObject {
     @Published var feedback: ModeHUDFeedback?
     @Published var presentationStyle: ModeHUDPresentationStyle = .neutral
     @Published var appIcons: [PhysicalCell: NSImage] = [:]
+    @Published var wandRadialLayout: WandRadialLayout?
+    /// Continuous centre angle of the outlined ring card. It is unwrapped
+    /// against the previous one so a move between the last and first card
+    /// slides the short way round instead of unwinding the whole wheel. It is
+    /// updated just before `pointerFocus`, whose publication redraws it.
+    private(set) var wandFocusAngle: Double = 0
+    private var appliedSnapshot: ModeHUDSnapshot?
     let appVersion = AgenticMouseVersion.displayString()
     private let appIconProvider: ModeHUDAppIconProviding
 
@@ -29,19 +38,21 @@ final class ModeHUDViewModel: ObservableObject {
         self.appIconProvider = appIconProvider
     }
 
-    func apply(_ snapshot: ModeHUDSnapshot) {
-        isActive = snapshot.isActive
-        modeTitle = snapshot.modeTitle
-        source = snapshot.source
-        selection = snapshot.selection
-        legend = snapshot.legend
-        accent = snapshot.accent
-        outlineWidth = snapshot.outlineWidth
-        lightingTargets = snapshot.lightingTargets
-        footerTitle = snapshot.footerTitle
-        footerHint = snapshot.footerHint
-        problem = snapshot.problem
-        presentationStyle = snapshot.presentationStyle
+    @discardableResult
+    func apply(_ snapshot: ModeHUDSnapshot) -> Bool {
+        if isActive == snapshot.isActive, problem == snapshot.problem,
+           var previous = appliedSnapshot {
+            previous.pointerFocus = snapshot.pointerFocus
+            if previous == snapshot {
+                appliedSnapshot = snapshot
+                if pointerFocus != snapshot.pointerFocus {
+                    updateWandFocusAngle(snapshot.pointerFocus, layout: snapshot.wandRadialLayout)
+                    pointerFocus = snapshot.pointerFocus
+                }
+                return true
+            }
+        }
+        appliedSnapshot = snapshot
         var resolvedIcons: [PhysicalCell: NSImage] = [:]
         for item in snapshot.legend {
             if let backdrop = item.appBackdrop,
@@ -49,7 +60,61 @@ final class ModeHUDViewModel: ObservableObject {
                 resolvedIcons[item.cell] = icon
             }
         }
-        appIcons = resolvedIcons
+        // A page or content change is a cut, not a motion: the outline lands
+        // on its new card in the same frame instead of springing across a
+        // half-swapped grid while AppKit remeasures the panel. Only
+        // focus-only updates above keep the outline's spring and liquid pull.
+        var cut = Transaction()
+        cut.disablesAnimations = true
+        updateWandFocusAngle(snapshot.pointerFocus, layout: snapshot.wandRadialLayout)
+        withTransaction(cut) {
+            isActive = snapshot.isActive
+            modeTitle = snapshot.modeTitle
+            source = snapshot.source
+            selection = snapshot.selection
+            pointerFocus = snapshot.pointerFocus
+            wandReviewSelection = snapshot.wandReviewSelection
+            legend = snapshot.legend
+            accent = snapshot.accent
+            outlineWidth = snapshot.outlineWidth
+            lightingTargets = snapshot.lightingTargets
+            footerTitle = snapshot.footerTitle
+            footerHint = snapshot.footerHint
+            problem = snapshot.problem
+            presentationStyle = snapshot.presentationStyle
+            appIcons = resolvedIcons
+            wandRadialLayout = snapshot.wandRadialLayout
+        }
+        return false
+    }
+
+    private func updateWandFocusAngle(_ focus: ModeHUDPointerFocus?, layout: WandRadialLayout?) {
+        guard source == .wand, let focus else { return }
+        let resolved = layout ?? .inferred(legend: legend)
+        let target: Double
+        if let index = resolved.outerIndex(of: focus.cell) {
+            target = resolved.outerAngle(at: index)
+        } else if let index = resolved.ringIndex(of: focus.cell) {
+            target = resolved.angle(at: index)
+        } else if resolved.center == focus.cell, (focus.pullX * focus.pullX + focus.pullY * focus.pullY) > 0.04 {
+            // While the centre drop leans toward a card, keep its direction so
+            // the morph onto that card starts where the drop already points.
+            target = WandRadialLayout.angle(x: focus.pullX, y: focus.pullY)
+        } else {
+            return
+        }
+        let turns = ((wandFocusAngle - target) / (2 * .pi)).rounded()
+        wandFocusAngle = target + turns * 2 * .pi
+    }
+
+    /// Hidden panels are discarded, but this model outlives them. Forget the
+    /// last session's outline and snapshot so a later problem banner or the
+    /// next open can never render or diff against a stale page.
+    func resetAfterHide() {
+        appliedSnapshot = nil
+        isActive = false
+        feedback = nil
+        if pointerFocus != nil { pointerFocus = nil }
     }
 }
 
@@ -311,6 +376,48 @@ enum ModeHUDAppIconAccentExtractor {
     }
 }
 
+enum ModeHUDPointerFocusMetrics {
+    /// Drawn just outside the card inside the 9-point grid gutter, so the
+    /// outline never changes card geometry, titles or printed labels.
+    static let outset: CGFloat = 4
+    static let lineWidth: CGFloat = 3.5
+    static let armedDash: [CGFloat] = [9, 5]
+}
+
+/// Wand navigation cursor. Solid while moving; marching dashes once a
+/// held-wheel card is armed for tilt adjustment; a coloured ratchet ring
+/// while it is adjusted.
+struct ModeHUDPointerFocusRing: View {
+    let focus: ModeHUDPointerFocus
+    var accent: Color = .white
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
+        if let adjustment = focus.adjustment {
+            WandAdjustRing(adjustment: adjustment, accent: accent)
+        } else {
+            // Ticks only while armed dots are marching (`WandArmedOutlineStyle`).
+            TimelineView(WandArmedOutlineStyle.schedule(for: focus, reduceMotion: reduceMotion)) { timeline in
+                WandLiquidOutline(pullX: focus.pullX, pullY: focus.pullY)
+                    .stroke(
+                        LinearGradient(colors: [.white, .white.opacity(0.65), .white],
+                                       startPoint: .topLeading, endPoint: .bottomTrailing),
+                        style: StrokeStyle(
+                            lineWidth: ModeHUDPointerFocusMetrics.lineWidth,
+                            dash: focus.isArmed ? WandArmedOutlineStyle.dash : [],
+                            dashPhase: focus.isArmed
+                                ? WandArmedOutlineStyle.dashPhase(at: timeline.date, reduceMotion: reduceMotion)
+                                : 0
+                        )
+                    )
+            }
+            .padding(-ModeHUDPointerFocusMetrics.outset)
+            .shadow(color: Color.white.opacity(0.75), radius: 6)
+            .allowsHitTesting(false)
+        }
+    }
+}
+
 enum ModeHUDAppBackdropMetrics {
     /// Preserve recognizable icon structure while still letting it behave as
     /// atmosphere behind the app-mode trigger label.
@@ -320,31 +427,78 @@ enum ModeHUDAppBackdropMetrics {
 
 struct ModeHUDView: View {
     @ObservedObject var model: ModeHUDViewModel
+    /// ImageRenderer cannot render AppKit glass. Offscreen visual checks use
+    /// a neutral SwiftUI fill; every live presenter keeps native glass.
+    var usesNativeGlass = true
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Namespace private var wandOutline
 
     private var displayAccent: Color {
         Color(model.presentationStyle.displayAccent(model.accent))
     }
 
     var body: some View {
+        if model.source == .wand {
+            wandBody
+        } else {
+            gridBody
+        }
+    }
+
+    /// Ethan's circular wand HUD: cards and footer float over the desktop.
+    /// His "square background" was the shared outer glass and perimeter;
+    /// only the mouse grid retains that panel background. The same glass now
+    /// shows through each wheel card alone (`WandWheelBacking`).
+    private var wandBody: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            if let problem = model.problem, !problem.isEmpty {
+                problemBanner(problem)
+            }
+            WandRadialWheel(model: model, reduceMotion: reduceMotion, usesNativeGlass: usesNativeGlass)
+            footer
+        }
+        .padding(WandWheelMetrics.panelPadding)
+        .frame(width: WandWheelMetrics.panelWidth)
+    }
+
+    private var gridBody: some View {
         VStack(alignment: .leading, spacing: 18) {
             if let problem = model.problem, !problem.isEmpty {
                 problemBanner(problem)
             }
 
             grid
+                .animation(reduceMotion ? nil : .interactiveSpring(response: 0.22, dampingFraction: 0.78),
+                           value: model.pointerFocus?.cell)
+                .animation(reduceMotion ? nil : .linear(duration: 0.03),
+                           value: model.pointerFocus?.pullX)
+                .animation(reduceMotion ? nil : .linear(duration: 0.03),
+                           value: model.pointerFocus?.pullY)
             footer
         }
         .padding(27)
-        .frame(width: 705)
+        .frame(width: extendedWandGrid ? extendedWandWidth : 705)
         .background(panelBackground)
     }
 
+    private var displayRows: [[PhysicalCell]] {
+        PhysicalCell.wandRows(source: model.source, legend: model.legend)
+    }
+    private var extendedWandGrid: Bool { displayRows.contains { $0.count > 4 } }
+    private var extendedWandWidth: CGFloat {
+        let columns=displayRows.map(\.count).max() ?? 4
+        let reviewDivider=model.legend.contains { $0.cell == .wandReviewChanges } ? 14 : 0
+        return CGFloat(columns * 156 + (columns - 1) * 9 + 54 + reviewDivider)
+    }
     private var grid: some View {
-        VStack(spacing: 9) {
-            ForEach(Array(PhysicalCell.displayRowsTopToBottom(for: model.source).enumerated()), id: \.offset) { _, row in
+        VStack(alignment: .leading, spacing: 9) {
+            ForEach(Array(displayRows.enumerated()), id: \.offset) { _, row in
                 HStack(spacing: 9) {
                     ForEach(row, id: \.self) { cell in
-                        legendCell(for: cell)
+                        if cell == .wandReviewChanges {
+                            Rectangle().fill(Color.white.opacity(0.35)).frame(width:1,height:64).padding(.horizontal,6)
+                        }
+                        legendCell(for: cell).frame(width: extendedWandGrid ? 156 : nil)
                     }
                 }
             }
@@ -365,20 +519,29 @@ struct ModeHUDView: View {
                 isSelected: selected,
                 isModeNavigation: item.destinationModeAccent != nil
             )
-            let fillColor = Color(cardColors.fill)
+            let reviewSelected = model.wandReviewSelection == item.cell
+            let fillColor = reviewSelected ? Color(item.accent) : (item.cell.wandReviewMode != nil ? Color(red:0.055,green:0.075,blue:0.10) : Color(cardColors.fill))
             let borderColor = Color(cardColors.border)
-            let foregroundColor = Color(cardColors.foreground)
+            let foregroundColor = reviewSelected ? Color.black : (item.cell.wandReviewMode != nil ? Color.white : Color(cardColors.foreground))
             let shape = RoundedRectangle(cornerRadius: 12, style: .continuous)
             VStack(spacing: 4.5) {
-                Text(item.actionTitle.uppercased())
+                // Click part first, then the held part ending in its motion
+                // arrow (see `ModeHUDGesture`). A long mixed title shrinks a
+                // little rather than truncating either half.
+                Text(item.displayTitle(on: model.source).uppercased())
                     .font(.system(size: 15, weight: .semibold, design: .rounded))
                     .lineLimit(2)
+                    .minimumScaleFactor(ModeHUDLayoutMetrics.cardTitleMinimumScale)
                     .multilineTextAlignment(.center)
                     .foregroundStyle(foregroundColor)
                 Text(item.printedControlLabel(on: model.source).uppercased())
                     .font(.system(size: 10.5, weight: .medium, design: .monospaced))
                     .foregroundStyle(foregroundColor)
             }
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(Text(
+                "\(item.accessibilityDescription(on: model.source)), \(item.printedControlLabel(on: model.source))"
+            ))
             .padding(.horizontal, ModeHUDLayoutMetrics.cardHorizontalContentInset)
             .frame(maxWidth: .infinity, minHeight: 66)
             .padding(.vertical, 12)
@@ -389,36 +552,74 @@ struct ModeHUDView: View {
                     borderColor: borderColor,
                     borderTreatment: borderTreatment,
                     selected: selected,
-                    usesStrongDestinationFill: cardColors.usesStrongDestinationFill,
+                    usesStrongDestinationFill: item.cell.wandReviewMode != nil || cardColors.usesStrongDestinationFill,
                     appIcon: model.appIcons[item.cell]
                 )
             )
+            .overlay {
+                if item.cell.wandReviewMode != nil {
+                    shape.fill(Color(item.accent).opacity(0.12)).allowsHitTesting(false)
+                    shape.strokeBorder(Color(item.accent).opacity(0.7),lineWidth:1.5).allowsHitTesting(false)
+                }
+                if model.wandReviewSelection == item.cell {
+                    shape.strokeBorder(Color(item.accent),lineWidth:5)
+                        .padding(-5).shadow(color:Color(item.accent).opacity(0.6),radius:6).allowsHitTesting(false)
+                    Image(systemName:"lock.fill").font(.system(size:11,weight:.bold))
+                        .foregroundStyle(Color(item.accent)).frame(maxWidth:.infinity,maxHeight:.infinity,alignment:.topTrailing).padding(7)
+                }
+                if model.isActive, let focus = model.pointerFocus, focus.cell == item.cell {
+                    ModeHUDPointerFocusRing(focus: focus, accent: Color(item.accent))
+                        .matchedGeometryEffect(id: "wand-focus", in: wandOutline)
+                }
+            }
         }
     }
 
     private var footer: some View {
-        HStack(spacing: 9) {
+        let type = ModeHUDFooterType(source: model.source)
+        return HStack(spacing: 9) {
             if let feedback = model.feedback {
                 Circle()
                     .fill(feedbackColor(feedback.tone))
-                    .frame(width: 8, height: 8)
+                    .frame(width: type.dot, height: type.dot)
                 Text(feedback.message.uppercased())
-                    .font(.system(size: 12.5, weight: .bold, design: .rounded))
+                    .font(.system(size: type.feedback, weight: .bold, design: .rounded))
                     .foregroundStyle(feedbackColor(feedback.tone))
                     .lineLimit(1)
+                    .minimumScaleFactor(type.feedbackMinimumScale)
+                    .modifier(ModeHUDFooterLegibility(isOn: type.floatsOverDesktop))
             } else {
                 Text(model.modeTitle.uppercased())
-                    .font(.system(size: 13.5, weight: .bold, design: .rounded))
+                    .font(.system(size: type.title, weight: .bold, design: .rounded))
                     .foregroundStyle(displayAccent)
+                    .modifier(ModeHUDFooterLegibility(isOn: type.floatsOverDesktop))
             }
 
             Spacer()
 
+            if model.legend.contains(where: { $0.gesture != nil }) {
+                Text(ModeHUDCopy.gestureHint(for: model.source).uppercased())
+                    .font(.system(size: type.hint, weight: .medium, design: .rounded))
+                    .foregroundStyle(footerSecondary(type))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+                    .modifier(ModeHUDFooterLegibility(isOn: type.floatsOverDesktop))
+            }
+
             Text("\(model.source.displayName.uppercased())  ·  \(model.appVersion.uppercased())")
-                .font(.system(size: 12, weight: .semibold, design: .monospaced))
-                .foregroundStyle(.secondary)
+                .font(.system(size: type.version, weight: .semibold, design: .monospaced))
+                .foregroundStyle(footerSecondary(type))
                 .lineLimit(1)
+                .modifier(ModeHUDFooterLegibility(isOn: type.floatsOverDesktop))
         }
+    }
+
+    /// The mice's footer sits on their panel and keeps the system secondary
+    /// colour. The wand's floats straight over the desktop with no panel
+    /// behind it, where `.secondary` follows the system appearance and can
+    /// vanish (black on a dark desktop), so it is light with a dark halo.
+    private func footerSecondary(_ type: ModeHUDFooterType) -> AnyShapeStyle {
+        type.floatsOverDesktop ? AnyShapeStyle(Color.white.opacity(0.88)) : AnyShapeStyle(.secondary)
     }
 
     private func feedbackColor(_ tone: ModeHUDFeedback.Tone) -> Color {
@@ -436,8 +637,12 @@ struct ModeHUDView: View {
     private var panelBackground: some View {
         let shape = RoundedRectangle(cornerRadius: 27, style: .continuous)
         ZStack {
-            ModeHUDNativeGlassBackground(cornerRadius: 27)
-                .clipShape(shape)
+            if usesNativeGlass {
+                ModeHUDNativeGlassBackground(cornerRadius: 27)
+                    .clipShape(shape)
+            } else {
+                shape.fill(ModeHUDNativeGlass.offscreenStandIn)
+            }
 
             shape.strokeBorder(
                 displayAccent.opacity(model.isActive ? 1 : 0.32),
@@ -534,36 +739,11 @@ private struct ModeHUDNativeGlassBackground: NSViewRepresentable {
     let cornerRadius: CGFloat
 
     func makeNSView(context: Context) -> NSView {
-        if #available(macOS 26.0, *) {
-            let glass = NSGlassEffectView()
-            // Clear is AppKit's most transparent native glass style. Leaving
-            // the tint nil and the substrate unobscured preserves the full
-            // system-provided lensing response to desktop content behind this
-            // transparent, non-activating HUD window.
-            glass.style = .clear
-            glass.tintColor = nil
-            glass.cornerRadius = cornerRadius
-            glass.contentView = NSView()
-            return glass
-        }
-
-        let fallback = NSVisualEffectView()
-        fallback.material = .hudWindow
-        fallback.blendingMode = .behindWindow
-        fallback.state = .active
-        fallback.wantsLayer = true
-        fallback.layer?.cornerRadius = cornerRadius
-        return fallback
+        ModeHUDNativeGlass.makeEffectView(cornerRadius: cornerRadius)
     }
 
     func updateNSView(_ nsView: NSView, context: Context) {
-        if #available(macOS 26.0, *), let glass = nsView as? NSGlassEffectView {
-            glass.style = .clear
-            glass.tintColor = nil
-            glass.cornerRadius = cornerRadius
-        } else {
-            nsView.layer?.cornerRadius = cornerRadius
-        }
+        ModeHUDNativeGlass.update(nsView, cornerRadius: cornerRadius)
     }
 }
 
@@ -575,5 +755,49 @@ private extension Color {
             blue: Double(rgb.blue) / 255.0,
             opacity: Double(rgb.alpha) / 255.0
         )
+    }
+}
+
+/// Footer type sizes. The physical mice keep their desk-distance footer; the
+/// wand's notification, mode and gesture-hint lines are read from a lounging
+/// distance (Ethan, 2026-10-30), so they are larger. A long notification may
+/// shrink back to the mice's size rather than truncate.
+struct ModeHUDFooterType: Equatable {
+    let feedback: CGFloat
+    let title: CGFloat
+    let hint: CGFloat
+    let version: CGFloat
+    let dot: CGFloat
+    let feedbackMinimumScale: CGFloat
+    /// The wand footer has no panel behind it (only its cards have glass).
+    let floatsOverDesktop: Bool
+
+    init(source: MouseSource) {
+        if source == .wand {
+            feedback = 17; title = 17; hint = 14; version = 13; dot = 10
+            feedbackMinimumScale = 12.5 / 17; floatsOverDesktop = true
+        } else {
+            feedback = 12.5; title = 13.5; hint = 10; version = 12; dot = 8
+            feedbackMinimumScale = 1; floatsOverDesktop = false
+        }
+    }
+}
+
+/// Legible over any desktop, applied only where the footer floats without a
+/// panel. Card text sits on its own coloured glass, so its light halo is
+/// enough there; footer text can sit on a white desktop, so it carries a
+/// firmer dark edge (stacked tight shadows) plus the same soft glow. No
+/// backdrop is drawn: the wand has no panel behind its footer.
+struct ModeHUDFooterLegibility: ViewModifier {
+    let isOn: Bool
+    func body(content: Content) -> some View {
+        if isOn {
+            content
+                .shadow(color: .black.opacity(0.9), radius: 0.6)
+                .shadow(color: .black.opacity(0.9), radius: 0.6)
+                .shadow(color: .black.opacity(0.55), radius: 2.5)
+        } else {
+            content
+        }
     }
 }

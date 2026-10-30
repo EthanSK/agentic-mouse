@@ -65,7 +65,7 @@ struct SystemOverviewActionExecutor {
             events = Self.controlledArrowEvents(keyCode: Self.downArrowKeyCode, flags: flags)
         case .increaseDisplayBrightness, .decreaseDisplayBrightness,
              .rewindYouTubeFiveSeconds, .openIntelligenceOnDemand, .zoomIn, .zoomOut,
-             .moveToSpaceLeft, .moveToSpaceRight, .copy, .paste,
+             .moveToSpaceLeft, .moveToSpaceRight, .selectAll, .tab, .save, .copy, .paste,
              .moveWindowLeftWithMagnet, .moveWindowRightWithMagnet,
              .organizeWindows, .spotifySongRadio, .quitApp,
              .pasteStoredPassword:

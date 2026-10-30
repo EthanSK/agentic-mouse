@@ -306,7 +306,7 @@
     },
     {
       "id": "corsair-side-10-mode-exit",
-      "description": "Corsair side 10 toggles the persistent Default legend outside modes and is the universal active-mode Exit",
+      "description": "Corsair side 10 toggles the Default legend when tapped, holds Command with another control, and is the universal active-mode Exit",
       "action": "suppress-neutral-transport",
       "rule": "Corsair base layer",
       "from": {
@@ -395,9 +395,9 @@
       ]
     },
     {
-      "id": "razer-dpi-up-voiceink",
-      "description": "Razer upper DPI button uses its proven F21 transport to toggle VoiceInk++ only on physical release",
-      "action": "toggle-voiceink-speech-to-text",
+      "id": "razer-dpi-up-disabled",
+      "description": "Razer upper DPI button consumes its F21 transport without an action so the finger can rest on it",
+      "action": "suppress-neutral-transport",
       "rule": "Razer base layer",
       "from": {
         "key_code": "f21",
@@ -730,7 +730,7 @@
     },
     {
       "id": "razer-side-12-mode-exit",
-      "description": "Razer side 12 shares physical cell 10, toggles the persistent Default legend outside modes, and is the universal active-mode Exit",
+      "description": "Razer side 12 shares physical cell 10, toggles the Default legend when tapped, holds Command with another control, and is the universal active-mode Exit",
       "action": "suppress-neutral-transport",
       "rule": "Razer base layer",
       "from": {

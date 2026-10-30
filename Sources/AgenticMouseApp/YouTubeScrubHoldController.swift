@@ -8,6 +8,8 @@ final class YouTubeScrubHoldController {
 
     private struct Hold {
         let started: TimeInterval
+        let inputStarted: TimeInterval
+        var didRequestSpeed = false
         var speedEligible: Bool
         var speedRequested = false
     }
@@ -33,15 +35,15 @@ final class YouTubeScrubHoldController {
         self.endSpeed = endSpeed
     }
 
-    func press(source: MouseSource, volumeModifierActive: Bool) {
+    func press(source: MouseSource, volumeModifierActive: Bool, inputTime: TimeInterval? = nil) {
         guard inputAllowed(), holds[source] == nil else { return }
-        holds[source] = Hold(started: clock.now, speedEligible: !volumeModifierActive)
+        holds[source] = Hold(started: clock.now, inputStarted: inputTime ?? clock.now, speedEligible: !volumeModifierActive)
         if !scheduler.isRunning {
             scheduler.start(interval: 0.025) { [weak self] in self?.tick() }
         }
     }
 
-    /// Wheel or volume input owns the rest of this hold, even after its modifier releases.
+    /// The same-source volume modifier owns the rest of this hold, even after it releases.
     func inhibitSpeed(source: MouseSource) {
         guard var hold = holds[source] else { return }
         hold.speedEligible = false
@@ -53,11 +55,14 @@ final class YouTubeScrubHoldController {
     }
 
     /// Returns whether the ordinary click remains eligible; the wheel monitor also checks scroll use.
-    func release(source: MouseSource) -> Bool {
+    func release(source: MouseSource, inputTime: TimeInterval? = nil) -> Bool {
         guard let hold = holds[source] else { return false }
-        let isClick = clock.now - hold.started < Self.holdThreshold
+        let duration = (inputTime ?? clock.now) - hold.inputStarted
+        let isClick = !hold.didRequestSpeed && duration >= 0 && duration < Self.holdThreshold
         cancel(source: source)
-        return isClick // Releasing after the threshold must not seek, even if a busy run loop delayed the timer. (Codex task: 01a039f7-873c-7c30-b3dc-af8a6724ace5)
+        // Use receive-queue timestamps: main-thread backlog can compress a long press/release
+        // into one turn. Once speed was requested, release must never become a rewind.
+        return isClick
     }
 
     func cancel(source: MouseSource) {
@@ -75,6 +80,7 @@ final class YouTubeScrubHoldController {
             guard var hold = holds[source], hold.speedEligible, !hold.speedRequested,
                   clock.now - hold.started >= Self.holdThreshold else { continue }
             hold.speedRequested = true
+            hold.didRequestSpeed = true
             holds[source] = hold
             beginSpeed(source)
         }

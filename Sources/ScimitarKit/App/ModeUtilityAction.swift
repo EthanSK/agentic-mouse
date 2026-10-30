@@ -13,6 +13,9 @@ public enum ModeUtilityAction: Equatable, Sendable {
     case zoomOut
     case moveToSpaceLeft
     case moveToSpaceRight
+    case selectAll
+    case tab
+    case save
     case copy
     case paste
     case moveWindowLeftWithMagnet
@@ -35,6 +38,9 @@ public enum ModeUtilityAction: Equatable, Sendable {
         case .zoomOut: return "Zoom Out"
         case .moveToSpaceLeft: return "Space Left"
         case .moveToSpaceRight: return "Space Right"
+        case .selectAll: return "⌘A Select all"
+        case .tab: return "⇥ Tab"
+        case .save: return "Save"
         case .copy: return "Copy"
         case .paste: return "Paste"
         case .moveWindowLeftWithMagnet: return "Magnet Left"
@@ -59,7 +65,8 @@ public enum ModeUtilityAction: Equatable, Sendable {
             return ModeHUDActionFamilyPalette.applicationZoom
         case .moveToSpaceLeft, .moveToSpaceRight:
             return ModeHUDActionFamilyPalette.desktopSpaces
-        case .copy, .paste:
+        case .save: return ModeHUDActionFamilyPalette.save
+        case .selectAll, .tab, .copy, .paste:
             return ModeHUDActionFamilyPalette.clipboard
         case .moveWindowLeftWithMagnet, .moveWindowRightWithMagnet:
             return ModeHUDActionFamilyPalette.windowManagement
@@ -82,6 +89,7 @@ public enum ModeUtilityAction: Equatable, Sendable {
 
     public static func directAction(for cell: PhysicalCell) -> ModeUtilityAction? {
         switch cell {
+        case .selectAll: return .selectAll
         case .storedPassword:
             return .pasteStoredPassword
         case .intelligenceOnDemand:
@@ -96,6 +104,8 @@ public enum ModeUtilityAction: Equatable, Sendable {
     /// semantics on different pages without changing either mouse transport.
     public static func extraUtilitiesAction(for cell: PhysicalCell) -> ModeUtilityAction? {
         switch cell {
+        case .extraUtilitiesTab: return .tab
+        case .extraUtilitiesSave: return .save
         case .organizeWindows: return .organizeWindows
         case .spotifySongRadio: return .spotifySongRadio
         case .quitApp: return .quitApp
@@ -108,7 +118,7 @@ public enum ModeUtilityAction: Equatable, Sendable {
     /// cards; held-wheel families never enter this path.
     public var isDirectAction: Bool {
         switch self {
-        case .rewindYouTubeFiveSeconds, .openIntelligenceOnDemand,
+        case .selectAll, .tab, .save, .rewindYouTubeFiveSeconds, .openIntelligenceOnDemand,
              .organizeWindows, .spotifySongRadio, .quitApp, .pasteStoredPassword:
             return true
         case .increaseDisplayBrightness, .decreaseDisplayBrightness,

@@ -61,7 +61,18 @@ public struct AppSpecificModeDefinition: Equatable, Sendable {
             accent: replacement,
             outlineWidth: outlineWidth,
             legend: legend.map { item in
-                ModeHUDLegendItem(
+                if let gesture = item.gesture {
+                    return ModeHUDLegendItem(
+                        cell: item.cell,
+                        gesture: gesture,
+                        accent: item.accent == accent ? replacement : item.accent,
+                        destinationModeAccent: item.destinationModeAccent == accent
+                            ? replacement : item.destinationModeAccent,
+                        appBackdrop: item.appBackdrop,
+                        controlStatus: item.controlStatus
+                    )
+                }
+                return ModeHUDLegendItem(
                     cell: item.cell,
                     actionTitle: item.actionTitle,
                     accent: item.accent == accent ? replacement : item.accent,
@@ -93,6 +104,7 @@ public final class ModePickerCoordinator {
     /// Saturated teal for the less-frequent nested utility page.
     public static let extraUtilitiesAccent = RGBColor(red: 0, green: 229, blue: 168)
 
+    public private(set) var isWandHome = false
     public private(set) var isActive = false
     public private(set) var isLegendVisible = false
     public private(set) var source: MouseSource?
@@ -103,10 +115,36 @@ public final class ModePickerCoordinator {
     public private(set) var appSpecificTarget: AppSpecificTarget?
     public private(set) var activeWheelControl: WheelChordControl?
     public private(set) var followsFrontmostApp = false
+    /// Navigation cursor owned by a pointer-style input (the wand). Mice never
+    /// set it; every mode entry and exit clears it, and a wand page change
+    /// replaces it atomically with the new page's starting card.
+    public private(set) var pointerFocus: ModeHUDPointerFocus?
+    /// Advances on every mode entry, page change and exit. The wand uses it to
+    /// keep a release on the page where its press happened.
+    public private(set) var pageGeneration: UInt64 = 0
+    /// Number of wand parent pages that Exit can return to.
+    public var wandBackDepth: Int { wandParents.count }
+
+    /// One restorable page in the wand's own journey. Physical mice never push
+    /// here: their page lifecycle stays owned by exact-device Karabiner state.
+    fileprivate struct WandParentPage {
+        let page: ModePickerPage
+        let isWandHome: Bool
+        let navigationPath: [ModePickerPage]
+        let appSpecificDefinition: AppSpecificModeDefinition?
+        let appSpecificTarget: AppSpecificTarget?
+        let followsFrontmostApp: Bool
+        let chromeWebsitesParentDefinition: AppSpecificModeDefinition?
+        /// The card on this page that opened the child.
+        let openingCell: PhysicalCell
+    }
+
+    private var wandParents: [WandParentPage] = []
 
     private let lease: ColorProofLeaseControlling
     private let hud: ModeHUDPresenting
     private let scheduler: TickScheduler
+    private let selectAllGesture: ReservedModeHUDGesture
     private let log: Log
     private let heartbeatInterval: TimeInterval
 
@@ -114,51 +152,80 @@ public final class ModePickerCoordinator {
     public var onModeChange: ((Bool) -> Void)?
     public var onKeypadModeRequested: ((MouseSource) -> Bool)?
     public var onKeypadInput: ((MouseSource, PhysicalCell, ModePickerCommand.Phase) -> Void)?
-    public var onAppSpecificInput: ((MouseSource, AppSpecificTarget, PhysicalCell, ModePickerCommand.Phase) -> Bool)?
-    public var onNativeAppSpecificInput: ((MouseSource, AppSpecificTarget, PhysicalCell, ModePickerCommand.Phase) -> Bool)?
+    public var onAppSpecificInput: ((MouseSource, AppSpecificTarget, PhysicalCell, ModePickerCommand.Phase, TimeInterval) -> Bool)?
+    public var onNativeAppSpecificInput: ((MouseSource, AppSpecificTarget, PhysicalCell, ModePickerCommand.Phase, TimeInterval) -> Bool)?
+    public var shouldRouteVSCodeCursorHistoryAsButton: ((MouseSource) -> Bool)?
     public var onChromeWebsiteInput: ((MouseSource, ChromeWebsiteAction) -> Bool)?
     public var resolveFrontmostApp: (() -> FrontmostAppModeContext)?
     public var resolveAppSpecificDefinition: ((AppSpecificTarget) -> AppSpecificModeDefinition)?
     public var resolveAppSelectorDefinition: (() -> AppSpecificModeDefinition)?
+    public var onWandHomeInput: ((PhysicalCell) -> Bool)?
+    public var onWandButtonPhase: ((ModePickerPage, Bool, PhysicalCell, ModePickerCommand.Phase) -> Bool)?
+    public var resolveWandHomeSnapshot: (() -> ModeHUDSnapshot)?
     public var onUtilityAction: ((MouseSource, ModeUtilityAction) -> ModeUtilityActionOutcome)?
     public var onWheelControlChange: ((MouseSource, WheelChordControl?) -> Void)?
     public var onWheelControlRelease: ((MouseSource, WheelChordControl) -> Void)?
     public var onKeysInput: ((MouseSource, KeysModeAction) -> Bool)?
     private var lastSelection: ModeHUDSelection?
     private var chromeWebsitesParentDefinition: AppSpecificModeDefinition?
-    /// Stay can take several seconds to restore a multi-display layout. Treat
-    /// Organize Windows as one request per Extra Utilities visit so uncertainty
-    /// cannot turn repeated physical presses into a queue of Stay restores.
+    /// Suppress duplicate presses only while our move-and-dispatch transaction
+    /// is running. Completion (including failure) permits a deliberate retry;
+    /// it does not prove that Stay finished restoring the external layout.
     private var organizeWindowsRequested = false
     /// A repeated press must not quit whichever app becomes frontmost after
     /// the first target closes. Require leaving and re-entering Extra
     /// Utilities before another graceful Quit request can be dispatched.
     private var quitAppRequested = false
+    private var didTogglePinDuringHold = false
+    private var codexPinModifierHeld = false
+    private var codexPinModifierUsed = false
+    private var codexPinModifierOpenedMode = false
+    private var codexPinPressed = false
 
     public init(
         lease: ColorProofLeaseControlling,
         hud: ModeHUDPresenting,
         scheduler: TickScheduler,
         reservedHUDScheduler: TickScheduler = DispatchTickScheduler(),
+        reservedHUDClock: MonotonicClock = SystemMonotonicClock(),
         log: Log,
         heartbeatInterval: TimeInterval = 2
     ) {
         self.lease = lease
         self.hud = hud
         self.scheduler = scheduler
+        self.selectAllGesture = ReservedModeHUDGesture(
+            clock: reservedHUDClock,
+            scheduler: reservedHUDScheduler
+        )
         self.log = log
         self.heartbeatInterval = heartbeatInterval
-        _ = reservedHUDScheduler // retained for source compatibility
     }
 
-    public func handle(_ command: ModePickerCommand) {
+    public func handle(_ command: ModePickerCommand, inputTime: TimeInterval = ProcessInfo.processInfo.systemUptime) {
         switch command.action {
         case .open:
             guard command.phase == .press else { return }
             enter(source: command.source)
         case .openAppSpecific:
-            guard command.phase == .press else { return }
-            enterAppSpecific(source: command.source)
+            switch command.phase {
+            case .press:
+                guard !isActive else { return }
+                enterAppSpecific(source: command.source)
+                // The physical entry down is already the held modifier. Do
+                // not require a second press after the app page appears.
+                if isActive, appSpecificTarget == .codex,
+                   command.physicalCell == CodexMode.pinModifierCell {
+                    codexPinModifierHeld = true
+                    codexPinModifierOpenedMode = true
+                }
+            case .release:
+                // An opener's late release must never become a later Exit.
+                guard isActive, codexPinModifierOpenedMode,
+                      command.physicalCell == CodexMode.pinModifierCell else { return }
+                route(source: command.source, cell: command.physicalCell,
+                      phase: .release, nativeOutputHandled: false, inputTime: inputTime)
+            }
         case .openKeys:
             guard command.phase == .press else { return }
             enterKeys(source: command.source)
@@ -174,7 +241,8 @@ public final class ModePickerCoordinator {
                 source: command.source,
                 cell: command.physicalCell,
                 phase: command.phase,
-                nativeOutputHandled: false
+                nativeOutputHandled: false,
+                inputTime: inputTime
             )
         case .selectNative:
             guard isActive else {
@@ -185,7 +253,8 @@ public final class ModePickerCoordinator {
                 source: command.source,
                 cell: command.physicalCell,
                 phase: command.phase,
-                nativeOutputHandled: true
+                nativeOutputHandled: true,
+                inputTime: inputTime
             )
         }
     }
@@ -193,6 +262,35 @@ public final class ModePickerCoordinator {
     public func enter(source: MouseSource) {
         guard !isActive else { return }
         activate(source: source, page: .modes, definition: nil)
+    }
+
+    public var wandReviewAvailable: Bool { resolveFrontmostApp?().target == .vsCode }
+    private var wandReviewSelection: PhysicalCell?
+    public func setWandReviewSelection(_ cell: PhysicalCell?) {
+        guard wandReviewSelection != cell else { return }
+        wandReviewSelection = cell; refreshWandHome()
+    }
+
+    public func refreshWandHome() {
+        if isActive && isWandHome && isLegendVisible { hud.update(snapshot()) }
+    }
+
+    /// Wand only: hides the HUD after a completed action while the mode stays
+    /// alive briefly, so bounded follow-up work (Codex Edit, a VS Code
+    /// classification) is not cancelled by an immediate exit. Nothing redraws
+    /// it again; the wand controller exits the mode shortly afterwards.
+    public func concealWandHUD() {
+        guard isActive, source == .wand, isLegendVisible else { return }
+        isLegendVisible = false
+        pointerFocus = nil
+        hud.hide()
+    }
+
+    /// The first frame already carries `pointerFocus`, so the outline never
+    /// appears a frame late or springs in after the panel.
+    public func enterWandHome(source: MouseSource, pointerFocus: ModeHUDPointerFocus? = nil) {
+        guard source == .wand, !isActive else { return }
+        activate(source: source, page: .modes, definition: nil, wandHome: true, pointerFocus: pointerFocus)
     }
 
     /// Opens the current frontmost app directly from top-level physical cell 2.
@@ -229,10 +327,16 @@ public final class ModePickerCoordinator {
         activate(source: source, page: .keys, definition: nil)
     }
 
+    public func organizeWindowsRequestDidFinish() {
+        organizeWindowsRequested = false
+    }
+
     private func activate(
         source: MouseSource,
         page: ModePickerPage,
-        definition: AppSpecificModeDefinition?
+        definition: AppSpecificModeDefinition?,
+        wandHome: Bool = false,
+        pointerFocus initialPointerFocus: ModeHUDPointerFocus? = nil
     ) {
         do {
             try lease.activate()
@@ -240,18 +344,24 @@ public final class ModePickerCoordinator {
             hud.flashProblem("Modes unavailable: Karabiner routing failed")
             return
         }
+        isWandHome = wandHome
         isActive = true
         isLegendVisible = true
         self.source = source
         self.page = page
         navigationPath = [page]
+        wandParents = []
+        pageGeneration &+= 1
         appSpecificDefinition = definition
         appSpecificTarget = nil
         followsFrontmostApp = false
         lastSelection = nil
+        pointerFocus = source == .wand && page != .keypad ? initialPointerFocus : nil
         chromeWebsitesParentDefinition = nil
         organizeWindowsRequested = false
         quitAppRequested = false
+        resetCodexPinChord()
+        selectAllGesture.cancel()
         let appearance: RGBColor
         if let definition {
             appearance = definition.accent
@@ -289,18 +399,24 @@ public final class ModePickerCoordinator {
 
     public func exit(reason: ModePickerExitReason = .userRequested) {
         scheduler.stop()
+        selectAllGesture.cancel()
+        resetCodexPinChord()
         lease.deactivate()
         guard isActive else { return }
         clearWheelControl()
+        isWandHome = false
         isActive = false
         isLegendVisible = false
         source = nil
         page = .modes
         navigationPath = []
+        wandParents = []
+        pageGeneration &+= 1
         appSpecificDefinition = nil
         appSpecificTarget = nil
         followsFrontmostApp = false
         lastSelection = nil
+        pointerFocus = nil
         chromeWebsitesParentDefinition = nil
         organizeWindowsRequested = false
         quitAppRequested = false
@@ -325,6 +441,12 @@ public final class ModePickerCoordinator {
     /// Refreshes only the direct frontmost-app journey. A manually selected
     /// target remains locked until the user exits or chooses another app.
     public func updateFrontmostApp(_ context: FrontmostAppModeContext) {
+        if isActive, isWandHome {
+            // Switch App from the wand changes the frontmost app while Default
+            // is still showing; redraw its current-app card truthfully.
+            if isLegendVisible { hud.update(snapshot()) }
+            return
+        }
         guard isActive, page == .appSpecific, followsFrontmostApp else { return }
         let definition = context.definition
         guard appSpecificTarget != context.target || appSpecificDefinition != definition else {
@@ -335,6 +457,7 @@ public final class ModePickerCoordinator {
         // event cannot run the prior app's command and a release cannot be
         // stranded on a target that no longer owns the control.
         clearWheelControl()
+        resetCodexPinChord()
         appSpecificTarget = context.target
         appSpecificDefinition = definition
         lastSelection = nil
@@ -347,17 +470,35 @@ public final class ModePickerCoordinator {
         source: MouseSource,
         cell: PhysicalCell,
         phase: ModePickerCommand.Phase,
-        nativeOutputHandled: Bool
+        nativeOutputHandled: Bool,
+        inputTime: TimeInterval
     ) {
         guard self.source == source else {
             log.debug("ignored a mode event from the other exact-device coordinator")
             return
         }
+        if source == .wand, onWandButtonPhase?(page, isWandHome, cell, phase) == true {
+            if phase == .press { recordSelection(cell: cell) }
+            return
+        }
+        if isWandHome { routeWandHome(cell: cell, phase: phase); return }
+        if source.isPhysicalAdapter, page == .appSpecific, appSpecificTarget == .codex,
+           cell == CodexMode.pinModifierCell || cell == CodexMode.pinToggleCell {
+            guard !nativeOutputHandled else { return }
+            routeCodexPinChord(source: source, cell: cell, phase: phase, inputTime: inputTime)
+            return
+        }
         let isExitCell = cell == .modeExit
             || ((page == .appSpecific || page == .chromeWebsites)
                 && cell == .frontmostAppModeSelector)
+        if phase == .press, cell != .selectAll, !isExitCell {
+            selectAllGesture.commitPendingSinglePress()
+        }
         if isExitCell {
             if phase == .press {
+                // The wand HUD is a menu: a child page's exit returns to the
+                // page that opened it. Only the journey's root page closes.
+                if source == .wand, navigateBackForWand() { return }
                 if appSpecificTarget == .codex { log.notice("Codex mode exit, source \(source.rawValue), cell \(cell.rawValue)") }
                 exit(reason: .userRequested)
             }
@@ -381,14 +522,25 @@ public final class ModePickerCoordinator {
             }
             guard phase == .press else { return }
             if cell == .keysModeSelector {
-                navigate(to: .keys)
+                navigate(to: .keys, openingCell: cell)
                 log.info("Keys mode opened from Utility on \(source.displayName)")
             } else if cell == .extraUtilitiesSelector {
-                navigate(to: .extraUtilities)
+                navigate(to: .extraUtilities, openingCell: cell)
                 log.info("Extra Utilities opened from Utility on \(source.displayName)")
             } else if let action = ModeUtilityAction.directAction(for: cell) {
                 guard !nativeOutputHandled else {
                     hud.flashProblem("Unexpected native route for \(action.actionTitle)")
+                    return
+                }
+                if action == .selectAll {
+                    selectAllGesture.handlePress(source: source) { [weak self] in
+                        self?.performSelectAll(source: source)
+                    } doublePress: { [weak self] in
+                        guard let self else { return }
+                        guard self.onKeysInput?(source, .insertSpace) == true else { return }
+                        self.recordSelection(cell: cell)
+                        self.log.info("Space from Utility Select All double press on \(source.displayName)")
+                    }
                     return
                 }
                 let outcome = onUtilityAction?(source, action)
@@ -401,13 +553,30 @@ public final class ModePickerCoordinator {
                     }
                     return
                 }
+                if action == .selectAll {
+                    hud.flashFeedback(ModeHUDFeedback(message: "Select all sent", tone: .informational))
+                }
                 recordSelection(cell: cell)
                 log.info("\(action.actionTitle) from \(source.displayName)")
             } else if cell == .appSpecificModeSelector {
-                navigate(to: .appSelector)
+                navigate(to: .appSelector, openingCell: cell)
                 log.info("App selector opened from \(source.displayName)")
             }
         case .extraUtilities:
+            if let control = WheelChordControl.extraUtilitiesControl(for: cell) {
+                switch phase {
+                case .press:
+                    guard activeWheelControl != control else { return }
+                    activeWheelControl = control
+                    onWheelControlChange?(source, control)
+                    recordSelection(cell: cell)
+                case .release:
+                    guard activeWheelControl == control else { return }
+                    onWheelControlRelease?(source, control)
+                    clearWheelControl()
+                }
+                return
+            }
             guard phase == .press,
                   let action = ModeUtilityAction.extraUtilitiesAction(for: cell)
             else { return }
@@ -433,6 +602,7 @@ public final class ModePickerCoordinator {
             }
             let outcome = onUtilityAction?(source, action) ?? .failed(message: nil)
             if case .started(let message) = outcome {
+                if action == .organizeWindows { organizeWindowsRequested = true }
                 recordSelection(cell: cell)
                 hud.flashFeedback(ModeHUDFeedback(message: message, tone: .informational))
                 return
@@ -446,11 +616,12 @@ public final class ModePickerCoordinator {
                 return
             }
             if action == .organizeWindows {
-                organizeWindowsRequested = true
                 hud.flashFeedback(ModeHUDFeedback(
                     message: "Stay restore requested",
                     tone: .informational
                 ))
+            } else if action == .save {
+                hud.flashFeedback(ModeHUDFeedback(message: "Save sent", tone: .informational))
             } else if action == .quitApp {
                 quitAppRequested = true
                 hud.flashFeedback(ModeHUDFeedback(
@@ -468,7 +639,8 @@ public final class ModePickerCoordinator {
             navigate(
                 to: .appSpecific,
                 definition: resolveAppSpecificDefinition?(target) ?? target.definition,
-                target: target
+                target: target,
+                openingCell: cell
             )
             log.info("\(target.displayName) mode selected from \(source.displayName)")
         case .appSpecific:
@@ -483,16 +655,31 @@ public final class ModePickerCoordinator {
                     to: .chromeWebsites,
                     definition: websitesDefinition,
                     target: .chrome,
-                    followsFrontmostApp: followsFrontmostApp
+                    followsFrontmostApp: followsFrontmostApp,
+                    openingCell: cell
                 )
                 log.info("Chrome websites opened from \(source.displayName)")
                 return
             }
+            // VS Code's stage-ready 8+9 / 5+6 preview press takes precedence
+            // over cell 6's ordinary Cursor History wheel control.
+            if appSpecificTarget == .vsCode,
+               shouldRouteVSCodeCursorHistoryAsButton?(source) == true,
+               cell == VSCodeMode.cursorHistoryWheelCell {
+                let input = nativeOutputHandled
+                    ? onNativeAppSpecificInput : onAppSpecificInput
+                if input?(source, .vsCode, cell, phase, inputTime) == true {
+                    if phase == .press { recordSelection(cell: cell) }
+                    return
+                }
+            }
             if let target = appSpecificTarget,
                let control = WheelChordControl.appSpecificControl(for: target, cell: cell) {
+                let pinControl = control == .codexPin || control == .claudePin
+                guard !pinControl || !nativeOutputHandled else { return }
                 switch phase {
                 case .press:
-                    guard control != .codexPin || activeWheelControl != control else { return }
+                    guard !pinControl || activeWheelControl != control else { return }
                     activeWheelControl = control
                     onWheelControlChange?(source, control)
                     recordSelection(cell: cell)
@@ -501,7 +688,7 @@ public final class ModePickerCoordinator {
                     guard activeWheelControl == control else { return }
                     onWheelControlRelease?(source, control)
                     clearWheelControl()
-                    if control == .codexPin, isLegendVisible { hud.update(snapshot()) }
+                    if pinControl, isLegendVisible { hud.update(snapshot()) }
                 }
                 return
             }
@@ -509,9 +696,16 @@ public final class ModePickerCoordinator {
                 ? onNativeAppSpecificInput
                 : onAppSpecificInput
             if let target = appSpecificTarget,
-               appSpecificInput?(source, target, cell, phase) == true,
+               appSpecificInput?(source, target, cell, phase, inputTime) == true,
                phase == .press {
                 recordSelection(cell: cell)
+                // Ethan's unexpected "New voice chat": retain the requested
+                // control/transport for correlation, never prompt or voice text.
+                if target == .codex, let action = CodexModeAction.action(for: cell),
+                   action == .newTask || action == .toggleVoiceMode {
+                    let transport = nativeOutputHandled ? "native" : "app"
+                    log.notice("Codex \(action.rawValue) requested via \(transport) route, source \(source.rawValue), cell \(cell.rawValue)")
+                }
             }
         case .chromeWebsites:
             guard phase == .press else { return }
@@ -551,10 +745,12 @@ public final class ModePickerCoordinator {
             if cell == .keypadModeSelector {
                 guard onKeypadModeRequested?(source) == true else {
                     hud.flashProblem("Keypad mode could not start")
-                    exit(reason: .userRequested)
+                    // Keypad needs a mouse's exact press stream. The wand
+                    // stays on Keys instead of dismissing its whole menu.
+                    if source != .wand { exit(reason: .userRequested) }
                     return
                 }
-                navigate(to: .keypad)
+                navigate(to: .keypad, openingCell: cell)
                 log.info("Keypad mode selected from Keys on \(source.displayName)")
                 return
             }
@@ -570,6 +766,97 @@ public final class ModePickerCoordinator {
         }
     }
 
+    private func routeWandHome(cell: PhysicalCell, phase: ModePickerCommand.Phase) {
+        if let control = WheelChordControl.wandHomeControl(for: cell) {
+            if phase == .press {
+                activeWheelControl = control
+                onWheelControlChange?(.wand, control)
+                recordSelection(cell: cell)
+            } else if activeWheelControl == control {
+                onWheelControlRelease?(.wand, control)
+                clearWheelControl()
+            }
+            return
+        }
+        guard phase == .release else { return }
+        switch cell.rawValue {
+        case 2:
+            let context = resolveFrontmostApp?() ?? FrontmostAppModeContext(target: nil, displayName: "No frontmost app", bundleIdentifier: nil)
+            navigate(to: .appSpecific, definition: context.definition, target: context.target,
+                     followsFrontmostApp: true, openingCell: cell)
+        case 9: navigate(to: .keys, openingCell: cell)
+        case 12: navigate(to: .modes, openingCell: cell)
+        case 10: exit(reason: .userRequested) // Home is the root: its exit deliberately closes.
+        default:
+            if onWandHomeInput?(cell) == true { recordSelection(cell: cell) }
+            else {
+                let title = wandHomeSnapshot().legend.first { $0.cell == cell }?.actionTitle ?? "Action"
+                hud.flashProblem("\(title) could not be performed")
+            }
+        }
+    }
+
+    /// The first cell-2 hold opens the page and can immediately protect Pin.
+    /// Its release leaves the page open; a later unused click exits on release.
+    private func routeCodexPinChord(
+        source: MouseSource, cell: PhysicalCell,
+        phase: ModePickerCommand.Phase, inputTime: TimeInterval
+    ) {
+        if cell == CodexMode.pinModifierCell {
+            switch phase {
+            case .press:
+                guard !codexPinModifierHeld else { return }
+                codexPinModifierHeld = true
+                codexPinModifierUsed = false
+                codexPinModifierOpenedMode = false
+            case .release:
+                guard codexPinModifierHeld else { return }
+                let used = codexPinModifierUsed
+                let openedMode = codexPinModifierOpenedMode
+                codexPinModifierHeld = false
+                codexPinModifierUsed = false
+                codexPinModifierOpenedMode = false
+                if !used, !openedMode { exit(reason: .userRequested) }
+            }
+            return
+        }
+        switch phase {
+        case .press:
+            guard !codexPinPressed else { return }
+            codexPinPressed = true
+            guard codexPinModifierHeld else { return }
+            // Even a failed dispatch consumed this chord; never fall through
+            // to Exit when the modifier is released.
+            codexPinModifierUsed = true
+            if onAppSpecificInput?(source, .codex, cell, .press, inputTime) == true {
+                recordSelection(cell: cell)
+            }
+        case .release:
+            codexPinPressed = false
+        }
+    }
+
+    private func resetCodexPinChord() {
+        codexPinModifierHeld = false
+        codexPinModifierUsed = false
+        codexPinModifierOpenedMode = false
+        codexPinPressed = false
+    }
+
+    private func performSelectAll(source: MouseSource) {
+        guard isActive, self.source == source, page == .modes else { return }
+        let outcome = onUtilityAction?(source, .selectAll) ?? .failed(message: nil)
+        guard case .performed = outcome else {
+            if case .failed(let message) = outcome {
+                hud.flashProblem(message ?? "Select all could not be performed")
+            }
+            return
+        }
+        hud.flashFeedback(ModeHUDFeedback(message: "Select all sent", tone: .informational))
+        recordSelection(cell: .selectAll)
+        log.info("Select all from \(source.displayName)")
+    }
+
     /// Move to a child page or reveal an existing ancestor. This keeps every
     /// mouse's journey cycle-free while allowing future menus to nest without
     /// adding one-off back-state booleans.
@@ -577,9 +864,30 @@ public final class ModePickerCoordinator {
         to destination: ModePickerPage,
         definition: AppSpecificModeDefinition? = nil,
         target: AppSpecificTarget? = nil,
-        followsFrontmostApp: Bool = false
+        followsFrontmostApp: Bool = false,
+        openingCell: PhysicalCell? = nil
     ) {
         clearWheelControl()
+        var wandFocus: ModeHUDPointerFocus?
+        if source == .wand, destination != .keypad {
+            // An explicit parent control (Chrome websites → Chrome) returns to
+            // that ancestor; any other wand navigation records where it came
+            // from. Home and Utility share `.modes`, so identity includes the
+            // home flag and the app target, never the page value alone.
+            if let ancestor = wandParents.lastIndex(where: {
+                !$0.isWandHome && $0.page == destination
+                    && (destination != .appSpecific || $0.appSpecificTarget == target)
+            }) {
+                wandFocus = ModeHUDPointerFocus(cell: wandParents[ancestor].openingCell)
+                wandParents.removeSubrange(ancestor...)
+            } else if let openingCell {
+                wandParents.append(currentWandPage(openingCell: openingCell))
+                wandFocus = ModeHUDPointerFocus(cell: WandSelectionController.startCell(for: destination))
+            }
+        }
+        pageGeneration &+= 1
+        isWandHome = false
+        resetCodexPinChord()
         if let existingIndex = navigationPath.lastIndex(of: destination) {
             navigationPath = Array(navigationPath.prefix(through: existingIndex))
         } else {
@@ -587,6 +895,7 @@ public final class ModePickerCoordinator {
         }
         page = destination
         lastSelection = nil
+        pointerFocus = wandFocus
         organizeWindowsRequested = false
         quitAppRequested = false
         self.followsFrontmostApp = followsFrontmostApp
@@ -624,9 +933,99 @@ public final class ModePickerCoordinator {
         }
     }
 
+    private func currentWandPage(openingCell: PhysicalCell) -> WandParentPage {
+        WandParentPage(
+            page: page,
+            isWandHome: isWandHome,
+            navigationPath: navigationPath,
+            appSpecificDefinition: appSpecificDefinition,
+            appSpecificTarget: appSpecificTarget,
+            followsFrontmostApp: followsFrontmostApp,
+            chromeWebsitesParentDefinition: chromeWebsitesParentDefinition,
+            openingCell: openingCell
+        )
+    }
+
+    /// Wand only: where the wand is, so a HUD hidden by an ordinary action can
+    /// reopen on the same submenu (Ethan: "when I reopen the HUD, it should
+    /// still be in that submenu"). Nil at home or on the separate keypad.
+    public func wandJourneyBookmark() -> WandJourneyBookmark? {
+        guard isActive, source == .wand, !isWandHome, page != .keypad else { return nil }
+        return WandJourneyBookmark(parents: wandParents, current: currentWandPage(openingCell: .switchApp))
+    }
+
+    /// Reopens a bookmarked submenu from a freshly opened home, in one HUD
+    /// update. Only page state is restored: never a held key, an action or a
+    /// wheel press. An automatic app page follows the current frontmost app.
+    @discardableResult
+    public func restoreWandJourney(_ mark: WandJourneyBookmark) -> Bool {
+        guard isActive, source == .wand, isWandHome, wandParents.isEmpty,
+              !mark.current.isWandHome, mark.current.page != .keypad else { return false }
+        clearWheelControl()
+        resetCodexPinChord()
+        pageGeneration &+= 1
+        wandParents = mark.parents
+        isWandHome = false
+        page = mark.current.page
+        navigationPath = mark.current.navigationPath
+        appSpecificDefinition = mark.current.appSpecificDefinition
+        appSpecificTarget = mark.current.appSpecificTarget
+        followsFrontmostApp = mark.current.followsFrontmostApp
+        chromeWebsitesParentDefinition = mark.current.chromeWebsitesParentDefinition
+        if page == .appSelector {
+            appSpecificDefinition = resolveAppSelectorDefinition?() ?? AppSpecificMode.selectorDefinition
+        } else if page == .appSpecific, followsFrontmostApp, let context = resolveFrontmostApp?() {
+            appSpecificTarget = context.target
+            appSpecificDefinition = context.definition
+        }
+        lastSelection = nil
+        organizeWindowsRequested = false
+        quitAppRequested = false
+        pointerFocus = ModeHUDPointerFocus(cell: WandSelectionController.startCell(for: page))
+        lightingTargets = onAppearanceChange?(activeAccent, nil) ?? []
+        isLegendVisible = true
+        hud.show(snapshot())
+        log.info("Wand reopened its last submenu")
+        return true
+    }
+
+    /// Wand only: restores the page that opened the current child, with the
+    /// outline on the card that opened it, in one HUD update. Returns false at
+    /// the journey's root, where the caller keeps its deliberate close.
+    @discardableResult
+    public func navigateBackForWand() -> Bool {
+        guard isActive, source == .wand, let parent = wandParents.popLast() else { return false }
+        clearWheelControl()
+        pageGeneration &+= 1
+        isWandHome = parent.isWandHome
+        page = parent.page
+        navigationPath = parent.navigationPath
+        appSpecificDefinition = parent.appSpecificDefinition
+        appSpecificTarget = parent.appSpecificTarget
+        followsFrontmostApp = parent.followsFrontmostApp
+        chromeWebsitesParentDefinition = parent.chromeWebsitesParentDefinition
+        if page == .appSpecific, followsFrontmostApp, let context = resolveFrontmostApp?(),
+           context.target != appSpecificTarget {
+            // The app may have changed while a child page was open.
+            appSpecificTarget = context.target
+            appSpecificDefinition = context.definition
+        }
+        lastSelection = nil
+        organizeWindowsRequested = false
+        quitAppRequested = false
+        pointerFocus = ModeHUDPointerFocus(cell: parent.openingCell)
+        lightingTargets = onAppearanceChange?(activeAccent, nil) ?? []
+        isLegendVisible = true
+        hud.show(snapshot())
+        log.info("Wand returned to the parent page")
+        return true
+    }
+
     private func recordSelection(cell: PhysicalCell) {
         let item: ModeHUDLegendItem?
         switch page {
+        case .modes where isWandHome:
+            item = wandHomeSnapshot().legend.first { $0.cell == cell }
         case .modes:
             item = Self.modesLegend(for: source ?? .corsair).first { $0.cell == cell }
         case .extraUtilities:
@@ -652,7 +1051,56 @@ public final class ModePickerCoordinator {
         if isLegendVisible { hud.update(snapshot()) }
     }
 
+    /// Reject queued events from the retired Codex pin wheel gesture.
+    @discardableResult
+    public func toggleCodexPinFromWheel(_ step: WheelChordStateMachine.Step, inputTime: TimeInterval) -> Bool {
+        // Reject a stale event from the retired gesture; pinning now requires
+        // a fresh same-source cell-2 hold and cell-3 click.
+        false
+    }
+
+    @discardableResult
+    public func toggleClaudePinFromWheel(_ step: WheelChordStateMachine.Step, inputTime: TimeInterval) -> Bool {
+        toggleAppPinFromWheel(step, target: .claude, cell: ClaudeMode.pinToggleCell,
+                              control: .claudePin, inputTime: inputTime)
+    }
+
+    private func toggleAppPinFromWheel(
+        _ step: WheelChordStateMachine.Step,
+        target: AppSpecificTarget,
+        cell: PhysicalCell,
+        control: WheelChordControl,
+        inputTime: TimeInterval
+    ) -> Bool {
+        guard isActive, page == .appSpecific, appSpecificTarget == target,
+              source == step.source, activeWheelControl == control,
+              step.control == control, step.control.accepts(step.direction),
+              !didTogglePinDuringHold else { return false }
+        didTogglePinDuringHold = true
+        let sent = onAppSpecificInput?(step.source, target, cell, .press, inputTime) == true
+        if sent { recordSelection(cell: cell) }
+        return sent
+    }
+
+    /// Moves or clears the wand's navigation outline without performing any
+    /// action. Keypad owns a separate HUD, so it never receives a cursor.
+    public func setPointerFocus(_ focus: ModeHUDPointerFocus?) {
+        var resolved = isActive && page != .keypad ? focus : nil
+        if source == .wand, let candidate = resolved {
+            // Never outline a card the wheel does not draw (a review card
+            // outside VS Code, a Spare, a duplicate exit): use its centre.
+            let layout = wandRadialLayout
+            if !layout.contains(candidate.cell), let center = layout.center {
+                resolved = ModeHUDPointerFocus(cell: center)
+            }
+        }
+        guard resolved != pointerFocus else { return }
+        pointerFocus = resolved
+        if isLegendVisible, page != .keypad { hud.update(snapshot()) }
+    }
+
     private func clearWheelControl() {
+        didTogglePinDuringHold = false
         guard let source, activeWheelControl != nil else {
             activeWheelControl = nil
             return
@@ -662,6 +1110,7 @@ public final class ModePickerCoordinator {
     }
 
     private var activeAccent: RGBColor {
+        if isWandHome { return DefaultMapLegend.accent }
         if (page == .appSelector || page == .appSpecific || page == .chromeWebsites),
            let accent = appSpecificDefinition?.accent {
             return accent
@@ -684,6 +1133,50 @@ public final class ModePickerCoordinator {
     }
 
     private func snapshot() -> ModeHUDSnapshot {
+        var value = pageSnapshot()
+        value.pointerFocus = pointerFocus
+        if source == .wand {
+            value.wandRadialLayout = .wandMenu(legend: value.legend, page: page, isHome: isWandHome,
+                                               appTarget: appSpecificTarget)
+        }
+        return value
+    }
+
+    private func wandHomeSnapshot() -> ModeHUDSnapshot {
+        var value = resolveWandHomeSnapshot?() ?? DefaultMapLegend.snapshot(source: .wand, frontmostAppContext: resolveFrontmostApp?())
+        value.source = .wand
+        value.legend.append(ModeHUDLegendItem(cell: .wandPlayPause, actionTitle: "Play/Pause", accent: ModeHUDActionFamilyPalette.media))
+        // Ethan's outer layer (`WandOuterLayer.home`): Undo beyond Keys, Space
+        // beyond Enter, New Codex chat and then Zoom beyond Utility are always
+        // present; the review pair joins them beyond the app card only while
+        // VS Code is frontmost.
+        value.legend += [
+            ModeHUDLegendItem(cell: .wandUndo, actionTitle: "Undo", accent: KeysModeAction.undo.hudAccent),
+            ModeHUDLegendItem(cell: .wandSpace, actionTitle: "Space", accent: KeysModeAction.insertSpace.hudAccent),
+            ModeHUDLegendItem(cell: .wandCodexNewChat, actionTitle: "New Codex chat", accent: CodexMode.accent),
+            // Utility's own Zoom wheel control, two reaches beyond Utility.
+            ModeHUDLegendItem(cell: .wandZoom, gesture: WheelChordControl.zoom.hudGesture,
+                              accent: WheelChordControl.zoom.hudAccent)
+        ]
+        if resolveFrontmostApp?().target == .vsCode {
+            value.legend += [
+                ModeHUDLegendItem(cell: .wandReviewChanges, actionTitle: "Review changes", accent: RGBColor(red: 65, green: 201, blue: 122)),
+                ModeHUDLegendItem(cell: .wandReviewFiles, actionTitle: "Stage files", accent: RGBColor(red: 180, green: 105, blue: 235))
+            ]
+        }
+        value.selection = lastSelection
+        value.wandReviewSelection = wandReviewAvailable ? wandReviewSelection : nil
+        return value
+    }
+
+    /// The wand's weapon wheel for the page it is showing. The HUD receives
+    /// this same layout in every wand snapshot.
+    public var wandRadialLayout: WandRadialLayout {
+        .wandMenu(legend: pageSnapshot().legend, page: page, isHome: isWandHome, appTarget: appSpecificTarget)
+    }
+
+    private func pageSnapshot() -> ModeHUDSnapshot {
+        if isWandHome { return wandHomeSnapshot() }
         if (page == .appSelector || page == .appSpecific || page == .chromeWebsites),
            let definition = appSpecificDefinition {
             return ModeHUDSnapshot(
@@ -691,24 +1184,12 @@ public final class ModePickerCoordinator {
                 modeTitle: definition.title,
                 source: source ?? .corsair,
                 selection: lastSelection,
-                legend: definition.legend.map { item in
-                    guard appSpecificTarget == .codex,
-                          activeWheelControl == .codexPin,
-                          item.cell == CodexMode.screenshotPinWheelCell else { return item }
-                    return ModeHUDLegendItem(
-                        cell: item.cell,
-                        actionTitle: "\(WheelChordControl.codexPin.actionTitle) · Wheel",
-                        accent: item.accent,
-                        destinationModeAccent: item.destinationModeAccent,
-                        appBackdrop: item.appBackdrop,
-                        controlStatus: item.controlStatus
-                    )
-                },
+                legend: definition.legend,
                 accent: definition.accent,
                 outlineWidth: definition.outlineWidth,
                 lightingTargets: lightingTargets,
                 footerTitle: definition.footerTitle,
-                footerHint: nil,
+                footerHint: appSpecificTarget == .vsCode ? VSCodeMode.undoHint(source: source ?? .corsair) : nil,
                 presentationStyle: .boldOpaque,
                 showsOnAllDisplays: true
             )
@@ -763,7 +1244,7 @@ public final class ModePickerCoordinator {
             if let control = WheelChordControl.keysControl(for: cell) {
                 return ModeHUDLegendItem(
                     cell: cell,
-                    actionTitle: "\(control.actionTitle) + Wheel",
+                    gesture: control.hudGesture,
                     accent: control.hudAccent,
                     controlStatus: control.hudControlStatus
                 )
@@ -803,11 +1284,16 @@ public final class ModePickerCoordinator {
 
     public static func extraUtilitiesLegend(for source: MouseSource) -> [ModeHUDLegendItem] {
         PhysicalCell.all.map { cell in
+            if let control = WheelChordControl.extraUtilitiesControl(for: cell) {
+                return ModeHUDLegendItem(cell: cell, gesture: control.hudGesture,
+                                         accent: control.hudAccent)
+            }
             if let action = ModeUtilityAction.extraUtilitiesAction(for: cell) {
                 return ModeHUDLegendItem(
                     cell: cell,
                     actionTitle: action.actionTitle,
-                    accent: action.hudAccent
+                    accent: action.hudAccent,
+                    controlStatus: action == .spotifySongRadio ? .reportedBroken : .normal
                 )
             }
             if cell == .modeExit {
@@ -832,7 +1318,7 @@ public final class ModePickerCoordinator {
         if let control = WheelChordControl.utilityControl(for: cell) {
             return ModeHUDLegendItem(
                 cell: cell,
-                actionTitle: "\(control.actionTitle) + Wheel",
+                gesture: control.hudGesture,
                 accent: control.hudAccent,
                 controlStatus: control.hudControlStatus
             )
@@ -883,4 +1369,14 @@ public final class ModePickerCoordinator {
     }
 
     public static let modesLegend = modesLegend(for: .corsair)
+}
+
+/// A wand submenu to reopen after an ordinary action hid the HUD. Opaque:
+/// it carries page state only, never a held key, action or wheel press.
+public struct WandJourneyBookmark {
+    fileprivate let parents: [ModePickerCoordinator.WandParentPage]
+    fileprivate let current: ModePickerCoordinator.WandParentPage
+    /// The bookmarked page, for tests and logging.
+    public var page: ModePickerPage { current.page }
+    public var appSpecificTarget: AppSpecificTarget? { current.appSpecificTarget }
 }

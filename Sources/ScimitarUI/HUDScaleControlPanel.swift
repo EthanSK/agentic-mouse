@@ -4,9 +4,10 @@ import SwiftUI
 /// The only pointer-interactive part of the HUD. It remains non-activating so
 /// resizing never takes focus from the app Ethan is using.
 final class HUDScaleControlPanel: NSPanel {
-    static let size = NSSize(width: 30, height: 78)
+    static let sliderSize = NSSize(width: 30, height: 78)
+    static let size = NSSize(width: 54, height: 78)
 
-    init(scaleStore: HUDScaleStore) {
+    init(scaleStore: HUDScaleStore, onClose: @escaping () -> Void = {}) {
         super.init(
             contentRect: NSRect(origin: .zero, size: Self.size),
             styleMask: [.nonactivatingPanel, .borderless],
@@ -30,13 +31,35 @@ final class HUDScaleControlPanel: NSPanel {
         backgroundColor = .clear
         hasShadow = false
         animationBehavior = .none
-        contentView = FirstMouseHostingView(rootView: HUDScaleControlView(store: scaleStore))
+        contentView = FirstMouseHostingView(rootView:
+            HStack(alignment: .top, spacing: 4) {
+                NativeHUDCloseButton(action:onClose).frame(width:20,height:20)
+                HUDScaleControlView(store:scaleStore)
+            }
+        )
     }
 
     override var canBecomeKey: Bool { false }
     override var canBecomeMain: Bool { false }
     override func makeKey() {}
     override func makeKeyAndOrderFront(_ sender: Any?) { orderFrontRegardless() }
+}
+
+/// The system close control supplies its localized accessibility name.
+private struct NativeHUDCloseButton:NSViewRepresentable {
+    let action:()->Void
+    func makeCoordinator()->Coordinator {Coordinator(action)}
+    func makeNSView(context:Context)->NSButton {
+        let button=NSWindow.standardWindowButton(.closeButton,for:[.titled,.closable])!
+        button.target=context.coordinator;button.action=#selector(Coordinator.close)
+        return button
+    }
+    func updateNSView(_ view:NSButton,context:Context){context.coordinator.action=action}
+    final class Coordinator:NSObject {
+        var action:()->Void
+        init(_ action:@escaping ()->Void){self.action=action}
+        @objc func close(){action()}
+    }
 }
 
 private final class FirstMouseHostingView<Content: View>: NSHostingView<Content> {
@@ -82,7 +105,7 @@ private struct HUDScaleControlView: View {
                     }
             )
         }
-        .frame(width: HUDScaleControlPanel.size.width, height: HUDScaleControlPanel.size.height)
+        .frame(width: HUDScaleControlPanel.sliderSize.width, height: HUDScaleControlPanel.sliderSize.height)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("HUD size")
         .accessibilityValue("\(Int((store.scale * 100).rounded())) percent")
@@ -142,7 +165,7 @@ final class HUDScaleHoverCoordinator {
                   let controlPanel = registration.controlPanel
             else { return false }
             let isHovered = hudPanel.isVisible
-                && (hudPanel.frame.contains(pointer) || controlPanel.frame.contains(pointer))
+                && (hudPanel.frame.insetBy(dx:-12,dy:-12).contains(pointer) || controlPanel.frame.insetBy(dx:-6,dy:-6).contains(pointer))
             if isHovered {
                 controlPanel.orderFrontRegardless()
             } else {

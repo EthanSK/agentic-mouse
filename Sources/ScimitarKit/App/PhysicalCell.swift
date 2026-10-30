@@ -1,15 +1,51 @@
 import Foundation
 
-/// The two exact-device adapters that can feed one shared thumb-grid mode.
-public enum MouseSource: String, Codable, CaseIterable, Hashable, Sendable {
+/// The owners that can feed one shared thumb-grid mode: the two exact-device
+/// Karabiner adapters plus the virtual wand selection input.
+///
+/// The wand is deliberately not a Karabiner device. It never appears in
+/// `allCases` (so every exact-device loop, lease variable, lighting output and
+/// public map remains two-mouse) and it cannot be decoded from any JSON payload
+/// (so no socket command can claim wand identity through a mouse namespace).
+/// Only the dedicated `agentic_mouse_wand_selection` ingress constructs it.
+public enum MouseSource: String, Codable, Hashable, Sendable {
     case corsair
     case razer
+    /// Virtual Puck wand. It owns its own mode coordinator and HUD but borrows
+    /// the right-handed Corsair presentation and app transport tags.
+    case wand
+
+    /// Exact-device Karabiner adapters only. This intentionally excludes the
+    /// virtual wand; iterate it explicitly where a wand owner is required.
+    public static let allCases: [MouseSource] = [.corsair, .razer]
+
+    public var isPhysicalAdapter: Bool { self != .wand }
+
+    /// The physical mouse whose printed labels and grid orientation present
+    /// this source. The wand has no printed buttons, so its HUD reuses the
+    /// existing Corsair cards unchanged.
+    public var presentationSource: MouseSource {
+        self == .wand ? .corsair : self
+    }
 
     public var displayName: String {
         switch self {
         case .corsair: return "Corsair"
         case .razer: return "Razer"
+        case .wand: return "Wand"
         }
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        let rawValue = try container.decode(String.self)
+        guard let source = MouseSource(rawValue: rawValue), source.isPhysicalAdapter else {
+            throw DecodingError.dataCorruptedError(
+                in: container,
+                debugDescription: "unsupported exact-device mouse source"
+            )
+        }
+        self = source
     }
 }
 
@@ -25,6 +61,41 @@ public struct PhysicalCell: RawRepresentable, Hashable, Codable, Sendable, Compa
     public init?(rawValue: Int) {
         guard (1...12).contains(rawValue) else { return nil }
         self.rawValue = rawValue
+    }
+
+    // Private presentation slots: never accepted by physical input or added to `all`.
+    private init(wandSlot: Int) { rawValue = wandSlot }
+    public static let wandReviewChanges = PhysicalCell(wandSlot: 13)
+    public static let wandReviewFiles = PhysicalCell(wandSlot: 14)
+    public static let wandPlayPause = PhysicalCell(wandSlot: 15)
+    /// Ethan's wand-only outer-layer quick actions (2026-10-29): a thin Undo
+    /// just outside Keys, and Space split out of the wand's Copy / Paste card.
+    /// The physical mice keep their own Copy / Paste click and have neither.
+    public static let wandUndo = PhysicalCell(wandSlot: 16)
+    public static let wandSpace = PhysicalCell(wandSlot: 17)
+    /// Ethan: "a second layer HUD item to start a new chat in Codex. Well,
+    /// first switch to the Codex app, start a new chat, all in one action."
+    public static let wandCodexNewChat = PhysicalCell(wandSlot: 18)
+    /// Ethan (2026-10-30): "a third layer wedge if it's a utility ... because
+    /// that's where zoom is normally". The same Utility Zoom wheel control,
+    /// two reaches beyond the home Utility card.
+    public static let wandZoom = PhysicalCell(wandSlot: 19)
+    /// Wand-only presentation slots that are not physical cells.
+    public var isWandOnlySlot: Bool { rawValue > 12 }
+    public var wandReviewMode: String? {
+        self == .wandReviewChanges ? "changes" : self == .wandReviewFiles ? "files" : nil
+    }
+    public static func wandRows(source: MouseSource, legend: [ModeHUDLegendItem]) -> [[PhysicalCell]] {
+        var rows = displayRowsTopToBottom(for: source)
+        if source == .wand, legend.contains(where: { $0.cell == .wandPlayPause }) {
+            // Ethan wants the wand's own media button just right of Utility.
+            rows[0].append(.wandPlayPause)
+        }
+        if source == .wand, legend.contains(where: { $0.cell == .wandReviewChanges }),
+           legend.contains(where: { $0.cell == .wandReviewFiles }) {
+            rows[1] += [.wandReviewChanges, .wandReviewFiles]
+        }
+        return rows
     }
 
     public static let all: [PhysicalCell] = (1...12).compactMap(PhysicalCell.init(rawValue:))
@@ -45,7 +116,7 @@ public struct PhysicalCell: RawRepresentable, Hashable, Codable, Sendable, Compa
     /// and the cross-device physical-cell contract remain canonical.
     public static func displayRowsTopToBottom(for source: MouseSource) -> [[PhysicalCell]] {
         switch source {
-        case .corsair:
+        case .corsair, .wand:
             return displayRowsTopToBottom
         case .razer:
             return displayRowsTopToBottom.map { Array($0.reversed()) }
@@ -98,7 +169,15 @@ public struct PhysicalCell: RawRepresentable, Hashable, Codable, Sendable, Compa
     public static let zoomWheelControl = PhysicalCell(rawValue: 11)!
     public static let spacesWheelControl = PhysicalCell(rawValue: 3)!
     public static let systemOverviewWheelControl = PhysicalCell(rawValue: 4)!
-    public static let applicationWindowsWheelControl = PhysicalCell(rawValue: 5)!
+    // Extra Utilities; the Utility cell it vacated now sends Select All.
+    public static let applicationWindowsWheelControl = PhysicalCell(rawValue: 1)!
+
+    /// Utility sends Command-A; Extra Utilities keeps Save separately.
+    public static let selectAll = PhysicalCell(rawValue: 5)!
+    /// Sends one unmodified Tab keystroke from Extra Utilities. This is
+    /// printed 2 on both supported mice.
+    public static let extraUtilitiesTab = PhysicalCell(rawValue: 2)!
+    public static let extraUtilitiesSave = PhysicalCell(rawValue: 7)!
     public static let magnetWheelControl = PhysicalCell(rawValue: 6)!
 
     /// Ordinary top-level Copy / Paste wheel chord. This is Corsair printed 4
@@ -132,8 +211,8 @@ public struct PhysicalCell: RawRepresentable, Hashable, Codable, Sendable, Compa
     public static let extraUtilitiesSelector = PhysicalCell(rawValue: 12)!
 
     /// Restores Stay's saved Agentic Mouse window layout from Extra Utilities.
-    /// This is Corsair printed 1 and Razer printed 3.
-    public static let organizeWindows = PhysicalCell(rawValue: 1)!
+    /// This is Corsair printed 12 and Razer printed 10.
+    public static let organizeWindows = PhysicalCell(rawValue: 12)!
 
     /// Starts the current Spotify song's radio from Extra Utilities.
     /// Ethan approved Corsair printed 3 / Razer printed 1 for this action.
@@ -142,6 +221,11 @@ public struct PhysicalCell: RawRepresentable, Hashable, Codable, Sendable, Compa
     /// Sends a normal Command-Q to the current frontmost application from
     /// Extra Utilities. This is Corsair printed 9 and Razer printed 7.
     public static let quitApp = PhysicalCell(rawValue: 9)!
+
+    /// Extra Utilities only; each control changes one window dimension.
+    public static let windowWidthWheelControl = PhysicalCell(rawValue: 4)!
+    public static let windowHeightWheelControl = PhysicalCell(rawValue: 5)!
+    public static let chromeVSCodeLayoutWheelControl = PhysicalCell(rawValue: 6)!
 
     /// Sends one Control-C keyboard interrupt from terminal-capable
     /// app-specific modes. Extra Utilities owns this cell only while that
@@ -197,14 +281,14 @@ public struct PhysicalCell: RawRepresentable, Hashable, Codable, Sendable, Compa
 
     public static func fromPrintedSide(_ printedSide: Int, source: MouseSource) -> PhysicalCell? {
         switch source {
-        case .corsair: return PhysicalCell(rawValue: printedSide)
+        case .corsair, .wand: return PhysicalCell(rawValue: printedSide)
         case .razer: return razerPrintedToPhysical[printedSide]
         }
     }
 
     public func printedSide(on source: MouseSource) -> Int? {
         switch source {
-        case .corsair:
+        case .corsair, .wand:
             return rawValue
         case .razer:
             return Self.razerPrintedToPhysical.first(where: { $0.value == self })?.key
@@ -214,7 +298,9 @@ public struct PhysicalCell: RawRepresentable, Hashable, Codable, Sendable, Compa
     /// User-facing button label for the exact mouse that produced a HUD
     /// command. The two mice share physical cells but print different numbers,
     /// so a reference map must never display one device's label for the other.
+    /// The virtual wand has no printed buttons and reuses Corsair's labels.
     public func displayLabel(on source: MouseSource) -> String {
-        "\(source.displayName) \(printedSide(on: source)!)"
+        if isWandOnlySlot { return "Wand" }
+        return "\(source.presentationSource.displayName) \(printedSide(on: source)!)"
     }
 }

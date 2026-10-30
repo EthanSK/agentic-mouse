@@ -1,5 +1,6 @@
 import AppKit
 import Foundation
+import ScimitarKit
 
 /// Invokes a small allow-listed command inside VS Code through the companion
 /// extension's supported URI handler. Cursor History deliberately bypasses
@@ -43,6 +44,7 @@ final class VSCodeCommandBridge {
     typealias InputAllowedProvider = @MainActor () -> Bool
 
     static let extensionIdentifier = "ethansk.agentic-mouse-vscode-bridge"
+    static let betterGitExtensionIdentifier = "ethansk.better-git-vscode"
     static let targetBundleIdentifier = "com.microsoft.VSCode"
 
     private let targetResolver: TargetResolver
@@ -63,6 +65,62 @@ final class VSCodeCommandBridge {
         _ action: Action,
         completion: @escaping Completion
     ) {
+        guard let url = Self.url(for: action) else {
+            completion(.failure(BridgeError(
+                description: "Could not create the VS Code bridge request"
+            )))
+            return
+        }
+        perform(url: url, displayName: action.displayName, completion: completion)
+    }
+
+    func performStageSelection(
+        _ direction: VSCodeStageSelectionDirection,
+        source: MouseSource,
+        completion: @escaping Completion
+    ) {
+        guard let url = Self.stageSelectionURL(direction: direction, source: source) else {
+            completion(.failure(BridgeError(
+                description: "Could not create the Better Git stage selection request"
+            )))
+            return
+        }
+        perform(url: url, displayName: "Stage Selection", completion: completion)
+    }
+
+    func performStagePreviewNavigation(
+        _ direction: VSCodeStagePreviewDirection,
+        source: MouseSource,
+        completion: @escaping Completion
+    ) {
+        guard let url = Self.stagePreviewNavigationURL(direction: direction, source: source) else {
+            completion(.failure(BridgeError(
+                description: "Could not create the Better Git preview navigation request"
+            )))
+            return
+        }
+        perform(url: url, displayName: "Stage Preview Navigation", completion: completion)
+    }
+
+    func performStagePreviewMode(
+        _ active: Bool,
+        source: MouseSource,
+        completion: @escaping Completion
+    ) {
+        guard let url = Self.stagePreviewModeURL(active: active, source: source) else {
+            completion(.failure(BridgeError(
+                description: "Could not create the Better Git preview navigation request"
+            )))
+            return
+        }
+        perform(url: url, displayName: "Stage Preview Navigation", completion: completion)
+    }
+
+    private func perform(
+        url: URL,
+        displayName: String,
+        completion: @escaping Completion
+    ) {
         guard inputAllowed() else {
             completion(.failure(BridgeError(
                 description: "Mouse commands are disabled while macOS is locked"
@@ -75,13 +133,7 @@ final class VSCodeCommandBridge {
         }
         guard target.isActive else {
             completion(.failure(BridgeError(
-                description: "VS Code must be frontmost for \(action.displayName)"
-            )))
-            return
-        }
-        guard let url = Self.url(for: action) else {
-            completion(.failure(BridgeError(
-                description: "Could not create the VS Code bridge request"
+                description: "VS Code must be frontmost for \(displayName)"
             )))
             return
         }
@@ -102,6 +154,39 @@ final class VSCodeCommandBridge {
 
     static func url(for action: Action) -> URL? {
         URL(string: "vscode://\(extensionIdentifier)/\(action.rawValue)")
+    }
+
+    static func stageSelectionURL(
+        direction: VSCodeStageSelectionDirection,
+        source: MouseSource
+    ) -> URL? {
+        var components = URLComponents()
+        components.scheme = "vscode"
+        components.host = betterGitExtensionIdentifier
+        components.path = "/mouse-stage-selection/\(direction.rawValue)"
+        components.queryItems = [URLQueryItem(name: "source", value: source.rawValue)]
+        return components.url
+    }
+
+    static func stagePreviewNavigationURL(
+        direction: VSCodeStagePreviewDirection,
+        source: MouseSource
+    ) -> URL? {
+        var components = URLComponents()
+        components.scheme = "vscode"
+        components.host = betterGitExtensionIdentifier
+        components.path = "/mouse-stage-preview/\(direction.rawValue)"
+        components.queryItems = [URLQueryItem(name: "source", value: source.rawValue)]
+        return components.url
+    }
+
+    static func stagePreviewModeURL(active: Bool, source: MouseSource) -> URL? {
+        var components = URLComponents()
+        components.scheme = "vscode"
+        components.host = betterGitExtensionIdentifier
+        components.path = "/mouse-stage-preview-mode/\(active ? "on" : "off")"
+        components.queryItems = [URLQueryItem(name: "source", value: source.rawValue)]
+        return components.url
     }
 
     private static func resolveTarget() -> Target? {

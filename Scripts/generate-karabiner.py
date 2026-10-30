@@ -29,17 +29,22 @@ MODE_PAGE_UTILITY = 1
 MODE_PAGE_KEYS = 2
 MODE_PAGE_APP_SELECTOR = 3
 MODE_PAGE_APP_SPECIFIC = 4
+UTILITY_APP_SELECTOR_PHYSICAL_CELL = 2
 MODE_PAGE_KEYPAD = 5
-APP_SELECTOR_TARGET_CELLS = {1, 4, 7}
+MODE_PAGE_EXTRA_UTILITIES = 6
+MODE_PAGE_CHROME_WEBSITES = 7
+APP_SELECTOR_TARGET_CELLS = set(range(1, 13)) - {10}
 APP_SELECTION_AUTOMATIC = 0
 APP_SELECTION_CODEX = 1
 APP_SELECTION_OTHER = 2
+APP_SELECTION_CHROME = 3
 CODEX_SELECTOR_PHYSICAL_CELL = 1
+CHROME_SELECTOR_PHYSICAL_CELL = 4
 CODEX_VOICE_PHYSICAL_CELL = 12
 CODEX_BUNDLE_IDENTIFIERS = [r"^com\.openai\.codex$"]
 KEYS_MODE_OUTPUT_BY_PHYSICAL_CELL = {
     1: {"key_code": "left_arrow", "repeat": False},
-    2: {"key_code": "w", "modifiers": ["left_command"], "repeat": False},
+    2: {"key_code": "left_shift", "repeat": True},  # Native key-up follows physical release.
     3: {"key_code": "z", "modifiers": ["left_command"], "repeat": False},
     4: {"key_code": "down_arrow", "repeat": False},
     5: {"key_code": "up_arrow", "repeat": False},
@@ -72,6 +77,135 @@ EXTERNAL_OUTPUT_FIELDS = {
 }
 FORBIDDEN_ACTION_FIELDS = {"from", "type", "manipulator", "manipulators"}
 BINDING_VARIABLE_PLACEHOLDER = "$binding_variable"
+VSCODE_LEGACY_STAGE_FLAG = "agentic_mouse_vscode_legacy_stage_chords_enabled"
+
+
+def vscode_hold_templates(binding: dict[str, Any]) -> list[dict[str, Any]]:
+    """Capture on press, choose navigation or staging on release, and keep Undo atomic."""
+    source = binding["id"].split("-", 1)[0]
+    cell = 8 if "next" in binding["action"] else 5
+    pending = f"agentic_mouse_{source}_vscode_hold_{cell}"
+    wheel_armed = f"{pending}_wheel_armed"
+    frontmost = {"type": "frontmost_application_if", "bundle_identifiers": [r"^com\.microsoft\.VSCode(?:Insiders)?$"]}
+    output_conditions = [frontmost, {"type": "expression_unless", "expression": _active_expression(f"agentic_mouse_mode_picker_{source}_expires_at")}]
+    enabled = [frontmost, {"type": "variable_unless", "name": VSCODE_LEGACY_STAGE_FLAG, "value": 1}]
+    feedback_modifiers = ["left_command", "left_shift"] if source == "razer" else ["left_control", "left_option", "left_command"]
+    navigation_modifiers = ["left_command", "left_shift"] if source == "razer" else ["left_control", "left_command"]
+    cancel_origin = {"key_code": "f14", "modifiers": navigation_modifiers, "repeat": False, "conditions": copy.deepcopy(output_conditions)}
+    clear_feedback = {"key_code": "f15", "modifiers": feedback_modifiers, "repeat": False, "conditions": copy.deepcopy(output_conditions)}
+    def wheel_command(phase: str, conditions: list[dict[str, Any]]) -> dict[str, Any]:
+        return {
+            "send_user_command": {"payload": {
+                "command": "agentic_mouse_wheel_chord",
+                "control": "vsCodeStageRange",
+                "source": source,
+                "phase": phase,
+            }},
+            "repeat": False,
+            "conditions": copy.deepcopy(conditions),
+        }
+    not_cancelled = {"type": "variable_unless", "name": pending, "value": 3}
+    if "-while-" in binding["action"]:
+        return [{
+            "conditions": enabled + [{"type": "expression_if", "expression": f"{pending} == 1 or {pending} == 2 or {pending} == 3"}],
+            "to": [
+                wheel_command("release", []),
+                {"set_variable": {"name": wheel_armed, "value": 0}},
+                copy.deepcopy(cancel_origin),
+                {"key_code": "f16", "repeat": False, "conditions": [{"type": "variable_unless", "name": pending, "value": 3}] + copy.deepcopy(output_conditions)},
+                {"set_variable": {"name": pending, "value": 3}},
+                copy.deepcopy(clear_feedback),
+            ],
+        }]
+    short = {"type": "variable_if", "name": pending, "value": 1}
+    held = {"type": "variable_if", "name": pending, "value": 2}
+    return [{
+        "conditions": enabled,
+        "parameters": {"basic.to_if_held_down_threshold_milliseconds": 200, "basic.to_if_alone_timeout_milliseconds": 200},
+        "to": [
+            {"set_variable": {"name": pending, "value": 1}},
+            {"set_variable": {"name": wheel_armed, "value": 0}},
+            {"key_code": "f13" if cell == 8 else "f17", "modifiers": navigation_modifiers, "repeat": False, "conditions": copy.deepcopy(output_conditions)},
+        ],
+        "to_if_held_down": [
+            {"set_variable": {"name": pending, "value": 2}, "conditions": [short]},
+            {"key_code": "f20", "modifiers": feedback_modifiers, "repeat": False, "conditions": [not_cancelled] + copy.deepcopy(output_conditions)},
+            wheel_command("press", [not_cancelled] + output_conditions),
+            {"set_variable": {"name": wheel_armed, "value": 1}, "conditions": [not_cancelled] + copy.deepcopy(output_conditions)},
+        ],  # Better Git needs an explicit readiness event to change fire to explosion before release; this command never stages. (Codex task: 01a039f7-873c-7c30-b3dc-af8a6724ace5)
+        "to_if_alone": [{"set_variable": {"name": pending, "value": 1}, "conditions": [{"type": "expression_if", "expression": f"{pending} == 1 or {pending} == 2"}]}],  # Karabiner checks original event duration before after-key-up output; a delayed hold timer must not stage a fast click. (Codex task: 01a039f7-873c-7c30-b3dc-af8a6724ace5)
+        "to_after_key_up": [
+            wheel_command("release", []),
+            {"set_variable": {"name": wheel_armed, "value": 0}},
+            {**copy.deepcopy(cancel_origin), "conditions": [short] + copy.deepcopy(output_conditions)},
+            {"key_code": "f18" if cell == 8 else "f19", "modifiers": navigation_modifiers, "repeat": False, "conditions": [held] + copy.deepcopy(output_conditions)},
+            {"set_variable": {"name": pending, "value": 0}},
+            copy.deepcopy(clear_feedback),
+        ],  # Every hold stages independently. Undo is only the held adjacent-button chord; never restore double-hold undo. (Codex task: 01a039f7-873c-7c30-b3dc-af8a6724ace5)
+    }]
+
+
+def vscode_preview_partner_template(binding: dict[str, Any]) -> dict[str, Any] | None:
+    """An adjacent tap toggles preview mode without replacing the stage wheel."""
+    partners = {
+        "corsair-side-09-keys-mode": ("corsair", 8, "next"),
+        "corsair-side-06-youtube-scrub-wheel": ("corsair", 5, "previous"),
+        "razer-side-07-keys-mode": ("razer", 8, "next"),
+        "razer-side-04-youtube-scrub-wheel": ("razer", 5, "previous"),
+    }
+    partner = partners.get(binding["id"])
+    if partner is None:
+        return None
+    source, cell, direction = partner
+    pending = f"agentic_mouse_{source}_vscode_hold_{cell}"
+    def modifier_command() -> dict[str, Any]:
+        return {
+            "send_user_command": {"payload": {
+                "command": "agentic_mouse_vscode_stage_preview_modifier",
+                "source": source,
+                "event": "toggle",
+            }},
+            "repeat": False,
+        }
+    return {
+        "conditions": [
+            {"type": "frontmost_application_if", "bundle_identifiers": [r"^com\.microsoft\.VSCode(?:Insiders)?$"]},
+            {"type": "variable_unless", "name": VSCODE_LEGACY_STAGE_FLAG, "value": 1},
+            {"type": "expression_if", "expression": f"{pending} == 1 or {pending} == 2"},
+        ],
+        "to": [
+            modifier_command(),
+            {
+                "send_user_command": {"payload": {
+                    "command": "agentic_mouse_vscode_stage_preview",
+                    "source": source,
+                    "direction": direction,
+                }},
+                "repeat": False,
+            },
+        ],
+    }
+
+
+def enter_templates(binding: dict[str, Any]) -> list[dict[str, Any]]:
+    """Defer plain Enter until release so Command can arrive in either order."""
+    source = binding["id"].split("-", 1)[0]
+    enter_held = f"agentic_mouse_{binding['id'].replace('-', '_')}_pending"
+    command_held = f"agentic_mouse_{source}_default_command_held"
+    return [{
+        "to": [
+            {"set_variable": {"name": enter_held, "value": 1}},
+            {"key_code": "return_or_enter", "modifiers": ["left_command"], "repeat": False,
+             "conditions": [{"type": "variable_if", "name": command_held, "value": 1}]},
+            {"set_variable": {"name": enter_held, "value": 2},
+             "conditions": [{"type": "variable_if", "name": command_held, "value": 1}]},
+        ],
+        "to_after_key_up": [
+            {"key_code": "return_or_enter", "repeat": False,
+             "conditions": [{"type": "variable_if", "name": enter_held, "value": 1}]},
+            {"set_variable": {"name": enter_held, "value": 0}},
+        ],
+    }]
 
 
 class GenerationError(ValueError):
@@ -540,7 +674,17 @@ def build_documents(
                 f"binding {binding['id']} references unknown action {action_id}"
             )
 
-        for index, source_template in enumerate(action["_manipulator_templates"]):
+        templates = copy.deepcopy(action["_manipulator_templates"])
+        if action_id == "press-enter":
+            templates = enter_templates(binding)
+        preview_partner = vscode_preview_partner_template(binding)
+        if preview_partner is not None:
+            templates.insert(0, preview_partner)
+        if binding["id"].startswith(("corsair-vscode-", "razer-vscode-")):  # Ethan replaced the two-button/late-stage gesture with a hold; retain the exact old path only behind an opt-in flag. (Codex task: 01a039f7-873c-7c30-b3dc-af8a6724ace5)
+            for template in templates:
+                template.setdefault("conditions", []).append({"type": "variable_if", "name": VSCODE_LEGACY_STAGE_FLAG, "value": 1})
+            templates = vscode_hold_templates(binding) + templates
+        for index, source_template in enumerate(templates):
             template = _expand_binding_placeholders(copy.deepcopy(source_template), binding["id"], binding.get("outputModifiers"))
             action_conditions = template.pop("conditions", [])
             action_parameters = template.pop("parameters", {})
@@ -667,6 +811,9 @@ def build_documents(
         if color_proof or mode_picker
         else []
     )
+    if mode_picker:
+        add_floating_mouse_passive_edges(runtime_rules, bindings, mode_picker)
+        runtime_rules.insert(0, build_floating_mouse_clutch_rule(bindings, mode_picker))
     if security:
         _secure_rules(runtime_rules, security)
         runtime_rules.insert(0, _build_locked_transport_sink(bindings, security))
@@ -676,6 +823,45 @@ def build_documents(
         "rules": runtime_rules,
     }
     return karabiner, catalog, runtime_document
+
+
+def add_floating_mouse_passive_edges(rules, bindings, mode_picker):
+    # Observe the same physical edge without changing its normal action. This
+    # also records a held button before a detecting lease arrives. Security is
+    # applied afterward; the locked sink and armed clutch are not modified.
+    binding = next(b for b in bindings if b["id"] == mode_picker["bindingsBySource"]["corsair"][0])
+    device_conditions = [c for c in binding.get("conditions", [])
+                         if c["type"] in {"device_if", "device_unless"}]
+    for rule in rules:
+        for item in rule["manipulators"]:
+            if item.get("from") != binding["from"]:
+                continue
+            if not all(c in item.get("conditions", []) for c in device_conditions):
+                continue
+            for field, phase in [("to", "press"), ("to_after_key_up", "release")]:
+                item.setdefault(field, []).append({
+                    "send_user_command": {"payload": {
+                        "command": "agentic_mouse_floating_clutch",
+                        "source": "corsair1", "phase": phase,
+                    }},
+                    "repeat": False,
+                })
+
+
+def build_floating_mouse_clutch_rule(bindings, mode_picker):
+    # Corsair printed 1 is the explicitly requested camera clutch. Its normal
+    # binding and all other modes remain the fallback when the lease expires.
+    binding = next(b for b in bindings if b["id"] == mode_picker["bindingsBySource"]["corsair"][0])
+    conditions = [copy.deepcopy(c) for c in binding.get("conditions", [])
+                  if c["type"] in {"device_if", "device_unless"}]
+    conditions.append({"type": "expression_if", "expression": _active_expression("agentic_mouse_floating_corsair1_expires_at")})
+    def event(phase):
+        return {"send_user_command": {"payload": {"command": "agentic_mouse_floating_clutch", "source": "corsair1", "phase": phase}}, "repeat": False}
+    return {"description": "Agentic Mouse — Floating Mouse clutch", "manipulators": [{
+        "type": "basic", "from": copy.deepcopy(binding["from"]),
+        "conditions": conditions, "to": [event("press")],
+        "to_after_key_up": [event("release")],
+    }]}
 
 
 def build_color_proof_rule(
@@ -871,8 +1057,8 @@ def build_mode_picker_rule(
         if native:
             to.append(
                 {
-                    "key_code": "period",  # Ethan's Dvorak layout puts semantic V on the ANSI period key; sending ANSI V produced Control-Shift-. and Codex ignored it.
-                    "modifiers": ["left_control", "left_shift"],
+                    "key_code": "f17",  # Hello Chat parity: configured composer.startVoiceMode (Toggle voice chat), independent of Dvorak letter positions.
+                    "modifiers": ["left_command", "left_control", "left_option", "left_shift"],
                     "repeat": False,
                 }
             )
@@ -937,7 +1123,7 @@ def build_mode_picker_rule(
                         "expression": f"{page_variable} == {MODE_PAGE_KEYS}",
                     }
                 )
-            if physical_cell == 11:
+            if physical_cell == UTILITY_APP_SELECTOR_PHYSICAL_CELL:
                 ordinary_conditions.append(
                     {
                         "type": "expression_unless",
@@ -965,6 +1151,34 @@ def build_mode_picker_rule(
                         "expression": f"{page_variable} == {MODE_PAGE_APP_SPECIFIC}",
                     }
                 )
+
+            def append_navigation(from_page, to_page, extra_conditions=()):
+                # Page changes happen in the admitted transport, before a
+                # rapid following press can match the page just left behind.
+                conditions = device_conditions(binding, source=source, active=True)
+                conditions.append({"type": "expression_if", "expression": f"{page_variable} == {from_page}"})
+                conditions.extend(copy.deepcopy(extra_conditions))
+                manipulators.append({
+                    "type": "basic", "from": copy.deepcopy(binding["from"]),
+                    "to": [
+                        {"set_variable": {"name": page_variable, "value": to_page}},
+                        command_event("select", source, physical_cell, "press"),
+                    ],
+                    "to_after_key_up": [command_event("select", source, physical_cell, "release")],
+                    "conditions": conditions,
+                })
+
+            if physical_cell == 12:
+                append_navigation(MODE_PAGE_UTILITY, MODE_PAGE_EXTRA_UTILITIES)
+            if physical_cell == 8:
+                append_navigation(MODE_PAGE_CHROME_WEBSITES, MODE_PAGE_APP_SPECIFIC)
+                append_navigation(MODE_PAGE_APP_SPECIFIC, MODE_PAGE_CHROME_WEBSITES, [
+                    {"type": "expression_if", "expression": f"{app_selection_variable} == {APP_SELECTION_CHROME}"},
+                ])
+                append_navigation(MODE_PAGE_APP_SPECIFIC, MODE_PAGE_CHROME_WEBSITES, [
+                    {"type": "expression_if", "expression": f"{app_selection_variable} == {APP_SELECTION_AUTOMATIC}"},
+                    {"type": "frontmost_application_if", "bundle_identifiers": [r"^com\.google\.Chrome$"]},
+                ])
             manipulators.append(
                 {
                     "type": "basic",
@@ -1006,7 +1220,8 @@ def build_mode_picker_rule(
                     source=source,
                     physical_cell=physical_cell,
                     selection_expression=(
-                        f"{app_selection_variable} == {APP_SELECTION_OTHER}"
+                        f"{app_selection_variable} == {APP_SELECTION_OTHER} or "
+                        f"{app_selection_variable} == {APP_SELECTION_CHROME}"
                     ),
                     native=False,
                 )
@@ -1095,7 +1310,9 @@ def build_mode_picker_rule(
                     }
                 )
 
-            if physical_cell == 11:
+            # Keep the transport page aligned with PhysicalCell's Utility
+            # selector. Cell 11 is a held Zoom control and must retain key-up.
+            if physical_cell == UTILITY_APP_SELECTOR_PHYSICAL_CELL:
                 selector_conditions = device_conditions(binding, source=source, active=True)
                 selector_conditions.append(
                     {
@@ -1151,6 +1368,8 @@ def build_mode_picker_rule(
                                     "value": (
                                         APP_SELECTION_CODEX
                                         if physical_cell == CODEX_SELECTOR_PHYSICAL_CELL
+                                        else APP_SELECTION_CHROME
+                                        if physical_cell == CHROME_SELECTOR_PHYSICAL_CELL
                                         else APP_SELECTION_OTHER
                                     ),
                                 }
@@ -1182,14 +1401,44 @@ def build_mode_picker_rule(
         legend_binding = by_id[mode_picker["bindingsBySource"][source][legend_index]]
         entry_binding = by_id[mode_picker["bindingsBySource"][source][entry_index]]
 
-        # Outside a runtime mode, the universal cell-10 control toggles this
-        # mouse's persistent Default legend. Inside a mode, the higher active
-        # manipulator above uses the same physical cell as universal Exit.
+        enter_binding_id = "corsair-side-07-enter" if source == "corsair" else "razer-side-09-enter"
+        enter_held = f"agentic_mouse_{enter_binding_id.replace('-', '_')}_pending"
+        command_held = f"agentic_mouse_{source}_default_command_held"
+        # Enter may already be down when Command arrives. Consume that held
+        # Enter and send one Command-Enter before the legend can toggle.
+        manipulators.append({
+            "type": "basic",
+            "from": copy.deepcopy(legend_binding["from"]),
+            "to": [
+                {"set_variable": {"name": enter_held, "value": 2}},
+                {"key_code": "return_or_enter", "modifiers": ["left_command"], "repeat": False},
+            ],
+            "conditions": device_conditions(legend_binding, source=source, active=False)
+                + [{"type": "variable_if", "name": enter_held, "value": 1}],
+        })
+
+        # Outside a runtime mode, the universal cell-10 control is a lazy
+        # Command modifier while held and toggles this mouse's persistent
+        # Default legend only on a short press released alone. Holding beyond
+        # the tap window suppresses the legend even when no chord follows.
+        # Inside a mode, the higher active manipulator above uses the same
+        # physical cell as universal Exit.
         manipulators.append(
             {
                 "type": "basic",
                 "from": copy.deepcopy(legend_binding["from"]),
-                "to": [default_legend_event(source)],
+                "to": [
+                    {"set_variable": {"name": command_held, "value": 1}},
+                    {
+                        "key_code": "left_command",
+                        "lazy": True,
+                    }
+                ],
+                "to_if_alone": [default_legend_event(source)],
+                "to_after_key_up": [{"set_variable": {"name": command_held, "value": 0}}],
+                "parameters": {
+                    "basic.to_if_alone_timeout_milliseconds": 300,
+                },
                 "conditions": device_conditions(
                     legend_binding,
                     source=source,

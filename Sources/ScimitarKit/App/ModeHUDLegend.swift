@@ -9,6 +9,95 @@ import Foundation
 public enum ModeHUDControlStatus: Equatable, Hashable, Sendable {
     case normal
     case reportedBroken
+    /// The destination app does not expose an equivalent action on this card.
+    case unavailable
+}
+
+/// How a card works beyond a plain click: hold its button and move the mouse
+/// wheel, or on the wand hold Middle and tilt.
+///
+/// Ethan asked for one design language for "when a button click actually does
+/// the button versus when holding it and doing wheel up or wheel down or wand
+/// up or wand down changes some value". Every card title follows one grammar:
+///
+/// * `Click · Hold ↕` — a plain click does the first part; holding and moving
+///   does the arrowed part.
+/// * `Hold ↕` — only the hold acts; a plain click does nothing.
+/// * No arrow — an ordinary click (or a `Hold …` press with no motion).
+///
+/// The arrow is the motion and always ends the title, so it marks the held
+/// part without a second line. Key-symbol prefixes such as `↑ Up` and
+/// `⌘S Save` keep meaning keys. This is one title, not a subtitle.
+public struct ModeHUDGesture: Equatable, Hashable, Sendable {
+    /// The physical direction that acts, never the Quartz delta sign.
+    public enum Motion: String, Equatable, Hashable, Sendable {
+        /// Up and down both act (opposite steps, or one toggle either way).
+        case upDown
+        /// Only physical wheel down (or wand tilt down) acts.
+        case down
+        /// Only physical wheel up (or wand tilt up) acts.
+        case up
+        /// Left and right; only the wand's armed Switch App moves this way.
+        case leftRight
+
+        public var glyph: String {
+            switch self {
+            case .upDown: return "↕"
+            case .down: return "↓"
+            case .up: return "↑"
+            case .leftRight: return "↔"
+            }
+        }
+
+        fileprivate func spokenMove(on source: MouseSource) -> String {
+            let wand = source == .wand
+            switch self {
+            case .upDown: return wand ? "tilt up or down" : "turn the wheel up or down"
+            case .down: return wand ? "tilt down" : "turn the wheel down"
+            case .up: return wand ? "tilt up" : "turn the wheel up"
+            case .leftRight: return wand ? "tilt left or right" : "move left or right"
+            }
+        }
+    }
+
+    /// What a plain click does, or nil when only the hold acts.
+    public let click: String?
+    /// What holding the button and moving does.
+    public let hold: String
+    public let motion: Motion
+    /// The wand can arm this card and adjust it with the next hold. The mice
+    /// always can; a wand-only gesture is attached only to wand legends.
+    public let isAvailableOnWand: Bool
+    /// How the wand moves for this hold, when it differs from the wheel's
+    /// `motion`. A mouse wheel only turns up and down, but the wand moves
+    /// along each control's own axis (`WheelChordControl.wandAxis`), so
+    /// Spaces, scrolling, tabs, history and Tracks read ↔ on the wand
+    /// (Ethan, 2026-10-30: "why is space is still up or down arrow instead of
+    /// left or right arrow?"). The physical mice keep their wheel arrows.
+    public let wandMotion: Motion?
+
+    public init(click: String? = nil, hold: String, motion: Motion = .upDown, isAvailableOnWand: Bool,
+                wandMotion: Motion? = nil) {
+        self.click = click
+        self.hold = hold
+        self.motion = motion
+        self.isAvailableOnWand = isAvailableOnWand
+        self.wandMotion = wandMotion
+    }
+
+    /// The arrow drawn for `source`: the wand's own axis, or the wheel's.
+    public func motion(on source: MouseSource) -> Motion {
+        source == .wand ? wandMotion ?? motion : motion
+    }
+
+    /// The card's words without the motion arrow, in click-then-hold order.
+    public var words: String {
+        click.map { "\($0) · \(hold)" } ?? hold
+    }
+
+    public func isAvailable(on source: MouseSource) -> Bool {
+        source == .wand ? isAvailableOnWand : true
+    }
 }
 
 /// One cell in the reusable runtime-mode legend shown by Agentic Mouse.
@@ -16,6 +105,8 @@ public enum ModeHUDControlStatus: Equatable, Hashable, Sendable {
 /// cross-device grid and non-activating panel.
 public struct ModeHUDLegendItem: Equatable, Hashable, Sendable {
     public let cell: PhysicalCell
+    /// The card's words. A card with a `gesture` takes them from it, so the
+    /// click and held parts can never drift from their typed definition.
     public let actionTitle: String
     public let accent: RGBColor
     /// Set only when this card opens another mode or submenu. The destination
@@ -29,6 +120,19 @@ public struct ModeHUDLegendItem: Equatable, Hashable, Sendable {
     /// ordinary cards and whole-panel backgrounds never receive this artwork.
     public let appBackdrop: ModeHUDAppBackdrop?
     public let controlStatus: ModeHUDControlStatus
+    /// Present only when holding this button and moving the wheel (or the
+    /// wand) does something. Plain click cards leave it nil.
+    public let gesture: ModeHUDGesture?
+    /// The wand's own title, where the shared one names a physical-mouse
+    /// chord the wand does not perform (Codex's "Pin/Unpin + Hold 2").
+    public private(set) var wandTitle: String?
+
+    /// This card with its wand-only title.
+    public func withWandTitle(_ title: String) -> ModeHUDLegendItem {
+        var copy = self
+        copy.wandTitle = title
+        return copy
+    }
 
     public init(
         cell: PhysicalCell,
@@ -61,13 +165,65 @@ public struct ModeHUDLegendItem: Equatable, Hashable, Sendable {
         self.destinationModeAccent = destinationModeAccent
         self.appBackdrop = appBackdrop
         self.controlStatus = controlStatus
+        self.gesture = nil
+    }
+
+    /// A card whose button also works by holding it and moving the wheel or
+    /// wand. Its words come from the gesture itself.
+    public init(
+        cell: PhysicalCell,
+        gesture: ModeHUDGesture,
+        accent: RGBColor,
+        destinationModeAccent: RGBColor? = nil,
+        appBackdrop: ModeHUDAppBackdrop? = nil,
+        controlStatus: ModeHUDControlStatus = .normal
+    ) {
+        self.cell = cell
+        self.actionTitle = gesture.words
+        self.accent = accent
+        self.destinationModeAccent = destinationModeAccent
+        self.appBackdrop = appBackdrop
+        self.controlStatus = controlStatus
+        self.gesture = gesture
+    }
+
+    /// The title drawn for one source: the words plus the motion arrow when
+    /// that source can perform the hold. A wand card whose hold only the mice
+    /// can perform shows just its click.
+    public func displayTitle(on source: MouseSource) -> String {
+        if source == .wand, let wandTitle { return wandTitle }
+        guard let gesture else { return actionTitle }
+        guard gesture.isAvailable(on: source) else { return gesture.click ?? gesture.hold }
+        return "\(gesture.words) \(gesture.motion(on: source).glyph)"
+    }
+
+    /// Spoken equivalent of the drawn title. The arrows are visual shorthand,
+    /// so this says what the click and the hold each do.
+    public func accessibilityDescription(on source: MouseSource) -> String {
+        if source == .wand, let wandTitle { return wandTitle }
+        guard let gesture else { return actionTitle }
+        guard gesture.isAvailable(on: source) else {
+            return gesture.click ?? "\(gesture.hold), mouse wheel only"
+        }
+        let held = "Hold and \(gesture.motion(on: source).spokenMove(on: source)) for \(gesture.hold)"
+        return gesture.click.map { "\($0). \(held)" } ?? held
     }
 
     /// Keep the repair marker immediately after the source-specific printed
-    /// identifier so the action title stays concise and stable.
+    /// identifier so the action title stays concise and stable. A card that
+    /// does nothing on this source (a mouse-wheel-only card on the wand)
+    /// reuses the unavailable marker.
     public func printedControlLabel(on source: MouseSource) -> String {
         let label = cell.displayLabel(on: source)
-        return controlStatus == .reportedBroken ? "\(label) ❌" : label
+        switch controlStatus {
+        case .normal:
+            if let gesture, gesture.click == nil, !gesture.isAvailable(on: source) {
+                return "\(label) ×"
+            }
+            return label
+        case .reportedBroken: return "\(label) ❌"
+        case .unavailable: return "\(label) ×"
+        }
     }
 }
 
@@ -173,6 +329,9 @@ public enum ModeHUDLayoutMetrics {
     /// Keeps two-line labels and compact keypad previews clear of the card
     /// perimeter without changing the accepted outer grid geometry.
     public static let cardHorizontalContentInset: CGFloat = 12
+    /// A two-part `Click · Hold ↕` grid title may shrink this far before it
+    /// truncates, so neither the click nor the held half is cut off.
+    public static let cardTitleMinimumScale: CGFloat = 0.8
 }
 
 /// Shared fill colours for semantically related HUD actions.
@@ -208,19 +367,40 @@ public enum ModeHUDActionFamilyPalette {
 /// Architectural terms such as "passive" describe implementation behavior,
 /// not Ethan, and must never appear as HUD labels.
 public enum ModeHUDCopy {
+    /// Read the click result first, then the arrowed held-motion result.
+    public static func gestureHint(for source: MouseSource) -> String {
+        source == .wand ? "Click · Hold + tilt" : "Click · Hold + wheel ↕"
+    }
+
     public static let referenceStatus = "BUTTON MAP"
     /// The card only exists inside the legend it controls, so a stable control
     /// name is clearer than state copy that can only ever be seen while open.
-    public static let legendToggleTitle = "Legend toggle"
+    public static let legendToggleTitle = "Legend toggle · Hold ⌘"
+    /// The wand home's cell 10: it closes the wand HUD and holds nothing.
+    public static let wandCloseTitle = "Close"
+    /// Ethan's exact words (2026-10-30), under the wand home's centre Switch
+    /// App: clicks no longer hide the HUD, so this says how to close it.
+    public static let wandDoubleClickCloseHint = "Double click to close"
 
     public static func screenshotActionTitle(
         state: ScreenshotActionPresentationState
     ) -> String {
+        if let gesture = screenshotGesture(state: state) { return gesture.words }
         switch state {
-        case .idle: return "Screenshot · Wheel Paste"
         case .capturing: return "Cancel screenshot"
         case .copying: return "Copying screenshot…"
-        case .pasteReady: return "Screenshot · Wheel Paste"
+        case .idle, .pasteReady: return WheelChordControl.screenshotPaste.hudGesture.words
+        }
+    }
+
+    /// Click captures and hold + wheel down pastes, except while the native
+    /// crosshair or save owns the button: those states show only their status.
+    public static func screenshotGesture(
+        state: ScreenshotActionPresentationState
+    ) -> ModeHUDGesture? {
+        switch state {
+        case .idle, .pasteReady: return WheelChordControl.screenshotPaste.hudGesture
+        case .capturing, .copying: return nil
         }
     }
 
@@ -248,6 +428,73 @@ public struct ModeHUDSelection: Equatable, Sendable {
         self.cell = cell
         self.title = title
         self.accent = accent
+    }
+}
+
+/// Navigation cursor drawn by a pointer-style selection input such as the
+/// wand. It is deliberately separate from `ModeHUDSelection`, which records
+/// the last performed action and drives the mouse action-lighting accent.
+/// `isArmed` marks a held-wheel card that the wand has selected and is now
+/// adjusting without a physical wheel. It changes only the outline treatment;
+/// card titles, printed labels and wheel hints stay exactly as they are.
+public struct ModeHUDPointerFocus: Equatable, Sendable {
+    public let cell: PhysicalCell
+    public let isArmed: Bool
+    /// Progress toward the next card, clamped to -1...1 for the liquid outline.
+    public let pullX: Double
+    public let pullY: Double
+    /// Present only while an armed wheel card is being adjusted by tilt.
+    public let adjustment: ModeHUDWheelAdjustment?
+
+    /// An adjusting card never carries navigation pull: its outline shows
+    /// detent progress instead, so the two residuals can never mix.
+    public init(
+        cell: PhysicalCell,
+        isArmed: Bool = false,
+        pullX: Double = 0,
+        pullY: Double = 0,
+        adjustment: ModeHUDWheelAdjustment? = nil
+    ) {
+        self.cell = cell
+        self.isArmed = isArmed || adjustment != nil
+        self.adjustment = adjustment
+        self.pullX = adjustment == nil && pullX.isFinite ? min(1, max(-1, pullX)) : 0
+        self.pullY = adjustment == nil && pullY.isFinite ? min(1, max(-1, pullY)) : 0
+    }
+}
+
+/// Live state of one wand wheel-adjustment hold.
+///
+/// This describes only the wand input: travel toward the next detent and the
+/// detents handed to the existing wheel dispatcher. It deliberately carries no
+/// destination value, because Agentic Mouse usually cannot observe whether the
+/// app actually changed (the footer keeps saying "sent").
+public struct ModeHUDWheelAdjustment: Equatable, Sendable {
+    /// Travel toward the next detent, -1...1. Same sign as the outline's pull:
+    /// negative stretches toward a physical-up detent, positive toward down.
+    public let pull: Double
+    /// Detents sent during this hold: up minus down.
+    public let netSteps: Int
+    /// Every detent sent during this hold; each increment is one step pulse.
+    public let sentSteps: Int
+    /// The control's wand axis: arrows go left/right instead of above/below.
+    public let isHorizontal: Bool
+    /// Middle is held and the card is listening (Ethan: "a special like glow
+    /// ... to indicate it's being held, like it's listening"). False while a
+    /// selected card waits with Middle up.
+    public let isHeld: Bool
+    /// Direction of the most recently sent detent, if any: "up" is the
+    /// negative screen side (up, or left for a horizontal control).
+    public let lastStepWasUp: Bool?
+
+    public init(pull: Double = 0, netSteps: Int = 0, sentSteps: Int = 0, lastStepWasUp: Bool? = nil,
+                isHorizontal: Bool = false, isHeld: Bool = true) {
+        self.isHorizontal = isHorizontal
+        self.isHeld = isHeld
+        self.pull = pull.isFinite ? min(1, max(-1, pull)) : 0
+        self.netSteps = min(999, max(-999, netSteps))
+        self.sentSteps = min(9_999, max(0, sentSteps))
+        self.lastStepWasUp = self.sentSteps > 0 ? lastStepWasUp : nil
     }
 }
 
@@ -314,6 +561,13 @@ public struct ModeHUDSnapshot: Equatable, Sendable {
     /// Persistent Default and active-mode legends use this as an explicit
     /// reference surface rather than a transient toast.
     public var showsOnAllDisplays: Bool
+    /// Present only while a pointer-style selection input owns this HUD.
+    public var pointerFocus: ModeHUDPointerFocus?
+    public var wandReviewSelection: PhysicalCell? = nil
+    /// The wand's weapon-wheel arrangement of `legend`. Set by the wand
+    /// coordinator from the same definition its selection uses; mice leave it
+    /// nil and keep their physical grid.
+    public var wandRadialLayout: WandRadialLayout? = nil
 
     public var lightingAvailable: Bool { !lightingTargets.isEmpty }
 
@@ -330,7 +584,8 @@ public struct ModeHUDSnapshot: Equatable, Sendable {
         footerHint: String? = nil,
         problem: String? = nil,
         presentationStyle: ModeHUDPresentationStyle = .neutral,
-        showsOnAllDisplays: Bool = false
+        showsOnAllDisplays: Bool = false,
+        pointerFocus: ModeHUDPointerFocus? = nil
     ) {
         self.isActive = isActive
         self.modeTitle = modeTitle
@@ -345,6 +600,7 @@ public struct ModeHUDSnapshot: Equatable, Sendable {
         self.problem = problem
         self.presentationStyle = presentationStyle
         self.showsOnAllDisplays = showsOnAllDisplays
+        self.pointerFocus = pointerFocus
     }
 }
 

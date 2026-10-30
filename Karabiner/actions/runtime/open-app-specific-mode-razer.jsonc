@@ -15,6 +15,18 @@
         }
       },
       "repeat": false
+    }],
+    "to_after_key_up": [{
+      "send_user_command": {
+        "payload": {
+          "command": "agentic_mouse_mode_picker",
+          "action": "openAppSpecific",
+          "source": "razer",
+          "physical_cell": 2,
+          "phase": "release"
+        }
+      },
+      "repeat": false
     }]
   }
 }

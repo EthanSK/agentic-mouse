@@ -10,9 +10,9 @@ older iCUE exclusive-key interception experiment. The remaining gates are:
 
 1. **DPI release timing on the current saved transports.** Corsair F19 and both
    Razer transports, F21 and F22, are installed as release actions. The latest
-   configuration still needs one physical down/up capture and one AgentFlow
+   configuration still needs one physical down/up capture and one VoiceInk
    activation from each control, plus one simultaneous two-button release to
-   prove AgentFlow coalesces it into a single activation.
+   prove VoiceInk++ coalesces it into a single activation.
 
 2. **Typing into real applications.** `postToPid` + `keyboardSetUnicodeString`
    is the standard layout-independent approach, but individual apps vary. Known
@@ -65,8 +65,9 @@ and brightness judgment against the Corsair.
 
 **The accepted live Modes entry is physical cell 12.** That is Corsair printed
 12 and Razer printed 10. Universal physical cell 10 (Corsair printed 10 /
-Razer printed 12) exits the menu and every child mode; outside modes one press
-toggles that source mouse's own Default legend. Shared physical cell 11 owns
+Razer printed 12) exits the menu and every child mode; outside modes a tap
+toggles that source mouse's own Default legend and holding it supplies Command
+to another control. Shared physical cell 11 owns
 Switch App. Physical cell 12 opens Utility immediately.
 Physical cell 3 starts or cancels Screenshot and rapid-double-pastes its copied image
 outside modes; active-mode legends remain visible until cell 10 exits the mode.
@@ -161,8 +162,8 @@ iCUE's database files.
 Corsair neutral keypad transports, while one exact-device Karabiner base maps
 them globally: hold 1 + ratcheted wheel = horizontal scroll, 2 = current
 frontmost-app mode, 3 = Screenshot / rapid-double Paste, hold 4 + ratcheted wheel = Copy / Paste,
-5 = Forward, 6 = YouTube Scrub + Wheel through the AgentFlow bridge, 7 = Enter, 8 = Back,
-9 = Keys mode, 10 = Default legend outside modes / universal Exit,
+5 = Forward, 6 = YouTube Scrub + Wheel through the VoiceInk bridge, 7 = Enter, 8 = Back,
+9 = Keys mode, 10 = tap Default legend or hold Command outside modes / universal Exit,
 11 = Switch App and 12 = Utility.
 Physical cell 3 starts a native selected-area Screenshot outside modes, retains
 the uniquely identified saved path without changing the clipboard, and on a
@@ -177,7 +178,7 @@ there is no separate in-mode legend toggle. Wheel
 click also stays a
 neutral middle-click source and becomes Play/Pause in Karabiner. Every visible
 DPI stage is 2,750. The separate DPI Toggle control emits iCUE's named F19
-neutral transport and exact-device Karabiner triggers AgentFlow on release.
+neutral transport and exact-device Karabiner triggers VoiceInk++ on release.
 The helper prints this table (`agentic-mouse-doctor mapping`) so it can be
 checked, but it never writes either live configuration.
 

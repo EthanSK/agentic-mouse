@@ -43,7 +43,8 @@ final class ClaudeModeActionExecutor {
     }
 
     func perform(_ action: ClaudeModeAction) -> Result<Void, ActionError> {
-        if let shortcut = Self.shortcut(for: action) {
+        let shortcut = Self.shortcut(for: action)
+        if let shortcut {
             return shortcutDispatcher.perform(
                 shortcut,
                 targetBundleIdentifier: ClaudeMode.bundleIdentifier,
@@ -68,17 +69,25 @@ final class ClaudeModeActionExecutor {
         return .success(())
     }
 
-    static func shortcut(
-        for action: ClaudeModeAction
-    ) -> ApplicationShortcutDispatcher.Shortcut? {
+    func performTabStep(_ direction: WheelChordDirection) -> Result<Void, ActionError> {
+        shortcutDispatcher.perform(
+            Self.tabShortcut(for: direction),
+            targetBundleIdentifier: ClaudeMode.bundleIdentifier,
+            targetDisplayName: "Claude"
+        )
+    }
+
+    static func tabShortcut(for direction: WheelChordDirection) -> ApplicationShortcutDispatcher.Shortcut {
+        // Match Codex's held-wheel navigation: up advances, down goes back.
+        .init(keyCode: direction == .up ? 124 : 123,
+              flags: [.maskCommand, .maskAlternate])
+    }
+
+    static func shortcut(for action: ClaudeModeAction) -> ApplicationShortcutDispatcher.Shortcut? {
         switch action {
-        case .settings: return .init(keyCode: 43, flags: .maskCommand)
         case .newChat: return .init(keyCode: 45, flags: .maskCommand)
         case .pressEnter: return .init(keyCode: 36, flags: [])
-        case .reload: return .init(keyCode: 15, flags: .maskCommand)
-        case .previousTab: return .init(keyCode: 123, flags: [.maskCommand, .maskAlternate])
-        case .nextTab: return .init(keyCode: 124, flags: [.maskCommand, .maskAlternate])
-        case .search, .toggleVoiceMode, .toggleMicrophoneMute, .toggleSidebar:
+        case .toggleVoiceMode, .toggleMicrophoneMute:
             return nil
         }
     }
@@ -125,14 +134,12 @@ final class ClaudeModeActionExecutor {
 
     static func acceptedLabels(for action: ClaudeModeAction) -> Set<String> {
         switch action {
-        case .search:
-            return ["search"]
-        case .toggleSidebar:
-            return ["collapse sidebar", "expand sidebar"]
         case .toggleVoiceMode:
-            return ["voice mode", "start voice mode", "end voice mode", "exit voice mode"]
+            return ["voice mode", "use voice mode", "start voice mode",
+                    "end voice mode", "exit voice mode"]
         case .toggleMicrophoneMute:
-            return ["mute", "unmute", "mute microphone", "unmute microphone"]
+            return ["mute", "unmute", "mute microphone", "unmute microphone",
+                    "turn off microphone", "turn on microphone"]
         default:
             return []
         }

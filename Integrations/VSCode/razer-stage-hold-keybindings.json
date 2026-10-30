@@ -1,0 +1,12 @@
+[
+  {
+    "key": "shift+cmd+f20",
+    "command": "better-git-vscode.stage-hold-ready",
+    "args": "razer"
+  },
+  {
+    "key": "shift+cmd+f15",
+    "command": "better-git-vscode.stage-hold-clear",
+    "args": "razer"
+  }
+]

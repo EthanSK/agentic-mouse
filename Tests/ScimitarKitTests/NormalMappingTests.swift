@@ -30,7 +30,7 @@ final class NormalMappingTests: XCTestCase {
     func testUtilityIsCellTwelveSwitchAppIsElevenAndLegendExitIsTen() {
         XCTAssertEqual(ScimitarNormalMapping.normal.assignment(for: 12)?.action, "Utility modes")
         XCTAssertEqual(ScimitarNormalMapping.normal.assignment(for: 11)?.action, "Switch App")
-        XCTAssertEqual(ScimitarNormalMapping.normal.assignment(for: 10)?.action, "Legend toggle / mode exit")
+        XCTAssertEqual(ScimitarNormalMapping.normal.assignment(for: 10)?.action, "Legend toggle · Hold ⌘ / mode exit")
         XCTAssertEqual(PhysicalCell.defaultMapToggle.printedSide(on: .corsair), 10)
         XCTAssertEqual(PhysicalCell.defaultMapToggle.printedSide(on: .razer), 12)
         XCTAssertEqual(PhysicalCell.switchApp.printedSide(on: .corsair), 11)
@@ -79,7 +79,7 @@ final class NormalMappingTests: XCTestCase {
         XCTAssertEqual(ScimitarNormalMapping.normal.assignment(for: 6)?.action, "YouTube · Hold 2× / Scrub + Wheel")
         XCTAssertEqual(
             ScimitarNormalMapping.normal.assignment(for: 6)?.implementation,
-            "Click to rewind five seconds; hold for 350 ms to request temporary 2× speed and restore the prior rate without seeking on release; wheel input cancels speed and scrubs by five seconds per ratchet without focusing Chrome"
+            "Click to rewind five seconds; hold for 350 ms to request temporary 2× speed, keep it during wheel scrubbing, and restore the prior rate on release; scrub by five seconds per ratchet without focusing Chrome"
         )
         XCTAssertEqual(ScimitarNormalMapping.normal.assignment(for: 9)?.action, "Keys mode")
         XCTAssertEqual(
@@ -145,10 +145,10 @@ final class NormalMappingTests: XCTestCase {
                 "One press opens Utility immediately"
             )
             let toggle = profile.assignment(for: 10)
-            XCTAssertEqual(toggle?.action, "Legend toggle / mode exit")
+            XCTAssertEqual(toggle?.action, "Legend toggle · Hold ⌘ / mode exit")
             XCTAssertEqual(
                 toggle?.implementation,
-                "Toggles the persistent Default legend outside modes; universal Exit while a mode is active"
+                "Tap to toggle the persistent Default legend outside modes; hold as Command to combine with another control; universal Exit while a mode is active"
             )
         }
     }

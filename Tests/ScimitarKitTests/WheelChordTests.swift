@@ -383,6 +383,39 @@ final class WheelChordTests: XCTestCase {
         )
     }
 
+    func testAppExposeRoutesFromExtraUtilitiesInsteadOfOrdinaryUtilities() {
+        XCTAssertTrue(
+            WheelChordControl.applicationWindows.isActiveUtilityRoute(
+                page: .extraUtilities,
+                activeControl: .applicationWindows
+            )
+        )
+        XCTAssertFalse(
+            WheelChordControl.applicationWindows.isActiveUtilityRoute(
+                page: .modes,
+                activeControl: .applicationWindows
+            )
+        )
+        XCTAssertFalse(
+            WheelChordControl.applicationWindows.isActiveUtilityRoute(
+                page: .extraUtilities,
+                activeControl: nil
+            )
+        )
+        XCTAssertTrue(
+            WheelChordControl.systemOverview.isActiveUtilityRoute(
+                page: .modes,
+                activeControl: .systemOverview
+            )
+        )
+        XCTAssertFalse(
+            WheelChordControl.systemOverview.isActiveUtilityRoute(
+                page: .extraUtilities,
+                activeControl: .systemOverview
+            )
+        )
+    }
+
     func testContinuousControlsContinueActingForEveryAcceptedEvent() {
         let state = WheelChordStateMachine()
         for control in [
@@ -598,6 +631,37 @@ final class WheelChordTests: XCTestCase {
         )
         XCTAssertNil(WheelChordControl.zoom.codexReasoningEffortAction(for: .up))
         XCTAssertNil(WheelChordControl.zoom.codexChatHistoryAction(for: .up))
+        XCTAssertEqual(WheelChordControl.claudeTabs.claudeTabDirection(for: .up), .up)
+        XCTAssertEqual(WheelChordControl.claudeTabs.claudeTabDirection(for: .down), .down)
+        XCTAssertEqual(WheelChordControl.claudeTabs.feedbackActionTitle(for: .up), "Tab Forward")
+        XCTAssertEqual(WheelChordControl.claudeTabs.feedbackActionTitle(for: .down), "Tab Back")
+        XCTAssertNil(WheelChordControl.codexChatHistory.claudeTabDirection(for: .up))
+        XCTAssertEqual(WheelChordControl.claudePin.diagnosticCell, ClaudeMode.pinToggleCell)
+        XCTAssertEqual(WheelChordControl.claudePin.dispatchPolicy, .oncePerHold)
+        XCTAssertEqual(WheelChordControl.claudePin.feedbackActionTitle(for: .up), "Pin/Unpin")
+        XCTAssertEqual(WheelChordControl.claudePin.feedbackActionTitle(for: .down), "Pin/Unpin")
+    }
+
+    func testCodexSpeedWheelKeepsPhysicalPolarityAndLaterRatchetsOnBothMice() {
+        XCTAssertEqual(WheelChordControl.codexResponseSpeed.codexResponseSpeedAction(for: .down), .increase)
+        XCTAssertEqual(WheelChordControl.codexResponseSpeed.codexResponseSpeedAction(for: .up), .decrease)
+        XCTAssertEqual(CodexResponseSpeedAction.increase.modelBarURL.absoluteString, "codex-model-bar://speed-up")
+        XCTAssertEqual(CodexResponseSpeedAction.decrease.modelBarURL.absoluteString, "codex-model-bar://speed-down")
+        XCTAssertNil(WheelChordControl.codexReasoningEffort.codexResponseSpeedAction(for: .up))
+        for source in MouseSource.allCases {
+            let clock = ManualClock(now: 10)
+            let state = WheelChordStateMachine(clock: clock)
+            state.setActive(.codexResponseSpeed, for: source)
+            guard case .consume = state.route(verticalDelta: -1, isContinuous: false),
+                  case .consumeDebounced = state.route(verticalDelta: -1, isContinuous: false)
+            else { return XCTFail("one raw burst should request one speed step") }
+            clock.advance(by: 0.09)
+            guard case .consume = state.route(verticalDelta: -1, isContinuous: false),
+                  case .consume = state.route(verticalDelta: 1, isContinuous: false)
+            else { return XCTFail("a later ratchet and immediate reversal must both request a step") }
+            state.release(for: source)
+            XCTAssertEqual(state.route(verticalDelta: -1, isContinuous: false), .passThrough)
+        }
     }
 
     func testYouTubeVolumeDiagnosticsUseTheScrubControlCell() {
@@ -834,6 +898,8 @@ final class WheelChordTests: XCTestCase {
             (.mediaTracks, .down, "Next Track"),
             (.vsCodeCursorHistory, .up, "Cursor History Forward"),
             (.vsCodeCursorHistory, .down, "Cursor History Back"),
+            (.vsCodeStageRange, .up, "Stage Selection Down"),
+            (.vsCodeStageRange, .down, "Stage Selection Up"),
         ]
 
         for (control, direction, expected) in expectations {
@@ -845,6 +911,13 @@ final class WheelChordTests: XCTestCase {
         }
 
         for control in WheelChordControl.allCases {
+            // Native paired placement supplies feedback after both frame
+            // readbacks, rather than claiming completion when merely queued.
+            if control == .chromeVSCodeLayout {
+                XCTAssertNil(control.feedbackActionTitle(for: .up))
+                XCTAssertNil(control.feedbackActionTitle(for: .down))
+                continue
+            }
             for direction in [WheelChordDirection.up, .down] where control.accepts(direction) {
                 XCTAssertNotNil(
                     control.feedbackActionTitle(for: direction),
@@ -907,6 +980,7 @@ final class WheelChordTests: XCTestCase {
         XCTAssertNil(WheelChordControl.spotifyVolume.topLevelCell)
         XCTAssertNil(WheelChordControl.mediaTracks.topLevelCell)
         XCTAssertNil(WheelChordControl.vsCodeCursorHistory.topLevelCell)
+        XCTAssertNil(WheelChordControl.vsCodeStageRange.topLevelCell)
         XCTAssertEqual(WheelChordControl.topLevelControl(for: PhysicalCell(rawValue: 1)!), .horizontalScroll)
         XCTAssertEqual(WheelChordControl.topLevelControl(for: PhysicalCell(rawValue: 4)!), .clipboard)
         XCTAssertEqual(WheelChordControl.topLevelControl(for: PhysicalCell(rawValue: 6)!), .youtubeScrub)
@@ -919,38 +993,49 @@ final class WheelChordTests: XCTestCase {
         XCTAssertNil(WheelChordControl.horizontalScroll.topLevelSystemAction(for: .up))
     }
 
-    func testKeysTracksWheelUsesCellNineAndActsOncePerPhysicalHold() {
+    func testKeysTracksWheelUsesCellNineAndActsOncePerRatchet() {
         let cell = PhysicalCell.mediaTracksWheelControl
 
         XCTAssertEqual(WheelChordControl.keysControl(for: cell), .mediaTracks)
         XCTAssertNil(WheelChordControl.keysControl(for: PhysicalCell(rawValue: 8)!))
         XCTAssertEqual(WheelChordControl.mediaTracks.diagnosticCell, cell)
-        XCTAssertEqual(WheelChordControl.mediaTracks.dispatchPolicy, .oncePerHold)
+        XCTAssertEqual(
+            WheelChordControl.mediaTracks.dispatchPolicy,
+            .debounced(minimumInterval: 0.08)
+        )
 
-        let state = WheelChordStateMachine()
+        let clock = ManualClock(now: 10)
+        let state = WheelChordStateMachine(clock: clock)
         state.setActive(.mediaTracks, for: .corsair)
         guard case .consume(let first) = state.route(verticalDelta: -1, isContinuous: false),
-              case .consumeAfterFirstHoldAction(let sameDirection) = state.route(
+              case .consumeDebounced(let duplicate) = state.route(
                 verticalDelta: -1,
                 isContinuous: false
-              ),
-              case .consumeAfterFirstHoldAction(let reversed) = state.route(
-                verticalDelta: 1,
-                isContinuous: false
               )
-        else { return XCTFail("only the first media ratchet should dispatch during one hold") }
+        else { return XCTFail("one physical media ratchet should dispatch once") }
         XCTAssertEqual(first.direction, .down)
         XCTAssertEqual(first.detentCount, 1)
-        XCTAssertEqual(sameDirection.detentCount, 2)
-        XCTAssertEqual(reversed.direction, .up)
-        XCTAssertEqual(reversed.detentCount, 3)
+        XCTAssertEqual(duplicate.detentCount, 2)
 
-        state.setActive(.mediaTracks, for: .corsair)
-        guard case .consumeAfterFirstHoldAction(let duplicatePress) = state.route(
+        clock.advance(by: 0.081)
+        guard case .consume(let nextRatchet) = state.route(
             verticalDelta: -1,
             isContinuous: false
-        ) else { return XCTFail("a duplicate press command must not re-arm Tracks") }
-        XCTAssertEqual(duplicatePress.detentCount, 4)
+        ), case .consume(let reversed) = state.route(
+            verticalDelta: 1,
+            isContinuous: false
+        ) else { return XCTFail("later ratchets and immediate reversals should dispatch") }
+        XCTAssertEqual(nextRatchet.direction, .down)
+        XCTAssertEqual(nextRatchet.detentCount, 3)
+        XCTAssertEqual(reversed.direction, .up)
+        XCTAssertEqual(reversed.detentCount, 4)
+
+        state.setActive(.mediaTracks, for: .corsair)
+        guard case .consume(let duplicatePress) = state.route(
+            verticalDelta: -1,
+            isContinuous: false
+        ) else { return XCTFail("a duplicate press must preserve the active ratchet timeline") }
+        XCTAssertEqual(duplicatePress.detentCount, 5)
         XCTAssertTrue(state.release(.mediaTracks, for: .corsair)?.didObserveWheelInput == true)
 
         state.setActive(.mediaTracks, for: .corsair)
@@ -1040,6 +1125,98 @@ final class WheelChordTests: XCTestCase {
         XCTAssertEqual(WheelChordControl.vsCodeCursorHistory.diagnosticCell, cell)
     }
 
+    func testVSCodeStageRangeUsesPhysicalWheelPolarityAndRatchetCoalescing() {
+        XCTAssertEqual(
+            WheelChordControl.vsCodeStageRange.vsCodeStageSelectionDirection(for: .down),
+            .up
+        )
+        XCTAssertEqual(
+            WheelChordControl.vsCodeStageRange.vsCodeStageSelectionDirection(for: .up),
+            .down
+        )
+        XCTAssertNil(WheelChordControl.clipboard.vsCodeStageSelectionDirection(for: .up))
+        XCTAssertEqual(
+            WheelChordControl.vsCodeStageRange.vsCodeStagePreviewDirection(for: .up),
+            .next
+        )
+        XCTAssertEqual(
+            WheelChordControl.vsCodeStageRange.vsCodeStagePreviewDirection(for: .down),
+            .previous
+        )
+        XCTAssertNil(WheelChordControl.clipboard.vsCodeStagePreviewDirection(for: .up))
+        XCTAssertEqual(
+            WheelChordControl.vsCodeStageRange.dispatchPolicy,
+            .coalescedRatchet(quietGap: 0.15)
+        )
+    }
+
+    func testHeldStagePreviewDispatchesEveryRapidRatchetInBothDirections() {
+        for source in MouseSource.allCases {
+            let clock = ManualClock()
+            let state = WheelChordStateMachine(clock: clock)
+            state.setActive(.vsCodeStageRange, for: source)
+            // All sixty events fit inside the ordinary 150 ms quiet gap.
+            for index in 0..<60 {
+                clock.advance(by: 0.001)
+                let delta: Int64 = index < 40 ? 1 : -1
+                XCTAssertEqual(
+                    state.route(verticalDelta: delta, isContinuous: true, stagePreviewSource: source),
+                    .consume(.init(source: source, control: .vsCodeStageRange,
+                        direction: delta > 0 ? .up : .down, detentCount: index + 1))
+                )
+            }
+            XCTAssertEqual(state.release(.vsCodeStageRange, for: source)?.didObserveWheelInput, true)
+            XCTAssertEqual(
+                state.route(verticalDelta: 1, isContinuous: false, stagePreviewSource: source),
+                .passThrough
+            )
+        }
+    }
+
+    func testLeavingHeldStagePreviewRestoresRangeQuietGapWithNoStaleDelay() {
+        let clock = ManualClock()
+        let state = WheelChordStateMachine(clock: clock)
+        state.setActive(.vsCodeStageRange, for: .corsair)
+        guard case .consume = state.route(verticalDelta: 1, isContinuous: false),
+              case .consumeDebounced = state.route(verticalDelta: 1, isContinuous: false)
+        else { return XCTFail("Ordinary stage selection should retain its duplicate filter") }
+        guard case .consume = state.route(verticalDelta: 1, isContinuous: false, stagePreviewSource: .corsair),
+              case .consume = state.route(verticalDelta: 1, isContinuous: false, stagePreviewSource: .corsair),
+              case .consume = state.route(verticalDelta: 1, isContinuous: false),
+              case .consumeDebounced = state.route(verticalDelta: 1, isContinuous: false)
+        else { return XCTFail("Preview bypasses the filter; releasing the modifier starts normal range cadence") }
+        clock.advance(by: 0.151)
+        guard case .consume = state.route(verticalDelta: 1, isContinuous: false)
+        else { return XCTFail("The next ordinary ratchet must remain usable") }
+    }
+
+    func testStagePreviewCadenceCannotBypassAnotherMouseOrAnotherControl() {
+        for control in [WheelChordControl.vsCodeStageRange, .youtubeScrub, .clipboard, .vsCodeCursorHistory] {
+            let state = WheelChordStateMachine(clock: ManualClock())
+            state.setActive(control, for: .razer)
+            // Even a same-source preview flag cannot change another control.
+            let previewSource: MouseSource = control == .vsCodeStageRange ? .corsair : .razer
+            guard case .consume = state.route(verticalDelta: 1, isContinuous: false, stagePreviewSource: previewSource),
+                  case .consumeDebounced = state.route(verticalDelta: 1, isContinuous: false, stagePreviewSource: previewSource)
+            else { return XCTFail("\(control) must retain its ordinary cadence") }
+        }
+    }
+
+    func testHeldStagePreviewKeepsTrackpadAmbiguityAndTeardownGuards() {
+        let state = WheelChordStateMachine(clock: ManualClock())
+        state.setActive(.vsCodeStageRange, for: .corsair)
+        XCTAssertEqual(state.route(verticalDelta: 1, isContinuous: true, scrollPhase: 2,
+            stagePreviewSource: .corsair), .passThrough)
+        XCTAssertEqual(state.route(verticalDelta: 1, isContinuous: true, momentumPhase: 2,
+            stagePreviewSource: .corsair), .passThrough)
+        state.setActive(.vsCodeStageRange, for: .razer)
+        XCTAssertEqual(state.route(verticalDelta: 1, isContinuous: false,
+            stagePreviewSource: .corsair), .consumeAmbiguous)
+        state.clearAll()
+        XCTAssertEqual(state.route(verticalDelta: 1, isContinuous: false,
+            stagePreviewSource: .corsair), .passThrough)
+    }
+
     func testTopLevelCommandPreservesSourceControlAndReleasePhase() throws {
         let command = WheelChordCommand(
             control: .horizontalScroll,
@@ -1067,6 +1244,15 @@ final class WheelChordTests: XCTestCase {
         XCTAssertEqual(
             try WheelChordCommand.decodeTopLevel(JSONEncoder().encode(youtube)),
             youtube
+        )
+        let stageRange = WheelChordCommand(
+            control: .vsCodeStageRange,
+            source: .corsair,
+            phase: .press
+        )
+        XCTAssertEqual(
+            try WheelChordCommand.decodeTopLevel(JSONEncoder().encode(stageRange)),
+            stageRange
         )
 
         let utilityOnly = WheelChordCommand(
