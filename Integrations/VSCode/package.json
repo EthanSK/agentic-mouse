@@ -4,7 +4,7 @@
   "description": "Executes the small, allow-listed set of VS Code commands requested by Agentic Mouse.",
   "version": "0.1.1",
   "publisher": "ethansk",
-  "license": "MIT",
+  "license": "SEE LICENSE IN LICENSE",
   "engines": {
     "vscode": "^1.83.0"
   },
