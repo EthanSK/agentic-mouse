@@ -2,7 +2,7 @@ import XCTest
 import ScimitarKit
 @testable import AgenticMouseApp
 
-/// Receiver-shaped Middle gestures through the real coordinator, virtual
+/// Receiver-shaped HUD button gestures through the real coordinator, virtual
 /// wheel policy and Copy/Paste executor. Keyboard output is captured, never
 /// posted into Ethan's live app or clipboard.
 @MainActor
@@ -33,13 +33,13 @@ final class WandClipboardRoutingTests: XCTestCase {
         let layout=target.wandRadialLayout
         let start=WandRadialNavigator.restingPosition(of:.switchApp,in:layout)
         let goal=WandRadialNavigator.restingPosition(of:cell,in:layout)
-        // Wedge selection: unheld aiming, then the receiver parks it as Middle goes down.
+        // Wedge selection: unheld aiming, then the receiver parks it as the HUD button goes down.
         persistent.handle(.init(.hover,id:"held-aim"))
         persistent.handle(.init(.motion,id:"held-aim",sequence:1,x:goal.x-start.x,y:goal.y-start.y))
         persistent.handle(.init(.park,id:"held-aim",sequence:2))
         XCTAssertNil(wheel.activeControl,"aiming never operates the card")
         persistent.handle(.init(.navigate,id:"held-adjust"))
-        XCTAssertNil(wheel.activeControl,"Middle down listens; nothing is pressed until the wand moves")
+        XCTAssertNil(wheel.activeControl,"HUD button down listens; nothing is pressed until the wand moves")
         persistent.handle(.init(.motion,id:"held-adjust",sequence:1,y:-7))
         XCTAssertEqual(wheel.activeControl,.clipboard,"the first step holds Copy/Paste")
         XCTAssertEqual(actions,[.copy],"held up means Copy")
@@ -88,10 +88,10 @@ final class WandClipboardRoutingTests: XCTestCase {
         XCTAssertEqual(persistent.armedCell,cell)
         XCTAssertNil(wheel.activeControl,"selected, nothing pressed")
         XCTAssertTrue(actions.isEmpty);XCTAssertEqual(spaces,0)
-        // Held-only: with Middle up nothing listens.
+        // Held-only: with the HUD button up nothing listens.
         persistent.handle(.init(.hover,id:"clipboard-free"))
         persistent.handle(.init(.motion,id:"clipboard-free",sequence:1,y:-7))
-        XCTAssertTrue(actions.isEmpty,"Middle up never copies or pastes")
+        XCTAssertTrue(actions.isEmpty,"HUD button up never copies or pastes")
         persistent.handle(.init(.park,id:"clipboard-free",sequence:2))
         persistent.handle(.init(.navigate,id:"clipboard-adjust"))
         persistent.handle(.init(.motion,id:"clipboard-adjust",sequence:1,y:-7))
@@ -101,7 +101,7 @@ final class WandClipboardRoutingTests: XCTestCase {
         persistent.handle(.init(.park,id:"clipboard-adjust",sequence:3))
         persistent.handle(.init(.choose,id:"clipboard-adjusted"))
         XCTAssertEqual(persistent.armedCell,cell,"release keeps it selected");XCTAssertNil(wheel.activeControl)
-        // A Middle click deselects and types no Space.
+        // A HUD button click deselects and types no Space.
         persistent.handle(.init(.navigate,id:"clipboard-exit"))
         persistent.handle(.init(.park,id:"clipboard-exit",sequence:1))
         persistent.handle(.init(.activate,id:"clipboard-done"))

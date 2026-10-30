@@ -756,7 +756,7 @@ public struct WandSelectionPolicy: Equatable, Sendable {
     /// Slower apparent motion is treated as residual gyro bias, not intent.
     public var driftFloorDegreesPerSecond: Double
     /// The receiver must send a message (a repeated `update` is fine) at least
-    /// this often while the top button is held; silence is a lost release.
+    /// this often while the HUD button is held; silence is a lost release.
     public var gestureStallTimeout: TimeInterval
     public var maximumGestureDuration: TimeInterval
     public var armedIdleTimeout: TimeInterval

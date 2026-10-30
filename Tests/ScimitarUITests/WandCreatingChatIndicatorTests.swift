@@ -3,7 +3,7 @@ import SwiftUI
 @testable import ScimitarUI
 import XCTest
 
-/// Ethan's double-Top create-chat status reuses the review reminder's slot.
+/// Ethan's create-chat status (double-clicking the speech button) reuses the review reminder's slot.
 @MainActor
 final class WandCreatingChatIndicatorTests: XCTestCase {
     func testRenderStatusCapsulesForVisualInspection() throws {

@@ -4,10 +4,10 @@ import CoreFoundation
 /// A parked outline and a separate native press/release lifecycle. The wand
 /// never fabricates Corsair input: it uses the same coordinator under its own source.
 public struct WandPersistentCommand: Equatable {
-    /// `activate` is a Middle tap on the outlined card. `choose` is the
-    /// release of a Middle hold on it: the same action, except a wheel card
+    /// `activate` is a HUD button tap on the outlined card. `choose` is the
+    /// release of a HUD button hold on it: the same action, except a wheel card
     /// enters dotted mode and home Switch App is armed for the next hold.
-    /// `toggleReview` is the receiver's short double Middle while a review
+    /// `toggleReview` is the receiver's short HUD button double click while a review
     /// mode is selected: it flips Review changes ⇄ Stage files and nothing else.
     public enum Phase: String { case open, appSpecific, hover, navigate, qualify, motion, park, press, release, activate, choose, dismiss, exitReview, toggleReview }
     public let phase: Phase
@@ -49,10 +49,15 @@ public struct WandPersistentCommand: Equatable {
     }
 }
 
+/// The wand's three buttons (Ethan, 2026-10-30): the HUD button (previously
+/// "Middle"), the mouse button (previously "Bottom") and the speech button
+/// (previously "Top"); double-clicking the speech button was "double Top".
+/// The receiver's wire phases below keep their names.
+///
 /// Ethan's wand HUD ("hotbar"; he calls its cards widgets, wedges or menu
 /// triggers), final 2026-10-29 rules:
 ///
-/// * Holding Middle shows the HUD and moves the outline; releasing uses the
+/// * Holding the HUD button shows the HUD and moves the outline; releasing uses the
 ///   outlined card. A one-press card acts once on release (also after a hold
 ///   from closed, steered to it) and the HUD stays open on it (2026-10-30;
 ///   home Screenshot alone parks it for the crosshair). A card that opens a page
@@ -62,12 +67,12 @@ public struct WandPersistentCommand: Equatable {
 ///   only. Ethan: "if it's something that requires like swipes of the wand,
 ///   then let's make it so it only is registering my action while I'm
 ///   holding the HUD button down. And then when I release it, it stops."
-///   Holding Middle on one adjusts it at once along its own axis; a click or
-///   a still held release selects it (dots). While dotted and Middle is up,
+///   Holding the HUD button on one adjusts it at once along its own axis; a click or
+///   a still held release selects it (dots). While dotted and the HUD button is up,
 ///   wand motion does nothing, so the wand can be reset; the next hold
 ///   adjusts it again with a listening glow; a tap leaves dotted mode. The
 ///   card's press is only sent with the first actual step and is released
-///   with Middle, so a hold without movement never fires its click action.
+///   with the HUD button, so a hold without movement never fires its click action.
 ///   Values (Zoom, Volume, Brightness, Speed, Effort) step continuously;
 ///   one-action controls (Mission Control, Spaces, Pin) act once per quick
 ///   swipe and re-arm after the wand settles, only while held.
@@ -86,7 +91,7 @@ public struct WandPersistentCommand: Equatable {
 ///   (`WandJourneyBookmark`) is only taken when Screenshot parks it, which
 ///   happens on home. Double-click dismissal, lock and teardown forget it.
 ///
-/// | HUD state                 | Middle up (unheld motion)  | Middle held                          |
+/// | HUD state                 | HUD button up (unheld)     | HUD button held                      |
 /// |---------------------------|----------------------------|--------------------------------------|
 /// | wedge selection, ordinary | moves the outline          | aims; release uses the card          |
 /// | wedge selection, wheel    | moves the outline          | adjusts it; release stops            |
@@ -96,7 +101,7 @@ public final class WandPersistentController {
     public static let followUpLinger: TimeInterval = 2
     /// Unit conversion, not a second sensitivity curve: at the reference HIGH
     /// gain, the existing seven-degree detent spans 604.8 mouse counts. The
-    /// receiver owns Ethan's live mouse gain/response and excludes Bottom LOW.
+    /// receiver owns Ethan's live mouse gain/response and excludes the mouse button's LOW lane.
     private static let switchAppReferenceGain: Double = 86.4
     public var onAdjustStep: ((WheelChordDirection)->Bool)?
     /// Lets a held one-action wheel control act again after a fresh swipe.
@@ -120,11 +125,11 @@ public final class WandPersistentController {
         var adjusting=false
         /// The wheel control being adjusted; nil for the Switch App chooser.
         var control:WheelChordControl?
-        /// The card's press (or Command) has been sent; released with Middle.
+        /// The card's press (or Command) has been sent; released with the HUD button.
         var pressed=false
         /// Started on a dotted card: release keeps it dotted.
         var fromDotted=false
-        /// The receiver's Bottom-held `press`/`release` lane: pressed at once,
+        /// The receiver's mouse-button-held `press`/`release` lane: pressed at once,
         /// ended by `release`, never followed by activate/choose.
         var legacy=false
         var tracker = WandAdjustDetentTracker()
@@ -198,7 +203,7 @@ public final class WandPersistentController {
         return current.cell.wandReviewMode
     }
     public var focusedCell:PhysicalCell? { isOpen ? target.pointerFocus?.cell ?? selected : nil }
-    /// True only while a real Middle hold is choosing apps on home Switch App.
+    /// True only while a real HUD button hold is choosing apps on home Switch App.
     /// Derived, never stored, so aiming, armed-but-unheld Switch App, wheel
     /// cards, child pages (cell 11 is Zoom there), dismiss, lock, page change
     /// and stale telemetry all read false.
@@ -247,7 +252,7 @@ public final class WandPersistentController {
                 return
             }
         }
-        // Middle exits the independent review lane without opening another HUD.
+        // The HUD button exits the independent review lane without opening another HUD.
         if command.phase == .exitReview {
             clearReviewSelection();releaseHeldPress();clearGesture();ownsHUD=false;repeatKeysGeneration=nil
             if target.isActive {target.exit(reason:.userRequested)}
@@ -310,7 +315,7 @@ public final class WandPersistentController {
             // a card); on a dotted card it does nothing, so the wand resets.
             guard command.id != lastFinished else { return }
             if let current=hold, current.id == command.id { return }
-            // `hover` only streams while Middle is up: a held gesture still
+            // `hover` only streams while the HUD button is up: a held gesture still
             // open here lost its park. Finish it as its park would have.
             if let current=hold, current.held {
                 hold=nil;lastFinished=current.id
@@ -382,7 +387,7 @@ public final class WandPersistentController {
                 break
             }
             armed=nil
-            // Held Middle on an adjustable wheel card in wedge selection adjusts it.
+            // A held HUD button on an adjustable wheel card in wedge selection adjusts it.
             if !opening, let control=target.wandAdjustableControl(for:selected) {
                 beginAdjust(command,cell:selected,control:control,fromDotted:false)
                 break
@@ -471,7 +476,7 @@ public final class WandPersistentController {
 
     // MARK: Held gestures
 
-    /// Middle went down on an adjustable card: listen. Nothing is pressed
+    /// The HUD button went down on an adjustable card: listen. Nothing is pressed
     /// until the first actual step.
     private func beginAdjust(_ command:WandPersistentCommand,cell:PhysicalCell,control:WheelChordControl,fromDotted:Bool) {
         var current=Hold(id:command.id,sequence:command.sequence,received:clock.now,
@@ -524,7 +529,7 @@ public final class WandPersistentController {
             return
         }
         if current.legacy, current.adjusting || current.control != nil {
-            // Bottom-held operation ends with its own release; the HUD stays.
+            // A mouse-button-held operation ends with its own release; the HUD stays.
             releasePress(current)
             keepOutline(after:current.cell,generation:current.pageGeneration)
             return
@@ -659,7 +664,7 @@ public final class WandPersistentController {
     /// new page. Only a double click (or Close, lock, teardown) closes it.
     /// A quick tap from closed on home Switch App stays the fast app switch
     /// and parks the HUD. (Home Screenshot used to park it too; it left the
-    /// wand home on 2026-10-30, and the Bottom triple-click owns screenshots.)
+    /// wand home on 2026-10-30, and the mouse button triple-click owns screenshots.)
     private func finishAction(_ cell:PhysicalCell,generation:UInt64) {
         guard target.isActive else {return}
         if target.pageGeneration != generation {
@@ -709,7 +714,7 @@ public final class WandPersistentController {
         return angleDelta
     }
 
-    /// Dots on a selected card, Middle up: nothing listens.
+    /// Dots on a selected card, HUD button up: nothing listens.
     private func showDotted(_ card:ArmedCard) {
         guard target.isActive else {return}
         selected=card.cell

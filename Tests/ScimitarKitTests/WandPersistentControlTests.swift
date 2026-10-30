@@ -330,7 +330,7 @@ extension WandPersistentControlTests {
             control.handle(.init(.motion,id:"high-stream",sequence:n+1,x:100+Double(n)*10,
                                  mouseX:500+Double(n)*30.24))
         }
-        // A Middle hold presses Command with its first detent: Command-Tab
+        // A HUD button hold presses Command with its first detent: Command-Tab
         // itself highlights the next app, so that detent sends no extra step.
         XCTAssertTrue(switched.isEmpty,"604.8 HIGH counts are one seven-degree reference detent: Command-Tab")
         control.handle(.init(.motion,id:"high-stream",sequence:22,x:300,mouseX:500+2*604.8))
@@ -437,7 +437,7 @@ extension WandPersistentControlTests {
         control.onContext={contexts.append($0)}
         control.refreshContext(screenshotActive:true)
         // A quick Switch App tap from closed parks the HUD; capture context
-        // (now the Bottom triple-click's) must outlive that linger.
+        // (now the mouse button triple-click's) must outlive that linger.
         control.handle(.init(.dismiss,id:"close-first"))
         control.handle(.init(.navigate,id:"quick-tap"))
         control.handle(.init(.activate,id:"hide-during-capture"))

@@ -34,7 +34,8 @@ public struct SelectedAreaScreenshotCommand: Equatable, Codable, Sendable {
 }
 
 
-/// Receiver-only start for Ethan's Bottom triple-click. Retries never toggle
+/// Receiver-only start for Ethan's mouse button triple-click (previously
+/// "Bottom triple-click"). Retries never toggle
 /// an existing native selection off. The ordinary mouse toggle is unchanged.
 public struct WandScreenshotStartCommand: Decodable, Equatable, Sendable {
     public static let commandName = "agentic_mouse_wand_screenshot_start"

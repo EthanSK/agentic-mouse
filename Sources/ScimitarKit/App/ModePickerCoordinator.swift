@@ -1146,7 +1146,7 @@ public final class ModePickerCoordinator {
         var value = resolveWandHomeSnapshot?() ?? DefaultMapLegend.snapshot(source: .wand, frontmostAppContext: resolveFrontmostApp?())
         value.source = .wand
         // Ethan (2026-10-30): Screenshot leaves the wand home; its slot holds
-        // New Codex chat, and the receiver's Bottom triple-click still takes a
+        // New Codex chat, and the receiver's mouse button triple-click still takes a
         // screenshot. The physical mice keep their Screenshot card.
         value.legend.removeAll { $0.cell == .screenshotToggle }
         value.legend.append(ModeHUDLegendItem(cell: .wandPlayPause, actionTitle: "Play/Pause", accent: ModeHUDActionFamilyPalette.media))
