@@ -1,6 +1,7 @@
 import Foundation
 
-/// Double Top's external progress display only. Agent Flow owns the actual
+/// External progress display for double-clicking the speech button (previously
+/// "Double Top") only. Agent Flow owns the actual
 /// new-chat/focus/recording operation; this packet never dispatches an input.
 public struct WandChatCreationStatusCommand: Decodable, Equatable, Sendable {
     public static let commandName = "agentic_mouse_wand_chat_creation_status"

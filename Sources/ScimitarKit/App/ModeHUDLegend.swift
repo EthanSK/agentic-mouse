@@ -14,7 +14,7 @@ public enum ModeHUDControlStatus: Equatable, Hashable, Sendable {
 }
 
 /// How a card works beyond a plain click: hold its button and move the mouse
-/// wheel, or on the wand hold Middle and tilt.
+/// wheel, or on the wand hold the HUD button and tilt.
 ///
 /// Ethan asked for one design language for "when a button click actually does
 /// the button versus when holding it and doing wheel up or wheel down or wand
@@ -479,9 +479,9 @@ public struct ModeHUDWheelAdjustment: Equatable, Sendable {
     public let sentSteps: Int
     /// The control's wand axis: arrows go left/right instead of above/below.
     public let isHorizontal: Bool
-    /// Middle is held and the card is listening (Ethan: "a special like glow
+    /// The HUD button is held and the card is listening (Ethan: "a special like glow
     /// ... to indicate it's being held, like it's listening"). False while a
-    /// selected card waits with Middle up.
+    /// selected card waits with the HUD button up.
     public let isHeld: Bool
     /// Direction of the most recently sent detent, if any: "up" is the
     /// negative screen side (up, or left for a horizontal control).

@@ -276,7 +276,7 @@ public enum WandRingOrder {
     /// bottom right with Back left of Forward, and editing on the left
     /// (Enter, Copy / Paste, New Codex chat), then Close beside Keys.
     /// Ethan (2026-10-30): "screenshot removal then and put the new Codex chat
-    /// thing there"; the wand's screenshot is its Bottom triple-click.
+    /// thing there"; the wand's screenshot is its mouse button triple-click.
     public static let home: [PhysicalCell] = [.modePickerEntry, .wandPlayPause]
         + cells([6, 1, 5, 8, 7, 4]) + [.wandCodexNewChat] + cells([10, 9, 2])
 

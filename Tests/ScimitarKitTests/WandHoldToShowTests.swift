@@ -2,8 +2,8 @@ import XCTest
 @testable import ScimitarKit
 
 /// Ethan's hold-to-show wand HUD, driven through the real coordinator with
-/// inert outputs exactly as the receiver drives it: Middle down `navigate`,
-/// held `motion`, Middle up `park` then `choose` (a held release) or a
+/// inert outputs exactly as the receiver drives it: HUD button down `navigate`,
+/// held `motion`, HUD button up `park` then `choose` (a held release) or a
 /// delayed `activate` (a tap).
 final class WandHoldToShowTests: XCTestCase {
     private var clock: ManualClock!
@@ -51,13 +51,13 @@ final class WandHoldToShowTests: XCTestCase {
 
     private func nextID(_ phase: String) -> String { counter += 1; return "\(phase)-\(counter)-wand" }
 
-    /// Middle down from closed: open and steer.
+    /// HUD button down from closed: open and steer.
     private func holdFromClosed() -> String {
         control.handle(.init(.open, id: nextID("open")))
         return hold()
     }
 
-    /// Middle down on an open HUD: steer it, or adjust an armed card.
+    /// HUD button down on an open HUD: steer it, or adjust an armed card.
     @discardableResult
     private func hold() -> String {
         let id = nextID("navigate")
@@ -187,10 +187,10 @@ final class WandHoldToShowTests: XCTestCase {
     // MARK: Cards that need more motion
 
     /// Ethan: in dotted mode "it should just be responding to ... wand
-    /// movements" without holding Middle, "and then I can click to exit".
+    /// movements" without holding the HUD button, "and then I can click to exit".
     func testReleasingOnAWheelCardSelectsItAndOnlyAHoldAdjustsIt() {
         // Held-only rule (Ethan, 2026-10-29 amendment): a release selects the
-        // card (dots) without pressing; Middle up never adjusts; a hold does.
+        // card (dots) without pressing; HUD button up never adjusts; a hold does.
         let id = holdFromClosed()
         let scroll = PhysicalCell(rawValue: 1)!
         aim(id, at: scroll)
@@ -202,7 +202,7 @@ final class WandHoldToShowTests: XCTestCase {
         let unheld = nextID("hover")
         control.handle(.init(.hover, id: unheld))
         control.handle(.init(.motion, id: unheld, sequence: 1, x: -12.5, y: 0))
-        XCTAssertTrue(adjustSteps.isEmpty, "Middle up never adjusts")
+        XCTAssertTrue(adjustSteps.isEmpty, "HUD button up never adjusts")
         control.handle(.init(.park, id: unheld, sequence: 2))
         XCTAssertEqual(control.armedCell, scroll, "still selected")
         let held = hold()
@@ -389,7 +389,7 @@ final class WandHoldToShowTests: XCTestCase {
         XCTAssertEqual(homeActions, [.wandPlayPause])
     }
 
-    // MARK: Holding Middle on a wheel card in wedge selection
+    // MARK: Holding the HUD button on a wheel card in wedge selection
 
     /// Opens Utilities by hold-aim-release, leaving it in wedge selection.
     private func openUtilities() {
@@ -400,7 +400,7 @@ final class WandHoldToShowTests: XCTestCase {
         XCTAssertTrue(control.isOpen)
     }
 
-    /// Unheld aiming, then the receiver parks the stream as Middle goes down.
+    /// Unheld aiming, then the receiver parks the stream as the HUD button goes down.
     private func hoverAim(at cell: PhysicalCell) {
         let id = nextID("hover")
         control.handle(.init(.hover, id: id))
@@ -544,7 +544,7 @@ final class WandHoldToShowTests: XCTestCase {
         XCTAssertTrue(target.isWandHome)
         XCTAssertEqual(control.focusedCell, PhysicalCell(rawValue: 12))
         let id = hold()
-        XCTAssertNil(target.activeWheelControl, "an ordinary card is not pressed on Middle down")
+        XCTAssertNil(target.activeWheelControl, "an ordinary card is not pressed on HUD button down")
         let layout = target.wandRadialLayout
         let start = WandRadialNavigator.restingPosition(of: PhysicalCell(rawValue: 12)!, in: layout)
         aim(id, at: .switchApp)
@@ -647,7 +647,7 @@ final class WandHoldToShowTests: XCTestCase {
     /// Ethan retired the held-centre Switch App dwell: "if you hold it,
     /// nothing happens until you let go or like select one and then let go."
 
-    /// Middle down from closed, then the receiver's ordinary hold threshold.
+    /// HUD button down from closed, then the receiver's ordinary hold threshold.
     private func qualifiedHoldFromClosed() -> String {
         let id = holdFromClosed()
         clock.advance(by: 0.2)
@@ -923,7 +923,7 @@ final class WandHoldToShowTests: XCTestCase {
         let id = hold()
         control.handle(.init(.motion, id: id, sequence: 1, x: 0, y: -12.5))
         XCTAssertFalse(adjustSteps.isEmpty)
-        // Middle went up but its park and choose never arrived; the receiver's
+        // The HUD button went up but its park and choose never arrived; the receiver's
         // next unheld stream proves the release.
         let hover = nextID("hover")
         control.handle(.init(.hover, id: hover))
@@ -1026,7 +1026,7 @@ final class WandHoldToShowTests: XCTestCase {
         control.handle(.init(.hover, id: unheld))
         var free = (x: 0.0, y: 0.0)
         _ = stream(unheld, from: 0, steps: 10, dx: 1, origin: &free)
-        XCTAssertTrue(adjustSteps.isEmpty, "a dotted card never listens while Middle is up")
+        XCTAssertTrue(adjustSteps.isEmpty, "a dotted card never listens while the HUD button is up")
         control.handle(.init(.park, id: unheld, sequence: 99))
         let hover = hold()
         var at = (x: 0.0, y: 0.0)
@@ -1044,7 +1044,7 @@ final class WandHoldToShowTests: XCTestCase {
         seq = stream(hover, from: seq, steps: 6, dx: -1, origin: &at)
         XCTAssertEqual(adjustSteps.last, .down, "a quick swipe left: one space left")
         XCTAssertEqual(rearms, 3)
-        XCTAssertEqual(control.armedCell, spaces, "dotted mode stays until a Middle click")
+        XCTAssertEqual(control.armedCell, spaces, "dotted mode stays until a HUD button click")
         _ = seq
     }
 
@@ -1169,7 +1169,7 @@ final class WandHoldToShowTests: XCTestCase {
         let up = nextID("hover")
         control.handle(.init(.hover, id: up))
         control.handle(.init(.motion, id: up, sequence: 1, x: 0, y: -14))
-        XCTAssertTrue(adjustSteps.isEmpty, "Middle up: no adjustment, the wand can reset")
+        XCTAssertTrue(adjustSteps.isEmpty, "HUD button up: no adjustment, the wand can reset")
         control.handle(.init(.park, id: up, sequence: 2))
         let still = hold()
         XCTAssertEqual(target.pointerFocus?.adjustment?.isHeld, true, "listening glow")
@@ -1202,7 +1202,7 @@ final class WandHoldToShowTests: XCTestCase {
         control.handle(.init(.hover, id: up))
         var back = (x: 0.0, y: 0.0)
         _ = stream(up, from: 0, steps: 6, dx: 0, dy: 1, origin: &back)
-        XCTAssertEqual(adjustSteps.count, 1, "resetting the wand with Middle up never acts")
+        XCTAssertEqual(adjustSteps.count, 1, "resetting the wand with the HUD button up never acts")
         control.handle(.init(.park, id: up, sequence: 50))
         let second = hold()
         var again = (x: 0.0, y: 0.0)

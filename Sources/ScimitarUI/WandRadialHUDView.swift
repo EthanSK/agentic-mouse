@@ -383,7 +383,7 @@ private struct WandRadialFocusOutline: View {
         let gradient = LinearGradient(colors: [accent, .white, accent], startPoint: .top, endPoint: .bottom)
         return ZStack {
             if adjustment.isHeld {
-                // Listening: Middle is held and wand motion adjusts this card.
+                // Listening: the HUD button is held and wand motion adjusts this card.
                 morph(pullX: 0, pullY: 0)
                     .fill(accent.opacity(WandAdjustListeningStyle.fillOpacity))
                     .shadow(color: accent.opacity(0.9), radius: WandAdjustListeningStyle.glowRadius)
