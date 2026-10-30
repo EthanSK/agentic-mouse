@@ -335,6 +335,20 @@
             },
             "repeat": false
           }
+        ],
+        "to_after_key_up": [
+          {
+            "send_user_command": {
+              "payload": {
+                "command": "agentic_mouse_mode_picker",
+                "action": "openAppSpecific",
+                "source": "corsair",
+                "physical_cell": 2,
+                "phase": "release"
+              }
+            },
+            "repeat": false
+          }
         ]
       }
     },
@@ -353,6 +367,20 @@
                 "source": "razer",
                 "physical_cell": 2,
                 "phase": "press"
+              }
+            },
+            "repeat": false
+          }
+        ],
+        "to_after_key_up": [
+          {
+            "send_user_command": {
+              "payload": {
+                "command": "agentic_mouse_mode_picker",
+                "action": "openAppSpecific",
+                "source": "razer",
+                "physical_cell": 2,
+                "phase": "release"
               }
             },
             "repeat": false
@@ -502,11 +530,17 @@
     },
     {
       "id": "toggle-default-map-hint-corsair",
-      "title": "Toggle Default mode legend (Corsair)",
-      "description": "Send one exact-device Corsair legend toggle to Agentic Mouse.",
+      "title": "Toggle Default mode legend / hold Command (Corsair)",
+      "description": "Tap to toggle the Corsair legend; hold as a lazy Command modifier.",
       "source": "runtime/toggle-default-map-hint-corsair.jsonc",
       "manipulator": {
         "to": [
+          {
+            "key_code": "left_command",
+            "lazy": true
+          }
+        ],
+        "to_if_alone": [
           {
             "send_user_command": {
               "payload": {
@@ -517,16 +551,25 @@
             },
             "repeat": false
           }
-        ]
+        ],
+        "parameters": {
+          "basic.to_if_alone_timeout_milliseconds": 300
+        }
       }
     },
     {
       "id": "toggle-default-map-hint-razer",
-      "title": "Toggle Default mode legend (Razer)",
-      "description": "Send one exact-device Razer legend toggle to Agentic Mouse.",
+      "title": "Toggle Default mode legend / hold Command (Razer)",
+      "description": "Tap to toggle the Razer legend; hold as a lazy Command modifier.",
       "source": "runtime/toggle-default-map-hint-razer.jsonc",
       "manipulator": {
         "to": [
+          {
+            "key_code": "left_command",
+            "lazy": true
+          }
+        ],
+        "to_if_alone": [
           {
             "send_user_command": {
               "payload": {
@@ -537,7 +580,10 @@
             },
             "repeat": false
           }
-        ]
+        ],
+        "parameters": {
+          "basic.to_if_alone_timeout_milliseconds": 300
+        }
       }
     },
     {

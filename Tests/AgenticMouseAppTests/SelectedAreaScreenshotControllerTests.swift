@@ -7,6 +7,126 @@ import XCTest
 
 @MainActor
 final class SelectedAreaScreenshotControllerTests: XCTestCase {
+    func testWandTripleClickStartIsIdempotentAndUsesExistingCaptureLifecycle() throws {
+        let process=RecordingScreenshotProcess()
+        let clipboard=RecordingScreenshotClipboardCoordinator()
+        let controller=SelectedAreaScreenshotController(makeProcess:{process},clipboardCoordinator:clipboard)
+        func command(_ id:String) throws -> WandScreenshotStartCommand {
+            try WandScreenshotStartCommand.decode(Data(("{\"command\":\"agentic_mouse_wand_screenshot_start\",\"version\":1,\"id\":\""+id+"\"}").utf8))
+        }
+        let first=try command(UUID().uuidString),second=try command(UUID().uuidString)
+        var states:[Bool]=[];controller.onStateChange={states.append(controller.isCapturing)}
+        XCTAssertEqual(controller.handleWandStart(first),.started)
+        XCTAssertNil(controller.handleWandStart(first))
+        XCTAssertNil(controller.handleWandStart(second),"a fresh request cannot cancel an active capture either")
+        XCTAssertEqual(process.runCount,1);XCTAssertEqual(process.cancelCount,0)
+        XCTAssertTrue(controller.isCapturing)
+        controller.cancel()
+        XCTAssertEqual(states.last,false)
+        XCTAssertNil(controller.handleWandStart(first),"a late retry cannot reopen after cancellation")
+        XCTAssertNil(controller.handleWandStart(second))
+        XCTAssertEqual(controller.handleWandStart(try command(UUID().uuidString)),.started)
+        XCTAssertEqual(process.runCount,2)
+    }
+
+    func testWandScreenshotStartRejectsMalformedOrExpandedCommands() throws {
+        let valid="{\"command\":\"agentic_mouse_wand_screenshot_start\",\"version\":1,\"id\":\"AC1718F8-B050-47BB-B763-5BA765D69F93\"}"
+        XCTAssertNoThrow(try WandScreenshotStartCommand.decode(Data(valid.utf8)))
+        for payload in [valid.replacingOccurrences(of:"\"version\":1",with:"\"version\":true"),
+                        valid.replacingOccurrences(of:"\"version\":1",with:"\"version\":2"),
+                        valid.replacingOccurrences(of:"AC1718F8-B050-47BB-B763-5BA765D69F93",with:"bad-id"),
+                        valid.dropLast()+",\"extra\":1}"] {
+            XCTAssertThrowsError(try WandScreenshotStartCommand.decode(Data(payload.utf8)))
+        }
+    }
+
+    func testNewCaptureRetiresThePreviousPendingSaveAndQueuedPaste() {
+        let process = RecordingScreenshotProcess()
+        let clipboard = RecordingScreenshotClipboardCoordinator()
+        clipboard.hasPasteableScreenshot = true
+        let controller = SelectedAreaScreenshotController(makeProcess: { process }, clipboardCoordinator: clipboard)
+        _ = controller.handlePress(from: .corsair)
+        process.complete(with: .completed)
+        drainMainQueue()
+        XCTAssertEqual(controller.handlePaste(from: .corsair), .pasteQueued)
+        XCTAssertEqual(controller.handlePress(from: .razer), .started)
+        XCTAssertFalse(clipboard.isCapturePending)
+        XCTAssertEqual(clipboard.cancelCount, 1)
+        XCTAssertFalse(clipboard.lastCancelClearedOwnership)
+        XCTAssertTrue(clipboard.hasPasteableScreenshot)
+        process.complete(with: .completed)
+        drainMainQueue()
+        clipboard.completeResolution(.success(URL(fileURLWithPath: "/tmp/second-shot.png")))
+        XCTAssertEqual(clipboard.pasteCount, 0)
+    }
+
+    func testLockCancelsThePasteQueuedWhileTheOverlayCloses() {
+        let process = RecordingScreenshotProcess()
+        let clipboard = RecordingScreenshotClipboardCoordinator()
+        let controller = SelectedAreaScreenshotController(makeProcess: { process }, clipboardCoordinator: clipboard)
+        _ = controller.handlePress(from: .razer)
+        process.hasCompletedSelection = true
+        XCTAssertEqual(controller.handlePaste(from: .razer), .pasteQueued)
+        controller.cancel()
+        process.complete(with: .completed)
+        drainMainQueue()
+        XCTAssertEqual(clipboard.resolveCount, 0)
+        XCTAssertEqual(clipboard.pasteCount, 0)
+        XCTAssertEqual(controller.buttonState, .screenshot)
+    }
+
+    func testImmediateWheelPasteAfterCompletionWaitsForTheNewScreenshot() {
+        for source in MouseSource.allCases {
+            let process = RecordingScreenshotProcess()
+            let clipboard = RecordingScreenshotClipboardCoordinator()
+            clipboard.hasPasteableScreenshot = true // An older screenshot must not win.
+            let controller = SelectedAreaScreenshotController(makeProcess: { process }, clipboardCoordinator: clipboard)
+            XCTAssertEqual(controller.handlePress(from: source), .started)
+            process.complete(with: .completed)
+            // Do not drain the main queue: a wheel event can arrive immediately.
+            XCTAssertEqual(controller.handlePaste(from: source), .pasteQueued)
+            XCTAssertEqual(clipboard.pasteCount, 0)
+            clipboard.completeResolution(.success(URL(fileURLWithPath: "/tmp/new-shot.png")))
+            XCTAssertEqual(clipboard.pasteCount, 1)
+        }
+    }
+
+    func testWheelPasteAfterSelectionReleaseWaitsForTheClosingOverlay() {
+        let process = RecordingScreenshotProcess()
+        let clipboard = RecordingScreenshotClipboardCoordinator()
+        let controller = SelectedAreaScreenshotController(makeProcess: { process }, clipboardCoordinator: clipboard)
+        XCTAssertEqual(controller.handlePress(from: .corsair), .started)
+        process.hasCompletedSelection = true
+        XCTAssertTrue(process.isRunning)
+        XCTAssertEqual(controller.handlePaste(from: .corsair), .pasteQueued)
+        XCTAssertEqual(clipboard.pasteCount, 0)
+        process.complete(with: .completed)
+        drainMainQueue()
+        clipboard.completeResolution(.success(URL(fileURLWithPath: "/tmp/new-shot.png")))
+        XCTAssertEqual(clipboard.pasteCount, 1)
+    }
+
+    func testOverlayDisappearancePollDoesNotBeatQueuedSelectionCompletion() throws {
+        var handler: (@MainActor @Sendable (InteractiveScreenshotResult) -> Void)?
+        let scheduler = ManualTickScheduler()
+        var overlayVisible = true
+        let process = NativeInteractiveScreenshotProcess(
+            postEvent: { _, _, _ in true },
+            startLifecycleMonitor: { handler = $0; return NSObject() },
+            removeLifecycleMonitor: { _ in },
+            lifecycleScheduler: scheduler,
+            interactionIsActive: { overlayVisible }
+        )
+        var results: [InteractiveScreenshotResult] = []
+        process.onTermination = { results.append($0) }
+        try process.run()
+        overlayVisible = false
+        scheduler.fire() // The timer runs before the event-tap callback's MainActor task.
+        XCTAssertTrue(results.isEmpty)
+        handler?(.completed)
+        XCTAssertEqual(results, [.completed])
+    }
+
     func testCommandAcceptsOnlyTheSharedPhysicalCellThree() throws {
         let valid = Data(
             #"{"command":"agentic_mouse_selected_area_screenshot_toggle","source":"razer","physical_cell":3}"#.utf8
@@ -437,6 +557,8 @@ final class SelectedAreaScreenshotControllerTests: XCTestCase {
 
         interactionIsActive = false
         lifecycleScheduler.fire()
+        XCTAssertTrue(process.isRunning)
+        lifecycleScheduler.fire()
 
         XCTAssertFalse(process.isRunning)
         XCTAssertTrue((removedMonitor as AnyObject?) === monitor)
@@ -623,6 +745,7 @@ final class SelectedAreaScreenshotControllerTests: XCTestCase {
 @MainActor
 private final class RecordingScreenshotProcess: InteractiveScreenshotProcess {
     var isRunning = false
+    var hasCompletedSelection = false
     var onTermination: ((InteractiveScreenshotResult) -> Void)?
     private(set) var runCount = 0
     private(set) var cancelCount = 0

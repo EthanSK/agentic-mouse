@@ -2,6 +2,108 @@ import XCTest
 @testable import ScimitarKit
 
 final class ModePickerTests: XCTestCase {
+    func testSelectAllTabAndSaveArePressOnlyAndExposeLivesInExtraUtilities() {
+        for source in MouseSource.allCases {
+            let clickScheduler = ManualTickScheduler()
+            let coordinator = makeCoordinator(reservedHUDScheduler: clickScheduler)
+            var actions: [ModeUtilityAction] = []
+            coordinator.onUtilityAction = { _, action in actions.append(action); return .performed }
+            coordinator.enter(source: source)
+            for phase in [ModePickerCommand.Phase.press, .release] {
+                coordinator.handle(.init(action: .select, source: source, physicalCell: .selectAll, phase: phase))
+            }
+            XCTAssertEqual(actions, [])
+            clickScheduler.fire()
+            XCTAssertEqual(actions, [.selectAll])
+            XCTAssertNil(coordinator.activeWheelControl)
+            coordinator.handle(.init(action: .select, source: source, physicalCell: .extraUtilitiesSelector, phase: .press))
+            coordinator.handle(.init(action: .select, source: source, physicalCell: .extraUtilitiesTab, phase: .press))
+            coordinator.handle(.init(action: .select, source: source, physicalCell: .extraUtilitiesTab, phase: .release))
+            coordinator.handle(.init(action: .select, source: source, physicalCell: .applicationWindowsWheelControl, phase: .press))
+            XCTAssertEqual(coordinator.activeWheelControl, .applicationWindows)
+            coordinator.handle(.init(action: .select, source: source, physicalCell: .applicationWindowsWheelControl, phase: .release))
+            XCTAssertNil(coordinator.activeWheelControl)
+            coordinator.handle(.init(action: .select, source: source, physicalCell: .extraUtilitiesSave, phase: .press))
+            coordinator.handle(.init(action: .select, source: source, physicalCell: .extraUtilitiesSave, phase: .release))
+            XCTAssertEqual(actions, [.selectAll, .tab, .save])
+            XCTAssertEqual(ModePickerCoordinator.modesLegend(for: source)[4].actionTitle, "⌘A Select all")
+            XCTAssertEqual(ModePickerCoordinator.extraUtilitiesLegend(for: source)[0].actionTitle, "App Exposé")
+            XCTAssertEqual(ModePickerCoordinator.extraUtilitiesLegend(for: source)[1].actionTitle, "⇥ Tab")
+            XCTAssertEqual(ModePickerCoordinator.extraUtilitiesLegend(for: source)[6].actionTitle, "Save")
+            XCTAssertEqual(PhysicalCell.extraUtilitiesTab.printedSide(on: source), 2)
+        }
+    }
+
+    func testSelectAllDoubleClickInsertsOneSpaceWithoutSelectingAll() {
+        for source in MouseSource.allCases {
+            let clock = ManualClock()
+            let clickScheduler = ManualTickScheduler()
+            let coordinator = makeCoordinator(
+                reservedHUDScheduler: clickScheduler,
+                reservedHUDClock: clock
+            )
+            var utilityActions: [ModeUtilityAction] = []
+            var keyActions: [KeysModeAction] = []
+            coordinator.onUtilityAction = { _, action in utilityActions.append(action); return .performed }
+            coordinator.onKeysInput = { _, action in keyActions.append(action); return true }
+            coordinator.enter(source: source)
+
+            coordinator.handle(.init(action: .select, source: source, physicalCell: .selectAll, phase: .press))
+            coordinator.handle(.init(action: .select, source: source, physicalCell: .selectAll, phase: .release))
+            clock.advance(by: 0.2)
+            coordinator.handle(.init(action: .select, source: source, physicalCell: .selectAll, phase: .press))
+            coordinator.handle(.init(action: .select, source: source, physicalCell: .selectAll, phase: .release))
+            clickScheduler.fire()
+
+            XCTAssertEqual(utilityActions, [])
+            XCTAssertEqual(keyActions, [.insertSpace])
+        }
+    }
+
+    func testPendingSelectAllCancelsOnExitAndCommitsBeforeAnotherUtilityAction() {
+        let clickScheduler = ManualTickScheduler()
+        let coordinator = makeCoordinator(reservedHUDScheduler: clickScheduler)
+        var actions: [ModeUtilityAction] = []
+        coordinator.onUtilityAction = { _, action in actions.append(action); return .performed }
+        coordinator.enter(source: .corsair)
+
+        coordinator.handle(.init(action: .select, source: .corsair, physicalCell: .selectAll, phase: .press))
+        coordinator.handle(.init(action: .select, source: .corsair, physicalCell: .storedPassword, phase: .press))
+        XCTAssertEqual(actions, [.selectAll, .pasteStoredPassword])
+
+        coordinator.handle(.init(action: .select, source: .corsair, physicalCell: .selectAll, phase: .press))
+        coordinator.exit()
+        clickScheduler.fire()
+        XCTAssertEqual(actions, [.selectAll, .pasteStoredPassword])
+    }
+
+    func testExtraUtilitiesResizeControlsHoldReleaseAndExitOnBothMice() {
+        for source in MouseSource.allCases {
+            let coordinator = makeCoordinator()
+            var changes: [WheelChordControl?] = []
+            var releases: [WheelChordControl] = []
+            coordinator.onWheelControlChange = { _, control in changes.append(control) }
+            coordinator.onWheelControlRelease = { _, control in releases.append(control) }
+            coordinator.enter(source: source)
+            coordinator.handle(.init(action: .select, source: source, physicalCell: .extraUtilitiesSelector, phase: .press))
+            for (cell, control) in [(PhysicalCell.windowWidthWheelControl, WheelChordControl.windowWidth),
+                                    (.windowHeightWheelControl, .windowHeight)] {
+                coordinator.handle(.init(action: .select, source: source, physicalCell: cell, phase: .press))
+                XCTAssertEqual(coordinator.activeWheelControl, control)
+                coordinator.handle(.init(action: .select, source: source, physicalCell: cell, phase: .release))
+                XCTAssertNil(coordinator.activeWheelControl)
+                XCTAssertEqual(releases.last, control)
+                XCTAssertNil(changes.last!)
+                XCTAssertNil(WheelChordControl.utilityControl(for: cell)?.windowResizeAxis)
+                XCTAssertNil(WheelChordControl.topLevelControl(for: cell)?.windowResizeAxis)
+            }
+            coordinator.handle(.init(action: .select, source: source, physicalCell: .windowWidthWheelControl, phase: .press))
+            coordinator.exit(reason: .userRequested)
+            XCTAssertNil(changes.last!)
+            XCTAssertFalse(coordinator.isActive)
+        }
+    }
+
     func testSongRadioUsesApprovedExtraUtilitiesCellAndDoesNotClaimImmediateSuccess() {
         for source in MouseSource.allCases {
             let hud = RecordingModeHUDPresenter()
@@ -53,16 +155,16 @@ final class ModePickerTests: XCTestCase {
         XCTAssertEqual(coordinator.page, .modes)
         XCTAssertEqual(hud.snapshots.last?.modeTitle, "Utility modes")
         XCTAssertEqual(ModePickerCoordinator.modesLegend.count, 12)
-        XCTAssertEqual(ModePickerCoordinator.modesLegend[0].actionTitle, "Brightness + Wheel")
+        XCTAssertEqual(ModePickerCoordinator.modesLegend[0].actionTitle, "Brightness")
         XCTAssertEqual(ModePickerCoordinator.modesLegend[1].actionTitle, "Choose App Specific")
-        XCTAssertEqual(ModePickerCoordinator.modesLegend[2].actionTitle, "Spaces + Wheel")
-        XCTAssertEqual(ModePickerCoordinator.modesLegend[3].actionTitle, "Mission / Desktop + Wheel")
-        XCTAssertEqual(ModePickerCoordinator.modesLegend[4].actionTitle, "App Exposé + Wheel")
-        XCTAssertEqual(ModePickerCoordinator.modesLegend[5].actionTitle, "Magnet + Wheel")
+        XCTAssertEqual(ModePickerCoordinator.modesLegend[2].actionTitle, "Spaces")
+        XCTAssertEqual(ModePickerCoordinator.modesLegend[3].actionTitle, "Mission / Desktop")
+        XCTAssertEqual(ModePickerCoordinator.modesLegend[4].actionTitle, "⌘A Select all")
+        XCTAssertEqual(ModePickerCoordinator.modesLegend[5].actionTitle, "Magnet")
         XCTAssertEqual(ModePickerCoordinator.modesLegend[6].actionTitle, "PP")
         XCTAssertEqual(ModePickerCoordinator.modesLegend[7].actionTitle, "Intelligence on demand")
         XCTAssertEqual(ModePickerCoordinator.modesLegend[8].actionTitle, "Keys mode")
-        XCTAssertEqual(ModePickerCoordinator.modesLegend[10].actionTitle, "Zoom + Wheel")
+        XCTAssertEqual(ModePickerCoordinator.modesLegend[10].actionTitle, "Zoom")
         XCTAssertEqual(ModePickerCoordinator.modesLegend[9].actionTitle, "Exit Utility modes")
         XCTAssertEqual(ModePickerCoordinator.modesLegend[11].actionTitle, "Extra Utilities")
         XCTAssertFalse(ModePickerCoordinator.modesLegend.contains { $0.actionTitle == "Colour Proof" })
@@ -97,10 +199,7 @@ final class ModePickerTests: XCTestCase {
     }
 
     func testCodexAndVSCodeMarkersFollowLatestPhysicalReports() {
-        let brokenCodexActions: [CodexModeAction] = [
-            .toggleVoiceMode,
-            .editQueuedMessage,
-        ]
+        let brokenCodexActions: [CodexModeAction] = []
         for action in CodexModeAction.allCases {
             let expected: ModeHUDControlStatus = brokenCodexActions.contains(action)
                 ? .reportedBroken
@@ -108,18 +207,19 @@ final class ModePickerTests: XCTestCase {
             XCTAssertEqual(action.hudControlStatus, expected, "Codex action \(action)")
         }
 
-        let edit = CodexMode.definition.legend.first {
-            $0.cell == CodexModeAction.editQueuedMessage.cell
+        let closeTab = CodexMode.definition.legend.first {
+            $0.cell == CodexModeAction.closeTab.cell
         }!
-        XCTAssertEqual(edit.printedControlLabel(on: .corsair), "Corsair 8 ❌")
-        XCTAssertEqual(edit.printedControlLabel(on: .razer), "Razer 8 ❌")
+        XCTAssertEqual(closeTab.actionTitle, "⌘W Close tab")
+        XCTAssertEqual(closeTab.controlStatus, .normal)
+        XCTAssertEqual(closeTab.printedControlLabel(on: .corsair), "Corsair 8")
+        XCTAssertEqual(closeTab.printedControlLabel(on: .razer), "Razer 8")
 
-        let steer = CodexMode.definition.legend.first {
-            $0.cell == CodexModeAction.steerQueuedMessage.cell
+        let spare = CodexMode.definition.legend.first {
+            $0.cell == PhysicalCell(rawValue: 1)!
         }!
-        XCTAssertEqual(steer.controlStatus, .normal)
-        XCTAssertEqual(steer.printedControlLabel(on: .corsair), "Corsair 1")
-        XCTAssertEqual(steer.printedControlLabel(on: .razer), "Razer 3")
+        XCTAssertEqual(spare.controlStatus, .normal)
+        XCTAssertEqual(spare.actionTitle, "Speed")
 
         XCTAssertEqual(VSCodeModeAction.toggleTerminal.hudControlStatus, .normal)
         XCTAssertEqual(VSCodeModeAction.stageAndNext.hudControlStatus, .normal)
@@ -151,7 +251,7 @@ final class ModePickerTests: XCTestCase {
             .systemOverview
         )
         XCTAssertNil(ModeUtilityAction.directAction(for: PhysicalCell(rawValue: 4)!))
-        XCTAssertNil(ModeUtilityAction.directAction(for: PhysicalCell(rawValue: 5)!))
+        XCTAssertEqual(ModeUtilityAction.directAction(for: PhysicalCell(rawValue: 5)!), .selectAll)
         XCTAssertEqual(PhysicalCell.systemOverviewWheelControl.printedSide(on: .corsair), 4)
         XCTAssertEqual(PhysicalCell.systemOverviewWheelControl.printedSide(on: .razer), 6)
     }
@@ -161,6 +261,7 @@ final class ModePickerTests: XCTestCase {
         XCTAssertFalse(ModeUtilityAction.missionControl.isDirectAction)
         XCTAssertFalse(ModeUtilityAction.showApplicationWindows.isDirectAction)
         XCTAssertTrue(ModeUtilityAction.organizeWindows.isDirectAction)
+        XCTAssertTrue(ModeUtilityAction.tab.isDirectAction)
         XCTAssertTrue(ModeUtilityAction.quitApp.isDirectAction)
         XCTAssertTrue(ModeUtilityAction.rewindYouTubeFiveSeconds.isDirectAction)
         XCTAssertTrue(ModeUtilityAction.openIntelligenceOnDemand.isDirectAction)
@@ -191,6 +292,10 @@ final class ModePickerTests: XCTestCase {
         XCTAssertNil(ModeUtilityAction.directAction(for: .youtubeBackFiveSeconds))
         XCTAssertNil(ModeUtilityAction.directAction(for: .interruptTerminal))
         XCTAssertEqual(
+            ModeUtilityAction.extraUtilitiesAction(for: .extraUtilitiesTab),
+            .tab
+        )
+        XCTAssertEqual(
             ModeUtilityAction.extraUtilitiesAction(for: .organizeWindows),
             .organizeWindows
         )
@@ -208,11 +313,11 @@ final class ModePickerTests: XCTestCase {
         XCTAssertEqual(WheelChordControl.utilityControl(for: PhysicalCell(rawValue: 3)!), .spaces)
         XCTAssertEqual(WheelChordControl.utilityControl(for: PhysicalCell(rawValue: 4)!), .systemOverview)
         XCTAssertEqual(
-            WheelChordControl.utilityControl(for: PhysicalCell(rawValue: 5)!),
+            WheelChordControl.extraUtilitiesControl(for: .applicationWindowsWheelControl),
             .applicationWindows
         )
-        XCTAssertEqual(PhysicalCell.applicationWindowsWheelControl.printedSide(on: .corsair), 5)
-        XCTAssertEqual(PhysicalCell.applicationWindowsWheelControl.printedSide(on: .razer), 5)
+        XCTAssertEqual(PhysicalCell.applicationWindowsWheelControl.printedSide(on: .corsair), 1)
+        XCTAssertEqual(PhysicalCell.applicationWindowsWheelControl.printedSide(on: .razer), 3)
         XCTAssertEqual(WheelChordControl.utilityControl(for: PhysicalCell(rawValue: 6)!), .magnetWindow)
 
         XCTAssertEqual(PhysicalCell(rawValue: 1)!.printedSide(on: .razer), 3)
@@ -242,8 +347,6 @@ final class ModePickerTests: XCTestCase {
         coordinator.handle(.init(action: .select, source: .razer, physicalCell: .spacesWheelControl, phase: .release))
         coordinator.handle(.init(action: .select, source: .razer, physicalCell: .systemOverviewWheelControl, phase: .press))
         coordinator.handle(.init(action: .select, source: .razer, physicalCell: .systemOverviewWheelControl, phase: .release))
-        coordinator.handle(.init(action: .select, source: .razer, physicalCell: .applicationWindowsWheelControl, phase: .press))
-        coordinator.handle(.init(action: .select, source: .razer, physicalCell: .applicationWindowsWheelControl, phase: .release))
         coordinator.handle(.init(action: .select, source: .razer, physicalCell: .magnetWheelControl, phase: .press))
         coordinator.handle(.init(action: .select, source: .razer, physicalCell: .magnetWheelControl, phase: .release))
         coordinator.handle(.init(action: .select, source: .razer, physicalCell: .interruptTerminal, phase: .press))
@@ -251,18 +354,53 @@ final class ModePickerTests: XCTestCase {
 
         XCTAssertEqual(actions.map(\.0), [.razer])
         XCTAssertEqual(actions.map(\.1), [.openIntelligenceOnDemand])
-        XCTAssertEqual(controls.map(\.0), Array(repeating: .razer, count: 10))
+        XCTAssertEqual(controls.map(\.0), Array(repeating: .razer, count: 8))
         XCTAssertEqual(
             controls.map(\.1),
             [
                 .brightness, nil,
                 .spaces, nil,
                 .systemOverview, nil,
-                .applicationWindows, nil,
                 .magnetWindow, nil,
             ]
         )
         XCTAssertEqual(coordinator.page, .extraUtilities)
+    }
+
+    func testUtilityZoomReleaseReturnsSubsequentWheelInputToNormalScrollingOnBothMice() {
+        for source in MouseSource.allCases {
+            let coordinator = makeCoordinator()
+            let wheel = WheelChordStateMachine()
+            coordinator.onWheelControlChange = { actualSource, control in
+                wheel.setActive(control, for: actualSource)
+            }
+            coordinator.onWheelControlRelease = { actualSource, control in
+                _ = wheel.release(control, for: actualSource)
+            }
+            coordinator.enter(source: source)
+            func input(_ phase: ModePickerCommand.Phase, from actualSource: MouseSource? = nil) {
+                coordinator.handle(.init(action: .select, source: actualSource ?? source,
+                    physicalCell: .zoomWheelControl, phase: phase))
+            }
+            input(.press)
+            XCTAssertEqual(coordinator.page, .modes)
+            XCTAssertEqual(coordinator.activeWheelControl, .zoom)
+            guard case .consume(let action) = wheel.route(verticalDelta: 1, isContinuous: false) else {
+                return XCTFail("Held Zoom should consume the wheel")
+            }
+            XCTAssertEqual(action.control, .zoom)
+            input(.release, from: source == .corsair ? .razer : .corsair)
+            XCTAssertEqual(coordinator.activeWheelControl, .zoom)
+            input(.release)
+            XCTAssertNil(coordinator.activeWheelControl)
+            XCTAssertEqual(coordinator.page, .modes)
+            for delta: Int64 in [1, -1, 8] {
+                XCTAssertEqual(wheel.route(verticalDelta: delta, isContinuous: false), .passThrough)
+            }
+            input(.release) // Duplicate release remains harmless.
+            input(.press); input(.release)
+            XCTAssertEqual(wheel.route(verticalDelta: -1, isContinuous: false), .passThrough)
+        }
     }
 
     func testWheelControlPressUpdatesTheHUDWithoutRunningEitherDirection() {
@@ -285,7 +423,7 @@ final class ModePickerTests: XCTestCase {
         )
 
         XCTAssertTrue(appSynthesizedActions.isEmpty)
-        XCTAssertEqual(hud.snapshots.last?.selection?.title, "Brightness + Wheel")
+        XCTAssertEqual(hud.snapshots.last?.selection?.title, "Brightness")
     }
 
     func testUtilityPreservesASpecificFailureInsteadOfOverwritingItWithGenericCopy() {
@@ -309,7 +447,7 @@ final class ModePickerTests: XCTestCase {
         )
     }
 
-    func testUtilityCellTwelveOpensExtraUtilitiesAndOrganizeWindowsUsesSharedCellOne() {
+    func testExtraUtilitiesSuppressesOnlyPendingOrganizeWindowsRequests() {
         for source in MouseSource.allCases {
             let lease = RecordingModePickerLease()
             let hud = RecordingModeHUDPresenter()
@@ -317,7 +455,7 @@ final class ModePickerTests: XCTestCase {
             var actions: [(MouseSource, ModeUtilityAction)] = []
             coordinator.onUtilityAction = { requestedSource, action in
                 actions.append((requestedSource, action))
-                return .performed
+                return .started(message: "Stay restore requested")
             }
 
             coordinator.enter(source: source)
@@ -379,6 +517,18 @@ final class ModePickerTests: XCTestCase {
                 ModeHUDFeedback(message: "Stay restore already requested", tone: .informational)
             )
 
+            coordinator.organizeWindowsRequestDidFinish()
+            coordinator.handle(.init(
+                action: .select, source: source,
+                physicalCell: .organizeWindows, phase: .press
+            ))
+            XCTAssertEqual(actions.map(\.0), [source, source])
+            XCTAssertEqual(actions.map(\.1), [.organizeWindows, .organizeWindows])
+            XCTAssertEqual(
+                hud.snapshots.last?.legend[PhysicalCell.organizeWindows.rawValue - 1].controlStatus,
+                .normal
+            )
+
             coordinator.handle(.init(
                 action: .select,
                 source: source,
@@ -394,8 +544,8 @@ final class ModePickerTests: XCTestCase {
         XCTAssertEqual(PhysicalCell.extraUtilitiesSelector.printedSide(on: .razer), 10)
         XCTAssertEqual(PhysicalCell.modeExit.printedSide(on: .corsair), 10)
         XCTAssertEqual(PhysicalCell.modeExit.printedSide(on: .razer), 12)
-        XCTAssertEqual(PhysicalCell.organizeWindows.printedSide(on: .corsair), 1)
-        XCTAssertEqual(PhysicalCell.organizeWindows.printedSide(on: .razer), 3)
+        XCTAssertEqual(PhysicalCell.organizeWindows.printedSide(on: .corsair), 12)
+        XCTAssertEqual(PhysicalCell.organizeWindows.printedSide(on: .razer), 10)
         XCTAssertEqual(PhysicalCell.quitApp.printedSide(on: .corsair), 9)
         XCTAssertEqual(PhysicalCell.quitApp.printedSide(on: .razer), 7)
     }
@@ -496,13 +646,13 @@ final class ModePickerTests: XCTestCase {
         }
     }
 
-    func testOrganizeWindowsOneShotResetsAfterLeavingExtraUtilities() {
+    func testPendingOrganizeWindowsRequestResetsAfterLeavingExtraUtilities() {
         let hud = RecordingModeHUDPresenter()
         let coordinator = makeCoordinator(hud: hud)
         var actionCount = 0
         coordinator.onUtilityAction = { _, action in
             if action == .organizeWindows { actionCount += 1 }
-            return .performed
+            return .started(message: "Stay restore requested")
         }
 
         for expectedCount in 1...2 {
@@ -567,7 +717,7 @@ final class ModePickerTests: XCTestCase {
             phase: .press
         ))
 
-        XCTAssertEqual(actionCount, 2)
+        XCTAssertEqual(actionCount, 3)
         XCTAssertEqual(
             hud.feedback,
             [
@@ -576,11 +726,40 @@ final class ModePickerTests: XCTestCase {
                     tone: .informational
                 ),
                 ModeHUDFeedback(
-                    message: "Stay restore already requested",
+                    message: "Stay restore requested",
                     tone: .informational
                 ),
             ]
         )
+    }
+
+    func testCompletedOrganizeWindowsFailureAllowsRetryWithoutLeavingPage() {
+        for source in MouseSource.allCases {
+            let coordinator = makeCoordinator()
+            var attempts = 0
+            coordinator.onUtilityAction = { _, action in
+                guard action == .organizeWindows else { return .failed(message: nil) }
+                attempts += 1
+                return .started(message: "Stay restore requested")
+            }
+            coordinator.enter(source: source)
+            coordinator.handle(.init(action: .select, source: source,
+                                     physicalCell: .extraUtilitiesSelector, phase: .press))
+            let press = ModePickerCommand(action: .select, source: source,
+                                          physicalCell: .organizeWindows, phase: .press)
+            coordinator.handle(press)
+            coordinator.handle(press)
+            XCTAssertEqual(attempts, 1)
+
+            // The asynchronous controller completes even when capture, moving
+            // Chrome, or dispatching the Stay shortcut fails.
+            coordinator.organizeWindowsRequestDidFinish()
+            coordinator.handle(press)
+            XCTAssertEqual(attempts, 2)
+            XCTAssertEqual(coordinator.page, .extraUtilities)
+            coordinator.handle(press)
+            XCTAssertEqual(attempts, 2, "A retry must acquire its own in-flight guard")
+        }
     }
 
     func testKeysCellSixSelectsKeypadAndForwardsBothInputPhases() {
@@ -606,7 +785,7 @@ final class ModePickerTests: XCTestCase {
         let hud = RecordingModeHUDPresenter()
         let coordinator = makeCoordinator(hud: hud)
         var selected: [(AppSpecificTarget, PhysicalCell)] = []
-        coordinator.onAppSpecificInput = { _, target, cell, _ in
+        coordinator.onAppSpecificInput = { _, target, cell, _, _ in
             selected.append((target, cell))
             return true
         }
@@ -705,7 +884,7 @@ final class ModePickerTests: XCTestCase {
             var controls: [(MouseSource, WheelChordControl?)] = []
             var onePressActions: [PhysicalCell] = []
             coordinator.onWheelControlChange = { controls.append(($0, $1)) }
-            coordinator.onAppSpecificInput = { _, _, cell, _ in
+            coordinator.onAppSpecificInput = { _, _, cell, _, _ in
                 onePressActions.append(cell)
                 return true
             }
@@ -726,7 +905,7 @@ final class ModePickerTests: XCTestCase {
                 phase: .press
             ))
             XCTAssertEqual(coordinator.activeWheelControl, .chromeTabs)
-            XCTAssertEqual(hud.snapshots.last?.selection?.title, "Tab History + Wheel")
+            XCTAssertEqual(hud.snapshots.last?.selection?.title, "Tab History")
             XCTAssertTrue(onePressActions.isEmpty)
 
             coordinator.handle(.init(
@@ -749,7 +928,7 @@ final class ModePickerTests: XCTestCase {
                 var controls: [(MouseSource, WheelChordControl?)] = []
                 var onePressActions: [PhysicalCell] = []
                 coordinator.onWheelControlChange = { controls.append(($0, $1)) }
-                coordinator.onAppSpecificInput = { _, _, cell, _ in
+                coordinator.onAppSpecificInput = { _, _, cell, _, _ in
                     onePressActions.append(cell)
                     return true
                 }
@@ -780,7 +959,7 @@ final class ModePickerTests: XCTestCase {
                     phase: .press
                 ))
                 XCTAssertEqual(coordinator.activeWheelControl, .spotifyVolume)
-                XCTAssertEqual(hud.snapshots.last?.selection?.title, "Volume + Wheel")
+                XCTAssertEqual(hud.snapshots.last?.selection?.title, "Volume")
                 XCTAssertTrue(onePressActions.isEmpty)
 
                 coordinator.handle(.init(
@@ -804,7 +983,7 @@ final class ModePickerTests: XCTestCase {
                 var controls: [(MouseSource, WheelChordControl?)] = []
                 var onePressActions: [PhysicalCell] = []
                 coordinator.onWheelControlChange = { controls.append(($0, $1)) }
-                coordinator.onAppSpecificInput = { _, _, cell, _ in
+                coordinator.onAppSpecificInput = { _, _, cell, _, _ in
                     onePressActions.append(cell)
                     return true
                 }
@@ -835,7 +1014,7 @@ final class ModePickerTests: XCTestCase {
                     phase: .press
                 ))
                 XCTAssertEqual(coordinator.activeWheelControl, .vsCodeCursorHistory)
-                XCTAssertEqual(hud.snapshots.last?.selection?.title, "Cursor History + Wheel")
+                XCTAssertEqual(hud.snapshots.last?.selection?.title, "Cursor History")
                 XCTAssertTrue(onePressActions.isEmpty)
 
                 coordinator.handle(.init(
@@ -881,12 +1060,38 @@ final class ModePickerTests: XCTestCase {
         XCTAssertEqual(coordinator.appSpecificTarget, .chrome)
     }
 
+    func testVSCodePreviousPreviewPressOverridesCursorHistoryOnlyDuringStageHold() {
+        let coordinator = makeCoordinator()
+        var routed: [ModePickerCommand.Phase] = []
+        var stageHoldActive = false
+        coordinator.resolveFrontmostApp = {
+            FrontmostAppModeContext(target: .vsCode, displayName: "Visual Studio Code",
+                                    bundleIdentifier: AppSpecificTarget.vsCode.bundleIdentifier)
+        }
+        coordinator.onAppSpecificInput = { _, _, cell, phase, _ in
+            guard cell == VSCodeMode.cursorHistoryWheelCell, stageHoldActive else { return false }
+            routed.append(phase)
+            return true
+        }
+        coordinator.shouldRouteVSCodeCursorHistoryAsButton = { _ in stageHoldActive }
+        coordinator.enterAppSpecific(source: .corsair)
+        let cell = VSCodeMode.cursorHistoryWheelCell
+        coordinator.handle(.init(action: .select, source: .corsair, physicalCell: cell, phase: .press))
+        XCTAssertEqual(coordinator.activeWheelControl, .vsCodeCursorHistory)
+        coordinator.handle(.init(action: .select, source: .corsair, physicalCell: cell, phase: .release))
+        stageHoldActive = true
+        coordinator.handle(.init(action: .select, source: .corsair, physicalCell: cell, phase: .press))
+        coordinator.handle(.init(action: .select, source: .corsair, physicalCell: cell, phase: .release))
+        XCTAssertEqual(routed, [.press, .release])
+        XCTAssertNil(coordinator.activeWheelControl)
+    }
+
     func testChromeDoubleSpeedHoldForwardsPressAndReleaseWithoutStealingTheWheelCell() {
         for source in MouseSource.allCases {
             let hud = RecordingModeHUDPresenter()
             let coordinator = makeCoordinator(hud: hud)
             var inputs: [(MouseSource, AppSpecificTarget, PhysicalCell, ModePickerCommand.Phase)] = []
-            coordinator.onAppSpecificInput = { source, target, cell, phase in
+            coordinator.onAppSpecificInput = { source, target, cell, phase, _ in
                 inputs.append((source, target, cell, phase))
                 return true
             }
@@ -931,7 +1136,7 @@ final class ModePickerTests: XCTestCase {
             let hud = RecordingModeHUDPresenter()
             let coordinator = makeCoordinator(hud: hud)
             var inputs: [(MouseSource, AppSpecificTarget, PhysicalCell, ModePickerCommand.Phase)] = []
-            coordinator.onAppSpecificInput = { source, target, cell, phase in
+            coordinator.onAppSpecificInput = { source, target, cell, phase, _ in
                 inputs.append((source, target, cell, phase))
                 return true
             }
@@ -968,7 +1173,7 @@ final class ModePickerTests: XCTestCase {
             let hud = RecordingModeHUDPresenter()
             let coordinator = makeCoordinator(hud: hud)
             var inputs: [(MouseSource, AppSpecificTarget, PhysicalCell, ModePickerCommand.Phase)] = []
-            coordinator.onAppSpecificInput = { source, target, cell, phase in
+            coordinator.onAppSpecificInput = { source, target, cell, phase, _ in
                 inputs.append((source, target, cell, phase))
                 return true
             }
@@ -1015,7 +1220,7 @@ final class ModePickerTests: XCTestCase {
             let hud = RecordingModeHUDPresenter()
             let coordinator = makeCoordinator(hud: hud)
             var inputs: [(MouseSource, AppSpecificTarget, PhysicalCell, ModePickerCommand.Phase)] = []
-            coordinator.onAppSpecificInput = { source, target, cell, phase in
+            coordinator.onAppSpecificInput = { source, target, cell, phase, _ in
                 inputs.append((source, target, cell, phase))
                 return true
             }
@@ -1271,7 +1476,7 @@ final class ModePickerTests: XCTestCase {
                 .insertSpace,
                 .pressBackspace,
                 .save,
-                .close,
+                .holdShift,
             ]
         )
         XCTAssertEqual(KeysModeAction.arrowUp.cell.rawValue, 5)
@@ -1284,17 +1489,17 @@ final class ModePickerTests: XCTestCase {
         XCTAssertEqual(KeysModeAction.pressBackspace.cell.rawValue, 11)
         XCTAssertEqual(ModePickerCoordinator.keysLegend[9].actionTitle, "Exit Keys mode")
         XCTAssertEqual(ModePickerCoordinator.keysLegend[5].actionTitle, "Keypad")
-        XCTAssertEqual(ModePickerCoordinator.keysLegend[7].actionTitle, "Space")
-        XCTAssertEqual(ModePickerCoordinator.keysLegend[1].actionTitle, "Close")
-        XCTAssertEqual(KeysModeAction.close.cell.rawValue, 2)
-        XCTAssertEqual(KeysModeAction.close.cell(for: .razer).printedSide(on: .razer), 2)
-        XCTAssertEqual(ModePickerCoordinator.keysLegend[2].actionTitle, "Undo")
-        XCTAssertEqual(ModePickerCoordinator.keysLegend[8].actionTitle, "Tracks + Wheel")
-        XCTAssertEqual(ModePickerCoordinator.keysLegend[10].actionTitle, "Backspace")
-        XCTAssertEqual(ModePickerCoordinator.keysLegend[11].actionTitle, "Save")
+        XCTAssertEqual(ModePickerCoordinator.keysLegend[7].actionTitle, "␣ Space")
+        XCTAssertEqual(ModePickerCoordinator.keysLegend[1].actionTitle, "⇧ Hold Shift")
+        XCTAssertEqual(KeysModeAction.holdShift.cell.rawValue, 2)
+        XCTAssertEqual(KeysModeAction.holdShift.cell(for: .razer).printedSide(on: .razer), 2)
+        XCTAssertEqual(ModePickerCoordinator.keysLegend[2].actionTitle, "⌘Z Undo")
+        XCTAssertEqual(ModePickerCoordinator.keysLegend[8].actionTitle, "Next Track · Tracks")
+        XCTAssertEqual(ModePickerCoordinator.keysLegend[10].actionTitle, "⌫ Backspace")
+        XCTAssertEqual(ModePickerCoordinator.keysLegend[11].actionTitle, "⌘S Save")
         XCTAssertEqual(KeysModeAction.save.cell.rawValue, 12)
         XCTAssertEqual(KeysModeAction.save.cell(for: .razer).printedSide(on: .razer), 10)
-        XCTAssertEqual(ModePickerCoordinator.keysLegend(for: .razer)[11].actionTitle, "Save")
+        XCTAssertEqual(ModePickerCoordinator.keysLegend(for: .razer)[11].actionTitle, "⌘S Save")
         XCTAssertEqual(
             ModePickerCoordinator.keysLegend(for: .corsair)[11].printedControlLabel(on: .corsair),
             "Corsair 12"
@@ -1334,7 +1539,7 @@ final class ModePickerTests: XCTestCase {
                 phase: .press
             ))
             XCTAssertEqual(coordinator.activeWheelControl, .mediaTracks)
-            XCTAssertEqual(hud.snapshots.last?.selection?.title, "Tracks + Wheel")
+            XCTAssertEqual(hud.snapshots.last?.selection?.title, "Next Track · Tracks")
             XCTAssertTrue(keysActions.isEmpty)
 
             coordinator.handle(.init(
@@ -1394,16 +1599,16 @@ final class ModePickerTests: XCTestCase {
         XCTAssertEqual(KeysModeAction.action(for: PhysicalCell(rawValue: 7)!, source: .corsair), .arrowRight)
         XCTAssertEqual(KeysModeAction.action(for: PhysicalCell(rawValue: 1)!, source: .razer), .arrowRight)
         XCTAssertEqual(KeysModeAction.action(for: PhysicalCell(rawValue: 7)!, source: .razer), .arrowLeft)
-        XCTAssertEqual(ModePickerCoordinator.keysLegend(for: .razer)[0].actionTitle, "Right Arrow")
-        XCTAssertEqual(ModePickerCoordinator.keysLegend(for: .razer)[6].actionTitle, "Left Arrow")
-        XCTAssertEqual(ModePickerCoordinator.keysLegend(for: .razer)[2].actionTitle, "Undo")
+        XCTAssertEqual(ModePickerCoordinator.keysLegend(for: .razer)[0].actionTitle, "→ Right")
+        XCTAssertEqual(ModePickerCoordinator.keysLegend(for: .razer)[6].actionTitle, "← Left")
+        XCTAssertEqual(ModePickerCoordinator.keysLegend(for: .razer)[2].actionTitle, "⌘Z Undo")
         XCTAssertEqual(ModePickerCoordinator.keysLegend(for: .razer)[5].actionTitle, "Keypad")
 
         XCTAssertEqual(WheelChordControl.spaces.utilityAction(for: .up), .moveToSpaceRight)
         XCTAssertEqual(WheelChordControl.spaces.utilityAction(for: .down), .moveToSpaceLeft)
         XCTAssertEqual(
             ModePickerCoordinator.modesLegend(for: .razer)[2].actionTitle,
-            "Spaces + Wheel"
+            "Spaces"
         )
     }
 
@@ -1566,7 +1771,7 @@ final class ModePickerTests: XCTestCase {
         )
 
         XCTAssertTrue(appSynthesizedActions.isEmpty)
-        XCTAssertEqual(hud.snapshots.last?.selection?.title, "Up Arrow")
+        XCTAssertEqual(hud.snapshots.last?.selection?.title, "↑ Up")
     }
 
     func testNativeCodexVoiceUpdatesTheHUDWithoutCallingTheSyntheticAppRoute() {
@@ -1581,11 +1786,11 @@ final class ModePickerTests: XCTestCase {
                 bundleIdentifier: AppSpecificTarget.codex.bundleIdentifier
             )
         }
-        coordinator.onNativeAppSpecificInput = { _, _, cell, _ in
+        coordinator.onNativeAppSpecificInput = { _, _, cell, _, _ in
             nativeInputs.append(cell)
             return true
         }
-        coordinator.onAppSpecificInput = { _, _, cell, _ in
+        coordinator.onAppSpecificInput = { _, _, cell, _, _ in
             syntheticInputs.append(cell)
             return true
         }
@@ -1834,14 +2039,16 @@ final class ModePickerTests: XCTestCase {
         }
     }
 
-    func testEveryAppSpecificChildReservesCellsTwoAndTenAsTheSameExit() {
+    func testEveryAppSpecificChildReservesBothExitsAndCodexNamesItsPinModifier() {
         for target in AppSpecificTarget.allCases {
             let definition = target.definition
             let expectedTitle = "Exit \(target.displayName) mode"
             let exitItems = definition.legend.filter { $0.cell.isAppSpecificModeExit }
 
             XCTAssertEqual(exitItems.count, 2, "\(target.displayName) exit count")
-            XCTAssertEqual(Set(exitItems.map(\.actionTitle)), [expectedTitle])
+            let expectedTitles: Set<String> = target == .codex
+                ? [expectedTitle, "Exit · Hold for Pin/Unpin"] : [expectedTitle]
+            XCTAssertEqual(Set(exitItems.map(\.actionTitle)), expectedTitles)
         }
 
         let unsupported = AppSpecificMode.unsupportedDefinition(
@@ -1981,7 +2188,7 @@ final class ModePickerTests: XCTestCase {
         XCTAssertNil(StandardAppMode.action(for: .spotify, cell: PhysicalCell(rawValue: 8)!))
         XCTAssertEqual(
             StandardAppMode.definition(for: .spotify).legend[6].actionTitle,
-            "Volume + Wheel"
+            "Volume"
         )
         XCTAssertEqual(StandardAppMode.definition(for: .spotify).legend[7].actionTitle, "Spare")
         XCTAssertEqual(StandardAppMode.action(for: .spotify, cell: PhysicalCell(rawValue: 12)!)?.title, "Queue")
@@ -2116,7 +2323,7 @@ final class ModePickerTests: XCTestCase {
             let hud = RecordingModeHUDPresenter()
             let coordinator = makeCoordinator(hud: hud)
             var inputs: [(AppSpecificTarget, PhysicalCell, ModePickerCommand.Phase)] = []
-            coordinator.onAppSpecificInput = { _, receivedTarget, cell, phase in
+            coordinator.onAppSpecificInput = { _, receivedTarget, cell, phase, _ in
                 inputs.append((receivedTarget, cell, phase))
                 return true
             }
@@ -2194,7 +2401,7 @@ final class ModePickerTests: XCTestCase {
         )
         XCTAssertEqual(
             VSCodeMode.definition.legend[5].actionTitle,
-            "Cursor History + Wheel"
+            "Cursor History"
         )
         XCTAssertEqual(
             VSCodeMode.definition.legend[11].actionTitle,
@@ -2306,7 +2513,7 @@ final class ModePickerTests: XCTestCase {
         XCTAssertEqual(coordinator.appSpecificTarget, .codex)
         XCTAssertEqual(controls, [.codexReasoningEffort])
         XCTAssertEqual(hud.snapshots.last?.modeTitle, "Codex mode")
-        XCTAssertEqual(hud.snapshots.last?.selection?.title, "Reasoning Effort + Wheel")
+        XCTAssertEqual(hud.snapshots.last?.selection?.title, "Reasoning Effort")
 
         coordinator.handle(.init(
             action: .select,
@@ -2323,7 +2530,7 @@ final class ModePickerTests: XCTestCase {
                 let hud = RecordingModeHUDPresenter()
                 let coordinator = makeCoordinator(hud: hud)
                 var presses: [PhysicalCell] = []
-                coordinator.onAppSpecificInput = { _, _, cell, phase in
+                coordinator.onAppSpecificInput = { _, _, cell, phase, _ in
                     if phase == .press { presses.append(cell) }
                     return true
                 }
@@ -2341,7 +2548,7 @@ final class ModePickerTests: XCTestCase {
                 let micCell = PhysicalCell(rawValue: 11)!
                 coordinator.handle(.init(action: .select, source: source, physicalCell: chatCell))
                 XCTAssertEqual(coordinator.activeWheelControl, .codexChatHistory)
-                XCTAssertEqual(hud.snapshots.last?.selection?.title, "Chats Selection + Wheel")
+                XCTAssertEqual(hud.snapshots.last?.selection?.title, "Chats Selection")
                 XCTAssertTrue(presses.isEmpty)
                 coordinator.handle(.init(action: .select, source: source, physicalCell: chatCell, phase: .release))
                 XCTAssertNil(coordinator.activeWheelControl)
@@ -2448,11 +2655,11 @@ final class ModePickerTests: XCTestCase {
         XCTAssertEqual(CodexModeAction.openSideChat.cell.printedSide(on: .corsair), 9)
         XCTAssertEqual(CodexModeAction.openSideChat.cell.printedSide(on: .razer), 7)
         XCTAssertEqual(CodexModeAction.openSideChat.title, "Open side chat")
-        XCTAssertEqual(CodexModeAction.steerQueuedMessage.cell.rawValue, 1)
-        XCTAssertEqual(CodexModeAction.steerQueuedMessage.cell.printedSide(on: .corsair), 1)
-        XCTAssertEqual(CodexModeAction.steerQueuedMessage.cell.printedSide(on: .razer), 3)
-        XCTAssertEqual(CodexModeAction.editQueuedMessage.cell.rawValue, 8)
-        XCTAssertEqual(CodexModeAction.editQueuedMessage.title, "Edit queued message")
+        XCTAssertNil(CodexModeAction.action(for: PhysicalCell(rawValue: 1)!))
+        XCTAssertEqual(CodexMode.responseSpeedWheelCell.printedSide(on: .corsair), 1)
+        XCTAssertEqual(CodexMode.responseSpeedWheelCell.printedSide(on: .razer), 3)
+        XCTAssertEqual(CodexModeAction.closeTab.cell.rawValue, 8)
+        XCTAssertEqual(CodexModeAction.closeTab.title, "⌘W Close tab")
         XCTAssertEqual(CodexModeAction.pressEnter.cell.rawValue, 7)
         XCTAssertEqual(CodexModeAction.pressEnter.cell.printedSide(on: .razer), 9)
         XCTAssertEqual(CodexModeAction.pressEnter.cell.printedSide(on: .corsair), 7)
@@ -2475,16 +2682,16 @@ final class ModePickerTests: XCTestCase {
             ),
             .codexChatHistory
         )
-        XCTAssertEqual(CodexMode.definition.legend[1].actionTitle, "Exit Codex mode")
+        XCTAssertEqual(CodexMode.definition.legend[1].actionTitle, "Exit · Hold for Pin/Unpin")
         XCTAssertEqual(CodexMode.definition.legend[4].actionTitle, "New chat")
-        XCTAssertEqual(CodexMode.definition.legend[2].actionTitle, "Screenshot")
-        XCTAssertEqual(CodexMode.definition.legend[0].actionTitle, "Steer queued message")
+        XCTAssertEqual(CodexMode.definition.legend[2].actionTitle, "Pin/Unpin + Hold 2")
+        XCTAssertEqual(CodexMode.definition.legend[0].actionTitle, "Speed")
         XCTAssertEqual(CodexMode.definition.legend[10].actionTitle, "Mute / unmute voice mic")
         XCTAssertEqual(CodexMode.definition.legend[8].actionTitle, "Open side chat")
         XCTAssertEqual(CodexMode.definition.legend[9].actionTitle, "Exit Codex mode")
-        XCTAssertEqual(CodexMode.definition.legend[3].actionTitle, "Reasoning Effort + Wheel")
+        XCTAssertEqual(CodexMode.definition.legend[3].actionTitle, "Reasoning Effort")
         XCTAssertEqual(CodexMode.definition.legend[11].actionTitle, "Voice mode")
-        XCTAssertEqual(CodexMode.definition.legend[5].actionTitle, "Chats Selection + Wheel")
+        XCTAssertEqual(CodexMode.definition.legend[5].actionTitle, "Chats Selection")
         XCTAssertEqual(
             CodexMode.definition.legend[3].accent,
             ModeHUDActionFamilyPalette.reasoningEffort
@@ -2526,9 +2733,9 @@ final class ModePickerTests: XCTestCase {
 
             let expectedCellThreeTitle: String
             switch page {
-            case .appSpecific: expectedCellThreeTitle = "Screenshot"
+            case .appSpecific: expectedCellThreeTitle = "Pin/Unpin + Hold 2"
             case .appSelector: expectedCellThreeTitle = "Claude"
-            case .keys: expectedCellThreeTitle = "Undo"
+            case .keys: expectedCellThreeTitle = "⌘Z Undo"
             case .chromeWebsites: expectedCellThreeTitle = "X"
             case .extraUtilities: expectedCellThreeTitle = "Spotify Song Radio"
             default: expectedCellThreeTitle = "Spare"
@@ -2572,7 +2779,7 @@ final class ModePickerTests: XCTestCase {
         XCTAssertEqual(coordinator.page, .keys)
         XCTAssertEqual(coordinator.navigationPath, [.modes, .keys])
         XCTAssertEqual(hud.snapshots.last?.modeTitle, "Keys mode")
-        XCTAssertEqual(hud.snapshots.last?.legend[11].actionTitle, "Save")
+        XCTAssertEqual(hud.snapshots.last?.legend[11].actionTitle, "⌘S Save")
         coordinator.handle(.init(action: .select, source: .corsair, physicalCell: .modePickerEntry, phase: .release))
         XCTAssertEqual(keysActions, [.save])
 
@@ -2584,10 +2791,10 @@ final class ModePickerTests: XCTestCase {
             coordinator.handle(.init(action: .selectNative, source: source, physicalCell: .modePickerEntry, phase: .release))
             coordinator.handle(.init(action: .selectNative, source: source, physicalCell: PhysicalCell(rawValue: 2)!, phase: .press))
             coordinator.handle(.init(action: .selectNative, source: source, physicalCell: PhysicalCell(rawValue: 2)!, phase: .release))
-            XCTAssertEqual(hud.snapshots.last?.legend[1].actionTitle, "Close")
+            XCTAssertEqual(hud.snapshots.last?.legend[1].actionTitle, "⇧ Hold Shift")
             XCTAssertTrue(keysActions.isEmpty, "Native editing actions must not emit a second app-owned shortcut")
             XCTAssertEqual(coordinator.page, .keys)
-            XCTAssertEqual(hud.snapshots.last?.legend[11].actionTitle, "Save")
+            XCTAssertEqual(hud.snapshots.last?.legend[11].actionTitle, "⌘S Save")
         }
     }
 
@@ -2633,7 +2840,291 @@ final class ModePickerTests: XCTestCase {
         XCTAssertEqual(keypadInputs.map(\.1), [.press, .release])
     }
 
-    func testCodexPinHoldShowsWheelLabelAndRestoresScreenshotOnBothMice() {
+    func testCodexInitialEntryHoldCanPinImmediatelyOnBothMice() {
+        for source in MouseSource.allCases {
+            for modifierReleasedFirst in [false, true] {
+                let coordinator = makeCoordinator()
+                coordinator.resolveFrontmostApp = {
+                    .init(target: .codex, displayName: "Codex", bundleIdentifier: CodexMode.bundleIdentifier)
+                }
+                var count = 0
+                coordinator.onAppSpecificInput = { actualSource, target, cell, phase, _ in
+                    XCTAssertEqual(actualSource, source)
+                    XCTAssertEqual(target, .codex)
+                    XCTAssertEqual(cell, CodexMode.pinToggleCell)
+                    XCTAssertEqual(phase, .press)
+                    count += 1
+                    return true
+                }
+                let opener = ModePickerCommand(action: .openAppSpecific, source: source,
+                    physicalCell: CodexMode.pinModifierCell, phase: .press)
+                let entryRelease = ModePickerCommand(action: .openAppSpecific, source: source,
+                    physicalCell: CodexMode.pinModifierCell, phase: .release)
+                func pin(_ phase: ModePickerCommand.Phase) {
+                    coordinator.handle(.init(action: .select, source: source,
+                        physicalCell: CodexMode.pinToggleCell, phase: phase), inputTime: 1.001)
+                }
+                coordinator.handle(opener, inputTime: 1)
+                let other: MouseSource = source == .corsair ? .razer : .corsair
+                coordinator.handle(.init(action: .openAppSpecific, source: other,
+                    physicalCell: CodexMode.pinModifierCell, phase: .release))
+                coordinator.handle(.init(action: .select, source: other,
+                    physicalCell: CodexMode.pinToggleCell, phase: .press))
+                XCTAssertEqual(count, 0)
+                pin(.press); pin(.press)
+                XCTAssertEqual(count, 1) // No timer or second modifier press is needed.
+                coordinator.handle(opener) // Duplicate opener must not erase the used hold.
+                if modifierReleasedFirst { coordinator.handle(entryRelease); pin(.release) }
+                else { pin(.release); coordinator.handle(entryRelease) }
+                XCTAssertTrue(coordinator.isActive)
+                pin(.press); pin(.release)
+                XCTAssertEqual(count, 1) // Entry release disarmed the modifier.
+                coordinator.handle(.init(action: .select, source: source,
+                    physicalCell: CodexMode.pinModifierCell, phase: .press))
+                coordinator.handle(entryRelease) // A stale opener release cannot end a later hold.
+                XCTAssertTrue(coordinator.isActive)
+                coordinator.handle(.init(action: .select, source: source,
+                    physicalCell: CodexMode.pinModifierCell, phase: .release))
+                XCTAssertFalse(coordinator.isActive) // A subsequent solo click still exits.
+            }
+        }
+    }
+
+    func testUnusedEntryReleaseKeepsAppModeOpenAndDoesNotBorrowPinAcrossFocusChanges() {
+        for source in MouseSource.allCases {
+            let coordinator = makeCoordinator()
+            coordinator.resolveFrontmostApp = {
+                .init(target: .codex, displayName: "Codex", bundleIdentifier: CodexMode.bundleIdentifier)
+            }
+            var count = 0
+            coordinator.onAppSpecificInput = { _, _, _, _, _ in count += 1; return true }
+            let opener = ModePickerCommand(action: .openAppSpecific, source: source,
+                physicalCell: CodexMode.pinModifierCell, phase: .press)
+            let release = ModePickerCommand(action: .openAppSpecific, source: source,
+                physicalCell: CodexMode.pinModifierCell, phase: .release)
+            coordinator.handle(opener); coordinator.handle(release)
+            XCTAssertTrue(coordinator.isActive)
+            coordinator.handle(.init(action: .select, source: source,
+                physicalCell: CodexMode.pinToggleCell, phase: .press))
+            XCTAssertEqual(count, 0)
+            coordinator.exit()
+            coordinator.handle(opener)
+            coordinator.updateFrontmostApp(.init(target: .chrome, displayName: "Chrome", bundleIdentifier: AppSpecificTarget.chrome.bundleIdentifier))
+            coordinator.updateFrontmostApp(.init(target: .codex, displayName: "Codex", bundleIdentifier: CodexMode.bundleIdentifier))
+            coordinator.handle(.init(action: .select, source: source,
+                physicalCell: CodexMode.pinToggleCell, phase: .press))
+            coordinator.handle(release)
+            XCTAssertEqual(count, 0)
+            XCTAssertTrue(coordinator.isActive)
+            coordinator.exit()
+            coordinator.handle(opener)
+            coordinator.handleSystemSleep()
+            coordinator.enterAppSpecific(source: source)
+            coordinator.handle(.init(action: .select, source: source,
+                physicalCell: CodexMode.pinToggleCell, phase: .press))
+            coordinator.handle(release)
+            XCTAssertEqual(count, 0)
+            XCTAssertTrue(coordinator.isActive)
+        }
+    }
+
+    func testCodexPinRequiresSameMouseModifierAndFreshClicksInBothJourneys() {
+        for source in MouseSource.allCases {
+            for manual in [false, true] {
+                let coordinator = makeCoordinator()
+                coordinator.resolveFrontmostApp = {
+                    FrontmostAppModeContext(target: .codex, displayName: "Codex", bundleIdentifier: CodexMode.bundleIdentifier)
+                }
+                var pinCount = 0
+                coordinator.onAppSpecificInput = { actualSource, target, cell, phase, _ in
+                    XCTAssertEqual(actualSource, source)
+                    if target == .codex, cell == CodexMode.pinToggleCell, phase == .press { pinCount += 1 }
+                    return true
+                }
+                if manual {
+                    coordinator.enterAppSelector(source: source)
+                    coordinator.handle(.init(action: .select, source: source, physicalCell: PhysicalCell(rawValue: 1)!, phase: .press))
+                } else { coordinator.enterAppSpecific(source: source) }
+                func input(_ cell: PhysicalCell, _ phase: ModePickerCommand.Phase, from inputSource: MouseSource? = nil) {
+                    coordinator.handle(.init(action: .select, source: inputSource ?? source, physicalCell: cell, phase: phase))
+                }
+                let modifier = CodexMode.pinModifierCell, pin = CodexMode.pinToggleCell
+                let other: MouseSource = source == .corsair ? .razer : .corsair
+                input(pin, .press); input(pin, .release)
+                XCTAssertEqual(pinCount, 0)
+                input(modifier, .press, from: other)
+                input(pin, .press); input(pin, .release)
+                XCTAssertEqual(pinCount, 0)
+                input(modifier, .press)
+                XCTAssertTrue(coordinator.isActive)
+                input(pin, .press, from: other)
+                XCTAssertEqual(pinCount, 0)
+                input(pin, .press); input(pin, .press)
+                XCTAssertEqual(pinCount, 1) // A repeated transport down is not another click.
+                input(modifier, .press) // Must not forget that the chord consumed Exit.
+                input(pin, .release)
+                input(pin, .press); input(pin, .release)
+                XCTAssertEqual(pinCount, 2)
+                input(modifier, .release)
+                XCTAssertTrue(coordinator.isActive)
+                XCTAssertNil(coordinator.activeWheelControl)
+                input(pin, .press); input(pin, .release)
+                XCTAssertEqual(pinCount, 2)
+                XCTAssertFalse(coordinator.toggleCodexPinFromWheel(.init(source: source, control: .codexPin, direction: .up), inputTime: 3))
+                XCTAssertFalse(coordinator.toggleCodexPinFromWheel(.init(source: source, control: .codexPin, direction: .down), inputTime: 4))
+                input(modifier, .press)
+                XCTAssertTrue(coordinator.isActive)
+                input(modifier, .release)
+                XCTAssertFalse(coordinator.isActive) // A wheel-free, unused click still exits.
+            }
+        }
+    }
+
+    func testCodexPinChordConsumesFailedDispatchAndEitherReleaseOrder() {
+        for source in MouseSource.allCases {
+            let coordinator = makeCoordinator()
+            coordinator.resolveFrontmostApp = {
+                .init(target: .codex, displayName: "Codex", bundleIdentifier: CodexMode.bundleIdentifier)
+            }
+            var attempts = 0
+            coordinator.onAppSpecificInput = { _, _, _, _, _ in attempts += 1; return false }
+            coordinator.enterAppSpecific(source: source)
+            func input(_ cell: PhysicalCell, _ phase: ModePickerCommand.Phase) {
+                coordinator.handle(.init(action: .select, source: source, physicalCell: cell, phase: phase))
+            }
+            input(CodexMode.pinModifierCell, .press)
+            input(CodexMode.pinToggleCell, .press)
+            input(CodexMode.pinModifierCell, .release)
+            input(CodexMode.pinToggleCell, .release)
+            XCTAssertEqual(attempts, 1)
+            XCTAssertTrue(coordinator.isActive)
+            // Holding Pin first must not retroactively fire when 2 arrives.
+            input(CodexMode.pinToggleCell, .press)
+            input(CodexMode.pinModifierCell, .press)
+            input(CodexMode.pinToggleCell, .release)
+            XCTAssertEqual(attempts, 1)
+            coordinator.exit()
+        }
+    }
+
+    func testCodexPinModifierDoesNotSurviveExitFocusChangeOrSleep() {
+        for source in MouseSource.allCases {
+            for cancel in 0..<3 {
+                let coordinator = makeCoordinator()
+                coordinator.resolveFrontmostApp = {
+                    .init(target: .codex, displayName: "Codex", bundleIdentifier: CodexMode.bundleIdentifier)
+                }
+                var count = 0
+                coordinator.onAppSpecificInput = { _, _, _, _, _ in count += 1; return true }
+                coordinator.enterAppSpecific(source: source)
+                coordinator.handle(.init(action: .select, source: source, physicalCell: CodexMode.pinModifierCell, phase: .press))
+                if cancel == 0 { coordinator.exit(); coordinator.enterAppSpecific(source: source) }
+                else if cancel == 1 {
+                    coordinator.updateFrontmostApp(.init(target: .chrome, displayName: "Chrome", bundleIdentifier: AppSpecificTarget.chrome.bundleIdentifier))
+                    coordinator.updateFrontmostApp(.init(target: .codex, displayName: "Codex", bundleIdentifier: CodexMode.bundleIdentifier))
+                } else { coordinator.handleSystemSleep(); coordinator.enterAppSpecific(source: source) }
+                coordinator.handle(.init(action: .select, source: source, physicalCell: CodexMode.pinToggleCell, phase: .press))
+                coordinator.handle(.init(action: .select, source: source, physicalCell: CodexMode.pinToggleCell, phase: .release))
+                coordinator.handle(.init(action: .select, source: source, physicalCell: CodexMode.pinModifierCell, phase: .release))
+                XCTAssertEqual(count, 0)
+                XCTAssertTrue(coordinator.isActive) // Old modifier release cannot exit a new journey.
+            }
+        }
+    }
+
+    func testClaudeMirrorsCodexCellsAndUnavailableActionsStayInertOnBothMice() {
+        let expected = [
+            "Spare", "Exit Claude mode", "Pin/Unpin", "Reasoning Effort",
+            "New chat", "Tabs", "Enter", "Toggle side panel", "Open side chat",
+            "Exit Claude mode", "Mute / unmute voice mic", "Voice mode",
+        ]
+        XCTAssertEqual(ClaudeMode.definition.legend.map(\.actionTitle), expected)
+        for cell in [4, 8, 9] {
+            XCTAssertEqual(ClaudeMode.definition.legend[cell - 1].controlStatus, .unavailable)
+            XCTAssertNil(ClaudeModeAction.action(for: PhysicalCell(rawValue: cell)!))
+        }
+        XCTAssertEqual(ClaudeMode.definition.legend[2].printedControlLabel(on: .corsair), "Corsair 3 ❌")
+        XCTAssertEqual(ClaudeMode.definition.legend[2].printedControlLabel(on: .razer), "Razer 1 ❌")
+        XCTAssertEqual(ClaudeMode.definition.legend[3].printedControlLabel(on: .corsair), "Corsair 4 ×")
+        XCTAssertEqual(ClaudeMode.definition.legend[3].printedControlLabel(on: .razer), "Razer 6 ×")
+        XCTAssertEqual(WheelChordControl.appSpecificControl(for: .claude, cell: ClaudeMode.pinToggleCell), .claudePin)
+        XCTAssertEqual(WheelChordControl.appSpecificControl(for: .claude, cell: ClaudeMode.tabsWheelCell), .claudeTabs)
+
+        for source in MouseSource.allCases {
+            let coordinator = makeCoordinator()
+            coordinator.resolveFrontmostApp = {
+                FrontmostAppModeContext(target: .claude, displayName: "Claude", bundleIdentifier: ClaudeMode.bundleIdentifier)
+            }
+            var actions: [ClaudeModeAction] = []
+            coordinator.onAppSpecificInput = { _, target, cell, phase, _ in
+                guard target == .claude, phase == .press,
+                      let action = ClaudeModeAction.action(for: cell) else { return false }
+                actions.append(action)
+                return true
+            }
+            coordinator.enterAppSpecific(source: source)
+            for cell in [4, 8, 9] {
+                let physicalCell = PhysicalCell(rawValue: cell)!
+                coordinator.handle(.init(action: .select, source: source, physicalCell: physicalCell, phase: .press))
+                coordinator.handle(.init(action: .select, source: source, physicalCell: physicalCell, phase: .release))
+            }
+            XCTAssertTrue(actions.isEmpty)
+            coordinator.handle(.init(action: .select, source: source, physicalCell: ClaudeMode.tabsWheelCell, phase: .press))
+            XCTAssertEqual(coordinator.activeWheelControl, .claudeTabs)
+            coordinator.handle(.init(action: .select, source: source, physicalCell: ClaudeMode.tabsWheelCell, phase: .release))
+            XCTAssertNil(coordinator.activeWheelControl)
+        }
+    }
+
+    func testClaudePinUsesEitherDirectionOncePerSameSourceHold() {
+        for source in MouseSource.allCases {
+            let coordinator = makeCoordinator()
+            coordinator.resolveFrontmostApp = {
+                FrontmostAppModeContext(target: .claude, displayName: "Claude",
+                                         bundleIdentifier: ClaudeMode.bundleIdentifier)
+            }
+            var toggles = 0
+            coordinator.onAppSpecificInput = { _, target, cell, phase, _ in
+                if target == .claude, cell == ClaudeMode.pinToggleCell, phase == .press {
+                    toggles += 1
+                }
+                return true
+            }
+            coordinator.enterAppSpecific(source: source)
+            func input(_ phase: ModePickerCommand.Phase) {
+                coordinator.handle(.init(action: .select, source: source,
+                                         physicalCell: ClaudeMode.pinToggleCell, phase: phase))
+            }
+            let up = WheelChordStateMachine.Step(source: source, control: .claudePin, direction: .down)
+            let down = WheelChordStateMachine.Step(source: source, control: .claudePin, direction: .up)
+            input(.press)
+            input(.release)
+            XCTAssertEqual(toggles, 0)
+            XCTAssertFalse(coordinator.toggleClaudePinFromWheel(up, inputTime: 1))
+            input(.press)
+            XCTAssertEqual(coordinator.activeWheelControl, .claudePin)
+            XCTAssertFalse(coordinator.toggleClaudePinFromWheel(
+                .init(source: source == .corsair ? .razer : .corsair,
+                      control: .claudePin, direction: .down), inputTime: 2
+            ))
+            XCTAssertTrue(coordinator.toggleClaudePinFromWheel(up, inputTime: 2))
+            XCTAssertFalse(coordinator.toggleClaudePinFromWheel(down, inputTime: 2.05))
+            input(.press)
+            XCTAssertFalse(coordinator.toggleClaudePinFromWheel(up, inputTime: 2.1))
+            input(.release)
+            XCTAssertEqual(toggles, 1)
+            input(.press)
+            XCTAssertTrue(coordinator.toggleClaudePinFromWheel(down, inputTime: 3))
+            input(.release)
+            XCTAssertEqual(toggles, 2)
+            input(.press)
+            coordinator.exit()
+            XCTAssertFalse(coordinator.toggleClaudePinFromWheel(up, inputTime: 4))
+            XCTAssertEqual(toggles, 2)
+        }
+    }
+
+    func testCodexPinLabelStaysVisibleBeforeDuringAndAfterHoldOnBothMice() {
         for source in MouseSource.allCases {
             let hud = RecordingModeHUDPresenter()
             let coordinator = makeCoordinator(hud: hud)
@@ -2642,25 +3133,53 @@ final class ModePickerTests: XCTestCase {
             }
             coordinator.enterAppSpecific(source: source)
             let cell = CodexMode.screenshotPinWheelCell
-            XCTAssertEqual(hud.snapshots.last?.legend.first { $0.cell == cell }?.actionTitle, "Screenshot")
+            XCTAssertEqual(hud.snapshots.last?.legend.first { $0.cell == cell }?.actionTitle, "Pin/Unpin + Hold 2")
             coordinator.handle(.init(action: .select, source: source, physicalCell: cell, phase: .press))
-            XCTAssertEqual(hud.snapshots.last?.legend.first { $0.cell == cell }?.actionTitle, "Pin/Unpin · Wheel")
+            XCTAssertEqual(hud.snapshots.last?.legend.first { $0.cell == cell }?.actionTitle, "Pin/Unpin + Hold 2")
             coordinator.handle(.init(action: .select, source: source, physicalCell: cell, phase: .release))
-            XCTAssertEqual(hud.snapshots.last?.legend.first { $0.cell == cell }?.actionTitle, "Screenshot")
+            XCTAssertEqual(hud.snapshots.last?.legend.first { $0.cell == cell }?.actionTitle, "Pin/Unpin + Hold 2")
             XCTAssertNil(coordinator.activeWheelControl)
             XCTAssertTrue(coordinator.isActive)
         }
     }
 
-    func testRepeatedCodexExitAndSteerDoNotRouteNewChatOnEitherMouse() {
+    func testCodexSpeedHoldUsesTheSameControlInAutomaticAndManualModes() {
         for source in MouseSource.allCases {
-            for cell in [PhysicalCell.frontmostAppModeSelector, .modeExit, CodexModeAction.steerQueuedMessage.cell] {
+            for manual in [false, true] {
+                let coordinator = makeCoordinator()
+                coordinator.resolveFrontmostApp = {
+                    FrontmostAppModeContext(target: .codex, displayName: "Codex", bundleIdentifier: CodexMode.bundleIdentifier)
+                }
+                var controls: [WheelChordControl?] = []
+                var clicks = 0
+                coordinator.onWheelControlChange = { _, control in controls.append(control) }
+                coordinator.onAppSpecificInput = { _, _, _, _, _ in clicks += 1; return true }
+                if manual {
+                    coordinator.enterAppSelector(source: source)
+                    coordinator.handle(.init(action: .select, source: source, physicalCell: AppSpecificTarget.codex.selectorCell!))
+                } else {
+                    coordinator.enterAppSpecific(source: source)
+                }
+                let cell = CodexMode.responseSpeedWheelCell
+                coordinator.handle(.init(action: .select, source: source, physicalCell: cell, phase: .press))
+                XCTAssertEqual(coordinator.activeWheelControl, .codexResponseSpeed)
+                coordinator.handle(.init(action: .select, source: source, physicalCell: cell, phase: .release))
+                XCTAssertNil(coordinator.activeWheelControl)
+                XCTAssertEqual(controls.suffix(2), [.codexResponseSpeed, nil])
+                XCTAssertEqual(clicks, 0, "press/release must never invoke the old Astra action or cycle speeds")
+            }
+        }
+    }
+
+    func testRepeatedCodexExitAndSpeedClicksDoNotRouteActionsOnEitherMouse() {
+        for source in MouseSource.allCases {
+            for cell in [PhysicalCell.frontmostAppModeSelector, .modeExit, PhysicalCell(rawValue: 1)!] {
                 let coordinator = makeCoordinator()
                 coordinator.resolveFrontmostApp = {
                     FrontmostAppModeContext(target: .codex, displayName: "Codex", bundleIdentifier: CodexMode.bundleIdentifier)
                 }
                 var actions: [CodexModeAction] = []
-                coordinator.onAppSpecificInput = { _, target, cell, phase in
+                coordinator.onAppSpecificInput = { _, target, cell, phase, _ in
                     if target == .codex, phase == .press, let action = CodexModeAction.action(for: cell) { actions.append(action) }
                     return true
                 }
@@ -2670,20 +3189,53 @@ final class ModePickerTests: XCTestCase {
                     coordinator.handle(.init(action: .select, source: source, physicalCell: cell, phase: .release))
                 }
                 XCTAssertFalse(actions.contains(.newTask))
-                XCTAssertEqual(actions, cell == CodexModeAction.steerQueuedMessage.cell ? [.steerQueuedMessage, .steerQueuedMessage] : [])
+                XCTAssertEqual(actions, [])
             }
         }
+    }
+
+    func testCodexCreationAuditDistinguishesAcceptedNewChatAndNativeVoiceWithoutExtraDispatch() {
+        let sink = RecordingLogSink()
+        let coordinator = ModePickerCoordinator(lease: RecordingModePickerLease(),
+            hud: RecordingModeHUDPresenter(), scheduler: ManualTickScheduler(),
+            log: Log(category: "test", sink: sink))
+        coordinator.resolveFrontmostApp = {
+            FrontmostAppModeContext(target: .codex, displayName: "Codex", bundleIdentifier: CodexMode.bundleIdentifier)
+        }
+        var appInputs: [PhysicalCell] = [], nativeInputs: [PhysicalCell] = []
+        coordinator.onAppSpecificInput = { _, _, cell, phase, _ in
+            if phase == .press { appInputs.append(cell) }; return true
+        }
+        coordinator.onNativeAppSpecificInput = { _, _, cell, phase, _ in
+            if phase == .press { nativeInputs.append(cell) }; return true
+        }
+        coordinator.enterAppSpecific(source: .razer)
+        for phase in [ModePickerCommand.Phase.press, .release] {
+            coordinator.handle(.init(action: .select, source: .razer, physicalCell: CodexModeAction.newTask.cell, phase: phase))
+            coordinator.handle(.init(action: .selectNative, source: .razer, physicalCell: CodexModeAction.toggleVoiceMode.cell, phase: phase))
+        }
+        coordinator.handle(.init(action: .selectNative, source: .corsair, physicalCell: CodexModeAction.toggleVoiceMode.cell, phase: .press))
+        XCTAssertEqual(appInputs, [CodexModeAction.newTask.cell])
+        XCTAssertEqual(nativeInputs, [CodexModeAction.toggleVoiceMode.cell])
+        XCTAssertEqual(sink.entries.map(\.message).filter { $0.contains("requested via") }, [
+            "Codex newTask requested via app route, source razer, cell 5",
+            "Codex toggleVoiceMode requested via native route, source razer, cell 12"
+        ])
     }
 
     private func makeCoordinator(
         lease: RecordingModePickerLease = RecordingModePickerLease(),
         hud: RecordingModeHUDPresenter = RecordingModeHUDPresenter(),
-        scheduler: ManualTickScheduler = ManualTickScheduler()
+        scheduler: ManualTickScheduler = ManualTickScheduler(),
+        reservedHUDScheduler: ManualTickScheduler = ManualTickScheduler(),
+        reservedHUDClock: MonotonicClock = SystemMonotonicClock()
     ) -> ModePickerCoordinator {
         ModePickerCoordinator(
             lease: lease,
             hud: hud,
             scheduler: scheduler,
+            reservedHUDScheduler: reservedHUDScheduler,
+            reservedHUDClock: reservedHUDClock,
             log: Log(category: "test", sink: NullLogSink())
         )
     }

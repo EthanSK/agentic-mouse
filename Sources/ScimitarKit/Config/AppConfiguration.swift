@@ -160,7 +160,7 @@ public struct AppConfiguration: Codable, Equatable, Sendable {
 
     public struct DefaultMapHintConfiguration: Codable, Equatable, Sendable {
         /// Legacy decode compatibility for older cell-12 double-click configs.
-        /// The current Default legend uses a direct one-press cell-10 command.
+        /// The current Default legend uses a cell-10 tap; holding that cell is Command.
         public var enabled: Bool
         public var doubleClickInterval: TimeInterval
         /// Optional legacy auto-hide timeout. Zero keeps the map visible until
@@ -241,7 +241,7 @@ public struct AppConfiguration: Codable, Equatable, Sendable {
 
     public struct HUDConfiguration: Codable, Equatable, Sendable {
         public enum Corner: String, Codable, CaseIterable, Sendable {
-            case topLeft, topRight, bottomLeft, bottomRight, center
+            case topLeft, topRight, bottomLeft, bottomRight, center, bottomCenter
         }
 
         public var corner: Corner
@@ -275,6 +275,9 @@ public struct AppConfiguration: Codable, Equatable, Sendable {
             switch source {
             case .corsair: return .bottomRight
             case .razer: return .bottomLeft
+            // Ethan's Magic Wand HUD stays bottom-centre, above Agent Flow.
+            // The presenter resolves live recorder geometry on that screen.
+            case .wand: return .bottomCenter
             }
         }
     }

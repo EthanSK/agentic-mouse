@@ -1,4 +1,5 @@
 import Foundation
+import ScimitarKit
 import XCTest
 @testable import AgenticMouseApp
 
@@ -19,6 +20,100 @@ final class VSCodeCommandBridgeTests: XCTestCase {
             VSCodeCommandBridge.url(for: .toggleTerminal)?.absoluteString,
             "vscode://ethansk.agentic-mouse-vscode-bridge/terminal/toggle"
         )
+        for source in MouseSource.allCases {
+            for active in [true, false] {
+                XCTAssertEqual(
+                    VSCodeCommandBridge.stagePreviewModeURL(active: active, source: source)?.absoluteString,
+                    "vscode://ethansk.better-git-vscode/mouse-stage-preview-mode/\(active ? "on" : "off")?source=\(source.rawValue)"
+                )
+            }
+            XCTAssertEqual(
+                VSCodeCommandBridge.stageSelectionURL(
+                    direction: .up,
+                    source: source
+                )?.absoluteString,
+                "vscode://ethansk.better-git-vscode/mouse-stage-selection/up?source=\(source.rawValue)"
+            )
+            XCTAssertEqual(
+                VSCodeCommandBridge.stageSelectionURL(
+                    direction: .down,
+                    source: source
+                )?.absoluteString,
+                "vscode://ethansk.better-git-vscode/mouse-stage-selection/down?source=\(source.rawValue)"
+            )
+            XCTAssertEqual(
+                VSCodeCommandBridge.stagePreviewNavigationURL(
+                    direction: .next,
+                    source: source
+                )?.absoluteString,
+                "vscode://ethansk.better-git-vscode/mouse-stage-preview/next?source=\(source.rawValue)"
+            )
+            XCTAssertEqual(
+                VSCodeCommandBridge.stagePreviewNavigationURL(
+                    direction: .previous,
+                    source: source
+                )?.absoluteString,
+                "vscode://ethansk.better-git-vscode/mouse-stage-preview/previous?source=\(source.rawValue)"
+            )
+        }
+    }
+
+    func testOpensStageSelectionThroughFrontmostVSCodeWithoutChangingTheTarget() async {
+        var opened: [(URL, URL)] = []
+        let completed = expectation(description: "stage selection request completed")
+        let bridge = VSCodeCommandBridge(
+            targetResolver: { .init(
+                processIdentifier: 314,
+                applicationURL: self.appURL,
+                isActive: true
+            ) },
+            openURL: { url, applicationURL, completion in
+                opened.append((url, applicationURL))
+                completion(nil)
+            },
+            inputAllowed: { true }
+        )
+
+        bridge.performStageSelection(.down, source: .razer) { result in
+            guard case .success = result else {
+                return XCTFail("frontmost VS Code should accept the Better Git request")
+            }
+            completed.fulfill()
+        }
+        await fulfillment(of: [completed], timeout: 1)
+
+        XCTAssertEqual(
+            opened.first?.0.absoluteString,
+            "vscode://ethansk.better-git-vscode/mouse-stage-selection/down?source=razer"
+        )
+        XCTAssertEqual(opened.first?.1, appURL)
+    }
+
+    func testPreviewToggleUsesExactSourceAndFailsClosedOnLostFocus() async {
+        var focused = true
+        var opened: [URL] = []
+        let bridge = VSCodeCommandBridge(
+            targetResolver: { .init(processIdentifier: 314, applicationURL: self.appURL, isActive: focused) },
+            openURL: { url, _, completion in opened.append(url); completion(nil) },
+            inputAllowed: { true }
+        )
+        for active in [true, false] {
+            let completed = expectation(description: "preview toggle completed")
+            bridge.performStagePreviewMode(active, source: .corsair) { result in
+                guard case .success = result else { return XCTFail("focused toggle should be delivered") }
+                completed.fulfill()
+            }
+            await fulfillment(of: [completed], timeout: 1)
+        }
+        XCTAssertEqual(opened.map(\.absoluteString), [
+            "vscode://ethansk.better-git-vscode/mouse-stage-preview-mode/on?source=corsair",
+            "vscode://ethansk.better-git-vscode/mouse-stage-preview-mode/off?source=corsair",
+        ])
+        focused = false
+        bridge.performStagePreviewMode(true, source: .razer) { result in
+            guard case .failure = result else { return XCTFail("lost focus must reject the toggle") }
+        }
+        XCTAssertEqual(opened.count, 2)
     }
 
     func testOpensBackThroughTheRunningFrontmostVSCodeWithoutActivationRequest() async {

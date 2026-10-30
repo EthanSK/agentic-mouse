@@ -72,7 +72,7 @@ public enum StandardAppMode {
                 ) {
                     return ModeHUDLegendItem(
                         cell: cell,
-                        actionTitle: "\(control.actionTitle) + Wheel",
+                        gesture: control.hudGesture,
                         accent: control.hudAccent,
                         controlStatus: control.hudControlStatus
                     )

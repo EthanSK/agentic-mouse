@@ -91,7 +91,7 @@ public struct ScimitarNormalMapping: Equatable, Sendable {
             Assignment(
                 button: 6,
                 action: "YouTube · Hold 2× / Scrub + Wheel",
-                implementation: "Click to rewind five seconds; hold for 350 ms to request temporary 2× speed and restore the prior rate without seeking on release; wheel input cancels speed and scrubs by five seconds per ratchet without focusing Chrome"
+                implementation: "Click to rewind five seconds; hold for 350 ms to request temporary 2× speed, keep it during wheel scrubbing, and restore the prior rate on release; scrub by five seconds per ratchet without focusing Chrome"
             ),
             Assignment(
                 button: 7,
@@ -106,8 +106,8 @@ public struct ScimitarNormalMapping: Equatable, Sendable {
             ),
             Assignment(
                 button: 10,
-                action: "Legend toggle / mode exit",
-                implementation: "Toggles the persistent Default legend outside modes; universal Exit while a mode is active"
+                action: "Legend toggle · Hold ⌘ / mode exit",
+                implementation: "Tap to toggle the persistent Default legend outside modes; hold as Command to combine with another control; universal Exit while a mode is active"
             ),
             Assignment(
                 button: 11,

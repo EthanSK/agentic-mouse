@@ -67,18 +67,18 @@ final class DefaultMapHintCommandTests: XCTestCase {
 
     func testLegendReflectsTheCurrentTopLevelMapAndExactSource() {
         XCTAssertEqual(DefaultMapLegend.legend.map(\.cell), PhysicalCell.all)
-        XCTAssertEqual(DefaultMapLegend.legend[0].actionTitle, "Horizontal Scroll + Wheel")
-        XCTAssertEqual(DefaultMapLegend.legend[3].actionTitle, "Copy / Paste + Wheel")
-        XCTAssertEqual(DefaultMapLegend.legend[2].actionTitle, "Screenshot · Wheel Paste")
+        XCTAssertEqual(DefaultMapLegend.legend[0].actionTitle, "Horizontal Scroll")
+        XCTAssertEqual(DefaultMapLegend.legend[3].actionTitle, "Space · Copy / Paste")
+        XCTAssertEqual(DefaultMapLegend.legend[2].actionTitle, "Screenshot · Paste")
         XCTAssertEqual(DefaultMapLegend.legend[1].actionTitle, "App mode")
         XCTAssertEqual(DefaultMapLegend.legend[1].destinationModeAccent, AppSpecificMode.selectorAccent)
-        XCTAssertEqual(DefaultMapLegend.legend[5].actionTitle, "YouTube · Hold 2× / Scrub + Wheel")
+        XCTAssertEqual(DefaultMapLegend.legend[5].actionTitle, "YouTube −5 sec · Hold 2× / Scrub")
         XCTAssertEqual(DefaultMapLegend.legend[4].actionTitle, "Forward · Hold + 6 for Volume")
         XCTAssertEqual(DefaultMapLegend.legend[8].actionTitle, "Keys mode")
         XCTAssertEqual(DefaultMapLegend.legend[8].accent, ModePickerCoordinator.keysAccent)
         XCTAssertEqual(DefaultMapLegend.legend[8].destinationModeAccent, ModePickerCoordinator.keysAccent)
         XCTAssertEqual(DefaultMapLegend.legend[10].actionTitle, "Switch App")
-        XCTAssertEqual(DefaultMapLegend.legend[9].actionTitle, "Legend toggle")
+        XCTAssertEqual(DefaultMapLegend.legend[9].actionTitle, "Legend toggle · Hold ⌘")
         XCTAssertEqual(DefaultMapLegend.legend[11].actionTitle, "Utility modes")
         XCTAssertEqual(DefaultMapLegend.legend[11].destinationModeAccent, ModePickerCoordinator.accent)
         XCTAssertEqual(DefaultMapLegend.accent, .white)
@@ -97,10 +97,10 @@ final class DefaultMapHintCommandTests: XCTestCase {
         XCTAssertNil(snapshot.footerHint)
         XCTAssertTrue(snapshot.showsOnAllDisplays)
         XCTAssertEqual(snapshot.accent, .white)
-        XCTAssertEqual(snapshot.legend[9].actionTitle, "Legend toggle")
+        XCTAssertEqual(snapshot.legend[9].actionTitle, "Legend toggle · Hold ⌘")
         XCTAssertEqual(snapshot.legend[11].actionTitle, "Utility modes")
         XCTAssertEqual(snapshot.legend[10].actionTitle, "Switch App")
-        XCTAssertEqual(snapshot.legend[2].actionTitle, "Screenshot · Wheel Paste")
+        XCTAssertEqual(snapshot.legend[2].actionTitle, "Screenshot · Paste")
         XCTAssertEqual(snapshot.legend[2].controlStatus, .normal)
         XCTAssertEqual(snapshot.legend[2].printedControlLabel(on: .corsair), "Corsair 3")
         XCTAssertEqual(snapshot.presentationStyle, .neutral)
@@ -110,7 +110,8 @@ final class DefaultMapHintCommandTests: XCTestCase {
             youtubeVolumeModifierActive: true
         )
         XCTAssertEqual(volumeSnapshot.legend[4].actionTitle, "YouTube Volume held")
-        XCTAssertEqual(volumeSnapshot.legend[5].actionTitle, "YouTube Volume + Wheel")
+        XCTAssertEqual(volumeSnapshot.legend[5].actionTitle, "YouTube Volume")
+        XCTAssertEqual(volumeSnapshot.legend[5].displayTitle(on: .corsair), "YouTube Volume ↕")
         XCTAssertEqual(volumeSnapshot.legend[4].accent, DefaultMapLegend.legend[5].accent)
         XCTAssertEqual(volumeSnapshot.legend[5].accent, DefaultMapLegend.legend[5].accent)
 
@@ -130,7 +131,7 @@ final class DefaultMapHintCommandTests: XCTestCase {
         let razerSnapshot = DefaultMapLegend.snapshot(source: .razer)
         XCTAssertEqual(razerSnapshot.source, .razer)
         XCTAssertEqual(razerSnapshot.legend[4].actionTitle, "Forward · Hold + 4 for Volume")
-        XCTAssertEqual(razerSnapshot.legend[9].actionTitle, "Legend toggle")
+        XCTAssertEqual(razerSnapshot.legend[9].actionTitle, "Legend toggle · Hold ⌘")
         XCTAssertEqual(razerSnapshot.legend[11].actionTitle, "Utility modes")
         XCTAssertEqual(razerSnapshot.legend[10].actionTitle, "Switch App")
         XCTAssertEqual(razerSnapshot.legend[2].printedControlLabel(on: .razer), "Razer 1")
@@ -186,7 +187,7 @@ final class DefaultMapHintCoordinatorTests: XCTestCase {
         XCTAssertTrue(coordinator.isShowingHint)
         XCTAssertEqual(coordinator.source, .corsair)
         XCTAssertTrue(hud.isVisible)
-        XCTAssertEqual(hud.snapshots.last?.legend[9].actionTitle, "Legend toggle")
+        XCTAssertEqual(hud.snapshots.last?.legend[9].actionTitle, "Legend toggle · Hold ⌘")
 
         dismissScheduler.fire()
         XCTAssertTrue(coordinator.isShowingHint, "duration zero stays visible indefinitely")
@@ -198,7 +199,7 @@ final class DefaultMapHintCoordinatorTests: XCTestCase {
 
     func testVisibleMapRefreshesKnownScreenshotToggleCopy() {
         coordinator.handleToggle(source: .corsair)
-        XCTAssertEqual(hud.snapshots.last?.legend[2].actionTitle, "Screenshot · Wheel Paste")
+        XCTAssertEqual(hud.snapshots.last?.legend[2].actionTitle, "Screenshot · Paste")
 
         screenshotActionState = .capturing
         coordinator.refresh()
@@ -210,11 +211,11 @@ final class DefaultMapHintCoordinatorTests: XCTestCase {
 
         screenshotActionState = .pasteReady
         coordinator.refresh()
-        XCTAssertEqual(hud.snapshots.last?.legend[2].actionTitle, "Screenshot · Wheel Paste")
+        XCTAssertEqual(hud.snapshots.last?.legend[2].actionTitle, "Screenshot · Paste")
 
         screenshotActionState = .idle
         coordinator.refresh()
-        XCTAssertEqual(hud.snapshots.last?.legend[2].actionTitle, "Screenshot · Wheel Paste")
+        XCTAssertEqual(hud.snapshots.last?.legend[2].actionTitle, "Screenshot · Paste")
     }
 
     func testVisibleDefaultMapTracksFrontmostAppNameAndExactIconIdentity() {
@@ -228,7 +229,7 @@ final class DefaultMapHintCoordinatorTests: XCTestCase {
         coordinator.handleToggle(source: .corsair)
 
         XCTAssertEqual(hud.snapshots.last?.legend[1].actionTitle, "Chrome mode")
-        XCTAssertEqual(hud.snapshots.last?.legend[5].actionTitle, "YouTube · Hold 2× / Scrub + Wheel")
+        XCTAssertEqual(hud.snapshots.last?.legend[5].actionTitle, "YouTube −5 sec · Hold 2× / Scrub")
         XCTAssertEqual(
             hud.snapshots.last?.legend[1].accent,
             ChromeMode.accent.blended(with: .white, amount: 0.58)
@@ -251,25 +252,34 @@ final class DefaultMapHintCoordinatorTests: XCTestCase {
         coordinator.refresh()
 
         XCTAssertEqual(hud.snapshots.last?.legend[1].actionTitle, "VS Code mode")
-        XCTAssertEqual(hud.snapshots.last?.legend[3].actionTitle, "Copy / Paste · Stage + Previous after 5")
-        XCTAssertEqual(hud.snapshots.last?.legend[4].actionTitle, "Previous Change · Hold + 4 to Stage")
-        XCTAssertEqual(hud.snapshots.last?.legend[6].actionTitle, "Enter · Stage + Next after 8")
-        XCTAssertEqual(hud.snapshots.last?.legend[7].actionTitle, "Next Change · Hold + 7 to Stage")
+        XCTAssertEqual(hud.snapshots.last?.legend[3].actionTitle, "Space · Copy / Paste")
+        XCTAssertEqual(hud.snapshots.last?.legend[4].actionTitle, VSCodeModeAction.previousChange.title)
+        XCTAssertEqual(hud.snapshots.last?.legend[6].actionTitle, "Enter")
+        XCTAssertEqual(hud.snapshots.last?.legend[7].actionTitle, VSCodeModeAction.nextChange.title)
         XCTAssertEqual(
             hud.snapshots.last?.legend[1].appBackdrop,
             ModeHUDAppBackdrop(bundleIdentifier: AppSpecificTarget.vsCode.bundleIdentifier)
         )
-        XCTAssertEqual(hud.snapshots.last?.legend[5].actionTitle, "YouTube · Hold 2× / Scrub + Wheel")
+        XCTAssertEqual(hud.snapshots.last?.legend[5].actionTitle, "YouTube −5 sec · Hold 2× / Scrub")
         XCTAssertTrue(coordinator.isShowingHint)
 
         let razerSnapshot = DefaultMapLegend.snapshot(
             source: .razer,
             frontmostAppContext: frontmostAppContext
         )
-        XCTAssertEqual(razerSnapshot.legend[3].actionTitle, "Copy / Paste · Stage + Previous after 5")
-        XCTAssertEqual(razerSnapshot.legend[4].actionTitle, "Previous Change · Hold + 6 to Stage")
-        XCTAssertEqual(razerSnapshot.legend[6].actionTitle, "Enter · Stage + Next after 8")
-        XCTAssertEqual(razerSnapshot.legend[7].actionTitle, "Next Change · Hold + 9 to Stage")
+        XCTAssertEqual(razerSnapshot.legend[3].actionTitle, "Space · Copy / Paste")
+        XCTAssertEqual(razerSnapshot.legend[4].actionTitle, VSCodeModeAction.previousChange.title)
+        XCTAssertEqual(razerSnapshot.legend[6].actionTitle, "Enter")
+        XCTAssertEqual(razerSnapshot.legend[7].actionTitle, VSCodeModeAction.nextChange.title)
+    }
+
+    func testWandHomeEnterIsTheSamePlainEnterTheMiceUse() {
+        let wand=DefaultMapLegend.snapshot(source:.wand)
+        XCTAssertEqual(wand.legend[6].actionTitle,"Enter")
+        XCTAssertEqual(wand.legend[6].accent,ModeHUDActionFamilyPalette.enter)
+        for source:MouseSource in [.corsair,.razer] {
+            XCTAssertEqual(DefaultMapLegend.snapshot(source:source).legend[6].actionTitle,wand.legend[6].actionTitle)
+        }
     }
 
     func testYouTubeScrubCopyDoesNotDependOnFrontmostAppSupport() {
@@ -280,7 +290,7 @@ final class DefaultMapHintCoordinatorTests: XCTestCase {
         )
         coordinator.handleToggle(source: .corsair)
 
-        XCTAssertEqual(hud.snapshots.last?.legend[5].actionTitle, "YouTube · Hold 2× / Scrub + Wheel")
+        XCTAssertEqual(hud.snapshots.last?.legend[5].actionTitle, "YouTube −5 sec · Hold 2× / Scrub")
     }
 
     func testCoordinatorIgnoresCommandsOwnedByTheOtherMouse() {

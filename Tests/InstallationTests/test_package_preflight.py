@@ -27,7 +27,8 @@ class PackagePreflightTests(unittest.TestCase):
         self.bin.mkdir()
         self.fake("security", 'printf \'  1) ABC "Developer ID Application: Test Owner (TEST)"\\n\'')
         self.fake("swift", "exit 91")
-        # Isolate signing/SDK preflight from the separate source-lineage gate.
+        # These tests isolate shell identity/SDK preflight. Source-lineage
+        # failures and races are exercised against real manifests separately.
         self.fake("python3", "exit 0")
 
     def fake(self, name, body):

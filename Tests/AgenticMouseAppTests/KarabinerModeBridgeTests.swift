@@ -1,5 +1,6 @@
 import Darwin
 import Foundation
+import ScimitarKit
 @testable import AgenticMouseApp
 import XCTest
 
@@ -29,7 +30,7 @@ final class KarabinerModeBridgeTests: XCTestCase {
         let delivered = expectation(description: "user command delivered")
         let receiver = KarabinerUserCommandReceiver(socketPath: socketPath)
 
-        try receiver.start { data in
+        try receiver.start { data, _ in
             XCTAssertEqual(data, payload)
             delivered.fulfill()
         }
@@ -44,10 +45,81 @@ final class KarabinerModeBridgeTests: XCTestCase {
         XCTAssertFalse(FileManager.default.fileExists(atPath: socketPath + ".agentic-mouse.lock"))
     }
 
+    func testIngressTimesSurviveAMainThreadStall() throws {
+        let socketPath = temporaryDirectory.appendingPathComponent("timing.sock").path
+        let receiver = KarabinerUserCommandReceiver(socketPath: socketPath)
+        let delivered = expectation(description: "both queued phases delivered")
+        delivered.expectedFulfillmentCount = 2
+        var inputTimes: [TimeInterval] = []
+        try receiver.start { _, inputTime in
+            inputTimes.append(inputTime)
+            XCTAssertGreaterThan(ProcessInfo.processInfo.systemUptime - inputTime, 0.35)
+            delivered.fulfill()
+        }
+        defer { receiver.stop() }
+        try send(Data("press".utf8), to: socketPath)
+        usleep(40_000)
+        try send(Data("release".utf8), to: socketPath)
+        usleep(450_000) // Deliberately block test-thread delivery after the real receiver has captured both phases.
+        wait(for: [delivered], timeout: 2)
+        XCTAssertEqual(inputTimes.count, 2)
+        if inputTimes.count == 2 {
+            XCTAssertLessThan(inputTimes[1] - inputTimes[0], 0.2)
+            XCTAssertGreaterThanOrEqual(inputTimes[1], inputTimes[0])
+        }
+    }
+
+    @MainActor
+    func testQueuedLongYouTubeHoldNeverBecomesARewind() throws {
+        for source in MouseSource.allCases {
+            let receiver = KarabinerUserCommandReceiver(
+                socketPath: temporaryDirectory.appendingPathComponent("hold-\(source).sock").path
+            )
+            let monitor = ScrollWheelChordMonitor(
+                inputAllowed: { true },
+                log: Log(category: "youtube-hold-queue-test", sink: RecordingLogSink())
+            )
+            let hold = YouTubeScrubHoldController(
+                scheduler: ManualTickScheduler(), inputAllowed: { true },
+                beginSpeed: { _ in }, endSpeed: { _ in }
+            )
+            monitor.onControlChange = { source, _, inputTime in
+                hold.press(source: source, volumeModifierActive: false, inputTime: inputTime)
+            }
+            var rewinds = 0
+            monitor.onRelease = { release, inputTime in
+                if hold.release(source: release.source, inputTime: inputTime) { rewinds += 1 }
+            }
+            var inputTimes: [TimeInterval] = []
+            let delivered = expectation(description: "queued YouTube phases")
+            delivered.expectedFulfillmentCount = 2
+            try receiver.start { data, inputTime in
+                inputTimes.append(inputTime)
+                monitor.handle(WheelChordCommand(
+                    control: .youtubeScrub, source: source,
+                    phase: data == Data("press".utf8) ? .press : .release
+                ), inputTime: inputTime)
+                delivered.fulfill()
+            }
+            defer { receiver.stop() }
+            let path = temporaryDirectory.appendingPathComponent("hold-\(source).sock").path
+            try send(Data("press".utf8), to: path)
+            usleep(450_000)
+            try send(Data("release".utf8), to: path)
+            usleep(100_000) // Let the receiver capture release while main remains busy.
+            wait(for: [delivered], timeout: 2)
+            XCTAssertEqual(inputTimes.count, 2)
+            if inputTimes.count == 2 {
+                XCTAssertGreaterThan(inputTimes[1] - inputTimes[0], 0.35)
+            }
+            XCTAssertEqual(rewinds, 0, "A queued long hold must never dispatch the five-second rewind")
+        }
+    }
+
     func testReceiverDetectsAReplacedSocketAndNeverUnlinksTheReplacement() throws {
         let socketPath = temporaryDirectory.appendingPathComponent("replaced.sock").path
         let receiver = KarabinerUserCommandReceiver(socketPath: socketPath)
-        try receiver.start { _ in }
+        try receiver.start { _, _ in }
         XCTAssertTrue(receiver.isHealthy)
 
         unlink(socketPath)
@@ -75,7 +147,7 @@ final class KarabinerModeBridgeTests: XCTestCase {
 
         do {
             let receiver = KarabinerUserCommandReceiver(socketPath: socketPath)
-            XCTAssertThrowsError(try receiver.start { _ in }) { error in
+            XCTAssertThrowsError(try receiver.start { _, _ in }) { error in
                 guard case KarabinerModeBridgeError.socketPathOccupied(let occupiedPath) = error else {
                     return XCTFail("unexpected error: \(error)")
                 }
@@ -97,7 +169,7 @@ final class KarabinerModeBridgeTests: XCTestCase {
         close(crashedFD)
 
         let receiver = KarabinerUserCommandReceiver(socketPath: socketPath)
-        try receiver.start { _ in }
+        try receiver.start { _, _ in }
         XCTAssertTrue(receiver.isHealthy)
         XCTAssertNotEqual(
             KarabinerUserCommandReceiver.socketIdentity(at: socketPath),
@@ -105,6 +177,50 @@ final class KarabinerModeBridgeTests: XCTestCase {
             "recovery must bind a new socket after reclaiming the exact crash artifact"
         )
         receiver.stop()
+    }
+
+    func testReceiverReclaimsRebootOrphanAfterDeviceNumberChanges() throws {
+        let socketPath = temporaryDirectory.appendingPathComponent("reboot.sock").path
+        let crashedFD = try bindDatagramSocket(at: socketPath)
+        guard let identity = KarabinerUserCommandReceiver.socketIdentity(at: socketPath) else {
+            return XCTFail("expected the bound socket identity")
+        }
+        try writeMarker(.init(
+            device: identity.device &+ 1,
+            inode: identity.inode,
+            user: identity.user,
+            type: identity.type
+        ), socketPath: socketPath)
+        close(crashedFD)
+
+        let receiver = KarabinerUserCommandReceiver(socketPath: socketPath)
+        try receiver.start { _, _ in }
+        XCTAssertTrue(receiver.isHealthy)
+        XCTAssertNotEqual(KarabinerUserCommandReceiver.socketIdentity(at: socketPath), identity)
+        receiver.stop()
+    }
+
+    func testReceiverPreservesLiveSocketDespiteDeviceNumberMismatch() throws {
+        let socketPath = temporaryDirectory.appendingPathComponent("live.sock").path
+        let liveFD = try bindDatagramSocket(at: socketPath)
+        defer {
+            close(liveFD)
+            unlink(socketPath)
+            unlink(socketPath + ".agentic-mouse.lock")
+        }
+        guard let identity = KarabinerUserCommandReceiver.socketIdentity(at: socketPath) else {
+            return XCTFail("expected the bound socket identity")
+        }
+        try writeMarker(.init(
+            device: identity.device &+ 1,
+            inode: identity.inode,
+            user: identity.user,
+            type: identity.type
+        ), socketPath: socketPath)
+
+        let receiver = KarabinerUserCommandReceiver(socketPath: socketPath)
+        XCTAssertThrowsError(try receiver.start { _, _ in })
+        XCTAssertEqual(KarabinerUserCommandReceiver.socketIdentity(at: socketPath), identity)
     }
 
     func testReceiverRefusesSocketThatDoesNotMatchTheCrashMarker() throws {
@@ -127,7 +243,7 @@ final class KarabinerModeBridgeTests: XCTestCase {
         try writeMarker(staleIdentity, socketPath: socketPath)
 
         let receiver = KarabinerUserCommandReceiver(socketPath: socketPath)
-        XCTAssertThrowsError(try receiver.start { _ in })
+        XCTAssertThrowsError(try receiver.start { _, _ in })
         XCTAssertEqual(KarabinerUserCommandReceiver.socketIdentity(at: socketPath), identity)
     }
 

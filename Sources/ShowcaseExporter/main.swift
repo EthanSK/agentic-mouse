@@ -9,6 +9,7 @@ struct SiteControl: Encodable {
     let color: String
     let destinationColor: String?
     let reportedBroken: Bool
+    let unavailable: Bool
     let hud: SiteHUDCard
     let appIcon: String?
     var next: String?
@@ -68,6 +69,7 @@ struct SiteMode: Encodable {
 
 struct SiteSource: Encodable {
     let name: String
+    let gestureHint: String
     let rows: [[Int]]
     let modes: [String: SiteMode]
     let defaults: [String: SiteMode]
@@ -87,6 +89,13 @@ struct SiteMap: Encodable {
     let initialShift: String
     let version: String
     let hud = SiteHUDMetrics()
+}
+
+/// Offline transport validation only; normal website output is unchanged.
+struct RoutingAuditData: Encodable {
+    let map: SiteMap
+    let appBundles: [String: String]
+    let pages: [String: Int]
 }
 
 struct SiteVersion: Decodable {
@@ -125,8 +134,9 @@ final class SiteProbe {
             effect = String(describing: action)
             return true
         }
-        coordinator.onAppSpecificInput = { [unowned self] _, target, cell, phase in
+        coordinator.onAppSpecificInput = { [unowned self] _, target, cell, phase, _ in
             guard phase == .press else { return true }
+            guard target != .claude || ClaudeModeAction.action(for: cell) != nil else { return false }
             effect = target.definition.legend.first { $0.cell == cell }?.actionTitle
             return effect != "Spare"
         }
@@ -134,7 +144,15 @@ final class SiteProbe {
             effect = action.title
             return true
         }
-        for command in commands { coordinator.handle(command) }
+        for command in commands {
+            coordinator.handle(command)
+            // Routes describe completed entry clicks, not a still-held
+            // physical modifier carried into every subsequent cell probe.
+            if command.action == .openAppSpecific, command.phase == .press {
+                coordinator.handle(.init(action: .openAppSpecific, source: command.source,
+                    physicalCell: command.physicalCell, phase: .release))
+            }
+        }
         effect = nil
     }
 
@@ -181,6 +199,12 @@ func exportSource(_ source: MouseSource) -> SiteSource {
             let press = ModePickerCommand(action: .select, source: source, physicalCell: item.cell, phase: .press)
             let cellProbe = SiteProbe(source: source, commands: route.commands, app: route.app)
             cellProbe.coordinator.handle(press)
+            // Codex's pin modifier decides its unused Exit on release.
+            // Export a complete solo click, without simulating a pin chord.
+            if probe.coordinator.appSpecificTarget == .codex, item.cell == CodexMode.pinModifierCell {
+                cellProbe.coordinator.handle(.init(action: .select, source: source,
+                    physicalCell: item.cell, phase: .release))
+            }
             if cellProbe.modeID != modeID {
                 control.next = cellProbe.modeID
                 if cellProbe.coordinator.followsFrontmostApp != probe.coordinator.followsFrontmostApp {
@@ -204,6 +228,7 @@ func exportSource(_ source: MouseSource) -> SiteSource {
     modes["default"] = defaultMode(source, app: nil)
     return SiteSource(
         name: source.displayName,
+        gestureHint: ModeHUDCopy.gestureHint(for: source),
         rows: PhysicalCell.displayRowsTopToBottom(for: source).map { $0.map(\.rawValue) },
         modes: modes,
         defaults: Dictionary(uniqueKeysWithValues: AppSpecificTarget.allCases.map { ($0.rawValue, defaultMode(source, app: $0)) })
@@ -252,22 +277,17 @@ func keypadMode(_ source: MouseSource) -> SiteMode {
 
 func exportControl(_ item: ModeHUDLegendItem, source: MouseSource, modeAccent: RGBColor, style: ModeHUDPresentationStyle) -> SiteControl {
     let colors = ModeHUDCardColors(modeAccent: modeAccent, actionAccent: item.accent, destinationModeAccent: item.destinationModeAccent, presentationStyle: style) // The website must show the native HUD, not invent a second palette. Resolve both colour roles through the same Swift presentation code. (Codex task: 01a06ee5-4aa0-7a61-a029-704e5c44a8f2)
-    return SiteControl(cell: item.cell.rawValue, printed: item.cell.printedSide(on: source)!, title: item.actionTitle,
+    return SiteControl(cell: item.cell.rawValue, printed: item.cell.printedSide(on: source)!, title: item.displayTitle(on: source),
                 color: hex(item.accent), destinationColor: item.destinationModeAccent.map(hex),
                 reportedBroken: item.controlStatus == .reportedBroken,
+                unavailable: item.controlStatus == .unavailable,
                 hud: SiteHUDCard(fill: hex(colors.fill), border: hex(colors.border), foreground: hex(colors.foreground)),
                 appIcon: AppSpecificTarget.allCases.first { $0.bundleIdentifier == item.appBackdrop?.bundleIdentifier }?.rawValue)
 }
 
 /// Direction labels come from the native wheel resolver, including its accepted per-family physical inversions.
 func exportWheel(_ control: WheelChordControl) -> SiteWheel {
-    let physicalUp: WheelChordDirection
-    switch control {
-    case .youtubeScrub, .codexReasoningEffort, .vsCodeCursorHistory, .codexPin, .screenshotPaste: physicalUp = .down // These families normalize the physical ratchet to the opposite Quartz enum sign; keep that exception local as the runtime does.
-    case .horizontalScroll, .youtubeVolume, .brightness, .zoom, .clipboard, .systemOverview,
-         .applicationWindows, .magnetWindow, .spaces, .mediaTracks, .chromeTabs, .spotifyVolume, .codexChatHistory:
-        physicalUp = .up
-    }
+    let physicalUp = control.physicalUpDirection // One shared table also drives the HUD's motion arrow.
     return SiteWheel(id: control.rawValue, up: control.feedbackActionTitle(for: physicalUp),
                      down: control.feedbackActionTitle(for: physicalUp == .up ? .down : .up),
                      oncePerHold: control.dispatchPolicy == .oncePerHold)
@@ -292,5 +312,15 @@ let map = SiteMap(
 )
 let encoder = JSONEncoder()
 encoder.outputFormatting = [.sortedKeys, .withoutEscapingSlashes]
-FileHandle.standardOutput.write(try encoder.encode(map))
+if CommandLine.arguments.contains("--routing-audit") {
+    let audit = RoutingAuditData(map: map,
+        appBundles: Dictionary(uniqueKeysWithValues: AppSpecificTarget.allCases.map { ($0.rawValue, $0.bundleIdentifier) }),
+        pages: ["default": 0, "utility": ModePickerPage.modes.rawValue,
+                "keys": ModePickerPage.keys.rawValue, "apps": ModePickerPage.appSelector.rawValue,
+                "keypad": ModePickerPage.keypad.rawValue, "extra": ModePickerPage.extraUtilities.rawValue,
+                "websites": ModePickerPage.chromeWebsites.rawValue, "appSpecific": ModePickerPage.appSpecific.rawValue])
+    FileHandle.standardOutput.write(try encoder.encode(audit))
+} else {
+    FileHandle.standardOutput.write(try encoder.encode(map))
+}
 FileHandle.standardOutput.write(Data("\n".utf8))

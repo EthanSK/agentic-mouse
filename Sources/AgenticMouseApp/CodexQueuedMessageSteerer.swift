@@ -25,8 +25,9 @@ enum CodexQueuedMessageAction: Equatable, Sendable {
 
 /// Locates the exact controls exposed by Codex on a queued-message row.
 ///
-/// Production Steer uses Codex's built-in Command-Return shortcut. This
-/// Accessibility route remains for Edit Queued Message, whose actions menu
+/// Default mode can form Codex's Command-Return shortcut by holding the
+/// top-level Command modifier and pressing Enter. This Accessibility route
+/// remains for Edit Queued Message, whose actions menu
 /// still needs the exact Steer/Delete/Actions row cluster as its anchor.
 @MainActor
 final class CodexQueuedMessageSteerer {

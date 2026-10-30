@@ -56,7 +56,7 @@ YouTube control needs the separate **AgentFlow YouTube Bridge** Chrome extension
 | App mode | Bring up controls for the frontmost app, including Codex, Chrome, VS Code, and Spotify. |
 | Utility mode | Control windows, Spaces, brightness, zoom, and other utilities. |
 | Keys → Keypad | Use arrows and editing keys, or type with classic phone-style multi-tap. |
-| Legend toggle / Exit | Show the Default map, or leave an active mode. Each mouse keeps its own state. |
+| Legend toggle · Hold ⌘ / Exit | Tap to show the Default map, hold as Command with another control, or leave an active mode. Each mouse keeps its own state. |
 
 [Open the generated map](https://ethansk.github.io/agentic-mouse/mouse-map.html) for the exact button numbers and every app mode. Some controls carry a **Needs repair** marker from my latest physical report; a browser demo is not proof that the corresponding Mac action works.
 

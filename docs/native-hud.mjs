@@ -11,6 +11,7 @@ export function hudPresentation(simulator) {
     outlineWidth: mode.outlineWidth,
     title: mode.title,
     source: map.sources[hand].name,
+    gestureHint: map.sources[hand].gestureHint,
     feedback: state.feedback,
     status: keypad
       ? pending
@@ -26,7 +27,7 @@ export function hudPresentation(simulator) {
         cell,
         title: control.title,
         printed: control.printed,
-        label: `${hand === "razer" ? "Razer" : "Corsair"} ${control.printed}${control.reportedBroken ? " ❌" : ""}`,
+        label: `${hand === "razer" ? "Razer" : "Corsair"} ${control.printed}${control.reportedBroken ? " ❌" : control.unavailable ? " ×" : ""}`,
         selected,
         held: state.held === cell,
         navigation: Boolean(control.destinationColor),
@@ -54,9 +55,10 @@ export function createNativeHUD(element, simulator, { activate, bindHold, keydow
   footer.className = "native-hud-footer";
   const status = document.createElement("span");
   if (element.id === "mouse-hud") status.setAttribute("role", "status"); // Both previews update together; announce each change once rather than reading the off-screen duplicate too.
+  const gesture = document.createElement("span");
   const source = document.createElement("span");
   const shift = document.createElement("span");
-  footer.append(status, shift, source);
+  footer.append(status, gesture, shift, source);
   element.replaceChildren(grid, footer);
   const buttons = new Map();
   for (const cell of simulator.rows().flat()) {
@@ -123,6 +125,7 @@ export function createNativeHUD(element, simulator, { activate, bindHold, keydow
     }
     status.textContent = hud.style === "keypad" ? `${hud.title} · ${hud.status}` : hud.status;
     status.classList.toggle("has-feedback", Boolean(hud.feedback));
+    gesture.textContent = hud.style === "keypad" ? "" : hud.gestureHint;
     source.textContent = hud.style === "keypad" ? "" : `${hud.source} · ${simulator.map.version}`;
     shift.textContent = hud.style === "keypad" ? hud.shift : "";
   };

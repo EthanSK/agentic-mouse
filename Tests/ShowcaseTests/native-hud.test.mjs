@@ -18,6 +18,7 @@ test("the native HUD preserves each hand's physical order and printed repair mar
         const control = simulator.control(card.cell);
         assert.equal(card.printed, control.printed);
         assert.equal(card.label.includes("❌"), control.reportedBroken);
+        assert.equal(card.label.includes("×"), control.unavailable);
         assert.equal(card.title, control.title);
         assert.match(card.fill, /^#[0-9a-f]{6}$/);
         if (control.destinationColor) {

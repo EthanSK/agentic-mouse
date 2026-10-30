@@ -7,6 +7,7 @@ enum KeysModeActionError: Error, Equatable {
     case inputBlocked
     case accessibilityPermissionMissing
     case eventCreationFailed
+    case nativeInputRequired
     case passwordNotConfigured
 }
 
@@ -69,7 +70,9 @@ struct KeysModeActionExecutor {
         case .insertSpace: keyCode = 49; flags = []
         case .pressBackspace: keyCode = 51; flags = []
         case .save: keyCode = 1; flags = .maskCommand
-        case .close: keyCode = 13; flags = .maskCommand
+        case .holdShift:
+            // Karabiner owns the physical modifier lifetime; a tap fallback is unsafe.
+            return .failure(.nativeInputRequired)
         }
 
         let down = postEvent(keyCode, flags, true)
@@ -78,9 +81,18 @@ struct KeysModeActionExecutor {
     }
 
     func perform(_ action: MediaTrackAction) -> Result<Void, KeysModeActionError> {
+        performMediaKey(Int32(action == .next ? NX_KEYTYPE_NEXT : NX_KEYTYPE_PREVIOUS))
+    }
+
+    /// The wand's Play/Pause card sends the same consumer control as the
+    /// physical mouse's configured middle click, without a synthetic mouse click.
+    func performPlayPause() -> Result<Void, KeysModeActionError> {
+        performMediaKey(Int32(NX_KEYTYPE_PLAY))
+    }
+
+    private func performMediaKey(_ keyType: Int32) -> Result<Void, KeysModeActionError> {
         guard inputAllowed() else { return .failure(.inputBlocked) }
         guard accessibilityTrusted() else { return .failure(.accessibilityPermissionMissing) }
-        let keyType = Int32(action == .next ? NX_KEYTYPE_NEXT : NX_KEYTYPE_PREVIOUS)
         let down = postSystemEvent(keyType, true)
         let up = postSystemEvent(keyType, false)
         return down && up ? .success(()) : .failure(.eventCreationFailed)

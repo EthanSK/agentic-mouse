@@ -211,7 +211,7 @@ public enum DefaultMapLegend {
             ),
             accent: accent,
             footerTitle: "Default mode",
-            footerHint: nil,
+            footerHint: frontmostAppContext?.target == .vsCode ? VSCodeMode.undoHint(source: source) : nil,
             showsOnAllDisplays: true
         )
     }
@@ -225,30 +225,56 @@ public enum DefaultMapLegend {
         PhysicalCell.all.map { cell in
             let assignment = DefaultMouseMapping.assignment(for: cell, source: source)
             let title: String
-            if cell == DefaultMapHintCommand.triggerCell(for: source) {
+            var gesture: ModeHUDGesture?
+            if source == .wand, cell == .modeExit {
+                // Ethan: "get rid of the hold command thing ... on the wand HUD".
+                // The wand home's cell 10 only closes the HUD; the physical
+                // mice keep Legend toggle · Hold ⌘ unchanged.
+                title = ModeHUDCopy.wandCloseTitle
+            } else if cell == DefaultMapHintCommand.triggerCell(for: source) {
                 title = ModeHUDCopy.legendToggleTitle
             } else if cell == .screenshotToggle {
                 title = ModeHUDCopy.screenshotActionTitle(state: screenshotActionState)
+                gesture = ModeHUDCopy.screenshotGesture(state: screenshotActionState)
             } else if cell == .frontmostAppModeSelector {
                 title = frontmostAppContext?.definition.title ?? "App mode"
             } else if frontmostAppContext?.target == .vsCode,
-                      cell == .clipboardWheelControl {
-                title = "Copy / Paste · Stage + Previous after 5"
-            } else if frontmostAppContext?.target == .vsCode,
                       cell == VSCodeModeAction.previousChange.cell {
-                title = "Previous Change · Hold + \(PhysicalCell.clipboardWheelControl.printedSide(on: source)!) to Stage"
-            } else if frontmostAppContext?.target == .vsCode,
-                      cell == PhysicalCell(rawValue: 7)! {
-                title = "Enter · Stage + Next after 8"
+                // The wand's home card only moves to the change; "Hold stage"
+                // is the physical mice's held chord.
+                title = source == .wand ? "Prev change" : VSCodeModeAction.previousChange.title
             } else if frontmostAppContext?.target == .vsCode,
                       cell == VSCodeModeAction.nextChange.cell {
-                title = "Next Change · Hold + \(PhysicalCell(rawValue: 7)!.printedSide(on: source)!) to Stage"
+                title = source == .wand ? "Next change" : VSCodeModeAction.nextChange.title
+            } else if source == .wand, cell == YouTubeVolumeModifierCommand.triggerCell {
+                // The wand sends plain Forward here; the 5 + 6 volume chord is
+                // physical-mouse only (Ethan, 2026-10-29: "Can we get rid of
+                // the forward and hold plus six for volume?").
+                title = "Forward"
             } else if youtubeVolumeModifierActive && cell == YouTubeVolumeModifierCommand.triggerCell {
                 title = "YouTube Volume held"
             } else if youtubeVolumeModifierActive && cell == .youtubeScrubWheelControl {
-                title = "YouTube Volume + Wheel"
+                gesture = WheelChordControl.youtubeVolume.hudGesture
+                title = gesture!.words
             } else if cell == YouTubeVolumeModifierCommand.triggerCell {
                 title = "Forward · Hold + \(PhysicalCell.youtubeScrubWheelControl.printedSide(on: source)!) for Volume"
+            } else if let control = WheelChordControl.topLevelControl(for: cell) {
+                // Horizontal Scroll, Copy / Paste (click inserts a space) and
+                // YouTube (click rewinds) take their card from the same typed
+                // control the wheel dispatcher arms. The wand's Copy / Paste
+                // has no click: its Space is the separate outer Space card.
+                let shared = control.hudGesture
+                gesture = source == .wand && control == .clipboard
+                    ? ModeHUDGesture(hold: shared.hold, motion: shared.motion, isAvailableOnWand: shared.isAvailableOnWand,
+                                     wandMotion: shared.wandMotion)
+                    : shared
+                title = gesture!.words
+            } else if source == .wand, cell == .switchApp {
+                // The wand arms Switch App on a held release; the next hold
+                // moves through the open switcher left or right.
+                gesture = ModeHUDGesture(click: assignment?.action ?? "Switch App", hold: "Choose",
+                                         motion: .leftRight, isAvailableOnWand: true)
+                title = gesture!.words
             } else {
                 title = assignment?.action ?? "Spare"
             }
@@ -273,19 +299,29 @@ public enum DefaultMapLegend {
                     destinationModeAccent = nil
                 }
             }
+            let appBackdrop: ModeHUDAppBackdrop? = cell == .frontmostAppModeSelector
+                ? frontmostAppContext.flatMap {
+                    ModeHUDAppBackdrop(
+                        bundleIdentifier: $0.bundleIdentifier,
+                        applicationPath: $0.applicationPath
+                    )
+                }
+                : nil
+            if let gesture {
+                return ModeHUDLegendItem(
+                    cell: cell,
+                    gesture: gesture,
+                    accent: itemAccent,
+                    destinationModeAccent: destinationModeAccent,
+                    appBackdrop: appBackdrop
+                )
+            }
             return ModeHUDLegendItem(
                 cell: cell,
                 actionTitle: title,
                 accent: itemAccent,
                 destinationModeAccent: destinationModeAccent,
-                appBackdrop: cell == .frontmostAppModeSelector
-                    ? frontmostAppContext.flatMap {
-                        ModeHUDAppBackdrop(
-                            bundleIdentifier: $0.bundleIdentifier,
-                            applicationPath: $0.applicationPath
-                        )
-                    }
-                    : nil,
+                appBackdrop: appBackdrop,
                 controlStatus: .normal
             )
         }
@@ -305,7 +341,7 @@ public enum DefaultMapLegend {
         if lowered.contains("copy") || lowered.contains("paste") {
             return ModeHUDActionFamilyPalette.clipboard
         }
-        if lowered == "enter" { return ModeHUDActionFamilyPalette.enter }
+        if lowered == "enter" || lowered == "⌘↩ steer" { return ModeHUDActionFamilyPalette.enter }
         if lowered.contains("legend") { return ModeHUDActionFamilyPalette.legendToggle }
         if lowered.contains("keys") { return ModePickerCoordinator.keysAccent }
         if lowered.contains("modes") { return ModePickerCoordinator.accent }

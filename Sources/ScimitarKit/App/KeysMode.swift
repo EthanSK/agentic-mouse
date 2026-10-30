@@ -14,7 +14,7 @@ public enum KeysModeAction: CaseIterable, Equatable, Sendable {
     case insertSpace
     case pressBackspace
     case save
-    case close
+    case holdShift
 
     public var cell: PhysicalCell {
         switch self {
@@ -26,7 +26,7 @@ public enum KeysModeAction: CaseIterable, Equatable, Sendable {
         case .insertSpace: return PhysicalCell(rawValue: 8)!
         case .pressBackspace: return PhysicalCell(rawValue: 11)!
         case .save: return PhysicalCell(rawValue: 12)!
-        case .close: return PhysicalCell(rawValue: 2)!
+        case .holdShift: return PhysicalCell(rawValue: 2)!
         }
     }
 
@@ -41,15 +41,15 @@ public enum KeysModeAction: CaseIterable, Equatable, Sendable {
 
     public var actionTitle: String {
         switch self {
-        case .arrowUp: return "Up Arrow"
-        case .arrowDown: return "Down Arrow"
-        case .arrowLeft: return "Left Arrow"
-        case .arrowRight: return "Right Arrow"
-        case .undo: return "Undo"
-        case .insertSpace: return "Space"
-        case .pressBackspace: return "Backspace"
-        case .save: return "Save"
-        case .close: return "Close"
+        case .arrowUp: return "↑ Up"
+        case .arrowDown: return "↓ Down"
+        case .arrowLeft: return "← Left"
+        case .arrowRight: return "→ Right"
+        case .undo: return "⌘Z Undo"
+        case .insertSpace: return "␣ Space"
+        case .pressBackspace: return "⌫ Backspace"
+        case .save: return "⌘S Save"
+        case .holdShift: return "⇧ Hold Shift"
         }
     }
 
@@ -67,8 +67,21 @@ public enum KeysModeAction: CaseIterable, Equatable, Sendable {
             return ModeHUDActionFamilyPalette.backspace
         case .save:
             return ModeHUDActionFamilyPalette.save
-        case .close:
+        case .holdShift:
             return ModeHUDActionFamilyPalette.windowManagement
+        }
+    }
+
+    /// Wand only: ordinary navigation and text keys that Ethan clicks over and
+    /// over keep the open Keys HUD on the same card. One-shot or stateful keys
+    /// (Undo, Save, Hold Shift) still finish and hide it. Physical mice are
+    /// unaffected: they have no HUD selection to keep.
+    public var keepsWandHUDOpen: Bool {
+        switch self {
+        case .arrowUp, .arrowDown, .arrowLeft, .arrowRight, .insertSpace, .pressBackspace:
+            return true
+        case .undo, .save, .holdShift:
+            return false
         }
     }
 

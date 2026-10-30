@@ -23,7 +23,7 @@ The hardware-free suite covers the state machines and their safety boundaries:
 | Lighting lifecycle | multi-tap mode indicator; normal iCUE lighting returns on release |
 | Device selection | no match or several matches fails closed |
 | Privacy | device identifiers are redacted |
-| Reference map | wheel Play/Pause, top DPI VoiceInk++, hold 1 + wheel for horizontal scroll, hold 4 + wheel for Copy/Paste, 2 current frontmost-app mode, 3 Screenshot/cancel plus rapid-double Paste, 5/8 Forward/Back outside VS Code and Previous/Next Change inside it, hold 6 + wheel for YouTube ±5 sec per ratchet through the VoiceInk bridge, 7 Enter, 9 Keys mode, 10 Default legend outside modes or active-mode Exit, 11 Switch App and 12 Utility |
+| Reference map | wheel Play/Pause, top DPI VoiceInk++, hold 1 + wheel for horizontal scroll, hold 4 + wheel for Copy/Paste, 2 current frontmost-app mode, 3 Screenshot/cancel plus rapid-double Paste, 5/8 Forward/Back outside VS Code and Previous/Next Change inside it, hold 6 + wheel for YouTube ±5 sec per ratchet through the VoiceInk bridge, 7 Enter, 9 Keys mode, tap 10 for the Default legend or hold 10 as Command outside modes, active-mode 10 Exit, 11 Switch App and 12 Utility |
 
 ## What needs a real Corsair mouse
 
@@ -62,7 +62,7 @@ iCUE database or profile file behind the app's back.
    open Extra Utilities, confirm its source-aware label is Corsair 12 / Razer
    10, then press Extra Utilities cell 1 (Corsair 1 / Razer 3) and confirm Stay
    performs exactly one manual `Agentic Mouse Layout v1` restore through the
-   reserved Control-Option-Shift-Command-A shortcut.
+   reserved Control-Option-Command-A shortcut.
    With a harmless disposable app frontmost, press Extra Utilities cell 9 and
    confirm one ordinary save-aware Quit request. Keep holding or repeat the raw
    press before leaving the page and confirm no second request occurs. Confirm

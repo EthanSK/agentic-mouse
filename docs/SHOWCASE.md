@@ -1,4 +1,4 @@
-# Ethan S K's personal setup website
+# The Agentic Mouse showcase
 
 Build with `make test-site`, then serve `.build.noindex/site`. GitHub Actions runs the same build and tests on every push to `main`, then publishes the artifact to GitHub Pages. Pull requests only build and test. The Pages publishing source must be **GitHub Actions**.
 
@@ -10,69 +10,13 @@ Build with `make test-site`, then serve `.build.noindex/site`. GitHub Actions ru
 
 `Scripts/build-site.py` writes `.build.noindex/site`, including generated `simulator-data.json` and a no-JavaScript full map. It applies a content-derived cache version to the homepage, CSS and browser modules. The published data identifies the exact source commit; uncommitted native work is not silently bundled into a deployment. The historical `docs/script.js` table is no longer consumed by the homepage or the generated full map. Do not use it as the showcase’s source of truth.
 
-The hero mice slowly turn; the thumb-button chapter rocks through a small angle
-that keeps the key faces visible. `mouse-motion.mjs` shares their 30 fps idle loop.
-Pointer and keyboard input pause it immediately, with a smooth restart after six
-idle seconds. A held pointer or visible keyboard focus keeps it paused. After a
-drag, the chapter gradually returns to the side view; hero dragging retains its
-chosen orientation. Off-screen, hidden-page, reduced-motion and unavailable-WebGL
-scenes do not run an idle rendering loop. Scroll, resize and interaction still
-request individual frames, with a capped pixel ratio and no per-frame HUD rebuild.
-The camera world matrix must be current **before** projecting HTML
+The Three.js chapter renders on scroll, resize and interaction, with a capped
+pixel ratio. Its camera world matrix must be current **before** projecting HTML
 buttons: projecting before the first render can place focus targets far outside
 the chapter. Keyboard testing caught that failure. The enclosing chapter uses
 `overflow: clip`, which does not create a hidden scroll container. Keep the HTML
 grid usable if WebGL is unavailable. The scroll tour permanently yields after
 visitor input; mobile and reduced-motion layouts have no long pinned chapter.
-
-## Personal setup and code review
-
-The website presents Ethan's personal setup; Agentic Mouse remains the app and
-repository name. The compact `#engineers` section immediately after the hero
-highlights Better Git VS Code. Its current personal workflow uses printed 5/8 on
-both mice: a short release navigates, while a hold of at least 300 ms stages the
-current file and advances in that direction **on release**, not at the threshold.
-This was verified against the local native `VSCodeModeGestureClassifier` source
-on 7 September 2026. The published native source still has the older staging
-chords. Keep that distinction visible until the native change is released; do
-not copy partial native/exporter changes into a website-only release or silently
-relabel the generated simulator to imply an unreleased gesture is implemented.
-AgentFlow's public site is linked in the hero and speech explanation; Agent Bridge is linked
-beside the review workflow and in the existing tools directory. Verify their
-public sources before changing integration claims; the website does not perform
-dictation, Git operations, or cross-machine messaging.
-
-The `#watch-and-talk` feature, lounge copy and speech dialog explain Ethan's
-YouTube dictation workflow. AgentFlow emits recording-start/stop notifications;
-his separate YouTube helper and Chrome extension pause the playing video and
-resume only the video they paused on a normal recording stop. This is not passive
-speech detection or a capability provided by the website. The native triple-click
-clipboard route deliberately preserves playback instead of resuming it. Keep
-that exceptional gesture out of a blanket claim that every stop starts a video.
-
-The final `#follow` section links to Ethan's verified public LinkedIn profile,
-`https://www.linkedin.com/in/ethansk/`, and its recent activity. The large LinkedIn
-mark is an inline vector; the banner works without JavaScript or third-party
-requests. LinkedIn's [official embed guidance](https://www.linkedin.com/help/linkedin/answer/a529065/embed-content-from-the-linkedin-feed)
-documents individual public posts, not an automatically updating personal feed.
-Keep the recent-posts link honest; do not present static copy as live activity.
-
-## Skills directory
-
-The bottom `#skills` section in `docs/index.html` is a curated, static directory.
-Its native HTML disclosures and public links work without JavaScript. Keep public
-downloads, private workflow descriptions, the AIMVS development reference, and
-earlier experiments clearly distinguished. The automatic pre-commit review is
-disabled in Ethan's setup; the IDE-link patch is a documented failed experiment.
-Neither belongs among current recommended tools.
-
-Public repository visibility and descriptions were checked on 7 September 2026.
-Before changing an entry, verify its current public README or `SKILL.md`; an
-installed skill or a repository name alone does not prove it is published or
-portable. Never commit the local skill inventory, usage/session evidence, private
-skill source, or personal configuration. Private entries describe the workflow
-only. Keep the source links in this HTML as the single maintained catalog; no
-browser request to local skill folders or private GitHub APIs is needed.
 
 ## Native HUD preview
 
@@ -171,11 +115,8 @@ Every displayed image retains its source aspect ratio. Hardware thumbnails use
   in iPhone Photos. The portrait, taken on 2 September 2026, supplies his short
   haircut, face and outfit: a black graphic T-shirt and beige shorts. The desk
   photo supplies the bamboo top, laptop, monitors, speakers and microphone setup.
-  The corrected image uses those original photos for identity and room details,
-  the previous composition for framing, and the official black/yellow Corsair
-  product image for the mouse under his right hand. The latest edit lowers the
-  hips to correct the compressed lower torso while retaining the longer legs.
-  The original portrait was supplied again as the face reference for that edit.
+  The final image was generated afresh from those two original photos, without
+  feeding earlier AI composites back into the face reference.
   The reclining pose and chair are AI reimagined. Both mice rest on the main
   desktop, with one in use and the other parked beside it. The image
   remains labelled as AI on the page; it is not a documentary photograph or a
@@ -203,76 +144,3 @@ limitation. Keep private receipts, invoice files and order URLs outside Git.
 The build advances asset cache versions automatically. After publication, verify
 the exact live HTML, modules and generated data against the build artifact. A website preview cannot prove physical mouse
 acceptance or native command delivery.
-
-## Dark header and room beta
-
-The main walkthrough is dark by default, including the full-map page, error page
-and web manifest. `hero-galaxy.mjs` draws an authored Three.js particle spiral,
-inspired by the [GPT-6 Astra header](https://openai.com/index/gpt-6-astra/).
-The reference's published poster shows cool white and warm stars winding into a
-spiral; its page data describes drag/arrow rotation and scroll dispersion. The
-reference's full animation could not be observed because its script chunks returned
-403 responses. Do not describe our animation as OpenAI's original implementation.
-No OpenAI source or artwork is bundled. A fresh check on 8 September 2026 found
-`AstraHero` and `AstraScrollCue` in the rendered page data, with autoplay,
-`particles.disperse: 1`, `flowSpeed: 0.8`, and smoothstep scroll easing. Its
-star-field control advertises drag and arrow-key rotation. The interactive chunks
-still failed to load, so these labels and parameters do not establish the exact
-pointer physics. The current [Codex landing page](https://openai.com/codex/) shows
-a blue/purple background, not this star field.
-
-Our implementation uses a [Three.js ShaderMaterial](https://threejs.org/docs/pages/ShaderMaterial.html)
-on one [Points](https://threejs.org/docs/pages/Points.html) object. Pointer proximity
-pushes and curls nearby stars; six recent stroke segments leave a wake that fades
-within 1.4 seconds. Displacement is calculated in projected screen coordinates
-so the interaction remains under the pointer across particle depths and screen
-sizes. It returns to the flowing spiral without changing the source geometry.
-One point-cloud draw call replaces a bloom pipeline, with no per-particle JavaScript
-loop or new dependency. Rendering runs at up to 60 fps during pointer interaction
-and 30 fps at rest; it stops off-screen, in hidden pages, for reduced motion and
-when WebGL is unavailable. Scroll disperses the spiral and clears stale strokes.
-Touch scrolling, model dragging and speech buttons retain their existing input.
-
-Do not reuse `createMouseMotion` for this background: its six-second input pause
-froze the stars exactly when visitors tried to interact. Test actual local
-particle displacement, wake decay, idle flow during input and mouse-control clicks;
-a screenshot of a tilted spiral does not establish pointer interaction.
-`hero-galaxy.test.mjs` covers the controller timing, screen coordinate mapping,
-suspension and input isolation; real-browser screenshots also check shader output.
-
-`beta.html`, `beta.css` and `beta.mjs` form a separate desk walkthrough, linked from
-the main header. It uses a version of the portrait as a correctly proportioned plane
-with a moving Three.js camera: this is a photo-based 2.5D environment, not a scan
-or a reconstruction of unseen parts of Ethan's room. Drag the background with a mouse or touch to pan around the desk; wheel input,
-up/down arrow keys and the zoom buttons move closer or farther away. Left/right
-arrow keys pan, and returning to the room view recentres the camera; the bottom dock also provides
-keyboard-accessible routes to every feature. Its room canvas renders only while
-the camera changes. It keeps the photograph and navigation when WebGL is unavailable.
-
-The mouse panels reuse `MouseSimulator`, `createNativeHUD` and `createHeroMouse`
-with the same committed Swift export as the main website. Never maintain a separate
-beta mouse map. The code-review panel is explicitly an example of Ethan's current
-300 ms release-to-stage workflow, separate from the published native map. The
-YouTube panel is a silent local illustration: it neither reads a microphone nor
-controls real media, and resumes its example video only if dictation paused it.
-Both sites build and deploy together through the existing Pages workflow.
-
-Selecting an item centres the camera on its photographed position and expands
-the controls over it. Closing the controls restores the previous pan and zoom.
-Room dragging follows pointer movement directly; only camera transitions use
-elapsed-time easing. The photo renders at CSS-pixel resolution, hotspot widths
-are measured on resize, and an idle room schedules no further frames. Keep this
-separate from the shared 30 fps scheduler for the detailed mouse models.
-
-For local use, run `make site`, then serve `.build.noindex/site` and open `/beta.html`.
-The main walkthrough stays at `/`; the beta does not replace it.
-
-The beta background uses `assets/ethan-sausage-legs.webp`, an image edit Ethan
-requested with two sausage legs emerging from his shorts. Keep its 1671 × 941
-aspect ratio in the poster and camera plane. The original `ethan-lounging.webp`
-remains the main website portrait and the hardware panel's setup photo.
-
-Website copy uses the same `write-user-facing-messages` historical examples and
-corrections as AIMVS, following Ethan's explicit request. Prefer his direct,
-single-sentence headings over paired marketing slogans. Keep application-specific
-AIMVS naming constraints scoped to AIMVS.

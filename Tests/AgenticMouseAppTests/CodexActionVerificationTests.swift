@@ -118,34 +118,24 @@ final class CodexActionVerificationTests: XCTestCase {
         )
     }
 
-    func testOtherCodexActionsNeverPretendDispatchMeansCompletion() {
+    func testCloseTabFeedbackDoesNotClaimCodexStateWasConfirmed() {
         var feedback: [CodexActionFeedback] = []
         let executor = CodexModeActionExecutor(
             targetProcessResolver: { 42 },
             postEvent: { _, _, _, _ in true },
+            targetProcessIsActive: { $0 == 42 },
+            postSystemShortcut: { _ in true },
             accessibilityTrusted: { true },
-            editQueuedMessage: { .success(()) }
         )
 
-        guard case .success = executor.perform(.steerQueuedMessage, feedback: {
+        guard case .success = executor.perform(.closeTab, feedback: {
             feedback.append($0)
         }) else {
-            return XCTFail("steer shortcut should dispatch")
+            return XCTFail("close tab should dispatch")
         }
         XCTAssertEqual(
             feedback,
-            [.sentUnverified("Steer queued message sent — result not exposed by Codex")]
-        )
-
-        feedback.removeAll()
-        guard case .success = executor.perform(.editQueuedMessage, feedback: {
-            feedback.append($0)
-        }) else {
-            return XCTFail("edit action should dispatch")
-        }
-        XCTAssertEqual(
-            feedback,
-            [.sentUnverified("Edit queued message pressed — result not confirmed by Codex")]
+            [.sentUnverified("⌘W Close tab sent — result not exposed by Codex")]
         )
     }
 

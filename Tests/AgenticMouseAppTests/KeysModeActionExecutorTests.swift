@@ -21,7 +21,7 @@ final class KeysModeActionExecutorTests: XCTestCase {
             passwordProvider: { "not-a-real-secret" }
         )
 
-        for action in KeysModeAction.allCases {
+        for action in KeysModeAction.allCases where action != .holdShift {
             guard case .success = executor.perform(action) else {
                 return XCTFail("\(action) should post")
             }
@@ -29,7 +29,7 @@ final class KeysModeActionExecutorTests: XCTestCase {
 
         XCTAssertEqual(
             events.map(\.0),
-            [126, 126, 125, 125, 123, 123, 124, 124, 6, 6, 49, 49, 51, 51, 1, 1, 13, 13]
+            [126, 126, 125, 125, 123, 123, 124, 124, 6, 6, 49, 49, 51, 51, 1, 1]
         )
         XCTAssertEqual(
             events.map(\.1),
@@ -41,7 +41,6 @@ final class KeysModeActionExecutorTests: XCTestCase {
                 .maskCommand, .maskCommand,
                 [], [],
                 [], [],
-                .maskCommand, .maskCommand,
                 .maskCommand, .maskCommand,
             ]
         )
@@ -56,10 +55,21 @@ final class KeysModeActionExecutorTests: XCTestCase {
                 true, false,
                 true, false,
                 true, false,
-                true, false,
             ]
         )
         XCTAssertTrue(systemEvents.isEmpty)
+    }
+
+    func testHeldShiftRejectsSyntheticTapFallback() {
+        var posted = false
+        let executor = KeysModeActionExecutor(
+            postEvent: { _, _, _ in posted = true; return true },
+            accessibilityTrusted: { true }
+        )
+        guard case .failure(.nativeInputRequired) = executor.perform(.holdShift) else {
+            return XCTFail("Shift must retain Karabiner's physical press/release lifetime")
+        }
+        XCTAssertFalse(posted)
     }
 
     func testMediaTracksPostOneNativeConsumerKeyCycleInEachDirection() {
@@ -96,6 +106,17 @@ final class KeysModeActionExecutorTests: XCTestCase {
         }
         XCTAssertEqual(postedText, ["not-a-real-secret"])
         XCTAssertFalse(postedKey)
+    }
+
+    func testPlayPausePostsOneConsumerCycleAndHonorsTheInputGate() {
+        var events: [(Int32, Bool)] = []
+        let executor = KeysModeActionExecutor(postSystemEvent: { key, down in events.append((key,down)); return true }, accessibilityTrusted: { true })
+        guard case .success = executor.performPlayPause() else { return XCTFail("Play/Pause should post") }
+        XCTAssertEqual(events.map(\.0), [16,16])
+        XCTAssertEqual(events.map(\.1), [true,false])
+        let blocked = KeysModeActionExecutor(postSystemEvent: { key, down in events.append((key,down)); return true }, accessibilityTrusted: { true }, inputAllowed: { false })
+        guard case .failure(.inputBlocked) = blocked.performPlayPause() else { return XCTFail("locked input must not toggle playback") }
+        XCTAssertEqual(events.count,2)
     }
 
     func testMissingPasswordFailsWithoutPostingText() {

@@ -1,10 +1,14 @@
-// Toggles the persistent top-level legend from shared physical cell 10 on Corsair.
+// Toggles the persistent top-level legend when tapped; acts as Command while held.
 {
   "id": "toggle-default-map-hint-corsair",
-  "title": "Toggle Default mode legend (Corsair)",
-  "description": "Send one exact-device Corsair legend toggle to Agentic Mouse.",
+  "title": "Toggle Default mode legend / hold Command (Corsair)",
+  "description": "Tap to toggle the Corsair legend; hold as a lazy Command modifier.",
   "manipulator": {
     "to": [{
+      "key_code": "left_command",
+      "lazy": true
+    }],
+    "to_if_alone": [{
       "send_user_command": {
         "payload": {
           "command": "agentic_mouse_default_map_toggle",
@@ -13,6 +17,9 @@
         }
       },
       "repeat": false
-    }]
+    }],
+    "parameters": {
+      "basic.to_if_alone_timeout_milliseconds": 300
+    }
   }
 }

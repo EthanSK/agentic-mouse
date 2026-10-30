@@ -49,7 +49,7 @@ struct DesktopSpaceActionExecutor {
             keyCode = Self.rightArrowKeyCode
         case .increaseDisplayBrightness, .decreaseDisplayBrightness,
              .rewindYouTubeFiveSeconds, .openIntelligenceOnDemand, .zoomIn, .zoomOut,
-             .copy, .paste, .showDesktop, .missionControl,
+             .selectAll, .tab, .save, .copy, .paste, .showDesktop, .missionControl,
              .moveWindowLeftWithMagnet, .moveWindowRightWithMagnet,
              .pasteStoredPassword, .showApplicationWindows, .organizeWindows, .spotifySongRadio, .quitApp:
             preconditionFailure("DesktopSpaceActionExecutor only owns Space Left and Space Right")

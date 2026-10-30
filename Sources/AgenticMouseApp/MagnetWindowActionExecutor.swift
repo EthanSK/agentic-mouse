@@ -70,7 +70,7 @@ struct MagnetWindowActionExecutor {
         case .increaseDisplayBrightness, .decreaseDisplayBrightness,
              .rewindYouTubeFiveSeconds, .openIntelligenceOnDemand, .zoomIn, .zoomOut,
              .moveToSpaceLeft, .moveToSpaceRight,
-             .copy, .paste, .showDesktop, .missionControl,
+             .selectAll, .tab, .save, .copy, .paste, .showDesktop, .missionControl,
              .pasteStoredPassword, .showApplicationWindows, .organizeWindows, .spotifySongRadio, .quitApp:
             return nil
         }

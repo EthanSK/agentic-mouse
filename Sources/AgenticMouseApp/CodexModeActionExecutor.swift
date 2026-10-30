@@ -21,16 +21,15 @@ final class CodexModeActionExecutor {
     typealias AccessibilityTrustProvider = @MainActor () -> Bool
     typealias InputAllowedProvider = @MainActor () -> Bool
     typealias FeedbackHandler = @MainActor (CodexActionFeedback) -> Void
-    typealias QueuedMessageEditor = @MainActor () -> Result<Void, ActionError>
-    typealias QueuedMessageEditorCanceller = @MainActor () -> Void
-
     static let hyper: CGEventFlags = [
         .maskCommand, .maskControl, .maskAlternate, .maskShift,
     ]
 
-    /// Microphone mute and reasoning-effort adjustment use dedicated, additive
-    /// custom bindings. Every action with a Codex built-in uses that built-in
-    /// directly; Agentic Mouse must never replace Ethan's keyboard map.
+    /// Dedicated, additive bindings leave the ordinary keyboard map intact.
+    /// Chat navigation must not share Codex's Next/Previous Tab accelerators:
+    /// those route to an open side panel before the main sidebar.
+    static let previousChatShortcut = Shortcut(keyCode: 105, flags: hyper) // F13
+    static let nextChatShortcut = Shortcut(keyCode: 107, flags: hyper) // F14
     static let microphoneShortcut = Shortcut(keyCode: 90, flags: hyper) // F20
     static let increaseReasoningEffortShortcut = Shortcut(keyCode: 79, flags: hyper) // F18
     static let decreaseReasoningEffortShortcut = Shortcut(keyCode: 80, flags: hyper) // F19
@@ -46,21 +45,20 @@ final class CodexModeActionExecutor {
         keyCode: 41, // physical semicolon; logical S in this modifier/layout path
         flags: [.maskCommand, .maskAlternate]
     )
-    static let voiceModeShortcut = Shortcut(keyCode: 64, flags: hyper) // This Hyper-F17 route is only a software diagnostic fallback: the real mouse must use exact-device Karabiner native Control-Shift-V because ChatGPT ignores Agentic Mouse's synthetic global-hotkey events. (Codex task: 01a039f7-873c-7c30-b3dc-af8a6724ace5)
-    static let steerQueuedMessageShortcut = Shortcut(
-        keyCode: 36, // Return
-        flags: .maskCommand
-    )
+    static let closeTabShortcut = Shortcut(keyCode: 13, flags: .maskCommand) // Command-W
+    static let voiceModeShortcut = Shortcut(keyCode: 64, flags: hyper) // Hello Chat parity: composer.startVoiceMode toggles native Voice; physical mice use the same chord through Karabiner.
     static let submitShortcut = Shortcut(keyCode: 36, flags: [])
 
     private let shortcutDispatcher: ApplicationShortcutDispatcher
-    private let editQueuedMessage: QueuedMessageEditor
-    private let cancelQueuedMessageEditor: QueuedMessageEditorCanceller
     private let pinChangeVerifier: CodexPinChangeVerifier
     private let voiceSessionVerifier: CodexVoiceSessionVerifier
     private let accessibilityTrusted: AccessibilityTrustProvider
     private let inputAllowed: InputAllowedProvider
-    private var isCodexAXJourneyInFlight = false
+    private let requestResponseSpeed: @MainActor (CodexResponseSpeedAction) -> Bool
+    private let requestReasoningEffort: @MainActor (CodexReasoningEffortAction) -> Bool
+    private let cancelReasoningRequest: @MainActor () -> Bool
+    private var responseSpeedPending = false
+    private var reasoningEffortPending = false
 
     init(
         targetProcessResolver: @escaping TargetProcessResolver = {
@@ -78,10 +76,17 @@ final class CodexModeActionExecutor {
         postHardwareSystemShortcut: ApplicationShortcutDispatcher.HardwareSystemShortcutPoster? = nil,
         accessibilityTrusted: @escaping AccessibilityTrustProvider = AXIsProcessTrusted,
         inputAllowed: @escaping InputAllowedProvider = { true },
-        editQueuedMessage: QueuedMessageEditor? = nil,
-        cancelQueuedMessageEditor: QueuedMessageEditorCanceller? = nil,
         pinChangeVerifier: CodexPinChangeVerifier? = nil,
-        voiceSessionVerifier: CodexVoiceSessionVerifier? = nil
+        voiceSessionVerifier: CodexVoiceSessionVerifier? = nil,
+        requestResponseSpeed: @escaping @MainActor (CodexResponseSpeedAction) -> Bool = { action in
+            CodexModeActionExecutor.sendResponseSpeedRequest(action)
+        },
+        requestReasoningEffort: @escaping @MainActor (CodexReasoningEffortAction) -> Bool = { action in
+            CodexModeActionExecutor.sendModelBarRequest(action.modelBarURL)
+        },
+        cancelReasoningRequest: @escaping @MainActor () -> Bool = {
+            CodexModeActionExecutor.sendModelBarRequest(URL(string: "codex-model-bar://reasoning-cancel")!)
+        }
     ) {
         self.shortcutDispatcher = ApplicationShortcutDispatcher(
             targetProcessResolver: { _ in targetProcessResolver() },
@@ -92,22 +97,6 @@ final class CodexModeActionExecutor {
             accessibilityTrusted: accessibilityTrusted,
             inputAllowed: inputAllowed
         )
-        if let editQueuedMessage {
-            self.editQueuedMessage = editQueuedMessage
-            self.cancelQueuedMessageEditor = cancelQueuedMessageEditor ?? {}
-        } else {
-            let queuedMessageSteerer = CodexQueuedMessageSteerer(
-                targetProcessResolver: targetProcessResolver,
-                accessibilityTrusted: accessibilityTrusted,
-                inputAllowed: inputAllowed
-            )
-            self.editQueuedMessage = {
-                queuedMessageSteerer.perform(.edit)
-            }
-            self.cancelQueuedMessageEditor = {
-                queuedMessageSteerer.cancelPendingAction()
-            }
-        }
         self.pinChangeVerifier = pinChangeVerifier ?? CodexPinChangeVerifier()
         let voiceStateReader = CodexVoiceSessionStateReader()
         self.voiceSessionVerifier = voiceSessionVerifier ?? CodexVoiceSessionVerifier(
@@ -117,6 +106,9 @@ final class CodexModeActionExecutor {
         )
         self.accessibilityTrusted = accessibilityTrusted
         self.inputAllowed = inputAllowed
+        self.requestResponseSpeed = requestResponseSpeed
+        self.requestReasoningEffort = requestReasoningEffort
+        self.cancelReasoningRequest = cancelReasoningRequest
     }
 
     func perform(
@@ -132,17 +124,6 @@ final class CodexModeActionExecutor {
             return .failure(ActionError(
                 description: "Accessibility permission is required for Codex shortcuts"
             ))
-        }
-        if (action == .toggleVoiceMode || action == .editQueuedMessage),
-           isCodexAXJourneyInFlight {
-            return .failure(ActionError(
-                description: "Another Codex Accessibility action is already in progress"
-            ))
-        }
-        let ownsAXJourney = action == .editQueuedMessage
-        if ownsAXJourney { isCodexAXJourneyInFlight = true }
-        defer {
-            if ownsAXJourney { isCodexAXJourneyInFlight = false }
         }
         let rapidPinRetoggle = action == .togglePin && pinChangeVerifier.isVerificationPending
         if rapidPinRetoggle {
@@ -166,10 +147,8 @@ final class CodexModeActionExecutor {
             result = postShortcut(Self.voiceModeShortcut)
         case .openSideChat:
             result = postForegroundShortcut(Self.openSideChatShortcut)
-        case .steerQueuedMessage:
-            result = postShortcut(Self.steerQueuedMessageShortcut)
-        case .editQueuedMessage:
-            result = editQueuedMessage()
+        case .closeTab:
+            result = postForegroundShortcut(Self.closeTabShortcut)
         case .pressEnter:
             result = postShortcut(Self.submitShortcut)
         }
@@ -197,10 +176,6 @@ final class CodexModeActionExecutor {
             }
             feedback(.checking("Voice mode shortcut sent — checking Codex state"))
             voiceSessionVerifier.verify(from: voiceStateBeforeDispatch, completion: feedback)
-        } else if action == .editQueuedMessage {
-            pinChangeVerifier.cancelPendingVerification()
-            voiceSessionVerifier.cancelPendingVerification()
-            feedback(.sentUnverified("\(action.title) pressed — result not confirmed by Codex"))
         } else {
             pinChangeVerifier.cancelPendingVerification()
             voiceSessionVerifier.cancelPendingVerification()
@@ -210,8 +185,24 @@ final class CodexModeActionExecutor {
     }
 
     func cancelPendingActions() {
+        cancelResponseSpeed()
+        cancelReasoningEffort()
         cancelPendingVerifications()
-        cancelQueuedMessageEdit()
+    }
+
+    func cancelReasoningEffort() {
+        guard reasoningEffortPending else { return }
+        reasoningEffortPending = false
+        // Release and teardown cancel only queued ratchets, including after lock.
+        _ = cancelReasoningRequest()
+    }
+
+    func cancelResponseSpeed() {
+        guard responseSpeedPending else { return }
+        responseSpeedPending = false
+        // This is cancellation only, so it remains safe after the lock gate
+        // closes. An unused click must never launch the external handler.
+        _ = requestResponseSpeed(.cancel)
     }
 
     func cancelPendingVerifications() {
@@ -219,28 +210,76 @@ final class CodexModeActionExecutor {
         voiceSessionVerifier.cancelPendingVerification()
     }
 
-    func cancelQueuedMessageEdit() {
-        cancelQueuedMessageEditor()
+    func performResponseSpeed(_ action: CodexResponseSpeedAction) -> Result<Void, ActionError> {
+        guard inputAllowed() else {
+            return .failure(ActionError(description: "Mouse commands are disabled while macOS is locked"))
+        }
+        guard accessibilityTrusted() else {
+            return .failure(ActionError(description: "Accessibility permission is required for Codex shortcuts"))
+        }
+        guard requestResponseSpeed(action) else {
+            return .failure(ActionError(description: "Could not open Codex Model Bar"))
+        }
+        responseSpeedPending = true
+        return .success(())
+    }
+
+    /// Opening a custom URL with `open(URL)` activates its handler and steals
+    /// the composer's focus. Keep this relay in the background; Model Bar owns
+    /// the one whole-command insertion and the guarded Enter, without retries.
+    static func sendResponseSpeedRequest(
+        _ action: CodexResponseSpeedAction,
+        resolveHandler: (URL) -> URL? = { NSWorkspace.shared.urlForApplication(toOpen: $0) },
+        open: ([URL], URL, NSWorkspace.OpenConfiguration) -> Void = { urls, application, configuration in
+            NSWorkspace.shared.open(urls, withApplicationAt: application, configuration: configuration)
+        }
+    ) -> Bool {
+        sendModelBarRequest(action.modelBarURL, resolveHandler: resolveHandler, open: open)
+    }
+
+    /// Extraction of the existing sendResponseSpeedRequest background relay.
+    /// Ethan's speed and reasoning controls now both use Model Bar's own focus
+    /// code; Agentic Mouse never copies its composer lookup or sends reasoning keys.
+    static func sendModelBarRequest(
+        _ url: URL,
+        resolveHandler: (URL) -> URL? = { NSWorkspace.shared.urlForApplication(toOpen: $0) },
+        open: ([URL], URL, NSWorkspace.OpenConfiguration) -> Void = { urls, application, configuration in
+            NSWorkspace.shared.open(urls, withApplicationAt: application, configuration: configuration)
+        }
+    ) -> Bool {
+        guard let application = resolveHandler(url) else { return false }
+        let configuration = NSWorkspace.OpenConfiguration()
+        configuration.activates = false
+        configuration.promptsUserIfNeeded = false
+        configuration.addsToRecentItems = false
+        open([url], application, configuration)
+        return true
     }
 
     func performReasoningEffort(
         _ action: CodexReasoningEffortAction
     ) -> Result<Void, ActionError> {
-        postShortcut(
-            action == .increase
-                ? Self.increaseReasoningEffortShortcut
-                : Self.decreaseReasoningEffortShortcut
-        )
+        guard inputAllowed() else {
+            return .failure(ActionError(description: "Mouse commands are disabled while macOS is locked"))
+        }
+        guard accessibilityTrusted() else {
+            return .failure(ActionError(description: "Accessibility permission is required for Codex shortcuts"))
+        }
+        guard requestReasoningEffort(action) else {
+            return .failure(ActionError(description: "Could not open Codex Model Bar"))
+        }
+        reasoningEffortPending = true
+        return .success(())
     }
 
     func performChatHistory(
         _ action: CodexChatHistoryAction
     ) -> Result<Void, ActionError> {
-        let shortcut = Shortcut(
-            keyCode: action == .forward ? 124 : 123,
-            flags: [.maskCommand, .maskAlternate]
+        postShortcut(
+            action == .forward
+                ? Self.nextChatShortcut
+                : Self.previousChatShortcut
         )
-        return postShortcut(shortcut)
     }
 
     private func postShortcut(_ shortcut: Shortcut) -> Result<Void, ActionError> {

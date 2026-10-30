@@ -1,0 +1,26 @@
+[
+  {
+    "command": "previousThread",
+    "key": "Command+Control+Option+Shift+F13"
+  },
+  {
+    "command": "previousThread",
+    "key": "Command+Shift+["
+  },
+  {
+    "command": "previousThread",
+    "key": "Command+Alt+Left"
+  },
+  {
+    "command": "nextThread",
+    "key": "Command+Control+Option+Shift+F14"
+  },
+  {
+    "command": "nextThread",
+    "key": "Command+Shift+]"
+  },
+  {
+    "command": "nextThread",
+    "key": "Command+Alt+Right"
+  }
+]

@@ -13,7 +13,7 @@ temporary lighting, but it does not write iCUE settings.
 | Control | Assignment |
 |---|---|
 | Wheel press | Default middle-click source → exact-device Karabiner Play / Pause |
-| Top DPI button | iCUE F19 neutral transport → exact-device Karabiner AgentFlow on release; all DPI stages remain 2,750 |
+| Top DPI button | iCUE F19 neutral transport → exact-device Karabiner VoiceInk++ on release; all DPI stages remain 2,750 |
 | Button 3 | Screenshot outside modes; rapid double-press pastes its last saved result; mode-specific action inside modes |
 | Button 1 | Hold + wheel for at most one macOS Space; first sign wins until release |
 | Button 2 | Open the current frontmost app mode |
@@ -23,7 +23,7 @@ temporary lighting, but it does not write iCUE settings.
 | Button 8 | Back; VS Code overrides it to Next Change through F13 |
 | Button 6 | Click for YouTube −5 sec; hold 350 ms for temporary 2× speed; hold + wheel for up +5 sec, down −5 sec |
 | Button 9 | Open Keys mode |
-| Button 10 | Toggle this mouse's Default legend; universal Exit inside modes |
+| Button 10 | Tap to toggle this mouse's Default legend; hold as Command with another control; universal Exit inside modes |
 | Button 11 | Hold-open Switch App |
 | Button 12 | Open Utility immediately |
 | Every DPI stage | 2,750 DPI |
@@ -33,9 +33,9 @@ behavior on 9 August 2026 after **Modify events** was enabled for its exact
 physical pointing interface. The equivalent Razer wheel remains separately
 unaccepted until that mouse is reconnected and tested.
 
-Button 6 rewinds the selected YouTube target by five seconds on a short click without focusing Chrome. Holding for 350 ms requests 2× speed; release restores the exact prior speed without seeking. Any wheel input cancels the speed boost and keeps the existing scrub gesture. Holding button 5 inhibits speed so the volume wheel retains priority. Long holds never add a rewind on release. Button 2 opens the current
+Button 6 rewinds the selected YouTube target by five seconds on a short click without focusing Chrome. Holding for 350 ms requests 2× speed; wheel scrubbing keeps that speed until release restores the exact prior speed without seeking again. Holding button 5 inhibits speed so the volume wheel retains priority. Long holds never add a rewind on release. Button 2 opens the current
 frontmost app's mode, and button 9 opens shared Keys mode.
-Inside Keys, cell 3 sends Undo, cell 6 enters Keypad, and holding cell 9 maps wheel up/down to Next/Previous Track. Cell 12 (Corsair 12 / Razer 10) sends Save with one Command-S press and stays in Keys mode.
+Inside Keys, cell 3 sends Undo, cell 6 enters Keypad, and holding cell 9 maps the first wheel ratchet to Next/Previous Track; release and hold it again for another track change.
 Normal behavior
 stays normal unless a mode is deliberately entered or the two approved VS Code
 overrides apply to physical cells 5 and 8.
@@ -49,19 +49,17 @@ accepted this hold-open behavior on the exact Corsair and Razer rules on
 10 August 2026. It needs no Agentic Mouse command receiver or Accessibility
 permission.
 
-In VS Code only, top-level physical cell 5 emits source-tagged F17 for Better Git
-Previous Change on release, and physical cell 8 emits source-tagged F13 Next Change on release.
-While same-source cell 5 is held, pressing physical cell 4 emits F19 Stage + Previous
-instead of arming Copy / Paste and suppresses the pending Previous action. For one second after cell 5
-releases, one same-source cell-4 press stages the file captured before Previous instead of Copy / Paste.
-While same-source cell 8 is held, pressing physical cell 7 emits F18 Stage + Next
-instead of Enter and suppresses the pending Next action. For one second after cell 8
-releases, one same-source cell-7 press stages the file captured before Next instead of Enter. Top-level navigation has
-no double-click delay. Physical cell 6 remains YouTube Scrub + Wheel. Inside the VS Code child page, cell 9 sends
+In VS Code only, top-level physical cell 5 begins Better Git Previous Change on button-down,
+and physical cell 8 begins Next Change on button-down. Holding either for 200 ms emits readiness and
+restores the exact pre-down view; releasing then stages that origin and advances. A short release cancels
+the captured origin. While same-source cell 5 is held, physical cell 4 cancels the hold instead of arming
+Copy / Paste; while same-source cell 8 is held, physical cell 7 cancels instead of Enter. The adjacent
+chord consumes the later release and never changes the index. Top-level navigation has no double-click delay.
+Physical cell 6 remains YouTube Scrub + Wheel. Inside the VS Code child page, cell 9 sends
 F18 Stage + Next on a single press or F16 exact Undo on a rapid double. Hold
 cell 6 and ratchet down for cursor-history Back or up for Forward; delivery uses
 the current VS Code keybindings without changing them. Cells 5 and 8 retain
-their 300 ms navigation gestures only inside that explicitly entered child. Cell 1 closes
+the same 200 ms navigation gestures. Cell 1 closes
 the current editor tab with Command-W, cell 7 opens the Command Palette with
 Command-Shift-P, and cell 11 sends F12 for Go to Definition. The child does not duplicate the
 Default Back/Forward pair. Matching base
@@ -90,9 +88,10 @@ Corsair printed 3 and mirrored Razer printed 1. A plain click without a drag
 cancels the crosshair; a real dragged selection keeps the existing bounded wait
 for its saved file. Runtime pages own it only while active: Spaces in Utility,
 DEF in Keypad, or Spare when
-the current app page has no assignment. One press of shared physical cell 10
-(Corsair printed 10 / Razer printed 12) toggles the Default legend outside modes
-and exits an active mode. Canonical physical cell 11 owns Switch App outside
+the current app page has no assignment. Tap shared physical cell 10
+(Corsair printed 10 / Razer printed 12) to toggle the Default legend outside modes,
+or hold it as Command with another control. The same cell exits an active mode.
+Canonical physical cell 11 owns Switch App outside
 modes. Cell 12 (Corsair printed 12 / Razer printed 10) opens Utility immediately.
 
 ### Proposed only — Musixmatch Pro continuous playback is not implemented
@@ -134,10 +133,10 @@ adapter is live after raw EventViewer proof but still needs full semantic
 acceptance. The Razer adapter is also live after the exact device was present
 and the returned mouse physically produced F21/F22 plus its ordered main-row
 side-grid namespace; its global semantics still need acceptance.
-Both Razer DPI transports map to the existing AgentFlow action on release:
-upper `F21` and lower `F22`. Their output is identical. AgentFlow discards only
-a second complete Primary chord arriving within 90 ms, before its gesture
-classifier; deliberate double and triple gestures remain available.
+The upper Razer top button (`F21`) does nothing on press, hold or release;
+Karabiner consumes it with `vk_none` so Ethan can rest his finger on it.
+Only the lower top button (`F22`) retains VoiceInk++ on release. Deliberate
+VoiceInk double and triple gestures remain available through that lower button.
 
 ## Ownership rule
 

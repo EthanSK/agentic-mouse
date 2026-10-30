@@ -258,6 +258,26 @@ final class ApplicationShortcutDispatcherTests: XCTestCase {
         )
     }
 
+    func testStageHoldFeedbackUsesSourceTaggedNonSemanticShortcuts() {
+        for source in MouseSource.allCases {
+            let flags: CGEventFlags = source == .razer
+                ? [.maskCommand, .maskShift]
+                : [.maskControl, .maskAlternate, .maskCommand]
+            XCTAssertEqual(VSCodeModeShortcutResolver.shortcut(for: .stageHoldReady, source: source), .init(keyCode: 90, flags: flags))
+            XCTAssertEqual(VSCodeModeShortcutResolver.shortcut(for: .stageHoldClear, source: source), .init(keyCode: 113, flags: flags))
+        }
+    }
+
+    func testStageFeedbackCannotContainVoiceInkModifierOnlyChord() throws {
+        let voiceInk: CGEventFlags = [.maskControl, .maskShift, .maskAlternate]
+        for source in MouseSource.allCases {
+            for command in [VSCodeModeCommand.stageHoldReady, .stageHoldClear, .beginNextChangeHold, .beginPreviousChangeHold, .finishNextChangeHold, .finishPreviousChangeHold, .cancelNavigationHold] {
+                let shortcut = try XCTUnwrap(VSCodeModeShortcutResolver.shortcut(for: command, source: source))
+                XCTAssertNotEqual(shortcut.flags.intersection(voiceInk), voiceInk)
+            }
+        }
+    }
+
     func testVSCodeGoToDefinitionUsesF12() {
         XCTAssertEqual(
             VSCodeModeShortcutResolver.shortcut(for: .goToDefinition),

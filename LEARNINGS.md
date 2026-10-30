@@ -1,5 +1,13 @@
 # Learnings
 
+## 2026-09-06 — Reuse the original portrait for every lounge-image correction
+
+**Trigger:** After the generated lounge image's legs were lengthened, Ethan spotted that the lower torso still looked compressed and asked to supply his real face again.
+
+**Finding:** Improving one body proportion does not validate the rest of the pose. In the earlier render, the hips sat too close to the ribcage; the page displayed the image at its correct aspect ratio.
+
+**Guard:** Supply the real portrait as the face and outfit authority on every edit, with the current composite used only for scene continuity. Check ribcage-to-hip spacing, leg length, hand size and facial likeness independently. Keep private originals outside the repository, retain the AI disclosure, and verify the published asset at its intrinsic aspect ratio. (Codex task: 01a06ee5-4aa0-7a61-a029-704e5c44a8f2)
+
 ## 2026-10-17 — Generated artifacts need a shared path change
 
 Packaged apps and SwiftPM/site outputs now use `build.noindex/` and `.build.noindex/`. Keep the package builder, SwiftPM scratch flags, version/signature preflight fixtures, VSIX packager, release-upload globs and site tests on those same paths. Preserve legacy ignored roots during migration; a Privacy exclusion on one old build directory does not establish coverage for a new checkout. Source and the canonical installed app remain searchable.
@@ -16,13 +24,204 @@ A clean Swift build, 340 Swift tests (two skipped), installation/version/supervi
 
 **User acceptance:** After the display-origin repair and a request to test Organize Windows from the mouse, Ethan confirmed: “Aye, nice, it actually works.” This closes the pending user check for this repair; the report does not identify which mouse or establish independent acceptance of both device routes. The synthetic shortcut probe remains a separate unsuccessful test.
 
-## 2026-09-06 — Reuse the original portrait for every lounge-image correction
+## 2026-10-17 — A posted Stay shortcut is not a restored layout
 
-**Trigger:** After the generated lounge image's legs were lengthened, Ethan spotted that the lower torso still looked compressed and asked to supply his real face again.
+Stay's saved windows belong to an exact display arrangement, including display
+origins. A running process, granted Accessibility permission and successfully
+posted Restore shortcut do not prove that Restore is enabled or that any window
+moved. In the investigated case all nine windows in `Agentic Mouse Layout v1`
+remained intact, but Samsung's current origin differed from the saved origin,
+and Stay disabled Restore. Native logs dated the geometry change to 12 October;
+they were notifications received by System Settings, not proof of who initiated it.
 
-**Finding:** Improving one body proportion does not validate the rest of the pose. In the earlier render, the hips sat too close to the ribcage; the page displayed the image at its correct aspect ratio.
+Compare saved/current identities, resolutions and origins before changing input
+automation or overwriting stored windows. “Inactive” here means no exact matching
+display configuration; it does not prove a user or agent switched layouts. Stay's
+documented recovery is to make the existing configuration active, preserving its
+stored windows, with explicit approval before changing the live display layout.
+Report shortcut dispatch separately from visible restoration and do not attribute
+a geometry change to an actor without decisive evidence.
 
-**Guard:** Supply the real portrait as the face and outfit authority on every edit, with the current composite used only for scene continuity. Check ribcage-to-hip spacing, leg length, hand size and facial likeness independently. Keep private originals outside the repository, retain the AI disclosure, and verify the published asset at its intrinsic aspect ratio. (Codex task: 01a06ee5-4aa0-7a61-a029-704e5c44a8f2)
+## 2026-10-16 — Park wand selection separately from operating a card
+
+The persistent wand adapter separates navigation/park from native press/motion/release. Releasing navigation retains the selected outline without activating it; operation feeds the shared coordinator and its wheel policy. Keep a complete native press/release pair on the same page generation, so a press that changes page cannot release onto an unrelated destination card. `WandPersistentControlTests` covers parking, persistence, child Back, duplicate release, wheel holds, screenshot release, and lost-release teardown. The full check passed and the installed HUD was manually observed retaining its outline and opening the Codex child after a separate operation; physical wand acceptance remains separate.
+
+The receiver must know whether the app actually owns a wand HUD before suppressing normal cursor output. The private same-user context socket uses mode 0600, verifies the installed app path/PID, and expires stale activity. Dispatch shared asynchronous wheel actions against the wand's virtual wheel state, rather than consulting only the physical-wheel monitor. This preserves mouse ownership while allowing the wand to use the same native wheel callbacks.
+
+## 2026-10-16 — Wand HUD edges wrap without queued travel
+
+The wand's grid is periodic on both axes: crossing a left/right or top/bottom edge selects the corresponding card on the opposite edge. Keep the existing heading, diagonal commitment and hysteresis rules at the seam. Shift the continuous position by the same whole-grid offset as the selected cell so liquid pull stays local to the destination card. Remove whole laps from large deltas before resolving bounded steps; otherwise a large update can queue movement that continues after the wand stops. Single-row/column grids ignore the absent axis. Focused tests cover every cell/direction, diagonal corner wrapping, reversal, tremor, whole laps and degenerate grids; physical acceptance remains a separate check.
+
+## 2026-10-16 — A higher version can still contain older uncommitted features
+
+Two checkouts shared the same Git HEAD while carrying different uncommitted features. Installing a numerically newer wand build from one checkout removed the other checkout's Codex Speed + Wheel, Close Tab, protected pin chord, Claude controls, Better Git preview controls and native page/Zoom release repairs. A Git commit ID and marketing version alone do not identify the source that Ethan is running.
+
+Reconcile into one source checkout before packaging; preserve the other owner's changes and serialize the shared installation boundary. Local signed candidates now embed BuildProvenance.json containing the canonical checkout, Git HEAD, digest of all source/test/script files including untracked features, and exact parent executable hash. Packaging rejects another checkout, versions that do not advance the installed app, source edits during a build, and a concurrent installation. Run `python3 Scripts/install-provenance.py verify --candidate build/AgenticMouse.app` again immediately before the dedicated Quit/replacement. Both known checkouts carry the gate; it is a foreground check, not a synchronizer. Never infer completeness from a larger version number.
+
+The combined regression gate must include both owners' tests. The restored physical-mouse cell-2 pin modifier initially intercepted the wand's Back card; its route must require `source.isPhysicalAdapter`, leaving the wand's parent stack intact. Keep the native graph route audit and the wand Back/diagonal/outline tests together.
+
+## 2026-10-16 — Wand Default starts on Switch App; adjusting a wheel card has its own ratchet outline
+
+**Fresh sessions start on Switch App.**
+- A fresh wand session outlines Switch App (cell 11), so a no-movement tap switches app exactly once.
+- Release now always selects the outlined card; the old "stationary release on Default closes" rule is gone.
+- Taps stay safe because of where the outline starts:
+  - fresh Default starts on Switch App;
+  - child pages start on their exit;
+  - Back lands on the card that opened the child, so a tap there only re-enters it.
+- Default's own exit, cancel, lock, sleep and lost release still close without acting.
+- After Switch App, refresh the lingering Default's current-app card from `updateFrontmostApp`, so it never names the previous app.
+
+**Adjusting a wheel card has its own ratchet outline.**
+- Keep it distinct from navigation (solid white) and arming (dashed white): a finer dashed ring in the card's action colour.
+- It stretches only vertically, showing progress toward the next detent.
+- Its notches advance one notch per detent the dispatcher accepted, and each such detent sends one short ripple toward its edge.
+- Pulse only when `onAdjustStep` returns true. A detent the control's own policy consumed (debounce, once per hold) must not look like an action.
+- The outline shows input sent, never an app value.
+- It rides the focus-only path, so the panel never reflows.
+- Reduce Motion keeps the notch position and stretch but drops every animation and the ripple.
+- Nothing repeats while idle.
+
+**The Puck HUD stream uses a radial dead zone.**
+- Subtract the same 1.2 °/s threshold from the rotation vector instead of per axis.
+- On identical VM input the per-axis version bent a 20° diagonal to 10.9° and dropped a 7° minor component.
+- Pure axes and stillness are unchanged.
+- The cursor keeps its per-axis dead zone and gain.
+- A diagonal residual bias between 1.2 and 1.7 °/s can now leak at most 0.5 °/s; the Mac's 1.5 °/s HUD drift floor rejects it.
+
+**Known test flake.** The existing frame-stability UI test can fail by 1 pt when the machine is loaded. Its 12 × 15 ms loop can outlast the presenter's 0.5 s settle reconcile, which re-measures 1x-display panels with different rounding. It passed on rerun and in the full suite.
+
+## 2026-10-15 — The wand HUD is a menu: exits go back, and diagonals come from heading
+
+**Exit goes back one page in the wand HUD.**
+- Make a child page's exit (cell 10, plus cell 2 on app children) return to the page that opened it, with the outline on the opening card.
+- Only the journey root closes: Default's own exit, or a stationary release on Default.
+- Physical mice keep their exact Karabiner-owned Exit.
+- Keep the wand's parents in its own back stack, never in `navigationPath`. Default home and Utility are both `.modes` there, so popping the path would land Keys on Utility.
+- Lock, sleep, cancel, disconnect, lost release and idle timeout still close everything and forget the stack.
+- When Keypad cannot start (it needs a mouse's press stream), keep the wand on Keys rather than exiting.
+
+**A release belongs to the page where its press happened.**
+- The wand sends press and release back-to-back. Drop the release when the press changed page; `pageGeneration` tracks this.
+- Default acts on release, so a back navigation's leftover release would otherwise hit Default cell 10 and close the HUD immediately.
+
+**Draw the outline in the same snapshot as the page change.**
+- Entry and page changes must carry the outline in that snapshot, and the view model must apply page or content swaps with animations disabled.
+- Previously every entry or page change drew a frame with no outline, then sprang it in from a second update.
+- The view model also kept the last session's outline across `hide()`.
+- Animate only the outline-only path.
+
+**Diagonals: judge direction from a path-length-smoothed heading, not per-axis thresholds.**
+- Old per-axis navigator on identical 33 Hz traces:
+  - a 45° sweep went 1→2→5→6→9;
+  - a 25° motion never left its row;
+  - 30–55° passed through an axis neighbour first.
+- Root cause: the two axes crossed their thresholds independently (8° per column vs 7° per row), and dominant-axis attenuation was re-decided on every noisy 30 ms sample.
+- Use an axis/diagonal regime with ±3° hysteresis. Attenuate the minor axis only while the heading is axis-locked.
+- Take the diagonal neighbour directly when both displacement components reach 0.3 of a card.
+- After any step, keep the full hysteresis band before a return is possible.
+- The firmware subtracts its 1.2 °/s dead zone per axis, which still flattens slow, shallow diagonals before they reach the Mac.
+
+Source and tests only. Not yet physically accepted.
+
+## 2026-09-18 — Keep VS Code range selection simple and close it before mode changes
+
+The temporary physical-cell-9 stage-range preview modifier proved harder to operate than clicking VS Code's gutter directly. Preserve its implementation only behind `VSCodeModeFeatureFlags.stageRangePreviewNavigation = false`; production must leave cell 9 on its ordinary action and keep hold-plus-wheel dedicated to growing or contracting the staged range.
+
+A top-level mode entry can arrive while Better Git still owns a release-only stage hold, after which the original button-up may be routed by the new page. When VS Code is frontmost, send the source-tagged hold-clear boundary before activating another mode and cancel the local classifier too. This prevents a selected range and its bomb badges from remaining armed after the physical hold has ended.
+
+Signed Agentic Mouse 1.0.221 (227) passed the full 819-test Swift suite, 31 Karabiner tests, 14 installation tests, both extension suites, packaging checks and 16 website tests. The installed executable is byte-identical to the Developer ID candidate at SHA-256 `da7fb37fb4f9607fcf3fd36ce99736d7bc36693871f9830f900d9d0f32d9f9d2`; Accessibility trust, the build-227 supervisor, event tap, command receiver and live iCUE 4.0.84 session are active. The prior 1.0.220 bundle was preserved before replacement; physical acceptance remains separate.
+
+## 2026-09-18 — An adjacent VS Code cell can temporarily navigate inside a stage range
+
+VS Code mode physical cell 9 is a momentary modifier only while the same mouse still owns a stage-ready physical-cell-8 hold. During that overlap, consume cell 9 so its ordinary Stage + Next and double-click Undo paths cannot fire, and map each accepted wheel ratchet to Better Git's source-owned preview navigation: physical wheel down opens the next change and physical wheel up opens the previous change. Releasing cell 9 restores the established wheel range selector; releasing cell 8 still stages the preserved range and advances.
+
+Keep this state in the shared VS Code hold classifier so both exact mice inherit the same canonical behavior and cross-mouse chords fail closed. Do not commit the pending single press when the modifier goes down: that helper stops the shared readiness timer and can prevent a still-pending range hold from ever becoming stage-ready. Mode exit, source release, cancellation and finish must all clear the modifier.
+
+Signed Agentic Mouse 1.0.220 (226) passed the full 818-test Swift suite, 31 Karabiner tests, both extension suites, installation, packaging and 16 website tests. The Developer ID candidate and installed executable hashes match; the bundled iCUE framework also stayed byte-identical. The installed app is running with its build-226 supervisor, Accessibility trust and mode-0600 command socket. Better Git 1.2.92 passed its focused real-host test on the Mac mini, Marketplace verification, gallery installation and extension-host activation. Physical ratchet acceptance remains separate.
+
+## 2026-09-17 — Tracks click and wheel must not race physical release
+
+Keys cell 9 has two distinct outcomes in one press/release lifecycle: a wheel-free release sends exactly one Next Track with no double-click classifier, while wheel input suppresses that click and sends Next/Previous once per reconstructed ratchet. Keep the fixed 80 ms same-direction leading-edge filter so duplicate Quartz events from one detent collapse without preventing later detents during the same hold; an immediate reversal remains intentional.
+
+Do not defer an already accepted Tracks wheel step behind `DispatchQueue.main.async` and then require the hold to still be armed. A fast physical release can clear the wheel state before that queued block runs, silently dropping a valid detent. Post the bounded native consumer-media cycle directly from the accepted wheel callback; the callback already verified the active Keys page, exact source, held control, unlocked session and Accessibility gate.
+
+Signed Agentic Mouse 1.0.219 (225) passed 816 Swift tests, 31 Karabiner tests, and the extension, VS Code bridge, installation, packaging, site, shell-syntax and diff gates. It is installed and running as PID 90009 with Developer ID CDHash `2513f95784523d52f6f02f3359332ecf5c3fa3a5`; the wheel event tap, mode-0600 command socket, Accessibility grant, runtime supervisor and live iCUE session are active. The live Karabiner file stayed byte-identical with seven Agentic rules and three unrelated rules, the bundled iCUE SDK stayed byte-identical, and OBS recording mux PID 83657 remained on the same output. Physical click and ratchet acceptance remains separate.
+
+## 2026-09-17 — Plain Tab belongs on Extra Utilities cell 2
+
+Extra Utilities physical cell 2 is spare on both exact mice even though the same top-level cell opens the frontmost app mode. Page-scoped routing therefore adds `⇥ Tab` without displacing or changing the ordinary-layer action. Emit one unmodified key code 48 down/up lifecycle on press only; release stays inert. Keep the unlocked-session and Accessibility gates, and do not synthesize Command, Shift or a held Tab state. The HUD and routing tests must cover both mouse sources because this cell happens to print as 2 on both.
+
+Signed 1.0.218 (224) passed 816 Swift tests, 31 Karabiner tests, and the extension, VS Code bridge, installation, packaging, site, shell-syntax and diff gates. The exact candidate executable was installed and relaunched as PID 22223 with its Developer ID signature intact. The live Karabiner file remained byte-for-byte unchanged with seven Agentic Mouse rules and three unrelated rules; BetterGit remained at 1.2.90. Physical mouse acceptance remains separate.
+
+## 2026-09-15 — Passive Floating Mouse reacquire edges
+
+Installed stable-signed 1.0.206 (212) after the full gate passed: 810 Swift tests, 16 focused controller cases and 27 generator tests. Verified exactly four observer-only live manipulator changes; all other live configuration reconstructs identically after reversing them. The current VoiceInk route, iCUE SDK, Accessibility grant, recording and supervisor were preserved. Cross-app background integration is owned by the Floating Mouse task; no physical acceptance is inferred.
+
+Detection and cursor-armed ownership need separate 650 ms monotonic leases. Context v1 optionally carries a strictly Boolean detecting flag; active also permits reacquire for old senders. Observe fresh Corsair 1 down/up alongside every normal exact-device route, even before detecting is active, so a held key cannot be reinterpreted on entry. These passive events never replace a normal output or acquire the Karabiner suppression lease. Emit one reacquire.v1 UUID/timestamp notification only on a new eligible down; held heartbeats remain clutch-only. Disarm ends the clutch independently while a live detection lease may continue. Expiry, lock, stop, stale edges and malformed/reordered context fail closed. Regression coverage includes passive down/repeat/up, held-entry, queued/future edges, expiry before a delayed timer, compatibility and detection continuing after disarm.
+
+## 2026-09-14 — Select All in Utility and shortcut-first Keys labels
+
+Follow-up: the Utility card is explicitly `⌘A Select all`. Signed 1.0.205 (211) passed the full gate and its installed HUD was visually checked on the MacBook display. When the screenshot helper omits off-Space panels, use the exact installed PID’s CGWindowList window ID to capture that panel directly; no app activation is needed.
+
+Utility cell 5 now emits a full Command-A lifecycle on press only. Extra Utilities cell 1 owns the existing App Exposé hold-and-wheel-down control, and cell 7 emits Command-S on press only. Both mice share canonical cells; retain the Razer horizontal-arrow projection. Move the wheel diagnostic cell together with page ownership, otherwise a relocated wheel family falls into the missing-Utility-cell precondition. Save and Select All reuse the complete Command modifier/down/up/release sequence with the existing unlocked-session and Accessibility gates, without inspecting text or touching the pasteboard. Keys action titles lead with their actual symbol or chord; navigation and media controls keep truthful names.
+
+Opus 5 drafted the labels in session a199ae07-377a-4795-9cb4-155e1e11cdfb. Runtime tests passed 802 cases, including both sources, press-only actions, new page routing, exact key lifecycles and blocked/untrusted output. Physical mouse acceptance is separate. The source website exporter also needs an exhaustive wheel-family case when newly installed native controls are mirrored into the public graph.
+
+
+## 2026-09-08 — Keep screenshot completion and wheel paste in one lifecycle
+
+Reproduced four timing failures in the exact source baseline of installed build 193: a wheel event after process completion but before the deferred controller callback could paste the previous screenshot; a completed drag whose overlay was still closing rejected paste; the window-list timer could declare cancellation before the queued event-tap completion ran; and starting a new capture left the old saved-file watcher active against the replaced baseline.
+
+Handle the native process termination synchronously on the MainActor, publish pending-save state before another wheel event runs, and queue paste after an observed completed selection while its overlay closes. Keep the lifecycle monitor for one additional 250 ms poll when an observed overlay disappears without a delivered completion, then cancel if no completion arrives. Starting another capture cancels only the older pending resolution and its queued paste while retaining the previously usable screenshot. Lock, sleep and explicit teardown still clear ownership and queued actions.
+
+Five new regression tests cover immediate paste, closing-overlay paste, reordered lifecycle callbacks, overlapping captures and lock cancellation. The original source failed the four reproduced cases; the repaired installed-source full gate passes 761 tests and the publication-source gate passes 747 tests. Retained unified logs did not identify the exact user-reported episode; these reproductions do not prove which race occurred on the user's mouse. Literal physical acceptance remains separate from automated timing proof. Stable Developer-ID v1.0.188 (194) is installed and relaunched with the current notification sender, icon, SDK, settings, primary index and recording process preserved.
+
+## 2026-09-08 — Pin notifications need the Codex sender identity
+
+Native pin/unpin notifications emitted by Agentic Mouse inherit Agentic Mouse's Notification Centre identity and cached small app icon. The existing local Codex Completion sender at ~/.codex/apps/Codex Completion.app has the previously verified combined Codex icon, existing notification permission, silent delivery, separate notification identifiers, and retained click targets. When its expected com.ethansk.codex-completion-v2 identity and executable are available, route confirmed pin notices through that sender with argument-array values rather than shell text. Keep Pinned/Unpinned and the actual visible chat name unchanged. Skip a second delivery route after starting that sender, since a later process error cannot prove no banner appeared. On machines without this optional local integration, retain the ordinary app-native notification path.
+
+The shared sender handles its own ten-second active-to-passive transition asynchronously; never wait for it on Agentic Mouse's main input thread. Only UUID-shaped thread identifiers become codex://threads/ click targets. Live synthetic Pinned and Unpinned banners from the exact new sender code displayed the combined icon without changing any real pin state; this does not prove the new monitor is installed or that a physical mouse action has been accepted.
+
+## 2026-09-07 — Use Codex visible names for confirmed pin notifications
+
+Codex pin notifications observe the app-owned pinned-thread-ids set without changing it. The installed app-server pinned order currently mirrors that set. Establish a silent baseline on startup and after session lockdown; ignore unreadable snapshots, reordering and unchanged sets so they cannot fabricate unpins or duplicate banners. Read files away from the main input thread and handle atomic file replacement.
+
+Current Codex keeps visible renames in state_5.sqlite threads.name; threads.title can be the initial user prompt and must never be used as notification copy. Older renamed chats can require the last matching thread_name in session_index.jsonl. Open SQLite read-only, bind identifiers, and skip a notification if the visible name cannot be resolved. Send Pinned or Unpinned as the native title with only the visible chat name below it, after a confirmed saved change from either mouse or Codex UI. Native notification permission and physical banner acceptance are separate from source checks. Stable Developer-ID build 191 is installed and running; all 754 installed-source tests and the 742-test public gate passed, and the running app reported notification permission granted. Physical banner acceptance remains pending.
+
+## 2026-09-07 — Return Codex Pin/Unpin to a deliberate double-click toggle
+
+Ethan reported that directional pinning still failed and explicitly requested the original toggle behind double-click. Codex physical cell 3 now requires two complete same-source clicks within the previously accepted 400 ms press interval and dispatches the existing Command-Option-P shortcut once after the second release. Single clicks, long holds, repeated key-downs and mixed-device clicks do not dispatch. Mode exit, lease failure, frontmost-target changes and other cell presses clear the pending click. The runtime no longer constructs or calls the pin-menu executor, and no Codex cell arms its retired wheel control. Default Screenshot and wheel Paste are unchanged.
+
+The UI uses Double-click Pin/Unpin. Opus supplied the wording-only draft from public-product context; private skill histories were not exported. Current physical acceptance is still pending, and successful shortcut dispatch is not proof that Codex changed its pin state. Stable Developer-ID v1.0.184 (190) is installed and relaunched; 748 native tests, the full public gate and 16 site tests pass. Installed signature, SDK, command-socket ownership, input readiness, unchanged user settings and continuous recording process were verified. Public source publication still awaits the previously required explicit approval.
+
+## 2026-09-07 — Codex header pinning uses a native popup
+
+**Finding:** The installed Codex header menu chooses its native Electron context-menu bridge when available; that branch sets `aria-haspopup` without updating `aria-expanded`. Agentic Mouse required `AXExpanded=true` and searched only inside the chat window, so its directional action could never read that native menu. The same generic error also hid press timeouts and menu-discovery failures.
+
+**Repair:** Discover application-level native menus as well as web menus, ignore the persistent menu bar, deduplicate aliases, and retain the original main-header identity and exact Pin/Unpin labels. Observe menu appearance after an uncertain opener reply instead of pressing twice. Give cleanup a separate bounded deadline and use the menu's advertised Cancel action. Log failure stages without conversation titles. The Codex card now remains Pin/Unpin · Wheel; a plain click emits nothing, while Default keeps Screenshot and wheel Paste.
+
+**Boundary:** Computer Use refused Codex access, so automated native pin activation cannot be claimed. Regression fixtures cover native popup placement, menu ambiguity, bounded traversal, cleanup, idempotent directions and HUD stability; physical acceptance remains required. The installed-source suite passed 748 tests, and the public source passed its clean full gate. Stable Developer-ID v1.0.183 (189) was installed and relaunched with matching executable and SDK hashes, the same Accessibility grant and unchanged user configuration. No Default legend was visible before replacement.
+
+
+## 2026-09-07 — Spotify can expose a complete but empty native player tree
+
+**Trigger:** Song Radio reported `Could not confirm Spotify is playing on this Mac` in installed build 188.
+
+**Finding:** The production guard completed a 17-node native window traversal without `Now playing bar`, `Player controls`, or the Connect control. Computer Use showed the same sparse native tree while its screenshot showed a populated player. A longer messaging timeout, a direct `AXEnhancedUserInterface=true` request, and read-only player hit testing did not expose the missing controls. The application already reported that attribute as true; its value is not proof that the renderer exposes the player.
+
+**Guard:** Keep incomplete player evidence as unknown; never remove the remote-device guard or infer local playback from the Play/Pause control. The unsuccessful accessibility-request experiment was reverted and was not installed. Spotify's native Help > Troubleshooting menu exposes Reload, but its effect on this failure remains untested; do not record it as a fix. No playback-changing command or Spotify restart ran in this investigation.
+
+
+## 2026-09-05 — Stage readiness needs both Mouse and Better Git
+
+**Trigger:** Ethan held the review button but the proposed explosion feedback never appeared.
+
+**Finding:** The 300 ms/readiness proposal was not implemented. Better Git owns the fire decoration; Mouse cannot change it by updating HUD state. A focused isolated test also needs the existing bare F13/F16/F17/F18/F19 bindings in its disposable profile before launch. Never edit the normal profile to make a test pass, and do not read background-window refusal as missing feedback.
+
+**Fix:** Build 178 uses 300 ms in the native classifier and generated Karabiner rules, sends source-tagged Control-Option-Command-F20 readiness and F15 clear (plus Shift for Razer), and keeps Git actions exclusively on release. The feedback timer never stages. Focus cancellation, release and the Undo chord clear feedback; separate consecutive holds still have no gap. Better Git v1.2.62 renders temporary `💥💥` / `Release to stage` and restores the configured badge. Both ends must be loaded for visible feedback. (Codex task: 01a039f7-873c-7c30-b3dc-af8a6724ace5)
+
+**Verification:** The primary clean gate passed 733 Swift tests and the other repository gates. The safe installed-source candidate passed 726 Swift tests plus generator, bridge, lints and packaging gates. A clean live test drove the installed app's user-command socket, captured full Built-in Retina Display pixels showing Corsair and Razer explosion badges, proved no index change while held, staged A on release and advanced to B, then used the Razer Undo chord to cancel B's hold and unstage A. These are real app/VS Code transport tests, not physical HID acceptance. The normal VS Code profile and live app configuration were untouched by testing. Preserve the unrelated pending source features when packaging the safe candidate.
 
 ## 2026-09-04 — Late VS Code staging owns the pre-navigation file
 
@@ -916,7 +1115,7 @@ A clean Swift build, 340 Swift tests (two skipped), installation/version/supervi
 
 ## 2026-08-20 — Latch slow external actions and report requests honestly
 
-**Status:** Superseded for transport by the reserved Control-Option-Shift-Command-A chord documented above. The one-request-per-visit latch and honest requested-versus-confirmed feedback remain current.
+**Status:** Superseded for transport by the reserved Control-Option-Shift-Command-A chord documented above. On 2026-10-17 Ethan explicitly rejected the one-request-per-visit latch; only the in-flight move/dispatch transaction now suppresses repeat presses. Honest requested-versus-confirmed feedback remains required.
 
 **Trigger:** Ethan physically opened Extra Utilities and pressed Organize Windows while his windows were out of place. The HUD gave no visible result, so he retried; the live log recorded nine accepted presses in eight seconds while Stay did not visibly respond immediately.
 
@@ -2596,6 +2795,12 @@ remains evidence for why the earlier `-p` and explicit-child variants failed.
 
 **Installed verification:** On Ethan's explicit restart request, the exact enabled `Quit Agentic Mouse` item was resolved under the installed PID's `AXExtrasMenuBar` and its advertised `AXPress` action invoked. Both app and supervisor exited before replacement. Stable Developer-ID v1.0.166/build172 is installed with executable SHA-256 `a3d355c4fd187d11972e76a90faaaff21f68ddf1d0f240ff132b6d0ff5b55eea`; strict signature verification passed, the new runtime owns the command socket, and its supervisor is running. Live Karabiner, app config, SDK and VS Code keybindings remain byte-identical. The old bundle is retained under ignored `Rollbacks/AgenticMouse-v1.0.165-build171-before172.app`.
 
+## 2026-09-22 — Preserve Default YouTube 2× speed while scrubbing
+
+Ethan wants the Default YouTube hold to remain at 2× while its wheel seeks by five seconds per ratchet. The wheel monitor's generic `onWheelInput` callback had been wired to `inhibitSpeed`, which sent the speed-hold end notification before routing every scrub. The VoiceInk bridge seek itself only changes the chosen video's `currentTime`; it does not change `playbackRate`. Remove that generic speed cancellation while preserving the wheel-used latch that suppresses click rewind on release. Keep explicit same-source cell-5 volume-modifier inhibition and final physical-release restoration. Pin both the native lease lifetime and bridge seek-with-active-lease behavior in tests. This supersedes only the older wheel-cancels-speed sentence above.
+
+The clean native build and 824 XCTest cases passed (one skipped), as did the bridge speed-hold, seek-control and Shorts checks and the remaining extension, VS Code, Karabiner, installation, packaging and site checks. Plain `make check` still hits this Mac's known `swift test` XCTest lookup failure; supplying Xcode's framework paths and invoking the built `.xctest` runs the suite. Developer-ID-signed Agentic Mouse 1.0.225 (231) was installed with executable SHA-256 `9d9e571ed847bfe37ad7c05ac9e3cce61526d515a427602885d6ce60c45cfc2b`; the previous signed 1.0.223 (229) bundle was retained in ignored `Rollbacks/`. Runtime PID 59219 owns the installed executable and command socket, supervisor job 59226 is running, and the menu reports Accessibility granted and iCUE connected. Physical held-wheel playback acceptance remains unverified until a real mouse test.
+
 **Visual and physical boundary:** Immediately before Quit, Ethan had closed both legends. One temporary Corsair Default legend toggle after relaunch produced a visible build172 HUD on all three full-display pixel captures; the panels were subsequently absent during the user's live use. The new Hold 2× label is readable, but the trailing Wheel text is ellipsized at the current scale. Physical playback-rate, release restoration, no-seek and wheel acceptance remain unverified; no playback command was sent during installation.
 
 **Install lesson:** Window-only UI control returned `noWindowsAvailable` or timed out for this menu-bar-only app. The native `AXMenuBar` attribute was absent, but `AXExtrasMenuBar` contained the exact enabled Quit item. When direct Accessibility control is authorized, target that observed menu item with bounded reads; require the exact installed PID/path and unique enabled advertised action, then prove both processes exited. Do not substitute generic AppleEvent Quit or speculative supervisor kills. (Codex task: 01a039f7-873c-7c30-b3dc-af8a6724ace5)
@@ -2621,9 +2826,22 @@ remains evidence for why the earlier `-p` and explicit-child variants failed.
 ## Reference-modelled website hardware
 
 - Idle motion must keep the thumb faces in view: use a small side-view arc in the controls chapter, with free slow rotation confined to the hero. Share one visibility-aware 30 fps scheduler across the three views; input pauses for six seconds, keyboard focus and a held pointer extend that pause, and resuming uses elapsed visible time with a speed ramp. Do not rebuild native HUDs per animation frame. After a drag, ease the chapter back to its side view without firing the release click. Verify both hands' projected targets across a complete cycle, plus click/focus/pause/resume behavior in Chromium. (Codex task: 01a06ee5-4aa0-7a61-a029-704e5c44a8f2)
+- Fit the Naga's complete keycaps and sockets below its lowest shoulder, including their tilt and bevels. Checking only key centres left the upper row crossing the shell seam. Verify the rebuilt GLB in the default side view and after pointer rotation; preserve native printed-number metadata and projected click targets.
+- 2026-09-07: macOS CI's `/bin/bash` is Bash 3.2. With `set -u`, expanding an empty optional argument array fails before the build. Use the guarded array expansion in the packager and keep first-install preflight tests in the release gate. The universal signed build was verified locally; public notarization remains pending repository secrets.
+- 2026-09-07: a source-only Spotify controller does not make a physical button work. Extra Utilities needs the shared physical-cell action, coordinator outcome and AppDelegate asynchronous route in the installed candidate. Verify the bottom player's radio context before reporting that playback changed; a visible radio page is insufficient.
+- 2026-09-07: screenshot paste is an explicit once-per-hold wheel action. Any observed wheel input, including an inactive direction or ambiguous event, must suppress capture on release. Starting a fresh capture cancels a pending deferred paste from an older capture.
+- 2026-09-07: keep the photo-based room beta at `beta.html` alongside the main walkthrough. Reuse the committed Swift export, simulator, native HUD and hardware models; its separate code-review example describes the personal 300 ms hold-on-release workflow. The original room portrait remains a proportioned plane so camera motion does not warp the face or invent unseen geometry. Verify Escape during a held review gesture and during dictation, plus already-paused video ownership. Serve a completed site build before browser navigation: rebuilding `.build/site` replaces that directory and can interrupt an in-flight local module load.
+- 2026-09-07: room-camera hotspot buttons use flex layout, which overrides the browser's default display for the hidden attribute. Give hidden hotspots explicit visibility and disable pointer events while retaining measurable widths; use each full label's width when hiding it near an edge. Check a touch pan in both directions so off-screen labels disappear and return correctly.
+- 2026-09-07: room dragging must track the pointer directly. Easing the pan, capping the room at 30 fps, and measuring every label between per-frame style writes made the photo camera feel delayed. Cache hotspot widths on resize and render the proportioned photo at CSS-pixel resolution. Feature selection centres the camera on that item and expands its controls; closing restores the exact prior view. Manually verify entry, drag, focused controls and return in Chrome after the final edit, including the narrow layout.
+- 2026-09-08: The galaxy background must not use the mouse-model idle scheduler: its pointer-move pause froze the animation for six seconds during interaction. Use a separate visibility-aware loop and projected-screen pointer forces so individual stars respond under the cursor. Keep stroke history bounded, clear it when scroll/resize changes screen coordinates, and verify both the changing shader output and mouse-model controls in the built-in browser. Reference posters and interaction labels cannot verify another site's actual pointer physics when its animation chunks fail to load. (Codex task: 01a07944-b48e-7e43-8c2f-34b9cfe3df70)
+- 2026-09-09: The Agentic Mouse website uses ordinary document scrolling. Ethan rejected the pinned controls tour and scroll-driven animation; do not restore oversized scroll scenes, automatic selection while scrolling, or a chapter progress bar. Keep model rotation and button interactions independent of page scrolling, and verify desktop and mobile scrolling through the complete controls section.
+- 2026-09-09: After splitting Ethan’s setup into its own website, keep Agentic Mouse’s browser title, social title and web manifest names app-specific; the shared mouse-grid favicon was already correct. The YouTube integration needs both the VoiceInk YouTube Bridge Chrome extension and its native macOS helper, separate from the public VoiceInk++ source. Document the private-source availability boundary and conditional setup steps without linking visitors to a private repository.
+- 2026-09-09: Reproduction starts with the whole Git checkout: the site exporter needs Git revision metadata, while generated Karabiner rules alone need the running native app and external receivers. Keep the file inventory and agent prompt in docs/REPRODUCE.md. Avoid handwritten rule/manipulator counts and mode summaries in Karabiner/README.md because they drift from the generator and native map. Verify only committed files plus declared build dependencies, use temporary installer profiles, and report private bridge and physical acceptance boundaries explicitly.
+- 2026-09-09: Show Hold → Stage as the third prominent gesture beside 5 Previous and 8 Next in the code-review section. Keep the detailed hold-and-release explanation below, and allow the gesture row to wrap on narrow screens.
+- 2026-09-09: Keep the Agentic Mouse page focused on its controls: replace the full personal room-photo section with a compact card linking to Ethan’s setup in a new browser tab. Its thumbnail uses the personal site’s existing social image without stretching or regenerating it.
+
 - Keep the two Blender-authored models separate: the Naga has a curved right-side thumb housing and continuous click/palm surface; the Scimitar SE has a left-side recessed yellow Key Slider and separate click plates. Ethan rejected generic rounded-shell stand-ins. Geometry stores printed numbers only; native exports own their physical-cell actions.
 - A full mouse can hide a camera-facing key behind its shell. Raycast the complete model before exposing each HTML hit target, rather than relying on the face normal alone. Place Naga sockets against each key's local curved surface; a single planar grid visibly floats off the lower housing.
-- Fit the Naga's complete keycaps and sockets below its lowest shoulder, including their tilt and bevels. Checking only key centres left the upper row crossing the shell seam. Verify the rebuilt GLB in the default side view and after pointer rotation; preserve native printed-number metadata and projected click targets.
 - Use restrained, broad studio reflections for black ABS. RoomEnvironment's bright rectangular emitters made these models look metallic, and smooth cube normals made beveled flat keys look inflated. Weighted face normals and matching dark key materials preserve the actual manufacturing differences without silver key columns.
 - Include both GLB and WebAssembly files in the site artifact and content digest. The hardware contract test checks twelve native printed buttons, a speech control, and the local decoder. Manually verify asset-load failure still exposes the product photographs and working HTML mode grid.
 - On phones, place the reference photo, model, output panel and metadata in document flow. A shortened canvas with absolute overlays covered the mouse. Resize and project keys against the dedicated model box so moving the output below it preserves pointer alignment.
@@ -2636,6 +2854,70 @@ remains evidence for why the earlier `-p` and explicit-child variants failed.
 - The source-generated website must show the actual mode HUD beside the clicked mouse, not only a textual action result. Both the chapter and full HUD section use `native-hud.mjs`; `ShowcaseExporter` resolves the native card colour roles and border treatments through the existing Swift presentation types. Keep native card titles, printed repair markers and Keypad cycles, with browser-only execution clearly identified.
 - On phones, move the existing HUD below the model and reveal it with nearest scrolling after a physical-key action; keep the fallback model/grid and HUD in document flow too. On desktop, keep the action description below the model so it does not push the HUD or gestures out of the viewport. Preserve focused button nodes as modes change.
 - Service the earliest pending Keypad deadline across both independent hand states. A click on the other hand must not cancel a pending letter's timer. Keep this event-driven; rebuilding the HUD during every Three.js frame would reintroduce scroll/drag lag.
+
+## 2026-09-05 — Release-based stage holds and explicit chord Undo
+
+**Decision:** Ethan rejected double-long-hold undo because its one-second repeat window prevented staging successive files quickly. Printed 5/8 short release navigates immediately; release after 350 ms stages and advances. Every hold stages independently. Hold canonical 8 then 7, or 5 then 4, invokes one Better Git F16 undo and consumes the held gesture. Razer partners are printed 9/6. No repeat window or extra stage precedes Undo; the previous two-button staging route remains disabled behind the opt-in legacy flag.
+
+**Timing:** The child classifies release using monotonic timestamps captured on the dedicated socket receive queue, not a main-thread timer. A test blocked main-thread delivery for 450 ms while the receiver captured a 40 ms pair. These are ingress timestamps, not hardware timestamps. A targeted AF_UNIX socket-pair probe accepted SO_TIMESTAMP_MONOTONIC but returned no ancillary timestamp; no kernel-timestamp assumption was shipped. Default rules use Karabiner's original-duration to_if_alone result before after-key-up output to disarm a prematurely fired hold marker. Focus change cancels runtime presses because retargeting can strand the original release. This possible first-click sequence is deterministically tested, not claimed as Ethan's reproduced exact cause.
+
+**Verification:** 730 main-source Swift tests and 723 isolated-candidate tests passed, plus 23 Karabiner tests, freshness, both native lints, bridge/extension and packaging tests, and release build. Stable Developer-ID v1.0.171/build177 is installed with executable SHA-256 448dcdcfa454b695eb620b3d93116fd776b235c24d959d64d0cde22c2fb57284. PID 88306 owned the command socket and reported Modes ready, iCUE connected, AX granted and recovery enabled. Config, SDK and VS Code keybindings stayed byte-identical. Six Agentic rules replaced six, preserving all three unrelated rules; live Karabiner SHA-256 9c23023964c178a8700469352408c3fb9541d4a4d37b5657d1542451179121e5. Build174 and its rules remain recoverable in ignored Rollbacks.
+
+**Boundary:** Ethan requested immediate gap removal before continuing the remaining work. No Git command was sent into his active files. Physical rapid-stage, Undo and first-click-after-focus acceptance remain pending. Both HUDs were absent before restart and remain user-controlled. Short Stage labels are installed; the model carries a mirrored Undo footer hint, but the existing view does not render that field. Follow up with visible hint placement and real full-display verification; do not call the Undo hint visually verified. (Codex task: 01a039f7-873c-7c30-b3dc-af8a6724ace5)
+
+**Ready-cue investigation:** Ethan's fire icons belong to Better Git's `FileDecorationProvider`, not Agentic Mouse's HUD. The provider reads the configurable `currentFileBadge` (default double fire), caps it to two graphemes and keys it by current review URI, so a partly staged file can show the same decoration on both SCM rows. A ready-to-release explosion requires an actual integration with that provider; changing Agentic Mouse labels alone cannot change it. An Opus5 UX-only discussion recommended a provisional 300 ms threshold and a static fire-to-explosion Ready cue, with actual staging still on release. Neither is implemented in build177 (still350 ms), and the value is not an empirically calibrated guarantee. No source or repository instructions were sent in the successful Opus calls. (Codex task: 01a039f7-873c-7c30-b3dc-af8a6724ace5)
+
+
+## 2026-09-05 — Avoid Codex side-tab capture in Chats Selection
+
+**Cause:** Codex 26.901.31953 assigns Command-Option-Arrows and Command-Shift-Brackets to both previous/next task and previous/next tab. Installed source checks the accelerator collision before offering navigation to a visible side panel. Merely focusing the main composer does not reliably remove that path.
+
+**Change:** Send dedicated Hyper-F13/Hyper-F14 for `previousThread`/`nextThread` through the existing process-targeted shortcut dispatcher. Keep Corsair 6 / Razer 4, the accepted direction and the fixed 80 ms duplicate filter. No iCUE or Karabiner mapping change is required.
+
+**Configuration guard:** Custom keybindings replace all defaults for their command. The integration fragment preserves both standard macOS thread shortcuts. Put the dedicated Hyper binding first, then retain existing bindings in their original order, rejecting collisions. The original append-third guidance caused the regression documented below. Do not overwrite unrelated entries or patch the Codex app bundle.
+
+**Acceptance boundary:** Transport tests and saved config prove only their own layers. Verify main-sidebar movement with side chats open and a side composer focused; Computer Use refusal must not be bypassed by synthetic input or a different UI tool. (Codex task: 01a06f24-8c41-75f1-bc44-6f6267e81c2e)
+
+
+## 2026-09-05 — Razer staging readiness triggered VoiceInk
+
+**Cause and ownership:** The native mouse task added source-tagged readiness feedback at 2026-09-05 00:28:54 UTC while implementing the requested fire-to-explosion stage-ready cue. Corsair used Control-Option-Command-F20/F15; Razer added Shift. The website exporter commit came later and did not create this path. Build179's chat-wheel change preserved the pre-existing readiness transport.
+
+**Real failure:** The VoiceInk task's listen-only capture at 14:08:31 London observed sourcePID0 native modifiers Control -> Control+Shift -> Control+Shift+Option -> Hyper within about0.24ms. VoiceInk's Primary modifier-only shortcut matched the three-modifier prefix, committed a start/chime, then was canceled. Final-key tests and an apparently unique Hyper accelerator did not detect this transient global shortcut collision.
+
+**Repair:** Live Karabiner changes exactly six Razer readiness/clear modifier arrays to Command+Shift; VS Code receives two additive user bindings for the existing Better Git commands with args=razer. Build180 uses the same modifiers in the app-owned VS Code mode. Corsair feedback, 300ms staging on release, short navigation, source tags, undo chords and repeat:false remain unchanged. Keep the companion fragment in Integrations/VSCode/razer-stage-hold-keybindings.json. VoiceInk and its shortcut are unchanged.
+
+**Regression guard:** Test that readiness and clear outputs for both sources cannot contain the full Control+Shift+Option modifier set, independent of order. Never judge a modifier-only shortcut collision solely by the final accelerator or fix it by muting start sounds or delaying VoiceInk. Hardware-free tests do not establish a physically observed post-repair cycle; the bounded post-repair listen-only capture received no inputs. (Codex task: 01a06f24-8c41-75f1-bc44-6f6267e81c2e)
+
+
+## 2026-09-05 — Keep only the lower Razer top button as speech-to-text
+
+**User choice:** Upper top button F21 must do nothing so Ethan can rest his finger on it; lower F22 retains speech-to-text. This is explicitly Razer-specific and does not change the shared twelve-cell map or Corsair F19.
+
+**Implementation:** Keep the exact-device F21 binding and reuse suppress-neutral-transport/vk_none, removing its release action rather than deleting the rule and leaking F21. The locked-session sink still consumes the transport. Generated/live configuration changed only this one Razer base manipulator; F22 and every other parsed profile/rule value were identical. No Agentic Mouse binary change or restart was necessary. Both hardware interfaces remained present;25generator tests and native lint passed. Literal post-change physical-button acceptance was not observed. (Codex task: 01a06f24-8c41-75f1-bc44-6f6267e81c2e)
+
+
+## 2026-09-05 — Register chat-wheel shortcuts in a native menu slot
+
+**Regression:** The dedicated Hyper-F13/F14 bindings were appended after both thread defaults. Codex 26.901.31953 constructs native previous/next thread menu entries only for indices 0 and 1, so the saved third binding did not supply a native accelerator. Transport tests checked emitted events but missed the receiving app's binding limit.
+
+**Repair:** Move each dedicated binding to index 0 and retain the other entries in their existing order. The exact same 12 live binding objects remain. Codex's browser-window-focus handler rebuilds the menu from disk; switching away and returning reloads it without a Codex or Agentic Mouse restart. Hyper remains separate from the tab shortcuts, preserving main-sidebar routing. Agentic Mouse build180, the Razer upper-button suppression and lower VoiceInk trigger are unchanged.
+
+**Acceptance:** After the live reorder and a switch away/back, Ethan explicitly answered “Yes, main sidebar moves” to the physical wheel check with side chats open. The integration fixture now has a separate regression test requiring the dedicated bindings to occupy a native menu slot while preserving both defaults. This confirms the reported navigation problem is resolved; it does not stand in for unrelated VoiceInk or other-mode physical checks. (Codex task: 01a06f24-8c41-75f1-bc44-6f6267e81c2e)
+
+
+## 2026-09-05 — Route all YouTube controls to the Shorts player
+
+**Cause:** Entering Shorts through normal YouTube navigation retains an empty hidden watch video before the active Shorts player. The browser bridge's first-video selector could report a successful rewind on that empty element while leaving the Short unchanged. Agentic Mouse's button, wheel and notification transports were already correct.
+
+**Fix ownership:** The shared selector lives in the youtube-spotify-media-key repository, extension/content-script.js. Prefer the active ytd-shorts shorts-player on Shorts and the watch player on watch pages; keep PiP priority. Bind speed leases to the clip as well as the element, detach stale listeners, and scope resume-button recovery to the selected player. No Agentic Mouse binary, mouse mapping, or VoiceInk app change is required.
+
+**Evidence:** All 18 bridge suite entries passed, including ten Shorts cases; eight of those cases fail on the old code. The installed content-script reinjection path loaded the changed script without restarting the apps. In the dedicated Chrome window, rewind/scrub moved the visible Short exactly minus/plus five seconds and volume-up changed that Short by five points. Further global probes stopped when concurrent dictation paused the test target and the normal fallback selected another playing video. A front-window check alone cannot isolate playing-only commands from that race. Physical speed and remaining volume acceptance stay separate from automated coverage. (Codex task: 01a06f24-8c41-75f1-bc44-6f6267e81c2e)
+
+
+## 2026-09-06 — Remove the standalone mirrored-controls website section
+
+The standalone mirror section owned unconditional renderMirror/highlightMirror DOM access in showcase.js. Removing its HTML also requires removing that render call, the grid listeners and the dedicated CSS; preserve CELLS and rowsFor because the main interactive mouse chapter still uses them. The generated website now omits the section and all 15 showcase tests pass. The local exporter also needs the unused fifth timestamp argument when ModePickerCoordinator.onAppSpecificInput has the five-argument signature; that compatibility change belongs to the website exporter and does not require installing the native app. The committed coordinator currently still has four arguments, so keep that local compatibility edit paired with the native signature change when publishing. (Codex task: 01a06f24-8c41-75f1-bc44-6f6267e81c2e)
 
 ## 2026-09-06 — Publish website changes from a clean release source
 
@@ -2677,27 +2959,349 @@ The pin menu request additionally checks its originating mouse coordinator while
 
 A project chat inserts a Project popup before the task-title group beside Chat actions. Choosing the first header child rejected these valid windows while the earlier projectless probe passed. Select the header title group by its AXGroup role, keeping the unique named button, exact main-toolbar ancestry and window/foreground guards. A read-only production initializer reproduced the project failure (zero title buttons) and recognized that same window after the repair. The held Screenshot card must show Pin/Unpin · Wheel and restore Screenshot immediately on release. Keep the physical failure marker until Ethan confirms pinning; a successful header probe does not prove menu consumption.
 
-
-- 2026-09-07: macOS CI's `/bin/bash` is Bash 3.2. With `set -u`, expanding an empty optional argument array fails before the build. Use the guarded array expansion in the packager and keep first-install preflight tests in the release gate. The universal signed build was verified locally; public notarization remains pending repository secrets.
-- 2026-09-07: a source-only Spotify controller does not make a physical button work. Extra Utilities needs the shared physical-cell action, coordinator outcome and AppDelegate asynchronous route in the installed candidate. Verify the bottom player's radio context before reporting that playback changed; a visible radio page is insufficient.
-- 2026-09-07: screenshot paste is an explicit once-per-hold wheel action. Any observed wheel input, including an inactive direction or ambiguous event, must suppress capture on release. Starting a fresh capture cancels a pending deferred paste from an older capture.
-
 - 2026-09-07: the settled HUD Space callback removes panels and enqueues recreation on the next main-queue turn. Tests must drain that queue before inspecting visibility; sleeping until the callback is due can observe the temporary empty interval under load. Retain original windows while comparing ObjectIdentifiers so allocator reuse cannot masquerade as the same panel. The corrected seven lifecycle tests and full native suite pass.
 
-- 2026-09-07: keep the photo-based room beta at `beta.html` alongside the main walkthrough. Reuse the committed Swift export, simulator, native HUD and hardware models; its separate code-review example describes the personal 300 ms hold-on-release workflow. The original room portrait remains a proportioned plane so camera motion does not warp the face or invent unseen geometry. Verify Escape during a held review gesture and during dictation, plus already-paused video ownership. Serve a completed site build before browser navigation: rebuilding `.build/site` replaces that directory and can interrupt an in-flight local module load.
 
-- 2026-09-07: room-camera hotspot buttons use flex layout, which overrides the browser's default display for the hidden attribute. Give hidden hotspots explicit visibility and disable pointer events while retaining measurable widths; use each full label's width when hiding it near an edge. Check a touch pan in both directions so off-screen labels disappear and return correctly.
+## 2026-09-08 — Preserve receive times when classifying YouTube holds
 
-- 2026-09-07: room dragging must track the pointer directly. Easing the pan, capping the room at 30 fps, and measuring every label between per-frame style writes made the photo camera feel delayed. Cache hotspot widths on resize and render the proportioned photo at CSS-pixel resolution. Feature selection centres the camera on that item and expands its controls; closing restores the exact prior view. Manually verify entry, drag, focused controls and return in Chrome after the final edit, including the narrow layout.
+The command socket already timestamps input on its receive queue, but the Default YouTube wheel route discarded those times and classified press/release when the main thread handled them. A real isolated socket regression held each source for 450 ms while the main thread was occupied, then delivered both edges together: both mice incorrectly requested a five-second rewind. Pass the receive timestamps through the wheel monitor to the hold classifier, preserve the first press time across duplicates, and latch that speed was ever requested so its release cannot later become a click. Keep the timer's own scheduling clock separate. The historical reported playback jump is not proven to be this exact failure.
 
-- 2026-09-08: The galaxy background must not use the mouse-model idle scheduler: its pointer-move pause froze the animation for six seconds during interaction. Use a separate visibility-aware loop and projected-screen pointer forces so individual stars respond under the cursor. Keep stroke history bounded, clear it when scroll/resize changes screen coordinates, and verify both the changing shader output and mouse-model controls in the built-in browser. Reference posters and interaction labels cannot verify another site's actual pointer physics when its animation chunks fail to load. (Codex task: 01a07944-b48e-7e43-8c2f-34b9cfe3df70)
+The paired bridge speed lifecycle test rejects every currentTime write while advancing a simulated playing video's position between begin, renew and release. Restoring the saved playbackRate does not calculate a projected normal-speed position. Rate restoration, rewind classification, wheel seeking and literal physical playback acceptance are separate boundaries.
 
-- 2026-09-09: The Agentic Mouse website uses ordinary document scrolling. Ethan rejected the pinned controls tour and scroll-driven animation; do not restore oversized scroll scenes, automatic selection while scrolling, or a chapter progress bar. Keep model rotation and button interactions independent of page scrolling, and verify desktop and mobile scrolling through the complete controls section.
 
-- 2026-09-09: After splitting Ethan’s setup into its own website, keep Agentic Mouse’s browser title, social title and web manifest names app-specific; the shared mouse-grid favicon was already correct. The YouTube integration needs both the VoiceInk YouTube Bridge Chrome extension and its native macOS helper, separate from the public VoiceInk++ source. Document the private-source availability boundary and conditional setup steps without linking visitors to a private repository.
+## 2026-09-10 — Hold Shift through the native Keys route
 
-- 2026-09-09: Reproduction starts with the whole Git checkout: the site exporter needs Git revision metadata, while generated Karabiner rules alone need the running native app and external receivers. Keep the file inventory and agent prompt in docs/REPRODUCE.md. Avoid handwritten rule/manipulator counts and mode summaries in Karabiner/README.md because they drift from the generator and native map. Verify only committed files plus declared build dependencies, use temporary installer profiles, and report private bridge and physical acceptance boundaries explicitly.
+Keys cell 2 replaces Close with Hold Shift on both mice. Keep selectNative HUD feedback first and bare left_shift as the final to event with repeat:true: Karabiner repeat:false sends key-up immediately on press, so it cannot preserve a modifier hold. The native lifecycle releases the modifier on the physical source release; do not append an app-owned tap or a release shortcut. Preserve optional:any input modifiers so arrows continue to match while Shift is held. The app executor rejects held Shift on the synthetic tap route. Scope the change to the Keys page and preserve cell2 entry/exit behavior in every other mode. Source: https://karabiner-elements.pqrs.org/docs/json/complex-modifications-manipulator-definition/to/repeat/ .
 
-- 2026-09-09: Show Hold → Stage as the third prominent gesture beside 5 Previous and 8 Next in the code-review section. Keep the detailed hold-and-release explanation below, and allow the gesture row to wrap on narrow screens.
 
-- 2026-09-09: Keep the Agentic Mouse page focused on its controls: replace the full personal room-photo section with a compact card linking to Ethan’s setup in a new browser tab. Its thumbnail uses the personal site’s existing social image without stretching or regenerating it.
+## YouTube immediate click restored (2026-09-10)
+
+Ethan rejected the Default YouTube double-click Jump ahead interaction because it made the whole experience worse. Restore the original immediate short-release five-second rewind; keep the accepted cross removal, hold 2x, wheel seek and volume behavior. The abandoned double-click controller inserted a 400 ms delay into every ordinary click. Its source and tests were removed, and the original AppDelegate and ScrollWheelChordMonitor callbacks restored exactly. The dormant bridge command does not introduce a native double-click route.
+
+Signed 1.0.192 (198) was installed and restarted after the full gate passed 767 Swift tests and 25 generator tests plus packaging contracts. The one-minute Jump ahead heartbeat was explicitly cancelled and paused. Do not recreate that monitor or resume its testing without a new request.
+
+
+## Pointer-anchored window resizing (2026-09-10)
+
+Window sizing uses the topmost standard Accessibility window under the pointer at button-down, preserving that exact window and fractional anchor throughout the hold. AX hit testing and CGEvent locations both use top-left screen coordinates; convert NSScreen visibleFrame with the primary screen's maxY, including negative coordinates on secondary displays. Never choose a new window on each wheel event. Write size first, read the app-accepted size, then position around the saved anchor, since native apps may clamp minimum dimensions or relocate after resizing.
+
+AX operations run on a serial worker with bounded messaging timeouts, outside the Quartz callback and main thread. Release, mode exit and session teardown invalidate the hold generation before queued work can run. Stop after an external frame change rather than moving the window back. The dedicated built-in-display native test window grew and shrank independently in both axes with the exact anchor preserved; native physical mouse input remains a separate acceptance check. Signed build199 installs Width + Wheel on Corsair4 / Razer6 and Height + Wheel on Corsair5 / Razer5, both only in Extra Utilities; no Karabiner or device-transport edits are required.
+
+
+## Bring Chrome back before Stay restores its layout (2026-09-11)
+
+Stay cannot transfer windows between macOS Spaces. On macOS 26.5.2, both the old SLSMoveWindowsToManagedSpace call and the compatibility-ID workaround failed to move a disposable native window. The dynamically loaded SLSBridgedMoveWindowsToManagedSpaceOperation, initialized with initWithWindows:spaceID: and dispatched with performWithWMBridgeDelegate, moved the same window away and back without switching any visible Space. SIP was not changed.
+
+Chrome's AXWindows list omitted the dedicated window after it moved to another Space. Discover off-Space windows through the WindowServer inventory, restrict to the exact Chrome PID, normal window layer and dimensions, and intersect SLSCopyWindowsWithOptionsAndTags option 2 to exclude minimized windows. Resolve the destination from the display owning the source Space, never NSScreen.main. A real blank Chrome window passed away-and-back testing through the production adapter, including unchanged visible Spaces. Refuse ambiguous multiple off-Space Chrome windows, fullscreen desktops, and multi-Space windows. Verify membership before dispatching the existing Stay shortcut; cancellation or changing Spaces must prevent a late layout restore.
+
+API references: https://github.com/ejbills/DockDoor/blob/main/DockDoor/Utilities/PrivateApis.swift and https://github.com/Hammerspoon/hammerspoon/blob/master/extensions/spaces/libspaces.m.
+
+Installed verification: v1.0.194 (200) passed the full clean gate (780 Swift tests), moved a dedicated blank Chrome window back through the actual Corsair cell-12 app command, then applied Stay’s saved Chrome geometry. Both source HUDs showed the new positions on all three displays. The app/configuration/SDK preservation checks passed, and test windows and temporary HUDs were closed. Literal mouse-button acceptance remains separate.
+
+
+## Chrome resize transactions and inactive-window targeting (2026-09-12)
+
+Chrome with AXEnhancedUserInterface enabled animates Accessibility frame writes. Immediate size then position calls can overwrite an in-flight size, shift the other axis, or leave intermediate dimensions, even though each AX write reports success. A dedicated inactive Chrome window reproduced the old drift; temporarily disabling that attribute only around the serial frame transaction, and restoring its original true value with defer on every exit, made repeated width and height growth/shrink/reversal exact without activating Chrome. Use size/position/size so macOS can retry growth after moving away from a screen edge, then re-anchor the app-accepted dimensions while preserving the requested perpendicular origin. Never persist an Accessibility preference change. Rectangle and Hammerspoon independently document this AX transaction pattern: https://github.com/rxhanson/Rectangle/blob/main/Rectangle/AccessibilityElement.swift and https://github.com/Hammerspoon/hammerspoon/blob/master/extensions/window/libwindow.m.
+
+Select the topmost on-screen normal WindowServer window containing the pointer, then match exactly one standard AX window by its owning PID and frame. Do not fall back to the focused application when an inactive app's AX hit test lacks AXWindow. Preserve the chosen window and pointer anchor for the hold. Physical up/down now grows/shrinks by 120 points per ratchet, five times the original 24. The controls remain in Extra Utilities on width Corsair4/Razer6 and height5 on both. A dedicated background Chrome window passed twelve live production-controller steps across both axes, including reversals and unchanged frontmost PID.
+
+
+## Pin/Unpin uses one upward wheel action per hold (2026-09-12)
+
+Ethan replaced double-click Pin/Unpin with holding Corsair3/Razer1 and wheel up. Reuse the working toggle shortcut and notification path, not the retired separate pin-state menu discovery. On both configured mice physical up is normalized direction `.down`; physical down is consumed without using the hold action, so a later upward ratchet can still trigger it. The wheel state machine and mode coordinator both prevent duplicate toggles until release. Duplicate key-down cannot re-arm; wrong-source, stale-after-exit and changed-app events cannot dispatch. Click, double-click and release never act. Update the Codex legend's wheel-label construction as well as the action title to avoid appending a second `+ Wheel`. Default Screenshot and held-wheel Paste stay separate.
+
+
+## Codex archive notification observations
+
+Archive state is stored in `state_5.sqlite` (`threads.archived`), independently of `.codex-global-state.json` pinning. Read committed SQLite snapshots, including WAL; the main database mtime alone misses archive commits. First observations and replaced databases establish silent baselines. Notify only a known live task becoming archived, preserve the last valid baseline across failed reads, and never treat missing rows as archive events. Use the existing visible-name reader, silent Codex sender and validated exact-task URL; never expose the initial prompt or automatically unarchive. `CodexArchiveNotificationTests` covers these boundaries alongside the existing pin tests.
+
+## Navigate BetterGit on button-down (2026-09-14)
+
+Default Karabiner and the automatic/manual VS Code child navigate immediately on the initial button-down. A short release sends only cancellation; a release at or after 300 ms commits the exact origin captured by BetterGit 1.2.75. Never approximate restoration with an opposite navigation: crossing files and tall-hunk steps are not invertible. Preserve independent source state, duplicate suppression, release-only staging and adjacent-button Undo consumption. Native Default uses Control-Command F13/F17 begin, F18/F19 finish, F14 cancel for Corsair; Razer uses Command-Shift. Existing readiness F20/F15 retains its safe source modifiers. Preserve live VoiceInk recording overlays by applying only the exact eight changed VS Code hold/chord manipulators to the newest live Karabiner file, not replacing unrelated source blocks. The new shortcut family requires BetterGit 1.2.75; establish that dependency before switching the live mappings.
+
+
+Installed 2026-09-14: signed Agentic Mouse 1.0.201 (207) and the eight origin-hold navigation/Undo manipulators are live. BetterGit 1.2.76 was already installed and its extension host restarted by the user. Exact generated manipulator matching preserved all other live Karabiner and VoiceInk mappings. The dedicated AXExtrasMenuBar Quit disarmed the supervisor; restart restored ready modes, iCUE and the existing Accessibility grant. Physical gesture acceptance remains separate.
+
+
+## Karabiner hold readiness must not depend on an earlier event in the same output list (2026-09-15)
+
+**Trigger:** Better Git 1.2.82 logged the immediate navigation begin and later finish/stage, but never received F20 readiness. It could therefore stage on release without restoring the captured pre-down view while held.
+
+**Cause:** The generated `to_if_held_down` list first changed the source-local pending variable from 1 to 2, then conditioned F20 on that variable already equalling 2. Karabiner evaluates an event's conditions before an earlier event in the same output list mutates the variable, so it applied the state change but suppressed F20. The prior Python state-machine test evaluated list entries sequentially and reproduced the intended model instead of Karabiner's real condition timing.
+
+**Fix and guard:** Keep the state transition guarded by pending 1, but give F20 only the established frontmost, mode and unlocked-session conditions. Assert structurally that all four Corsair/Razer Previous/Next readiness events have no pending-variable condition. Both Default Karabiner and app-owned VS Code paths use Ethan's requested 200 ms threshold. Preserve Corsair Control-Option-Command F20/F15 and Razer Command-Shift F20/F15; do not restore Razer Hyper because Karabiner's intermediate modifiers can start VoiceInk. Better Git must bind the safe Razer transport. Adjacent cancellation marks the hold consumed so the stale release is inert.
+
+## Floating Mouse Corsair clutch (2026-09-14)
+
+The camera app owns cursor output and emits a 200 ms context heartbeat. Agentic Mouse validates source, native Boolean, finite fresh timestamp and ordering, then gates one higher-priority exact-device Corsair keypad-1 rule with an absolute 650 ms Karabiner expiry. The existing supported CLI writes on context heartbeats on a serialized background queue, not per camera frame or button edge; obsolete queued writes are dropped. Button down/up use the existing user-command socket. A main-run-loop 150 ms heartbeat maintains held output, with monotonic context expiry, fresh-press and consumed-release guards. Lock, device loss and shutdown release promptly; ordinary source rules remain byte-for-byte unchanged. Eight focused state-machine tests and the generator precedence/release test passed with the full app gate. Physical acceptance belongs with the camera task.
+
+### Native Chrome / VS Code split layout (2026-09-14)
+
+- Bind a paired layout to a verified display UUID in local preferences; derive both halves from that display's current visible frame in Quartz coordinates. A capture/splitter chain can expose the Dell as AVT GC553G2, so do not assume a Dell display name, the main monitor, or a fixed resolution.
+- Capture both normal on-screen AX windows before moving either, select by app PID and matching WindowServer frame on the requested display, and keep those same targets for the physical hold. The native four-swap probe showed that WindowServer frame snapshots can lag a successful AX write: rediscovery on immediate reversal incorrectly reported a missing Chrome window. Retaining the exact targets fixed the round trip.
+- Run native writes on one worker with one replaceable pending layout, reuse the existing temporary AXEnhancedUserInterface suppression, and verify both final frames before success feedback. The paired operation uses size/position/size and restores the original frames if an app rejects placement while the session is still allowed. Mode exit and session/display changes stop queued writes.
+- Physical Extra Utilities cell 6 uses existing mode press/release routing; adding this semantic action does not require a new hardware binding or live Karabiner replacement. Both mice share the same normalized direction: physical wheel up arrives as .down and puts VS Code right.
+
+## App Exposé must route from its current Extra Utilities owner (2026-09-15)
+
+**Cause:** Moving App Exposé from the ordinary Utility page to Extra Utilities updated its cell, coordinator and legend, but the shared wheel dispatcher still required every generic utility wheel action to come from the `.modes` page. The physical hold armed `.applicationWindows`, then its accepted ratchet returned false before the enabled Control-Fn-Down shortcut could be scheduled, producing the generic “App Exposé wheel action could not be performed” footer.
+
+**Fix and guard:** Resolve a utility wheel route against the page that owns that control. App Exposé accepts only an active matching hold on `.extraUtilities`; Brightness, Zoom, Spaces, Mission Control / Show Desktop and Magnet remain on `.modes`. Dedicated Extra Utilities routes for window resize and Chrome / VS Code layout stay separate. The inactive App Exposé direction remains consumed without an error, and the first accepted direction per hold posts the existing Application Windows shortcut.
+
+## Child VS Code releases close after the final decision (2026-09-15)
+
+- Better Git uses source-tagged `F15` as the transaction boundary that distinguishes a short `F14` release from the adjacent-cancel `F14`/`F16` sequence.
+- The app-owned automatic/manual VS Code child previously emitted `F15` before a ready long release and omitted it after short releases. That ordering could not support the same atomic release semantics as the normal Karabiner path.
+- Keep the child sequence aligned with Karabiner: short `F14` then `F15`; long `F18`/`F19` then `F15`; adjacent cancel `F14`, `F16`, then `F15`. The later physical release after an adjacent cancel must remain consumed and emit no second boundary.
+- `F20` remains readiness-only, and the hold threshold remains 200 ms.
+
+## Default legend tap / Command hold and Codex Steer removal (2026-09-15)
+
+Physical cell 10 is a dual-purpose top-level control: a short tap sends the source-specific Default-legend command, while holding it supplies a lazy `left_command` modifier to another control. Put the modifier in `to` with `lazy: true`, put the legend command in `to_if_alone`, and set `basic.to_if_alone_timeout_milliseconds` to 300. This lets Command engage as soon as another key/control is used, prevents a chord from toggling the legend on release, and suppresses the legend after an intentional hold even when no chord follows. Do not add a delayed action, held-down output, or explicit release event; let Karabiner release the modifier with the physical cell. Keep the unlocked-session guard on both outputs, keep exact-device and source-specific inactive-mode conditions, and let the higher-priority active-mode route retain universal Exit.
+
+Default Enter remains one plain Return. Command-Return for Codex Steer is now formed manually by holding top-level cell 10 and pressing cell 7. Codex physical cell 1 is Spare, and the dedicated Steer action, executor shortcut and card are removed. The Default HUD label is `Legend toggle · Hold ⌘`; the app-specific Codex HUD never inherits the modifier because its active lease intercepts cell 10 as Exit.
+
+Installed 2026-09-15: signed Agentic Mouse 1.0.211 (217) and the complete generated seven-rule runtime are live. The installed process loads its bundled iCUE framework, the runtime supervisor is active, the Accessibility grant remains healthy, and the pre-existing non-Agentic Karabiner rules were preserved. The app was replaced through its dedicated menu Quit path, and the existing OBS recording processes remained uninterrupted. Automated verification passed the full 812-test Swift gate plus the complete Karabiner, installation, packaging, site and showcase checks; exact-device tap/chord acceptance remains physical.
+
+Corrected and installed 2026-09-15: signed Agentic Mouse 1.0.212 (218) adds the 300 ms `to_if_alone` window after physical testing showed that a hold released without a chord still toggled the legend. The live generated runtime contains that parameter for both exact-device sources, preserves all three non-Agentic rules, and the signed app, supervisor, bundled iCUE framework and existing OBS recording remained healthy. The full gate passed again; physical long-hold suppression remains the final acceptance check.
+
+Physical acceptance 2026-09-15: Ethan sent `This is a test.` through the fast legend-button + Enter chord in the installed 1.0.212 (218) build. This confirms that lazy Command engages for the second control without waiting for the 300 ms solitary-release classifier. It does not by itself confirm the separate long-hold-without-a-chord suppression case.
+
+## Release-only Better Git stage holds and readiness-only range wheel (2026-09-16)
+
+The accepted default supersedes the older button-down *visual navigation* experiment: the review stays still on Previous/Next button-down, but Agentic Mouse must still emit the source-tagged begin F13/F17 transport then so Better Git can capture the origin. A release before 200 ms emits F14 then F15 to navigate once; a release at or after 200 ms emits F18/F19 then F15 to stage the captured change and advance once. Do not conflate “stay visually still” with “emit no begin transport.” Keep the experimental button-down navigation path disabled unless Ethan explicitly asks for it. The app-owned VS Code page and generated Default rules must share this ordered classifier.
+
+At the 200 ms readiness transition, arm the exact mouse source for `vsCodeStageRange`; before readiness, after release, and after adjacent cancel, ordinary wheel input remains untouched. Phase-free ratchets use the existing Accessibility monitor and 150 ms same-direction burst coalescing. Both mice report physical up as the internal `.down`, so physical up opens `vscode://ethansk.better-git-vscode/mouse-stage-selection/up?source=<source>` and physical down opens `/down`. Use the background URL bridge without activating VS Code. Better Git remains the authority for active source, readiness, selected range, Git index mutation and Undo receipts.
+
+Generated adjacent cancellation must release the wheel arm before F14/F16, preserve the pending-state-3 sink, and reject a late `to_if_held_down` callback after cancellation. A separate armed variable is required because Karabiner can run a delayed hold callback before `to_if_alone` restores the short-click classification. App-owned classification similarly uses a distinct readiness-wheel callback so disarm can happen before the release decision while F15 still remains after that decision.
+
+Rejected live build 2026-09-16: signed Agentic Mouse 1.0.213 (219), executable SHA-256 `898d66094365a890e10bb02346021b8aa7a098869c0db3987382f272cddc5702`, removed the begin transport while trying to implement release-only behavior. Physical testing with Better Git 1.2.86 proved the exact failure: short release could not navigate, long release showed readiness but could not stage because Better Git had no captured origin. Automated final-state tests missed the ordered transport dependency. Add explicit output-order assertions covering begin on down, F20 then wheel arm at readiness, wheel release before F14 or F18/F19, and F15 last.
+
+Emergency rollback restored signed Agentic Mouse 1.0.212 (218), SHA-256 `4a0ceec7974b2efa86fb2a4d090b06bf0283c6922f9834179b8df083def66e88`, plus its exact preserved seven-rule runtime while retaining three non-Agentic rules. Better Git 1.2.85 was installed and pinned; it still required an Extension Host restart before physical retest. The guarded live Karabiner installer requires the running app to own the command socket: apply a narrow rule rollback while the current app is running, then cleanly Quit/disarm its supervisor, replace the bundle, and relaunch. The repaired source retains the range wheel but restores begin/cancel/finish ordering; automated verification passed 815 Swift tests, 31 Karabiner tests and the VS Code bridge suite. Physical acceptance remains separate.
+
+## Better Git stage-ready hold uses 200 ms (2026-09-16)
+
+Ethan briefly increased the release classifier and readiness-wheel transition from 200 ms to 300 ms, then corrected the request back to 200 ms. Keep `basic.to_if_held_down_threshold_milliseconds` and `basic.to_if_alone_timeout_milliseconds` at the same 200 ms value in all four generated Corsair/Razer Previous/Next rules, and keep `VSCodeModeGestureClassifier.stageHoldThreshold` at 0.20 so entered VS Code mode matches the top-level route. The exact boundary stages; a release below it remains a short navigation. Agentic Mouse 1.0.215 (221) was the temporary 300 ms installation. Signed Agentic Mouse 1.0.216 (222), executable SHA-256 `d872a323748081acf9db0b31f45c707f5fc72a789ede35a191151b329a884ca4`, restored 200 ms across the four live generated rules and app-owned path while preserving all three non-Agentic rules and the audited iCUE framework. Better Git 1.2.90 remained installed and untouched. Automated verification passed 815 Swift tests, 31 Karabiner tests and the complete extension, installation, packaging and site checks. Preserve Better Git's batch preview, exact-origin cancel restoration, wheel range selection, release-only staging and adjacent Undo semantics when changing only this timing. Physical timing acceptance remains separate.
+
+## Wheel failure HUD ownership (2026-09-20)
+
+Wheel route failures must carry the `WheelChordStateMachine.Step.source` through `ScrollWheelChordMonitor.onProblem` to the corresponding `modeHUDPresenters[source]`. Inferring ownership from active mode-picker controls loses Default-mode ownership and previously broadcast screenshot-paste failures to both mouse HUDs. Ambiguous simultaneous holds notify only sources with an actually armed wheel control. Signed 1.0.222 (228) installed with matching executable hash and unchanged embedded iCUE SDK; 819 XCTest cases and the extension, Karabiner, installation, packaging and site suites passed. Physical failure-banner acceptance remains separate.
+
+## Restored split-layout windows and display re-identification (2026-09-21)
+
+Two restored VS Code workspaces can share the same AX and WindowServer frame. A frame-only identity check rejects both as ambiguous and incorrectly reports no VS Code window on Dell. Keep WindowServer stacking order, then disambiguate same-frame AX candidates by the visible window title, with the public AX main-window identity as a fallback when titles are unavailable or duplicated. Never pick an arbitrary duplicate or a window on a different screen. Preserve the captured targets throughout a hold to avoid stale WindowServer frames during reversal.
+
+The Dell capture chain's UUID still matched during this failure; changing display IDs was not its observed cause. For future re-identification, persist the verified external display's dimensions alongside its UUID and recover only a unique external match if that UUID disappears. Never fall back to the built-in display or guess between equal-size displays. The live native regression swapped Chrome and the current VS Code workspace four times, verified each half-frame, and restored both originals; the other restored workspace stayed unchanged. Unit regressions cover reloaded preferences, changed UUIDs, identical dimensions, and duplicate window frames.
+
+## iCUE SDK listener blocked by an orphaned socket (2026-09-21)
+
+Agentic Mouse input and HUD availability do not prove the independent iCUE lighting connection is usable. iCUE 5 can stay running with its SDK4 server unable to listen: its log reports `QLocalServer::listen: Address in use`, while Agentic Mouse repeatedly reaches `timedOut`. In the verified case, the per-user temporary `iCUESDKv4` Unix socket had no open owner and returned `ECONNREFUSED`; it predated the current iCUE process and remained after a clean menu Quit.
+
+Recovery was a clean iCUE Quit, guarded quarantine of only that proven orphaned socket (same UID, inode and socket type; no live iCUE process/listener), and background relaunch of the existing iCUE app. Do not delete a live/ambiguous socket, alter vendor profiles/databases or restart unrelated apps. The unchanged Agentic Mouse process reconnected through its existing backoff; iCUE logged the successful handshake. A read-only `CorsairGetLedColors` query then returned RGBA 255/255/255/255 for both Scimitar zones. This proves restored software lighting output, not physical visual acceptance or prevention of every future vendor crash. Keep this a bounded attended recovery, not an automatic vendor-file cleanup policy.
+
+## Horizontal wheel reversal rejected (2026-09-21)
+
+Ethan physically tried the nine-family reversal and preferred the old Horizontal Scroll and YouTube seek behavior. At his request, all nine mappings were restored byte-for-byte to the pre-experiment source, and the exact previously verified signed 1.0.223 (229) app was restored rather than rebuilding it. The rejected 1.0.224 (230) implementation is retained locally on `failed/horizontal-wheel-reversal`: its parent is a recovery snapshot of the pre-existing local app baseline, and its tip isolates the failed experiment. Preserve the original per-family directions; a geometric rationale alone did not predict Ethan's preferred physical feel.
+
+
+## Wand latched HUD, held keys and hover close (2026-10-16)
+
+The wand uses independent middle-button HUD control and bottom-button pointer control. Middle entry must not click the initial card; released middle navigation remains active, and a later middle press parks the outline while native press/release or wheel input operates the selected card. Double-click dismissal must win over the hold timer and use the system double-click window. Receiver tests reproduce the old second-click/hold collision and cover entry, parked click, held action, dismissal and navigation resumption. Physical acceptance of the latest combination is separate.
+
+Home Switch App cannot be represented by a complete Command-Tab tap when the user is holding the wand button. Keep Command down until release using the existing hardware-shaped event poster; Enter and Keys Shift likewise need real down/up lifetimes. Cancel held keys on coordinator exit, device loss, lock and sleep. The injectable held-key tests verify ordering and duplicate suppression.
+
+Ethan removed HUD edge wrapping. Clamp accumulated position and discard outward overshoot so reversing at an edge responds without travelling back through invisible accumulated motion. Preserve diagonal movement along the remaining available axis. Update navigation fixtures that previously reached a cell by wrapping.
+
+The hover close control belongs next to the existing HUD scale slider, in the same non-activating interactive panel. Use the macOS standard close button and delegate closure back to the source coordinator, including Default and keypad owners; hiding one view alone can leave logical modes or delayed reattachment active. The native button callback is covered by an AppKit test.
+
+## Wand home Steer uses a held Command-Enter lifecycle (2026-10-16)
+
+Only the wand-source main HUD cell 7 uses Command-Enter and the label `⌘↩ Steer`. The shared Corsair/Razer Default map remains Enter, and Keys-page cell 7 retains its existing action. Use the existing WandHeldKeys press/release boundary: Command flagsChanged down, Return down carrying Command, Return up carrying Command, Command flagsChanged up. Cancellation releases Return before Command, and repeat press/release is idempotent. The full clean gate and focused modifier-lifetime/source-label tests passed; signed 1.0.261 (267) was installed with the existing receiver and Agent Flow processes retained. Native action acceptance remains separate from generated event tests.
+
+## Wand app-specific review preserves physical mouse ownership (2026-10-16)
+
+`appSpecific` enters the actual current app through ModePickerCoordinator with source `.wand`. Return the active app target with the same-user HUD context lease so the receiver owns only gesture adaptation; do not create Corsair events or alter shared mouse profiles. Green app review and purple VS Code file staging are receiver feedback, and Better Git owns all staged-range state. The signed 1.0.262 (268) package passed the full clean gate; four Mini Better Git tests checked review/file modes in both directions, ordering gaps, exact staged content and Undo. Physical wand acceptance is separate. The recoverable incremental patch is maintained with the wand project because this checkout contains unrelated staged work.
+
+## Organize Windows permits deliberate retries after completion (2026-10-17)
+
+Ethan rejected the old one-request-per-Extra-Utilities-visit restriction. The coordinator set that flag for an asynchronous `.started` result, but the move-and-restore controller's completion callback never cleared it, including on failure. Keep the global controller's one-in-flight transaction guard, release the source coordinator's request flag on every terminal completion before optional HUD feedback, and do not consume a latch for a synchronous `.performed` result. A fresh press after completion is an intentional new request; never automatically retry. Stay's shortcut submission is still informational, not proof that its external layout operation completed. Quit App's separate per-visit latch remains unchanged.
+
+The focused 107 tests and clean-build full suite passed (965 tests, two skipped), along with extension, VS Code bridge, Karabiner generation/lint, install, packaging and site gates. Signed v1.0.264 (270), executable SHA-256 `c11619f3b0d4f21b151dbb0d007779cf16dce56c978c88aa380cdda7e605ee7f`, was installed after the heads-up and dedicated Quit action. Stable signing, the receiver socket, unchanged settings/Karabiner/SDK hashes, and the unchanged Agent Flow PID were verified. Live whole-desktop restoration was not triggered during Ethan's active work; the physical repair marker remains until acceptance. The working tree already held the installed parent source but contains unrelated staged/untracked work, so the incremental patch is preserved privately with the rollback rather than publishing a partial dependent tree.
+
+## Stay feedback is request feedback, not restoration proof (2026-10-17)
+
+Ethan requested a visible Stay notification and explicitly removed Organize Windows' static X marker because the historical report did not prove a current failure. Preserve the retry fix and Quit App's separate guard. Emit one silent native notification per completed attempt even when the originating HUD no longer shows: `Stay` / `Window restore requested`, or `Window restore could not be requested`. Log request entry, shortcut submission or the concrete pre-dispatch failure; a submitted key event is not a completed external restore.
+
+The installed Codex Completion sender now resolves every title from a real chat ID and rejects non-chat notifications without one. Do not reuse it for Stay by guessing a chat or bypassing its title rule. Use the already-installed general Heads-Up sender after exact bundle-identity validation, with Agentic Mouse's own native notification permission as the portable fallback. A labelled Stay test notification was delivered and read back through the general sender; no Stay restore was triggered by that test. The prior live logs contained neither a restoration receipt nor a current failure, so they did not establish that Stay was broken or that it had finished moving windows.
+
+Installed verification: signed v1.0.265 (271), executable SHA-256 `a9d2df2e7c223fa318969ab9118288c2b5ac68bac29f52911f258c7d651d6788`, passed the fresh clean build and 969-test suite (two skipped), plus the existing bridge, generator, packaging and site gates. The new process owns the receiver socket; Accessibility, iCUE and self-recovery remain ready. The live config, Karabiner and iCUE SDK hashes were unchanged, and Agent Flow kept its original process. Notification delivery was tested independently; a full Stay layout restore was not triggered over Ethan's active workspace.
+
+## Stay's restore shortcut must not pass through a recording chord (2026-10-17)
+
+The former Control-Option-Shift-Command-A sender entered Control-Option-Shift before adding Command and again during release. The 17:04 live traces correlate those Organize Windows attempts with Agent Flow's Primary start/stop events; logging a completed shortcut post did not prove that Stay, rather than a competing listener, handled every event. The old event-array test asserted the colliding sequence itself, so passing it was not cross-application acceptance.
+
+Ethan explicitly requested a different Stay binding. Stay and Agentic Mouse now share physical key code 0 with Control-Option-Command (`ModifierFlags=1835008`), with Shift absent from every down/up event. Preserve the balanced lifecycle and test every event against both Agent Flow modifier-only recording chords, not just the final action key. Do not change the physical mouse map, Karabiner, or Agent Flow shortcuts to repair this collision. The mouse still requests Agentic Mouse's action, which emits the configured Stay shortcut; it is not a direct restore API.
+
+Stay's native settings menu was disabled in its background-only runtime, so the scoped repair preserved its keyed-archive shortcut representation and changed only `RestoreAllWindowsHotKey` through CFPreferences while Stay was normally stopped. Both automatic-restore preferences were false before the reload; full preference comparison afterward proved that only the shortcut key changed. The previous preference file and signed app are retained in the task's rollback folder. Never rewrite a whole Stay preference file or its saved layouts to change one binding.
+
+Signed v1.0.266 (272), executable SHA-256 `bd343a7050c3439155fbd72c0dea68540ff089cd901ed28b84fd376b2202a04d`, passed 34 focused tests and the full 970-test suite (two skipped), plus bridge, generator, packaging and site gates. The new process, signature, source fingerprint, receiver socket, Accessibility and iCUE state were verified. Agent Flow retained PID 6508, and Agentic Mouse config, Karabiner and iCUE SDK hashes were unchanged. This verifies the installation and no-Shift event contract; a full-layout restore over Ethan's active workspace and physical mouse acceptance were deliberately not claimed.
+
+## Verify user-account display persistence after Stay arrangement repair (2026-10-18)
+
+A successful displayplacer repair and enabled Stay Restore did not prove every macOS persistence layer agreed. Read-only inspection found the corrected arrangement in the machine-wide WindowServer display record while the current hardware host's user-account ByHost record still held the previously failing arrangement. Resolve the current host dynamically; other ByHost files can belong to previous hardware and are not current evidence. The discrepancy was verified, but causal attribution of the reversion to that file or cable order was not.
+
+Opening System Settings > Displays > Arrange and clicking Done without a change did not update the user record. An attended supported Samsung refresh-rate change from 60 to 30 Hz and immediately back to 60 Hz updated both records to the intended arrangement. Back up first, send a heads-up for the possible flicker, preserve every display mode/origin/main-display choice, and verify both persisted records plus Stay Restore and actual target window frames afterward. Never edit WindowServer preference files directly or turn this into runtime automation.
+
+Verification found unchanged Stay database tables and preferences, restored original display modes, enabled Restore, exact Chrome/VS Code half-screen frames and the saved OBS++ main-window frame. Ethan confirmed restoration was working. Persistence across a later reconnect or restart remains unverified; do not promise permanent prevention. Private evidence and rollback: Codex task 01a14fec-eb3c-78c1-a328-c197d36b9b58, outputs/stay-repair.json and work/windowserver-user-before.plist.
+
+## Wand-only VS Code review shortcuts
+
+Two virtual HUD slots follow Switch App only in the wand home view while VS Code is frontmost. Keep them out of PhysicalCell.all, public raw-value construction, physical mouse layouts and transports. Render and navigate the same extended middle row; changing the foreground app removes the slots and revokes any held review.
+
+The Middle press sends a bounded review-mode context lease to Wand Receiver, which reuses its existing straight-to-circle scroll detector and ordered Better Git review session. Physical release finishes; stale context, lost navigation, HUD dismissal or app loss cancels. A seven-degree step remains one review ratchet. No duplicated Git staging algorithm or physical mouse binding is needed.
+
+## Persistent wand HUD has no maximum hold duration
+
+The persistent controller previously closed a healthy held gesture after 30 seconds because its watchdog checked absolute start time as well as the last valid report. Only the last valid report should expire: stationary reports count as activity, while missing telemetry still releases held actions safely. Regression tests cover two-minute navigation and operation holds, normal release, and loss of telemetry after a long healthy hold. An idle parked HUD already has no inactivity deadline.
+
+## Persistent review selection and screenshot lifetime
+
+A selected VS Code review mode is separate from transient hover and held-operation state. Keep its heartbeat alive while the main HUD is hidden, but only advertise the mode when VS Code is frontmost. Explicit session teardown clears it. The receiver temporarily lends Bottom to screenshot pointer interaction without dismissing the coordinator; capture completion resumes the same HUD. Table rest and absolute gesture age do not dismiss a healthy explicit HUD.
+
+## 2026-10-18 — Persistent wand review state
+
+A selected wand review mode is distinct from hover and HUD visibility. Preserve it on HUD dismissal and app switching, but clear it on lock/reset. Keep its short heartbeat active while hidden so stale context still fails closed. A healthy held control has no absolute duration cap; only lost telemetry cancels it. Use a separate tap activation packet so a tap can select review without starting a staging hold. The signed 1.0.268 candidate passed full native checks; physical wand acceptance remains separate.
+
+## Wand review hold caption (2026-10-19)
+
+The mini indicator now says `(hold to commit set)`. The receiver owns one long-press staging action and freezes review navigation until Middle is released. A short press cancels and exits. Preserve the existing non-activating, click-through panel above Agent Flow; “commit set” still means staging, not a Git commit.
+
+## Wand HUD placement above Agent Flow
+
+The mini review indicator already queried Agent Flow window geometry, but the main wand presenters still chose screen centre. Both native presenters and the indicator now share a bottom-centred placement helper. On-screen recorder panels on the same display raise it by their actual top edge plus a gap; normal Dashboard windows and unrelated displays do not. Poll recorder geometry only while visible, and remeasure the animated wand selection only when that geometry changes, preserving the existing no-flicker focus-only update path. Physical mouse corners remain unchanged.
+
+## 2026-10-20 — Voice toggle parity with Hello Chat
+
+Ethan confirmed Corsair 12 Voice works and requested clearing its stale cross. Match Hello Chat’s verified `composer.startVoiceMode` binding (Hyper-F17) through the existing exact-device Karabiner route, not the older global `realtimeVoice` Control-Shift-V route. This supersedes the September global-shortcut lesson. One deliberate button press toggles Voice; never blindly retry a start since it can end an active call. New Chat remains Command-N. Read actual Voice controls for start-only/end-only automation; process-wide microphone activity alone does not prove a call or dictation. No call should be opened/ended merely to test packaging.
+
+## 2026-10-24 — Separate unheld aiming from armed adjustment
+
+An armed Switch App treated every new navigate stream as a held adjustment; the receiver also stopped forwarding NAV after release. A dedicated hover phase admits passive aiming only from the visible armed Switch App session, retains its dotted state while resting on it, and clears arming on leaving. The existing navigate/press path continues to own held Command-Tab and releases/cancels through the shared coordinator. Hover never opens a hidden HUD or dispatches a key. Receiver and native protocol changes must ship together; do not infer physical-held state from a generic motion stream.
+
+## 2026-10-24 — Preview Switch App hold qualification without key output
+
+The receiver’s existing tap/hold threshold emits one qualify event on the held navigation ID. Native stores qualification on that hold and reuses the existing dotted pointer-focus presentation only over Switch App; it does not arm the next operation or send Command. Release/choose still owns actual arming. Moving off the card removes the preview; moving back restores it within the same qualified hold. Stale IDs and hidden HUDs do not qualify.
+
+## 2026-10-24 — Share HIGH mouse output with held Switch App
+
+The receiver is the single source of truth for the normal mouse's adaptive HIGH response. Persistent motion can carry optional cumulative `mouseX` counts, excluding Bottom LOW. Only held Switch App consumes that field; HUD navigation and other wheel cards continue to use their existing angular stream. Convert HIGH count deltas by the fixed 86.4 reference gain into the existing seven-degree detent tracker: 604.8 counts per reference step, with the same hysteresis, visual feedback, and six-step packet cap. This is a unit conversion, not a second sensitivity curve.
+
+The first HIGH value only establishes a baseline. Switching between missing and present HIGH telemetry resets the residual and skips that transition sample; never replay cumulative travel from a stale stream. Old receivers without the field retain the original angular behavior. Validate the optional field only on motion, reject booleans/non-finite/out-of-range counts, and preserve existing gesture-ID/sequence/teardown gates.
+
+## 2026-10-24 — Shared HUD gesture grammar
+
+Ethan's Copy/Paste click inserts Space; naming only Copy/Paste hid that result. `ModeHUDGesture` now owns a card's optional click result, held-motion action and supported source. Wheel controls create metadata from the same control definitions, and grid, wand typography and website export read the same display title. The arrow belongs to the held result; a small Click / Hold key explains the grammar. Source-incompatible held actions never claim a working wand adjustment.
+
+When cloning an app definition to recolor its identity, retain typed gesture metadata as well as title, artwork and status; recreating only the old title loses the visual and accessibility cues. Typography tests must measure `displayTitle(on:)`, including the motion arrow, rather than the unadorned action name. Offscreen ImageRenderer cannot draw AppKit native glass; use the existing card renderer with a neutral fill for visual inspection while live presenters retain native glass.
+
+## 2026-10-25 — Review selection terminology
+
+Ethan replaced the wand review caption “hold to commit set” with “Hold to commit selection” and requested selection throughout the related user-facing wording. The pending selection is still staged by the same Middle hold; this does not create a Git commit. The old phrase remains only in historical notes or mapping comments for searchability; unrelated Set types are unchanged.
+
+## 2026-10-25 — Transparent circular wand HUD
+
+Ethan's “square background” was wandBody applying the shared outer panelBackground, including glass and perimeter. Remove that background only from the circular wand root; the ordinary mouse grid retains it. HUDPanel is already nonopaque with clear background, and the scaling host does not fill its root. Window-wide alpha does not create an opaque rectangle. Pixel-alpha tests compare wand outer points against both mouse-grid backgrounds and verify filled card interiors; the native panel/hosting test preserves click-through/nonactivating transparency.
+
+
+## 2026-10-25 — Card-masked wand glass and screenshot context lifetime
+
+Removing the circular HUD's outer glass also removed the substrate under its translucent cards. Keep the shared native glass configuration, but mask the wand backing to the exact drawn card silhouettes; leave gutters and the exterior clear. Native hosted glass needs an AppKit layer/image mask, not an assumption that SwiftUI clipping reaches the effect view. Verify real native glass over a high-contrast backdrop as well as renderer alpha, and move each focused card, text, outline and backing to the same resting lift pose. Armed marching dots use one bounded-rate phase policy; hover stays solid, adjustment keeps its detent feedback, Reduce Motion is static, and hidden models omit the animated outline.
+
+The Screenshot interaction can outlive the HUD's two-second follow-up linger. Renew screenshotActive on the existing controller heartbeat through the hidden selection, then publish false immediately on completion/cancellation; locked-session output is false. Keep the existing native screenshot controller/event-tap lifecycle. The receiver's Bottom triple-click uses a strict version1 UUID start-only command; retries never toggle capture off, and recent64 event IDs remain consumed after completion/cancel. The physical mouse screenshot toggle is unchanged.
+
+Receiver-shaped tests through the real wand coordinator, virtual wheel and keyboard executor confirm negative vertical tilt (Up) emits Command-C and opposite tilt emits Command-V; an unused tap remains Space and unheld hover cannot operate clipboard. This check did not reproduce Ethan's reported physical Copy/Paste failure; do not invent a direction reversal or call it a proven physical repair.
+
+
+## 2026-10-26 — Wand chat readiness and shared reminders
+
+A fresh-chat result is a point-in-time input-focus proof, not a replayable grant to record. Retire successful operation IDs, reject stale requests, check cancellation after each asynchronous boundary and before activation, and never retry an indeterminate create. Keep Terminal Apple Events on a serial queue with no embedded activation; a cancelled queued script must not run. The coordinator renews the display lease and bounds an unresponsive create separately. Claude Code readiness must inspect the newest prompt, since a previous empty prompt above a trust choice or typed draft is not ready. The installed CLI's empty prompt can contain the non-editable Try placeholder.
+
+Keep Creating chat, repeat-key hints and review reminders in the same native non-activating slot. Creating chat has priority, then the Keys hint, then the latest review selection. Keys arrows, Space and Backspace finish their key-up lifecycle while retaining the same HUD card; other one-shot actions still close it.
+
+Ethan's double Middle review toggle uses the existing persistent selection and context transition, not a separate selection store or synthetic staging event. Receiver owns the approved up-to-300ms click disambiguation and cancellation of a pending Better Git session; native toggleReview only changes changes/files while VS Code is frontmost. Keep a bounded history of toggle IDs: remembering only the latest ID permits an older duplicate arriving after a newer toggle to flip the mode again.
+
+
+## 2026-10-26 — Held-centre Switch App and creation audit
+
+Historical Switch App dwell behaviour; Ethan retired it on 29 October 2026. See the release-to-select contract below.
+
+The native wand controller can promote the same qualified navigate hold into Switch App adjustment after0.75seconds continuously centred after qualification. Reuse the existing0.25second watchdog and require telemetry no older than0.5seconds, same page generation and live home navigation. Leaving the centre or a telemetry gap restarts residence. Carry the same gesture ID, sequence and last cumulative angle across arming; reset HIGH metric state so the first mouse count is only a baseline. Ordinary release ends Command once and consumes the receiver's trailing choose, while shorter holds keep the existing second-hold flow. No receiver or mouse mapping change is needed.
+
+Unexpected Codex Voice activation cannot be attributed from New Chat and Voice mappings alone. Log accepted Codex newTask and toggleVoiceMode requests with source, cell and native/app transport through the coordinator's existing notice sink. This captures requested actions rather than claiming Voice actually started; never log prompt text or recorded speech. The retained16October incident still lacks its initiating input.
+
+
+## 2026-10-26 — Shorter held-centre dwell
+
+Historical threshold only; the timed centre promotion is retired, not the current behaviour.
+
+Ethan shortened switchAppDwell from750ms to500ms of continuous home-centre residence AFTER receiver hold qualification. This changes only the dwell parameter: pointer timing, freshness500ms, watchdog250ms, HIGH baseline and release lifecycle stay unchanged. Preserve boundary coverage just below500ms and just after it, plus leaving/returning and pre-threshold release. The earlier750ms note is historical, not the current setting.
+
+
+## 2026-10-27 — A stalled iCUE request must not freeze mouse input
+
+A live sample found the main thread permanently waiting inside CorsairGetDevices, called by the two-second recovery probe. Both mice stopped because the main thread also owns input dispatch and the unlocked-session heartbeat. Restarting only the hung Agentic Mouse process restored a responsive event loop.
+
+Run vendor IPC through the single bounded ICUEVendorCallExecutor. Each call owns its C buffers on the worker, waits at most200ms at the synchronous boundary, and admits no backlog while a prior operation remains stuck. Later completion must not overwrite the caller's fallback or dereference expired buffers. Keep Swift session state on its existing main queue; retire and invalidate callback contexts when connection/subscription fails or times out. All disconnect, device/property reads, lighting and key-control requests use the same executor. Library loading itself only resolves the C entry points.
+
+
+## 2026-10-27 — Split layout follows the main external workspace role
+
+Ethan's “Dell” split is the main external workspace display. Resolve that role from the current primary display, excluding the built-in panel; if the primary is built-in, accept only a sole external display. Do not persist or match its name, UUID or dimensions. Runtime UUID and geometry remain a transaction identity so a hotplug/reconfiguration cancels old writes. Equal-size external screens are safe when one has the primary role; multiple external screens with a built-in primary remain ambiguous.
+
+This incident's saved UUID still matched. The native probe reproduced an independent lookup failure: several Chrome windows had identical frames, and WindowServer titles differed from Accessibility titles. The old matcher discarded a unique public AX main-window identity whenever a nonempty title had no exact match. Apply the existing main-window fallback to that case too; never guess when multiple candidates remain. Skip normal-layer popovers with no standard AX-window frame rather than declaring the app absent. Diagnostics record only app bundle, counts and geometry, never window titles.
+
+The final native probe swapped both half-screen layouts four times, checked their frames and restored both originals. Hardware-free regressions cover changed UUID/resolution/enumeration, primary-role changes, equal-size external screens, laptop-only/ambiguous layouts and stale window titles. Physical mouse acceptance remains separate.
+
+Monitor audit: all mouse/keypad HUDs enumerate current NSScreen instances and reconcile screen-parameter changes; wand HUD/reminder placement uses live screens/recorder geometry; hovered window resizing uses current window coordinates; Chrome Space restoration resolves current Space membership; Brightness/Spaces/Mission Control/App Exposé/Magnet use system shortcuts rather than persisted monitor IDs. Stay's saved layouts belong to Stay and its supported repair workflow, not this selector. No other persisted screen-ID selector exists in Agentic Mouse Sources/Scripts.
+
+
+## 2026-10-28 — Mouse reasoning must use Model Bar's focus path
+
+Agentic Mouse speed already sends background `codex-model-bar://speed-up` and `speed-down` requests into Model Bar's `SpeedSwitcher`, which owns intended main/side composer discovery and `SpeedInputFocus`. Reasoning still posted Hyper-F18/F19 directly, bypassing the toolbar reasoning slider's focus handoff. A direct shortcut does not establish that the intended composer owns keyboard focus.
+
+Route mouse reasoning through strict `reasoning-up` / `reasoning-down` Model Bar actions. Keep mouse physical-cell ownership, polarity and detent reconstruction in Agentic Mouse; keep composer selection, draft preservation, actual configured reasoning keys and focus restoration in the existing Model Bar implementation. Share the established nonactivating URL relay with speed, require the existing session/Accessibility gates before dispatch, and report only sent until Codex acceptance is observed. Retain the dedicated keyboard bindings for ordinary keyboard compatibility; they are no longer the mouse reasoning transport.
+
+The focused Codex executor suite passed 20 tests before cancellation wiring. The broader suite passed 1,124 tests with four skips and zero failures before the last cancellation wiring. The final focused executor run passed all 21 cases, including release/teardown cancellation after lock, blocked-session/permission cases, both reasoning directions, a missing handler, nonactivating transport and absence of raw reasoning keyboard events. Live installation and actual Codex acceptance must be recorded separately from these checks.
+
+## Physical BetterGit staging across app switches (2026-10-28)
+
+- A physical staging hold belongs to the Code window/review captured at Begin. App focus changes must not stage, clear, re-target or emit fallback keyboard input. Default Karabiner and entered VS Code mode use the same private per-window socket lifecycle; Magic Wand retains its existing transport. BetterGit background-hold protocol 1 (introduced in 1.2.136) must be active before these generated rules are installed.
+- Physical release owns Finish; short release owns its existing boundary; adjacent Undo owns Cancel. Lock, sleep, disconnect and explicit teardown abandon without staging or Undo. Keep heartbeats while held, source ownership until physical up, FIFO admission replies and the existing 300 ms wheel-idle cutoff. Probe only while selecting a new window; never rediscover a live gesture.
+- Gallery-installed extension is not proof of active code. Developer: Restart Extension Host may terminate an unrelated API debugging session; preserve the debugger and report that activation boundary rather than forcing Restart Anyway. Tests prove the native state machine/private socket contract, not a physical mouse acceptance.
+
+## Held staging release survives ambiguous acknowledgements (2026-10-28)
+
+- The original private mouse transport treated a missing 250 ms admission reply as a permanent hold failure. Live native failure logs preceded BetterGit transport-abandon logs by the lost-heartbeat interval. Do not infer which syscall failed from the older generic log, but do not drop the entire selection solely because one admission reply was late.
+- Native retries retain the exact pinned socket, gesture ID, sequence and sorted JSON payload, with at most four 250 ms exchanges and a fresh source/session gate before each attempt. Explicit rejection is authoritative and is never retried. BetterGit must advertise terminalReceiptReplay before this client is enabled; completed terminal replay returns the receipt without running staging twice. Keep the original three-second lost-owner expiry, queue bound and no-retarget behavior.
+- Register the physical hold heartbeat timer in common run-loop modes. Log packet phase, sequence, attempt count, elapsed time and result without file names or selected text; this distinguishes an unanswered packet from explicit rejection on later incidents.
+
+
+## 2026-10-29 — Wand holding alone never activates Switch App
+
+Ethan retired the held-centre dwell: “if you hold it, nothing happens until you let go or like select one and then let go.” The receiver-qualified dotted outline is visual only. A healthy held HUD gesture may last indefinitely, moving the outline without pressing Command or entering adjustment. Release selects the outlined card, or arms Switch App / an adjustable wheel card for its deliberate next hold. Preserve ordinary tap/click/double-click, review/stage holds, the centre Mouse button and physical mouse mappings. Keep stale-telemetry and locked-session teardown; removing timed promotion does not remove those safety boundaries. Regression coverage must include a sustained live hold beyond the retired threshold, watchdog ticks without activation, release-to-arm followed by the next adjustment hold, HIGH rebasing, and lock/lost telemetry.
+
+
+## 2026-10-29 — Receiver release selection and Switch App loop ownership
+
+The receiver's held-release contract is a final cumulative motion, park on the held gesture ID, then choose with its own fresh ID and sequence1. Native park retains the outlined card; choose owns the action exactly once. Utility and the wand home both use `.modes`, so tests must check `isWandHome` and page generation as well as the page enum. Wire-shaped regression coverage now includes Utility, Keys, the app submenu and ordinary home actions, with duplicate terminal commands. A passing native sequence alone does not prove the physical receiver delivered its terminal command.
+
+The receiver owns the existing directional scroll-loop implementation. Native must not duplicate that algorithm. Version1 context carries `switchAppAdjusting` only during an allowed, same-generation, healthy selected Switch App adjustment and accepted native Command ownership. It is false while merely aiming, qualified/dotted, armed and waiting, passively hovering, adjusting another control, released or torn down. Reuse the existing context callback/watchdog, freshness, cumulative mouseX baseline and bounded detents. Missing or stale context disables receiver continuation; timed home-centre activation remains retired.
+
+## 2026-10-29 — Dots mean locked adjustment, never an aiming preview
+
+The older qualified-hold preview drew dots while the initial hold still navigated wedges. That looked like the locked "dotted mode" Ethan now expects, even though no adjustment had been selected. Qualification remains a receiver heartbeat only. Freely aiming, including returning to the centre or parking before choose, keeps a plain outline. Only choosing an actual adjustment may draw dots; its unheld motion then adjusts that control and cannot select other wedges. Native regression tests distinguish qualification, free aiming, park, choose and the locked stream. Software checks do not establish physical acceptance.
+
+
+## 2026-10-30 — Local candidate signing and distribution signing are separate
+
+A locally attended replacement needs the same Developer ID designated requirement as the installed app so Accessibility trust survives. An automatic timestamp request can fail independently of that identity. The canonical packager now uses `--timestamp=none` only for a stable Developer ID `INSTALL_CANDIDATE=1`; distribution builds retain hardened runtime and a secure timestamp for notarization. A real canonical release candidate packaged, passed strict/deep signature and installed-requirement checks, preserved the embedded SDK, and was installed successfully. Packaging/version/supervisor and installation tests passed afterward. Do not fall back to ad-hoc signing or reset TCC.

@@ -52,7 +52,7 @@ struct ApplicationZoomActionExecutor {
             flags = [.maskCommand]
         case .increaseDisplayBrightness, .decreaseDisplayBrightness,
              .rewindYouTubeFiveSeconds, .openIntelligenceOnDemand,
-             .moveToSpaceLeft, .moveToSpaceRight, .copy, .paste,
+             .moveToSpaceLeft, .moveToSpaceRight, .selectAll, .tab, .save, .copy, .paste,
              .moveWindowLeftWithMagnet, .moveWindowRightWithMagnet,
              .showDesktop, .missionControl, .pasteStoredPassword,
              .showApplicationWindows, .organizeWindows, .spotifySongRadio, .quitApp:

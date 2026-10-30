@@ -158,3 +158,15 @@ Start in a disposable text field. Confirm ordinary pointer/scroll/left/right cli
 Then verify wheel polarity, sleep/wake, session lock/unlock, intentional Quit, restart and physical lighting restoration. Test external actions only after their receiver and shortcuts are configured. Avoid testing interruption, screenshots, staging, clipboard or window actions over valuable work.
 
 Keep automated tests, installed-byte checks and physical acceptance separate. See [release readiness](RELEASE.md) for public-release gates and [recovery](RECOVERY.md) for rollback and removal.
+
+### Reconcile concurrent local updates before replacing the app
+
+A newer version number does not prove that another checkout contains the currently installed features. Keep one canonical source checkout for local installation and coordinate the shared app replacement with other active Agentic Mouse tasks. Signed local candidates embed private source provenance inside the app; never publish that local manifest. The packaging preflight checks the installed app, canonical source root, full source snapshot and exact parent executable.
+
+Immediately before the dedicated Quit and guarded replacement, run:
+
+```sh
+python3 Scripts/install-provenance.py verify --candidate build.noindex/AgenticMouse.app
+```
+
+If it refuses, preserve the running app and reconcile/rebuild. Do not just raise the version, copy a stale bundle, or bypass the check. Source changes during packaging or another task installing first invalidate the candidate. The original unmanifested app is supported once so an existing installation can adopt this guard.

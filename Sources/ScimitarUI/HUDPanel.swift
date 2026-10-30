@@ -70,6 +70,7 @@ public final class AppKitHUDPresenter: NSObject, HUDPresenting {
         let scaleControlPanel: HUDScaleControlPanel
     }
 
+    public var onCloseRequested:(()->Void)?
     private var panels: [ObjectIdentifier: PanelInstance] = [:]
     private let model: HUDViewModel
     private let source: MouseSource
@@ -77,6 +78,7 @@ public final class AppKitHUDPresenter: NSObject, HUDPresenting {
     private let scaleStore: HUDScaleStore
     private let workspaceNotificationCenter: NotificationCenter
     private var scaleObservation: AnyCancellable?
+    private var wandPlacementAnchor: WandHUDPlacement.Anchor?
     private var problemDismissWorkItem: DispatchWorkItem?
     private var delayedSpaceReattachWorkItem: DispatchWorkItem?
 
@@ -163,6 +165,7 @@ public final class AppKitHUDPresenter: NSObject, HUDPresenting {
     // MARK: - Panel plumbing
 
     @objc private func screenParametersDidChange(_ notification: Notification) {
+        wandPlacementAnchor = nil
         guard isVisible else { return }
         reconcilePanels(show: true)
     }
@@ -199,6 +202,7 @@ public final class AppKitHUDPresenter: NSObject, HUDPresenting {
     }
 
     private func discardPanels() {
+        wandPlacementAnchor = nil
         panels.values.forEach {
             HUDScaleHoverCoordinator.shared.unregister(hudPanel: $0.panel)
             $0.scaleControlPanel.orderOut(nil)
@@ -222,7 +226,10 @@ public final class AppKitHUDPresenter: NSObject, HUDPresenting {
         let panel = HUDPanel(contentRect: NSRect(origin: .zero, size: size))
         panel.contentView = hosting
         panel.alphaValue = CGFloat(configuration.opacity)
-        let scaleControlPanel = HUDScaleControlPanel(scaleStore: scaleStore)
+        let scaleControlPanel = HUDScaleControlPanel(scaleStore: scaleStore) { [weak self] in
+            self?.onCloseRequested?()
+            self?.hide()
+        }
         HUDScaleHoverCoordinator.shared.register(
             hudPanel: panel,
             controlPanel: scaleControlPanel
@@ -238,6 +245,7 @@ public final class AppKitHUDPresenter: NSObject, HUDPresenting {
     }
 
     private func reconcilePanels(show: Bool) {
+
         let screens = NSScreen.screens
         let targetKeys = Set(screens.map(ObjectIdentifier.init))
         for key in panels.keys.filter({ !targetKeys.contains($0) }) {
@@ -272,6 +280,9 @@ public final class AppKitHUDPresenter: NSObject, HUDPresenting {
             origin = NSPoint(x: visible.minX + margin, y: visible.minY + margin)
         case .bottomRight:
             origin = NSPoint(x: visible.maxX - size.width - margin, y: visible.minY + margin)
+        case .bottomCenter:
+            if wandPlacementAnchor == nil { wandPlacementAnchor = .init() }
+            origin = wandPlacementAnchor!.frame(size:size,on:screen,margin:margin).origin
         case .center:
             origin = NSPoint(
                 x: visible.midX - size.width / 2,
@@ -289,7 +300,7 @@ public final class AppKitHUDPresenter: NSObject, HUDPresenting {
         switch AppConfiguration.HUDConfiguration.sourceCorner(for: source) {
         case .topLeft, .bottomLeft:
             x = instance.panel.frame.minX + inset
-        case .topRight, .bottomRight, .center:
+        case .topRight, .bottomRight, .center, .bottomCenter:
             x = instance.panel.frame.maxX - HUDScaleControlPanel.size.width - inset
         }
         instance.scaleControlPanel.setFrameOrigin(NSPoint(
