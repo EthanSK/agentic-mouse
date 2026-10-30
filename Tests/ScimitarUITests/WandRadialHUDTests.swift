@@ -1,4 +1,5 @@
 import AppKit
+import ImageIO
 import ScimitarKit
 import SwiftUI
 @testable import ScimitarUI
@@ -821,18 +822,18 @@ final class WandLiquidMorphTests: XCTestCase {
 
     func testTheEndsAreExactlyTheExistingOutlines() {
         let pull = CGPoint(x: 0.2, y: -0.3)
-        XCTAssertEqual(WandLiquidMorph.outline(progress: 0, angle: wedge.centerAngle, pull: pull, towardCenter: true, wedge: wedge, discRadius: radius),
+        XCTAssertEqual(WandLiquidMorph.outline(progress: 0, angle: wedge.centerAngle, pull: pull, wedge: wedge, discRadius: radius),
                        WandLiquidDisc.outline(radius: radius, pull: pull))
         let parts = wedge.components(ofPull: pull)
-        XCTAssertEqual(WandLiquidMorph.outline(progress: 1, angle: wedge.centerAngle, pull: pull, towardCenter: false, wedge: wedge, discRadius: radius),
+        XCTAssertEqual(WandLiquidMorph.outline(progress: 1, angle: wedge.centerAngle, pull: pull, wedge: wedge, discRadius: radius),
                        wedge.liquidOutline(along: parts.along, inward: parts.inward))
     }
 
     func testReturningToCenterDoesNotJumpAtDeparture() {
         let start = WandLiquidMorph.centroid(WandLiquidMorph.outline(progress: 1, angle: wedge.centerAngle,
-            pull: .zero, towardCenter: true, wedge: wedge, discRadius: radius))
+            pull: .zero, wedge: wedge, discRadius: radius))
         let next = WandLiquidMorph.centroid(WandLiquidMorph.outline(progress: 0.999, angle: wedge.centerAngle,
-            pull: .zero, towardCenter: true, wedge: wedge, discRadius: radius))
+            pull: .zero, wedge: wedge, discRadius: radius))
         XCTAssertLessThan(hypot(next.x - start.x, next.y - start.y), 1,
                           "a tiny animation step must not snap the outline inward")
     }
@@ -841,12 +842,12 @@ final class WandLiquidMorphTests: XCTestCase {
         let direction = WandWedge.radial(wedge.centerAngle)
         var previous: CGFloat = -1
         let smallest = min(area(WandLiquidDisc.outline(radius: radius, pull: .zero)), area(wedge.outline()))
-        for towardCenter in [false, true] {
+        do {
             previous = -1
             for step in 0...20 {
                 let progress = Double(step) / 20
                 let points = WandLiquidMorph.outline(progress: progress, angle: wedge.centerAngle, pull: .zero,
-                                                     towardCenter: towardCenter, wedge: wedge, discRadius: radius)
+                                                     wedge: wedge, discRadius: radius)
                 XCTAssertTrue(points.allSatisfy { $0.x.isFinite && $0.y.isFinite })
                 XCTAssertGreaterThan(area(points), smallest * 0.5, "the outline never shrinks away")
                 let centre = WandLiquidMorph.centroid(points)
@@ -861,6 +862,138 @@ final class WandLiquidMorphTests: XCTestCase {
 /// Frames of the centre-to-card morph and a card-to-card slide, rendered at
 /// fixed progress because ImageRenderer cannot capture a running animation.
 /// Set WAND_RADIAL_VISUAL_OUTPUT to keep them.
+/// Ethan (2026-10-30): "make that item animation fully seamless so it animates
+/// all the way instead of jumps at a certain point ... like a blob moving
+/// around." SwiftUI interpolates the outline's animatable values (progress,
+/// angle, pull, wedge) with the focus spring; this replays that spring so the
+/// geometry and the rendered frames show the motion the HUD actually draws.
+struct WandMorphReplay {
+    struct State {
+        var progress: Double
+        var angle: Double
+        var pull: CGPoint
+        var wedge: WandWedge
+    }
+    static let radius = WandWheelMetrics.centerRadius + WandWheelMetrics.focusOutset
+
+    /// `WandRadialFocusStyle.slideAnimation`: interactiveSpring(response 0.3, damping 0.8).
+    static func spring(_ t: Double) -> Double {
+        guard t > 0 else { return 0 }
+        let omega = 2 * Double.pi / 0.3, zeta = 0.8, damped = omega * (1 - zeta * zeta).squareRoot()
+        return 1 - exp(-zeta * omega * t) * (cos(damped * t) + zeta * omega / damped * sin(damped * t))
+    }
+
+    static func mix(_ a: State, _ b: State, _ f: Double) -> State {
+        let c = CGFloat(f)
+        var wedge = a.wedge
+        wedge.halfWidth = a.wedge.halfWidth + (b.wedge.halfWidth - a.wedge.halfWidth) * f
+        wedge.inner = a.wedge.inner + (b.wedge.inner - a.wedge.inner) * c
+        wedge.outer = a.wedge.outer + (b.wedge.outer - a.wedge.outer) * c
+        return State(progress: a.progress + (b.progress - a.progress) * f, angle: a.angle + (b.angle - a.angle) * f,
+                     pull: CGPoint(x: a.pull.x + (b.pull.x - a.pull.x) * c, y: a.pull.y + (b.pull.y - a.pull.y) * c),
+                     wedge: wedge)
+    }
+
+    /// The states at `step` intervals while one focus change springs from `a` to `b`.
+    static func run(_ a: State, _ b: State, seconds: Double = 0.45, step: Double) -> [State] {
+        stride(from: 0, through: seconds, by: step).map { mix(a, b, spring($0)) }
+    }
+
+    static func outline(_ s: State) -> [CGPoint] {
+        WandLiquidMorph.outline(progress: s.progress, angle: s.angle, pull: s.pull, wedge: s.wedge, discRadius: radius)
+    }
+
+    /// Largest distance from any point of one outline to the other outline.
+    static func gap(_ a: [CGPoint], _ b: [CGPoint]) -> CGFloat {
+        func toPolygon(_ p: CGPoint, _ q: [CGPoint]) -> CGFloat {
+            var best = CGFloat.infinity
+            for i in q.indices {
+                let u = q[i], v = q[(i + 1) % q.count]
+                let d = CGPoint(x: v.x - u.x, y: v.y - u.y), len = d.x * d.x + d.y * d.y
+                let t = len > 0 ? max(0, min(1, ((p.x - u.x) * d.x + (p.y - u.y) * d.y) / len)) : 0
+                best = min(best, hypot(u.x + d.x * t - p.x, u.y + d.y * t - p.y))
+            }
+            return best
+        }
+        return max(a.map { toPolygon($0, b) }.max() ?? 0, b.map { toPolygon($0, a) }.max() ?? 0)
+    }
+
+    /// The five focus changes Ethan sees, on the real home layout.
+    static func journeys(_ geometry: WandWheelGeometry) -> [(String, [State], [State])] {
+        let layout = geometry.layout
+        let app = layout.ringIndex(of: .frontmostAppModeSelector)!, keys = layout.ringIndex(of: .keysModeEntry)!
+        let utility = layout.ringIndex(of: .modePickerEntry)!
+        func ring(_ i: Int, angle: Double? = nil) -> WandWedge {
+            geometry.wedge(at: i, angle: angle).expanded(by: WandWheelMetrics.focusOutset)
+        }
+        func scaled(_ v: CGPoint, _ k: CGFloat) -> CGPoint { CGPoint(x: v.x * k, y: v.y * k) }
+        let a = layout.angle(at: app), radial = WandWedge.radial(a)
+        // Centre drop leaning out toward the app card, then arriving there.
+        let centre = State(progress: 0, angle: a, pull: scaled(radial, 0.95), wedge: ring(app))
+        let onApp = State(progress: 1, angle: a, pull: .zero, wedge: ring(app))
+        // The app card drawn in toward the centre, then the centre leaning back.
+        let leaving = State(progress: 1, angle: a, pull: scaled(radial, -0.95), wedge: ring(app))
+        let back = State(progress: 0, angle: a, pull: scaled(radial, 0.3), wedge: ring(app))
+        // Keys (11 o'clock) to the app card (12) and on across 12 o'clock to Utility.
+        let k = layout.angle(at: keys), next = layout.angle(at: utility) + 2 * Double.pi
+        let onKeys = State(progress: 1, angle: k, pull: scaled(WandWedge.tangent(k), 0.95), wedge: ring(keys))
+        let arrivedApp = State(progress: 1, angle: a, pull: scaled(WandWedge.tangent(a), -0.9), wedge: ring(app))
+        let towardUtility = State(progress: 1, angle: a, pull: scaled(WandWedge.tangent(a), 0.95), wedge: ring(app))
+        let onUtility = State(progress: 1, angle: next, pull: scaled(WandWedge.tangent(next), -0.9), wedge: ring(utility, angle: next))
+        // Keys out to its Undo card (one more reach), which then leans back.
+        let undo = layout.outerIndex(of: .wandUndo)!
+        let outer = geometry.outerWedge(at: undo).expanded(by: WandWheelMetrics.focusOutset)
+        let keysOut = State(progress: 1, angle: k, pull: scaled(WandWedge.radial(k), 0.95), wedge: ring(keys))
+        let onUndo = State(progress: 1, angle: layout.outerAngle(at: undo), pull: scaled(WandWedge.radial(k), -0.5), wedge: outer)
+        // A fast reversal: centre toward the app card, retargeted back after 80 ms.
+        let out = run(centre, onApp, seconds: 0.08, step: 0.001)
+        let reversal = out + run(out.last!, back, step: 0.001).dropFirst()
+        return [
+            ("centre-to-ring", [centre], run(centre, onApp, step: 0.001)),
+            ("ring-to-centre", [leaving], run(leaving, back, step: 0.001)),
+            ("ring-neighbours-across-12", [onKeys], run(onKeys, arrivedApp, step: 0.001)
+                + run(arrivedApp, towardUtility, step: 0.001).dropFirst() + run(towardUtility, onUtility, step: 0.001).dropFirst()),
+            ("ring-to-outer", [keysOut], run(keysOut, onUndo, step: 0.001)),
+            ("reversal", [centre], Array(reversal)),
+        ]
+    }
+}
+
+final class WandSeamlessMorphTests: XCTestCase {
+    private let geometry: WandWheelGeometry = {
+        let hud = RecordingModeHUDPresenter()
+        let coordinator = ModePickerCoordinator(lease: WandModeLease(), hud: hud, scheduler: ManualTickScheduler(),
+                                                log: Log(category: "test", sink: NullLogSink()))
+        coordinator.enterWandHome(source: .wand, pointerFocus: nil)
+        return WandWheelGeometry(layout: coordinator.wandRadialLayout)
+    }()
+
+    /// The focus change itself never moves the outline: the frame before it
+    /// and the first frame after it are the same shape. (Measured before the
+    /// fix: 40.7 pt centre to ring, 37.6 pt ring to centre.)
+    func testTheOutlineDoesNotJumpWhenFocusChanges() {
+        for (name, before, frames) in WandMorphReplay.journeys(geometry) {
+            let gap = WandMorphReplay.gap(WandMorphReplay.outline(before[0]), WandMorphReplay.outline(frames[1]))
+            XCTAssertLessThan(gap, 2.5, "\(name): \(gap) pt at the switch")
+        }
+    }
+
+    /// Every millisecond of every journey, reversal included, moves the outline
+    /// a little: no frame jumps, so the blob travels all the way.
+    func testEveryJourneyMovesContinuously() {
+        for (name, _, frames) in WandMorphReplay.journeys(geometry) {
+            var worst: CGFloat = 0
+            for step in stride(from: 2, to: frames.count, by: 2) {
+                worst = max(worst, WandMorphReplay.gap(WandMorphReplay.outline(frames[step - 2]), WandMorphReplay.outline(frames[step])))
+            }
+            XCTAssertLessThan(worst, 6, "\(name): \(worst) pt in 2 ms")
+            let last = frames.last!, settled = frames[frames.count - 2]
+            XCTAssertLessThan(WandMorphReplay.gap(WandMorphReplay.outline(settled), WandMorphReplay.outline(last)), 0.5,
+                              "\(name): it comes to rest")
+        }
+    }
+}
+
 final class WandMorphRenderTests: XCTestCase {
     @MainActor
     func testMorphFramesRender() throws {
@@ -878,11 +1011,11 @@ final class WandMorphRenderTests: XCTestCase {
         let model = ModeHUDViewModel(source: .wand, appIconProvider: NoMorphIconProvider())
         model.apply(home)
 
-        func frame(progress: Double, angle: Double, towardCenter: Bool) -> some View {
+        func frame(progress: Double, angle: Double, pull: CGPoint = .zero, wedge: WandWedge? = nil) -> some View {
             ZStack {
                 WandRadialWheel(model: model, reduceMotion: true, usesNativeGlass: false)
-                WandLiquidMorphOutline(progress: progress, angle: angle, pullX: 0, pullY: 0, towardCenter: towardCenter,
-                                       wedge: geometry.wedge(at: target).expanded(by: WandWheelMetrics.focusOutset),
+                WandLiquidMorphOutline(progress: progress, angle: angle, pullX: Double(pull.x), pullY: Double(pull.y),
+                                       wedge: wedge ?? geometry.wedge(at: target).expanded(by: WandWheelMetrics.focusOutset),
                                        discRadius: WandWheelMetrics.centerRadius + WandWheelMetrics.focusOutset)
                     .stroke(Color.white, style: StrokeStyle(lineWidth: ModeHUDPointerFocusMetrics.lineWidth, lineJoin: .round))
                     .frame(width: geometry.size, height: geometry.size)
@@ -894,13 +1027,19 @@ final class WandMorphRenderTests: XCTestCase {
 
         var frames: [(String, AnyView)] = []
         for (index, progress) in [0, 0.2, 0.35, 0.5, 0.65, 0.8, 1].enumerated() {
-            frames.append(("morph-out-\(index)", AnyView(frame(progress: progress, angle: layout.angle(at: target), towardCenter: false))))
+            frames.append(("morph-out-\(index)", AnyView(frame(progress: progress, angle: layout.angle(at: target)))))
         }
         for (index, progress) in [0.75, 0.5, 0.25].enumerated() {
-            frames.append(("morph-back-\(index)", AnyView(frame(progress: progress, angle: layout.angle(at: target), towardCenter: true))))
+            frames.append(("morph-back-\(index)", AnyView(frame(progress: progress, angle: layout.angle(at: target)))))
         }
         let a = layout.angle(at: target), b = layout.angle(at: next)
-        frames.append(("slide-half", AnyView(frame(progress: 1, angle: a + (b - a) / 2, towardCenter: false))))
+        frames.append(("slide-half", AnyView(frame(progress: 1, angle: a + (b - a) / 2))))
+        // Ethan's seamless blob: each focus change replayed through the focus
+        // spring at 40 frames per second, saved as frames and a looping GIF.
+        var journeys: [(String, [WandMorphReplay.State])] = []
+        for (name, before, states) in WandMorphReplay.journeys(geometry) {
+            journeys.append((name, before + stride(from: 0, to: states.count, by: 25).map { states[$0] } + [states.last!]))
+        }
         for (name, view) in frames {
             let renderer = ImageRenderer(content: view)
             renderer.scale = 2
@@ -910,6 +1049,28 @@ final class WandMorphRenderTests: XCTestCase {
             let bitmap = try XCTUnwrap(NSBitmapImageRep(data: XCTUnwrap(image.tiffRepresentation)))
             try XCTUnwrap(bitmap.representation(using: .png, properties: [:]))
                 .write(to: URL(fileURLWithPath: directory).appendingPathComponent("\(name).png"))
+        }
+        guard let directory = ProcessInfo.processInfo.environment["WAND_RADIAL_VISUAL_OUTPUT"] else { return }
+        let folder = URL(fileURLWithPath: directory).appendingPathComponent("blob-journeys")
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        for (name, states) in journeys {
+            let gif = folder.appendingPathComponent("\(name).gif") as CFURL
+            let destination = try XCTUnwrap(CGImageDestinationCreateWithURL(gif, "com.compuserve.gif" as CFString, states.count, nil))
+            CGImageDestinationSetProperties(destination, [kCGImagePropertyGIFDictionary: [kCGImagePropertyGIFLoopCount: 0]] as CFDictionary)
+            for (index, state) in states.enumerated() {
+                let renderer = ImageRenderer(content: frame(progress: state.progress, angle: state.angle, pull: state.pull, wedge: state.wedge))
+                renderer.scale = 1
+                let image = try XCTUnwrap(renderer.cgImage, "\(name) \(index)")
+                // Hold the resting first and last frames so the loop reads.
+                let delay = index == 0 || index == states.count - 1 ? 0.5 : 0.025
+                CGImageDestinationAddImage(destination, image, [kCGImagePropertyGIFDictionary: [kCGImagePropertyGIFDelayTime: delay]] as CFDictionary)
+                if index % 3 == 0 || index == states.count - 1 {
+                    let bitmap = NSBitmapImageRep(cgImage: image)
+                    try XCTUnwrap(bitmap.representation(using: .png, properties: [:]))
+                        .write(to: folder.appendingPathComponent(String(format: "%@-%02d.png", name, index)))
+                }
+            }
+            XCTAssertTrue(CGImageDestinationFinalize(destination), name)
         }
     }
 }
@@ -1025,6 +1186,7 @@ final class WandFinalVisualQATests: XCTestCase {
             if name == "dark" { XCTAssertGreaterThan(brightest, 0.75, "light text over a dark desktop") }
             else { XCTAssertLessThan(darkest, 0.35, "a dark halo edges the text over a light desktop") }
             if let directory = ProcessInfo.processInfo.environment["WAND_RADIAL_VISUAL_OUTPUT"] {
+                try FileManager.default.createDirectory(atPath: directory, withIntermediateDirectories: true)
                 try XCTUnwrap(bitmap.representation(using: .png, properties: [:]))
                     .write(to: URL(fileURLWithPath: directory).appendingPathComponent("footer-over-\(name).png"))
             }
