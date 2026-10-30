@@ -1145,11 +1145,15 @@ public final class ModePickerCoordinator {
     private func wandHomeSnapshot() -> ModeHUDSnapshot {
         var value = resolveWandHomeSnapshot?() ?? DefaultMapLegend.snapshot(source: .wand, frontmostAppContext: resolveFrontmostApp?())
         value.source = .wand
+        // Ethan (2026-10-30): Screenshot leaves the wand home; its slot holds
+        // New Codex chat, and the receiver's Bottom triple-click still takes a
+        // screenshot. The physical mice keep their Screenshot card.
+        value.legend.removeAll { $0.cell == .screenshotToggle }
         value.legend.append(ModeHUDLegendItem(cell: .wandPlayPause, actionTitle: "Play/Pause", accent: ModeHUDActionFamilyPalette.media))
         // Ethan's outer layer (`WandOuterLayer.home`): Undo beyond Keys, Space
-        // beyond Enter, New Codex chat and then Zoom beyond Utility are always
-        // present; the review pair joins them beyond the app card only while
-        // VS Code is frontmost.
+        // beyond Enter and Zoom beyond Utility are always present; the review
+        // pair joins them beyond the app card only while VS Code is
+        // frontmost. New Codex chat is a ring card in Screenshot's old slot.
         value.legend += [
             ModeHUDLegendItem(cell: .wandUndo, actionTitle: "Undo", accent: KeysModeAction.undo.hudAccent),
             ModeHUDLegendItem(cell: .wandSpace, actionTitle: "Space", accent: KeysModeAction.insertSpace.hudAccent),

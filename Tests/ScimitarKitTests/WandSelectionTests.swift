@@ -412,16 +412,21 @@ final class WandSelectionControllerTests: XCTestCase {
         XCTAssertTrue(appInputs.isEmpty, "Entering the mode must not run a child action")
     }
 
-    func testDefaultScreenshotSelectionCallsTheExistingActionOnce() {
+    /// Ethan (2026-10-31): New Codex chat replaced Screenshot on the wand
+    /// home; selecting it runs the existing New Codex chat action once.
+    func testHomeNewCodexChatSelectionCallsTheExistingActionOnce() {
         var selected: [PhysicalCell] = []
         coordinator.onWandHomeInput = { selected.append($0); return true }
         begin(home: true)
-        aim(at: 4, seq: 1)
-        aim(at: 3, seq: 2)
-        XCTAssertEqual(controller.focusedCell, .screenshotToggle)
+        let layout = coordinator.wandRadialLayout
+        XCTAssertFalse(layout.contains(.screenshotToggle))
+        let start = WandRadialNavigator.restingPosition(of: holdStart, in: layout)
+        let goal = WandRadialNavigator.restingPosition(of: .wandCodexNewChat, in: layout)
+        move(goal.x - start.x, goal.y - start.y, seq: 1)
+        XCTAssertEqual(controller.focusedCell, .wandCodexNewChat)
         end()
-        XCTAssertEqual(selected, [], "screenshot now uses the native held-wheel release route")
-        XCTAssertEqual(wheelReleases, [.screenshotPaste])
+        XCTAssertEqual(selected, [.wandCodexNewChat])
+        XCTAssertTrue(wheelReleases.isEmpty, "a one-press action, not a wheel")
     }
 
     func testExistingAppModeKeepsTheOutlineOnExit() {

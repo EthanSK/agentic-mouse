@@ -159,15 +159,15 @@ final class WandPersistentControlTests:XCTestCase {
         XCTAssertFalse(control.isOpen);XCTAssertTrue(clicks.isEmpty)
     }
 
-    func testScreenshotUsesNativePressReleaseWithoutDuplicateAction(){
+    func testAHomeWheelCardUsesNativePressReleaseWithoutDuplicateAction(){
         var released:[WheelChordControl]=[]
         target.onWheelControlRelease={_,control in released.append(control)}
-        select(.screenshotToggle)
-        XCTAssertEqual(control.focusedCell,.screenshotToggle)
-        control.handle(.init(.press,id:"screenshot-1"))
-        XCTAssertEqual(target.activeWheelControl,.screenshotPaste)
-        control.handle(.init(.release,id:"screenshot-1",sequence:1))
-        XCTAssertEqual(released,[.screenshotPaste]);XCTAssertTrue(clicks.isEmpty)
+        select(.youtubeScrubWheelControl)
+        XCTAssertEqual(control.focusedCell,.youtubeScrubWheelControl)
+        control.handle(.init(.press,id:"youtube-1"))
+        XCTAssertEqual(target.activeWheelControl,.youtubeScrub)
+        control.handle(.init(.release,id:"youtube-1",sequence:1))
+        XCTAssertEqual(released,[.youtubeScrub]);XCTAssertTrue(clicks.isEmpty)
         XCTAssertTrue(control.isOpen)
     }
     func testDismissAndLostHeldReleaseCloseWithoutClick(){
@@ -288,7 +288,7 @@ final class WandPersistentControlTests:XCTestCase {
         control.handle(.init(.motion,id:id,sequence:2,x:toward.x+0.2,y:toward.y))
         XCTAssertEqual(control.focusedCell?.rawValue,5,"the outline never jumps to whatever now sits there")
         XCTAssertEqual(target.wandRadialLayout.ring.count,12)
-        XCTAssertEqual(target.wandRadialLayout.outer.count,6,"Review, Stage, Undo, Space, New Codex chat and Zoom")
+        XCTAssertEqual(target.wandRadialLayout.outer.count,5,"Review, Stage, Undo, Space and Zoom")
         control.handle(.init(.park,id:id,sequence:3))
         XCTAssertTrue(clicks.isEmpty,"hover alone never acts")
     }
@@ -436,8 +436,10 @@ extension WandPersistentControlTests {
         var contexts:[Bool]=[]
         control.onContext={contexts.append($0)}
         control.refreshContext(screenshotActive:true)
-        // Screenshot is the one home action that still parks the HUD.
-        target.setPointerFocus(.init(cell:.screenshotToggle))
+        // A quick Switch App tap from closed parks the HUD; capture context
+        // (now the Bottom triple-click's) must outlive that linger.
+        control.handle(.init(.dismiss,id:"close-first"))
+        control.handle(.init(.navigate,id:"quick-tap"))
         control.handle(.init(.activate,id:"hide-during-capture"))
         XCTAssertTrue(control.isConcealed)
         let initial=contexts.count
@@ -508,9 +510,8 @@ extension WandPersistentControlTests {
 
     func testToggleDoesNotCutAnotherActionsFollowUpShort() {
         selectReview(.wandReviewChanges)
-        control.handle(.init(.open,id:"open-again"))
-        target.setPointerFocus(.init(cell:.screenshotToggle))
-        control.handle(.init(.activate,id:"tap-screenshot"))
+        control.handle(.init(.navigate,id:"quick-tap"))
+        control.handle(.init(.activate,id:"tap-switch-app"))
         XCTAssertTrue(control.isConcealed)
         control.handle(.init(.toggleReview,id:"toggle-while-hidden"))
         XCTAssertTrue(control.isConcealed)

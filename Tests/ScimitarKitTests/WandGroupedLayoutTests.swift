@@ -49,7 +49,7 @@ final class WandGroupedLayoutTests: XCTestCase {
         let parent = { (cell: PhysicalCell) in layout.outer.first { $0.cell == cell }?.parent }
         XCTAssertEqual(parent(.wandUndo), .keysModeEntry)
         XCTAssertEqual(parent(.wandSpace), PhysicalCell(rawValue: 7)!, "Space beyond Enter, not Copy / Paste")
-        XCTAssertEqual(parent(.wandCodexNewChat), .modePickerEntry)
+        XCTAssertNil(parent(.wandCodexNewChat), "New Codex chat is a ring card, never also an outer card")
         XCTAssertEqual(parent(.wandZoom), .modePickerEntry)
         XCTAssertEqual(layout.outer.first { $0.cell == .wandZoom }?.layer, 2, "Zoom is the third layer")
         XCTAssertEqual(parent(.wandReviewChanges), .frontmostAppModeSelector)
@@ -80,7 +80,9 @@ final class WandGroupedLayoutTests: XCTestCase {
 
     // MARK: Navigation: a real third reach
 
-    func testThirdReachChoosesZoomBeyondNewCodexChatWithHysteresis() {
+    /// Zoom keeps its third-layer place after New Codex chat left the layer
+    /// between: the same 24° reach from Utility, with its return band.
+    func testThirdReachStillChoosesZoomWithHysteresis() {
         let layout = coordinator(.chrome).wandRadialLayout
         let tuning = WandRadialTuning()
         var navigator = WandRadialNavigator(layout: layout, start: .modePickerEntry)!
@@ -88,9 +90,9 @@ final class WandGroupedLayoutTests: XCTestCase {
         let direction = (x: sin(theta), y: -cos(theta))
         func push(_ degrees: Double) { navigator.apply(deltaX: direction.x * degrees, deltaY: direction.y * degrees) }
         push(tuning.outerReachDegrees - tuning.restingDegrees + 0.5)
-        XCTAssertEqual(navigator.focusedCell, .wandCodexNewChat, "the second reach")
+        XCTAssertEqual(navigator.focusedCell, .modePickerEntry, "no card in the empty second layer")
         push(tuning.thirdReachDegrees - tuning.outerReachDegrees - 1)
-        XCTAssertEqual(navigator.focusedCell, .wandCodexNewChat, "short of the third reach")
+        XCTAssertEqual(navigator.focusedCell, .modePickerEntry, "short of the third reach")
         push(1.5)
         XCTAssertEqual(navigator.focusedCell, .wandZoom, "the third reach")
         push(20)
@@ -98,9 +100,7 @@ final class WandGroupedLayoutTests: XCTestCase {
         push(-(tuning.thirdMaximumDegrees - tuning.thirdReturnDegrees) + 0.5)
         XCTAssertEqual(navigator.focusedCell, .wandZoom, "inside its return band")
         push(-1)
-        XCTAssertEqual(navigator.focusedCell, .wandCodexNewChat, "back below the third return")
-        push(-(tuning.thirdReturnDegrees - tuning.outerReturnDegrees) - 0.5)
-        XCTAssertEqual(navigator.focusedCell, .modePickerEntry, "back to Utility")
+        XCTAssertEqual(navigator.focusedCell, .modePickerEntry, "back below the third return, to Utility")
         XCTAssertEqual(WandRadialNavigator(layout: layout, start: .wandZoom)?.focusedCell, .wandZoom)
     }
 
@@ -175,5 +175,48 @@ final class WandGroupedLayoutTests: XCTestCase {
             FrontmostAppModeContext(target: .vsCode, displayName: "VS Code", bundleIdentifier: AppSpecificTarget.vsCode.bundleIdentifier)).legend
         XCTAssertFalse(vsCode.contains { $0.displayTitle(on: .wand).contains("Hold stage") }, "the wand home only moves to a change")
         XCTAssertEqual(ModeHUDCopy.wandDoubleClickCloseHint, "Double click to close")
+    }
+
+    // MARK: New Codex chat in Screenshot's place (Ethan, 2026-10-30)
+
+    func testNewCodexChatTakesScreenshotsExactRingPosition() {
+        for frontmost in [AppSpecificTarget.chrome, .vsCode, .codex, nil] {
+            let home = coordinator(frontmost)
+            let layout = home.wandRadialLayout
+            XCTAssertEqual(layout.ring.count, 12, "twelve home ring cards")
+            XCTAssertEqual(layout.ring, WandRingOrder.home)
+            XCTAssertEqual(layout.ringIndex(of: .wandCodexNewChat), 8, "9 o'clock, where Screenshot was")
+            XCTAssertFalse(layout.contains(.screenshotToggle), "no Screenshot card on the wand home")
+            XCTAssertEqual(layout.cells.filter { $0 == .wandCodexNewChat }.count, 1, "one New Codex chat card")
+            XCTAssertNil(home.wandAdjustableControl(for: .wandCodexNewChat), "a one-press action")
+        }
+        // Every other card keeps its clock position.
+        let expected: [PhysicalCell: Int] = [.modePickerEntry: 0, .wandPlayPause: 1, PhysicalCell(rawValue: 6)!: 2,
+            PhysicalCell(rawValue: 1)!: 3, PhysicalCell(rawValue: 5)!: 4, PhysicalCell(rawValue: 8)!: 5,
+            PhysicalCell(rawValue: 7)!: 6, PhysicalCell(rawValue: 4)!: 7, .modeExit: 9, .keysModeEntry: 10,
+            .frontmostAppModeSelector: 11]
+        let layout = coordinator(.chrome).wandRadialLayout
+        for (cell, index) in expected { XCTAssertEqual(layout.ringIndex(of: cell), index, "\(cell)") }
+    }
+
+    func testRingNewCodexChatCreatesOneChatThroughTheHomeRoute() {
+        let home = coordinator(.chrome)
+        var actions: [PhysicalCell] = []
+        home.onWandHomeInput = { actions.append($0); return true }
+        home.handle(.init(action: .select, source: .wand, physicalCell: .wandCodexNewChat, phase: .press))
+        home.handle(.init(action: .select, source: .wand, physicalCell: .wandCodexNewChat, phase: .release))
+        XCTAssertEqual(actions, [.wandCodexNewChat], "the existing New Codex chat action, once")
+        XCTAssertTrue(home.isActive)
+    }
+
+    func testPhysicalMiceAndTheirScreenshotCardAreUnchanged() {
+        for source in MouseSource.allCases where source != .wand {
+            let legend = DefaultMapLegend.snapshot(source: source).legend
+            XCTAssertTrue(legend.contains { $0.cell == .screenshotToggle }, "\(source) keeps Screenshot")
+            XCTAssertFalse(legend.contains { $0.cell == .wandCodexNewChat })
+        }
+        // The wand's own screenshot is the receiver's Bottom triple-click.
+        XCTAssertNotNil(try? WandScreenshotStartCommand.decode(Data(
+            #"{"command":"agentic_mouse_wand_screenshot_start","version":1,"id":"6F9619FF-8B86-D011-B42D-00C04FC964FF"}"#.utf8)))
     }
 }
