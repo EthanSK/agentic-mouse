@@ -84,10 +84,11 @@ final class WandRadialHUDTests: XCTestCase {
         XCTAssertEqual(layout.ring.last, .frontmostAppModeSelector, "the app card at 12 o'clock")
         XCTAssertEqual(layout.ring.firstIndex(of: .wandPlayPause), layout.ring.firstIndex(of: .modePickerEntry).map { $0 + 1 },
                        "Play/Pause stays immediately after Utility, clockwise")
-        XCTAssertEqual(layout.outer.map(\.cell), [.wandZoom, .wandCodexNewChat, .wandSpace, .wandUndo].sorted {
+        XCTAssertEqual(layout.outer.map(\.cell), [.wandZoom, .wandSpace, .wandUndo].sorted {
             layout.outerIndex(of: $0)! < layout.outerIndex(of: $1)!
         }, "outer cards follow their parents clockwise")
-        XCTAssertEqual(Set(layout.outer.map(\.cell)), [.wandSpace, .wandUndo, .wandCodexNewChat, .wandZoom])
+        XCTAssertEqual(Set(layout.outer.map(\.cell)), [.wandSpace, .wandUndo, .wandZoom])
+        XCTAssertEqual(layout.ringIndex(of: .wandCodexNewChat), 8, "New Codex chat in Screenshot's old ring slot")
 
         // Ethan: "you don't want to break your muscle memory of like where
         // exactly the normal wedge stuff is." VS Code adds outer cards only.
@@ -96,7 +97,7 @@ final class WandRadialHUDTests: XCTestCase {
         for index in layout.ring.indices {
             XCTAssertEqual(vsCode.angle(at: index), layout.angle(at: index), accuracy: 1e-12)
         }
-        XCTAssertEqual(Set(vsCode.outer.map(\.cell)), [.wandReviewChanges, .wandReviewFiles, .wandSpace, .wandUndo, .wandCodexNewChat, .wandZoom])
+        XCTAssertEqual(Set(vsCode.outer.map(\.cell)), [.wandReviewChanges, .wandReviewFiles, .wandSpace, .wandUndo, .wandZoom])
         let app = try XCTUnwrap(vsCode.ringIndex(of: .frontmostAppModeSelector))
         let review = try XCTUnwrap(vsCode.outerIndex(of: .wandReviewChanges))
         let stage = try XCTUnwrap(vsCode.outerIndex(of: .wandReviewFiles))
@@ -358,7 +359,7 @@ final class WandRadialHUDTests: XCTestCase {
         chromeHome.pointerFocus = ModeHUDPointerFocus(cell: .frontmostAppModeSelector)
         states.append(("home-app-artwork", chromeHome))
 
-        // Ethan's third-layer Zoom beyond New Codex chat, aimed and adjusting.
+        // Ethan's third-layer Zoom on Utility's wedge, aimed and adjusting.
         var zoomAimed = home
         zoomAimed.pointerFocus = navigatorFocus(layout, from: .modePickerEntry,
                                                 moves: [(sin(layout.outerAngle(at: layout.outerIndex(of: .wandZoom)!)) * 17,
@@ -873,7 +874,7 @@ final class WandMorphRenderTests: XCTestCase {
         let layout = try XCTUnwrap(home.wandRadialLayout)
         let geometry = WandWheelGeometry(layout: layout)
         let target = try XCTUnwrap(layout.ringIndex(of: .frontmostAppModeSelector))
-        let next = try XCTUnwrap(layout.ringIndex(of: .screenshotToggle))
+        let next = try XCTUnwrap(layout.ringIndex(of: .wandCodexNewChat))
         let model = ModeHUDViewModel(source: .wand, appIconProvider: NoMorphIconProvider())
         model.apply(home)
 
@@ -1027,6 +1028,31 @@ final class WandFinalVisualQATests: XCTestCase {
                 try XCTUnwrap(bitmap.representation(using: .png, properties: [:]))
                     .write(to: URL(fileURLWithPath: directory).appendingPathComponent("footer-over-\(name).png"))
             }
+        }
+    }
+}
+
+/// Ethan (2026-10-30): New Codex chat moved into Screenshot's ring slot. Zoom,
+/// which sat beyond it on Utility's wedge, keeps its exact place.
+final class WandZoomThirdLayerGeometryTests: XCTestCase {
+    func testZoomKeepsItsBandRadiusAndFitsTheFixedFrame() throws {
+        let hud = RecordingModeHUDPresenter()
+        let coordinator = ModePickerCoordinator(lease: WandModeLease(), hud: hud, scheduler: ManualTickScheduler(),
+                                                log: Log(category: "test", sink: NullLogSink()))
+        coordinator.enterWandHome(source: .wand, pointerFocus: ModeHUDPointerFocus(cell: .switchApp))
+        let layout = coordinator.wandRadialLayout
+        XCTAssertTrue(layout.outerIndices(ofRing: try XCTUnwrap(layout.ringIndex(of: .modePickerEntry)), layer: 1).isEmpty)
+        let geometry = WandWheelGeometry(layout: layout)
+        let wedge = geometry.outerWedge(at: try XCTUnwrap(layout.outerIndex(of: .wandZoom)))
+        let inner = WandWheelMetrics.outerLayerInner + WandWheelMetrics.thinOuterHeight + WandWheelMetrics.gap
+        XCTAssertEqual(wedge.inner, inner, "the same radius as when New Codex chat sat beneath it")
+        XCTAssertEqual(wedge.outer, inner + WandWheelMetrics.thinOuterHeight)
+        let pose = WandCardLift.transform(WandCardLift.pose(for: .outer(layout.outerIndex(of: .wandZoom)!), lifted: true, in: geometry),
+                                          size: geometry.size)
+        for point in wedge.expanded(by: WandWheelMetrics.focusOutset).outline(step: 4) {
+            let lifted = CGPoint(x: point.x + geometry.center.x, y: point.y + geometry.center.y).applying(pose)
+            XCTAssertTrue((0...geometry.size).contains(lifted.x) && (0...geometry.size).contains(lifted.y),
+                          "lifted and outlined, Zoom stays inside the fixed wheel frame")
         }
     }
 }

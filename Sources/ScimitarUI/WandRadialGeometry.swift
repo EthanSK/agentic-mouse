@@ -204,8 +204,11 @@ struct WandWheelGeometry {
         var inner = WandWheelMetrics.outerLayerInner
         if card.layer > 1, let parent = layout.parentRingIndex(ofOuter: index) {
             // One gutter beyond the deepest first-layer card on this wedge.
+            // Without one (Utility's Zoom since New Codex chat joined the
+            // ring), it keeps the band a thin first-layer card would leave,
+            // so the third layer stays at its radius and its frame-safe fit.
             let first = layout.outerIndices(ofRing: parent, layer: 1)
-                .map { WandWheelMetrics.outerHeight(layout.outer[$0].height) }.max() ?? 0
+                .map { WandWheelMetrics.outerHeight(layout.outer[$0].height) }.max() ?? WandWheelMetrics.thinOuterHeight
             inner += first + WandWheelMetrics.gap
         }
         let height = WandWheelMetrics.outerHeight(card.height)

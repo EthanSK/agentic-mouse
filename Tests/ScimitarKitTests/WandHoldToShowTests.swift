@@ -124,13 +124,16 @@ final class WandHoldToShowTests: XCTestCase {
         XCTAssertFalse(control.isOpen, "only the double click closes it")
     }
 
-    func testANonAdjustableWheelCardClicksOnceAndCloses() {
+    /// YouTube −5 sec's held scrub is mouse-wheel only, so a wand release
+    /// is just its click. (Screenshot was this case until it left the wand
+    /// home on 2026-10-31.)
+    func testANonAdjustableWheelCardClicksOnceAndStaysOpen() {
         let id = holdFromClosed()
-        aim(id, at: .screenshotToggle)
+        aim(id, at: .youtubeScrubWheelControl)
         releaseHold(id)
-        XCTAssertEqual(wheelReleases, [.screenshotPaste], "screenshot keeps its click")
+        XCTAssertEqual(wheelReleases, [.youtubeScrub], "YouTube keeps its click")
         XCTAssertNil(control.armedCell)
-        XCTAssertFalse(control.isOpen)
+        XCTAssertTrue(control.isOpen)
     }
 
     // MARK: Pages stay open
@@ -1208,10 +1211,11 @@ final class WandHoldToShowTests: XCTestCase {
         XCTAssertEqual(adjustSteps[0], adjustSteps[1])
     }
 
-    func testANewCodexChatCardIsAnOuterOneShotAction() {
+    func testTheRingNewCodexChatCardIsAOneShotAction() {
         let id = holdFromClosed()
         let layout = target.wandRadialLayout
-        XCTAssertEqual(layout.outer.first { $0.cell == .wandCodexNewChat }?.parent, .modePickerEntry)
+        XCTAssertEqual(layout.ringIndex(of: .wandCodexNewChat), 8, "in Screenshot's old ring slot")
+        XCTAssertNil(layout.outerIndex(of: .wandCodexNewChat))
         let goal = WandRadialNavigator.restingPosition(of: .wandCodexNewChat, in: layout)
         for step in 1...10 { control.handle(.init(.motion, id: id, sequence: step, x: goal.x * Double(step) / 10, y: goal.y * Double(step) / 10)) }
         XCTAssertEqual(control.focusedCell, .wandCodexNewChat)

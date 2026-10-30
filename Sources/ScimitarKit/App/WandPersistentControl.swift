@@ -657,16 +657,16 @@ public final class WandPersistentController {
     /// want." A completed action, whether a tap or a hold-steer-release,
     /// keeps the HUD open on the same card; a page change stays open on its
     /// new page. Only a double click (or Close, lock, teardown) closes it.
-    /// Home Screenshot still parks the HUD: its crosshair needs the screen and
-    /// the receiver's ordinary pointing, and the next open starts afresh. A
-    /// quick tap from closed on home Switch App stays the fast app switch.
+    /// A quick tap from closed on home Switch App stays the fast app switch
+    /// and parks the HUD. (Home Screenshot used to park it too; it left the
+    /// wand home on 2026-10-30, and the Bottom triple-click owns screenshots.)
     private func finishAction(_ cell:PhysicalCell,generation:UInt64) {
         guard target.isActive else {return}
         if target.pageGeneration != generation {
             keepOutline(after:cell,generation:generation)
             return
         }
-        if target.isWandHome, cell == .screenshotToggle || (cell == .switchApp && gestureOpenedHUD) {
+        if target.isWandHome, cell == .switchApp, gestureOpenedHUD {
             conceal()
             return
         }

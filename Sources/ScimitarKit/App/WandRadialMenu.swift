@@ -179,11 +179,10 @@ public enum WandOuterLayer {
         // Ethan (2026-10-30): "space should be on the second layer of enter,
         // not copy paste" (superseding "move space outside of copy paste").
         WandOuterCard(cell: .wandSpace, parent: PhysicalCell(rawValue: 7)!, height: .thin),
-        // Beyond Utility, which already holds Codex's Option-Space window;
-        // clear of VS Code's review pair beyond the app card.
-        WandOuterCard(cell: .wandCodexNewChat, parent: .modePickerEntry, height: .thin),
         // Ethan: "maybe it should be a third layer wedge. Yeah, because that's
-        // where zoom is normally" — Utility's Zoom, beyond New Codex chat.
+        // where zoom is normally" — Utility's Zoom. New Codex chat used to sit
+        // in the layer between; it moved into the ring (2026-10-30), and Zoom
+        // keeps its third-layer place, reach and band so muscle memory holds.
         WandOuterCard(cell: .wandZoom, parent: .modePickerEntry, height: .thin, layer: 2),
         // Ethan: "two wedges for outside of VS Code mode when we're in VS
         // Code ... the review and stage buttons ... bigger ones".
@@ -275,9 +274,11 @@ public enum WandRingOrder {
     /// Modes at the top (Keys, app, Utility), media on the right (Play/Pause
     /// immediately clockwise of Utility, then YouTube), navigation at the
     /// bottom right with Back left of Forward, and editing on the left
-    /// (Enter, Copy / Paste, Screenshot), then Close beside Keys.
+    /// (Enter, Copy / Paste, New Codex chat), then Close beside Keys.
+    /// Ethan (2026-10-30): "screenshot removal then and put the new Codex chat
+    /// thing there"; the wand's screenshot is its Bottom triple-click.
     public static let home: [PhysicalCell] = [.modePickerEntry, .wandPlayPause]
-        + cells([6, 1, 5, 8, 7, 4, 3, 10, 9, 2])
+        + cells([6, 1, 5, 8, 7, 4]) + [.wandCodexNewChat] + cells([10, 9, 2])
 
     /// Arrow keys across the top in reading order (← ↑ ↓ →), then text
     /// editing (Backspace on the level 3 o'clock wedge, where its long word
@@ -694,9 +695,12 @@ public struct WandRadialNavigator: Equatable, Sendable {
         var inward = layout.center == nil ? 0 : max(0, min(1, (tuning.reachDegrees - length) / span))
         if ringHasOuter {
             // Beyond the ring's ordinary saturation the outline leans out
-            // toward the outer card, so the second reach is visible.
-            inward -= max(0, min(1, (length - tuning.maximumDegrees)
-                / (tuning.outerReachDegrees - tuning.maximumDegrees)))
+            // toward the outer card, so the next reach is visible. With no
+            // first-layer card (Utility, whose Zoom is a third-layer card),
+            // that next reach is the third.
+            let next = layout.outerIndices(ofRing: ringIndex, layer: 1).isEmpty
+                ? tuning.thirdReachDegrees : tuning.outerReachDegrees
+            inward -= max(0, min(1, (length - tuning.maximumDegrees) / (next - tuning.maximumDegrees)))
         }
         return Self.clampedUnit(
             x: tangent.x * along - direction.x * inward,
