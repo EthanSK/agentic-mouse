@@ -73,6 +73,7 @@ final class WindowSnapController {
 
     private let access: WindowSnapAccess
     private let queue: DispatchQueue
+    private let restorer: WindowSnapDragRestorer
     private let lock = NSLock()
     private var generations: [MouseSource?: UUID] = [:]
     private var globalGeneration = UUID()
@@ -85,9 +86,11 @@ final class WindowSnapController {
     static let shared = WindowSnapController()
 
     init(access: WindowSnapAccess = AccessibilityWindowSnapAccess(),
-         queue: DispatchQueue = DispatchQueue(label: "agentic-mouse.window-snap", qos: .userInitiated)) {
+         queue: DispatchQueue? = nil,
+         restorer: WindowSnapDragRestorer = .shared) {
         self.access = access
-        self.queue = queue
+        self.queue = queue ?? restorer.queue
+        self.restorer = restorer
     }
 
     /// Main-thread entry point used by `MagnetWindowActionExecutor`. Reads
@@ -114,6 +117,7 @@ final class WindowSnapController {
 
     func enqueue(_ side: WindowSnapDirection, pid: pid_t, displays: [WindowSnapDisplay],
                  source: MouseSource?, inputAllowed: @escaping () -> Bool) {
+        restorer.snapRequested()
         lock.lock()
         let generation = generations[source] ?? UUID()
         generations[source] = generation
@@ -126,16 +130,18 @@ final class WindowSnapController {
             // Match WindowResizeController: release cancels queued detents, but
             // finishes an already-started frame transaction. Lock, focus change
             // and global teardown still stop before each subsequent AX write.
-            let outcome = self.snap(side, pid: pid, displays: displays, permitted: permitted)
+            let outcome = self.snap(side, pid: pid, displays: displays, source: source, permitted: permitted)
             if self.isCurrent(source, generation) { self.onOutcome?(side, outcome) }
         }
     }
 
     func cancel(source: MouseSource) {
+        restorer.cancel(source: source)
         lock.lock(); generations[source] = nil; lock.unlock()
     }
 
     func cancelAll() {
+        restorer.cancelAll()
         lock.lock(); generations.removeAll(); globalGeneration = UUID(); lock.unlock()
     }
 
@@ -151,7 +157,7 @@ final class WindowSnapController {
 
     /// Synchronous core (worker thread, or directly in tests).
     func snap(_ side: WindowSnapDirection, pid: pid_t, displays: [WindowSnapDisplay],
-              permitted: () -> Bool = { true }) -> Outcome {
+              source: MouseSource? = nil, permitted: @escaping () -> Bool = { true }) -> Outcome {
         guard permitted() else { return .cancelled }
         guard let (target, key) = access.focusedWindow(pid: pid) else { return .noWindow }
         guard let current = target.frame() else { return .failed }
@@ -182,6 +188,8 @@ final class WindowSnapController {
         guard let accepted else { return permitted() ? .failed : .cancelled }
         guard permitted() else { return .cancelled }
         remember(key, WindowSnapMemory(direction: plan.side, displayID: plan.display.id, acceptedFrame: accepted))
+        restorer.didSnap(key: key, target: target, preSnap: current, accepted: accepted,
+                         source: source, inputAllowed: permitted)
         return plan.traversedDisplay ? .traversed(accepted) : .moved(accepted)
     }
 
