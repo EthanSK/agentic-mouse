@@ -45,6 +45,7 @@ struct WandRadialWheel: View {
                 size: geometry.size,
                 usesNativeGlass: usesNativeGlass
             )
+            .animation(WandCardLift.animation(reduceMotion: reduceMotion), value: lifted)
             if let center = geometry.layout.center, let item = item(for: center), let card = plan.center {
                 WandRadialCard(model: model, item: item,
                                shape: .disc(WandCenterDiscShape(radius: WandWheelMetrics.centerRadius)),

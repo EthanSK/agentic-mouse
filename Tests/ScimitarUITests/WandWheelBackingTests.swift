@@ -8,6 +8,23 @@ import XCTest
 /// the normal background that we just removed ... just for that wedge, it's
 /// like masked". The backing covers exactly the drawn cards.
 final class WandWheelBackingTests: XCTestCase {
+    func testGlassMaskHasAnIntermediatePoseAndCanReverse() {
+        let g = geometry
+        var card = WandWheelSilhouette(geometry: g, includesCenter: true, ringIndices: [])
+        let rest = card.path(in: .zero).boundingRect
+        card.lifted = .center
+        let raised = card.path(in: .zero).boundingRect
+        card.liftValues = [0.5]
+        let half = card.path(in: .zero).boundingRect
+        XCTAssertEqual(half.width, (rest.width + raised.width) / 2, accuracy: 0.001)
+        XCTAssertGreaterThan(half.width, rest.width)
+        XCTAssertLessThan(half.width, raised.width)
+        var returning = WandGlassLiftValues(values: [0.5, 0.25])
+        returning.scale(by: 0.5)
+        XCTAssertEqual(returning.values, [0.25, 0.125])
+        XCTAssertEqual((returning + .zero).values, returning.values)
+        XCTAssertEqual((returning - returning).magnitudeSquared, 0)
+    }
     private let layout = WandRadialLayout(center: .modeExit, ring: PhysicalCell.all.filter { $0 != .modeExit })
     private var geometry: WandWheelGeometry { WandWheelGeometry(layout: layout) }
 

@@ -56,15 +56,35 @@ struct WandWheelSilhouette: Shape {
     let includesCenter: Bool
     let ringIndices: [Int]
     var outerIndices: [Int] = []
-    /// The outlined card is backed in its lifted pose (`WandCardLift`). The
-    /// mask settles there at once while the card springs to it.
+    /// The native mask follows the same spring as the cards, including both
+    /// the returning card and the newly selected card during a quick reversal.
     var lifted: WandWheelGeometry.Slot? = nil
+    var liftValues: [Double]? = nil
+
+    var targetLiftValues: [Double] {
+        var values = [Double](repeating: 0, count: 1 + geometry.layout.ring.count + geometry.layout.outer.count)
+        if let lifted { values[liftIndex(lifted)] = 1 }
+        return values
+    }
+
+    private func liftIndex(_ slot: WandWheelGeometry.Slot) -> Int {
+        switch slot {
+        case .center: return 0
+        case .ring(let index): return 1 + index
+        case .outer(let index): return 1 + geometry.layout.ring.count + index
+        }
+    }
 
     func path(in rect: CGRect) -> Path {
         var path = Path()
         func add(_ card: Path, slot: WandWheelGeometry.Slot) {
-            guard slot == lifted else { return path.addPath(card) }
-            let pose = WandCardLift.pose(for: slot, lifted: true, in: geometry)
+            let index = liftIndex(slot)
+            let amount = liftValues.flatMap { index < $0.count ? $0[index] : nil } ?? (slot == lifted ? 1 : 0)
+            guard amount != 0 else { return path.addPath(card) }
+            var pose = WandCardLift.pose(for: slot, lifted: true, in: geometry)
+            pose.scale = 1 + (pose.scale - 1) * amount
+            pose.offset.width *= amount
+            pose.offset.height *= amount
             path.addPath(card.applying(WandCardLift.transform(pose, size: geometry.size)))
         }
         if includesCenter {
@@ -111,20 +131,50 @@ enum WandWheelMask {
 /// like masked". One shared glass surface, the same one the grid panel uses,
 /// sits under the whole wheel and shows only through the cards. Card fills,
 /// artwork and borders draw above it exactly as they did over the old panel.
-struct WandWheelBacking: View {
+/// A scalar for every card lets SwiftUI retain the displayed pose when input
+/// changes mid-spring. Interpolating only the selected index would jump on reversal.
+struct WandGlassLiftValues: VectorArithmetic {
+    var values: [Double]
+    static let zero = Self(values: [])
+    static func + (lhs: Self, rhs: Self) -> Self { combine(lhs, rhs, sign: 1) }
+    static func - (lhs: Self, rhs: Self) -> Self { combine(lhs, rhs, sign: -1) }
+    private static func combine(_ lhs: Self, _ rhs: Self, sign: Double) -> Self {
+        Self(values: (0..<max(lhs.values.count, rhs.values.count)).map {
+            ($0 < lhs.values.count ? lhs.values[$0] : 0) + sign * ($0 < rhs.values.count ? rhs.values[$0] : 0)
+        })
+    }
+    mutating func scale(by rhs: Double) { values = values.map { $0 * rhs } }
+    var magnitudeSquared: Double { values.reduce(0) { $0 + $1 * $1 } }
+}
+
+struct WandWheelBacking: View, Animatable {
     let silhouette: WandWheelSilhouette
     let size: CGFloat
     let usesNativeGlass: Bool
+    var animatableData: WandGlassLiftValues
+
+    init(silhouette: WandWheelSilhouette, size: CGFloat, usesNativeGlass: Bool) {
+        self.silhouette = silhouette
+        self.size = size
+        self.usesNativeGlass = usesNativeGlass
+        self.animatableData = WandGlassLiftValues(values: silhouette.targetLiftValues)
+    }
+
+    private var animatedSilhouette: WandWheelSilhouette {
+        var result = silhouette
+        result.liftValues = animatableData.values
+        return result
+    }
 
     var body: some View {
         Group {
             if usesNativeGlass {
                 WandWheelGlassBacking(
-                    silhouette: silhouette.path(in: CGRect(x: 0, y: 0, width: size, height: size)).cgPath,
+                    silhouette: animatedSilhouette.path(in: CGRect(x: 0, y: 0, width: size, height: size)).cgPath,
                     canvas: CGSize(width: size, height: size)
                 )
             } else {
-                silhouette.fill(ModeHUDNativeGlass.offscreenStandIn)
+                animatedSilhouette.fill(ModeHUDNativeGlass.offscreenStandIn)
             }
         }
         .frame(width: size, height: size)
