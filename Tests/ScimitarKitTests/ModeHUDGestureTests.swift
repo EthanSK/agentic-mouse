@@ -156,7 +156,11 @@ final class ModeHUDGestureTests: XCTestCase {
                         XCTAssertFalse(shown.last.map(motionGlyphs.contains) ?? false, "\(page) \(item.cell)")
                     }
                 } else {
-                    XCTAssertEqual(shown, item.actionTitle)
+                    if let modifier = item.heldModifierCell {
+                        XCTAssertEqual(shown, "\(item.actionTitle) + Hold \(modifier.displayLabel(on: source))")
+                    } else {
+                        XCTAssertEqual(shown, item.actionTitle)
+                    }
                     XCTAssertFalse(shown.last.map(motionGlyphs.contains) ?? false,
                                    "\(page) \(item.cell): a plain click never ends in a motion arrow")
                 }
@@ -214,6 +218,12 @@ final class ModeHUDGestureTests: XCTestCase {
         XCTAssertEqual(effort.printedControlLabel(on: .razer), "Razer 6 ×")
         let codexPin = CodexMode.definition.legend.first { $0.cell == CodexMode.pinToggleCell }!
         XCTAssertNil(codexPin.gesture, "Codex pins with a hold-2 chord, not the wheel")
-        XCTAssertEqual(codexPin.displayTitle(on: .corsair), CodexModeAction.togglePin.title)
+        XCTAssertEqual(codexPin.heldModifierCell, CodexMode.pinModifierCell)
+        XCTAssertEqual(codexPin.displayTitle(on: .corsair), "Pin/Unpin + Hold Corsair 2")
+        XCTAssertEqual(codexPin.displayTitle(on: .razer), "Pin/Unpin + Hold Razer 2")
+        XCTAssertEqual(codexPin.accessibilityDescription(on: .razer), "Pin/Unpin + Hold Razer 2")
+        XCTAssertEqual(codexPin.displayTitle(on: .wand), "Pin/Unpin")
+        XCTAssertEqual(codexPin.withHeldModifier(PhysicalCell(rawValue: 9)!).displayTitle(on: .razer),
+                       "Pin/Unpin + Hold Razer 7", "derive the printed number from the actual crosswalk")
     }
 }

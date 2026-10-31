@@ -98,12 +98,12 @@ final class WandSwitchAppAndAdjustTests: XCTestCase {
 
     private var adjustment: ModeHUDWheelAdjustment? { coordinator.pointerFocus?.adjustment }
 
-    /// Opens Codex directly and arms Reasoning Effort + Wheel (cell 4).
+    /// Opens Codex directly and arms Reasoning Effort + Wheel (cell 6).
     private func armReasoningEffort() {
         frontmost = .codex
         coordinator.enterAppSpecific(source: .wand)
         hold()
-        walk(to: 4)
+        walk(to: CodexMode.reasoningEffortWheelCell.rawValue)
         release()
         XCTAssertEqual(controller.phase, .armed)
         XCTAssertEqual(coordinator.activeWheelControl, .codexReasoningEffort)
@@ -260,7 +260,7 @@ final class WandSwitchAppAndAdjustTests: XCTestCase {
         release()
         hold() // a fresh navigation hold, not an adjustment
         XCTAssertNil(adjustment)
-        walk(to: 4)
+        walk(to: CodexMode.reasoningEffortWheelCell.rawValue)
         release()
         hold()
         XCTAssertEqual(adjustment, ModeHUDWheelAdjustment(), "each adjusting hold starts from zero")

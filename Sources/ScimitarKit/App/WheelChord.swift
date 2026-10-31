@@ -179,7 +179,7 @@ public enum WheelChordControl: String, Codable, CaseIterable, Sendable {
             return .codexResponseSpeed
         case .claude where cell == ClaudeMode.pinToggleCell:
             return .claudePin
-        case .codex where cell == PhysicalCell(rawValue: 4)!:
+        case .codex where cell == CodexMode.reasoningEffortWheelCell:
             return .codexReasoningEffort
         case .codex where cell == CodexMode.chatHistoryWheelCell:
             return .codexChatHistory
@@ -230,7 +230,7 @@ public enum WheelChordControl: String, Codable, CaseIterable, Sendable {
         case .claudePin:
             return ClaudeMode.pinToggleCell
         case .codexReasoningEffort:
-            return PhysicalCell(rawValue: 4)!
+            return CodexMode.reasoningEffortWheelCell
         case .codexResponseSpeed:
             return CodexMode.responseSpeedWheelCell
         case .codexChatHistory:

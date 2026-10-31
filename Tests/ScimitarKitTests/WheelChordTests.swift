@@ -603,8 +603,8 @@ final class WheelChordTests: XCTestCase {
     }
 
     func testCodexReasoningEffortInvertsQuartzSignButChatHistoryKeepsItsOwnPolarity() {
-        XCTAssertEqual(WheelChordControl.codexReasoningEffort.diagnosticCell.rawValue, 4)
-        XCTAssertEqual(WheelChordControl.codexChatHistory.diagnosticCell.rawValue, 6)
+        XCTAssertEqual(WheelChordControl.codexReasoningEffort.diagnosticCell.rawValue, 6)
+        XCTAssertEqual(WheelChordControl.codexChatHistory.diagnosticCell.rawValue, 9)
         XCTAssertEqual(
             WheelChordControl.codexReasoningEffort.codexReasoningEffortAction(for: .up),
             .decrease
@@ -1058,7 +1058,7 @@ final class WheelChordTests: XCTestCase {
         )
     }
 
-    func testChromeTabsAndCodexReasoningUseTheirOwnDefinitionsOnSharedCellFour() {
+    func testChromeTabsAndCodexReasoningUseTheirOwnRequestedCells() {
         let cell = PhysicalCell(rawValue: 4)!
 
         XCTAssertEqual(
@@ -1066,7 +1066,7 @@ final class WheelChordTests: XCTestCase {
             .chromeTabs
         )
         XCTAssertEqual(
-            WheelChordControl.appSpecificControl(for: .codex, cell: cell),
+            WheelChordControl.appSpecificControl(for: .codex, cell: CodexMode.reasoningEffortWheelCell),
             .codexReasoningEffort
         )
         XCTAssertNil(
