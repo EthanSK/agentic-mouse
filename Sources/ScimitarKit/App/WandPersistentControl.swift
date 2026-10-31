@@ -272,6 +272,16 @@ public final class WandPersistentController {
             lastFinished=command.id
             // A held gesture whose park datagram was lost ends here first.
             if let current=hold, current.held {hold=nil;endHold(current);guard isOpen else {return}}
+            // Ethan's click to "delock" a dotted wedge wins even if that
+            // short press moved enough to adjust it. Otherwise the used-step
+            // terminal guard below swallowed the unlock. The receiver owns
+            // click/hold timing; a delivered click also works if its earlier
+            // navigation packet was lost. This never presses the card again.
+            if command.phase == .activate, let card=liveArmedCard(), card.control != nil {
+                armed=nil;pending=nil;consumeNextTerminal=false;hold=nil
+                keepOutline(after:card.cell,generation:card.pageGeneration)
+                return
+            }
             if consumeNextTerminal {consumeNextTerminal=false;pending=nil;return}
             if let ended=pending {pending=nil;finishPending(ended,tap:command.phase == .activate);return}
             let cell=target.pointerFocus?.cell ?? selected

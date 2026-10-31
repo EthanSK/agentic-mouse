@@ -534,6 +534,50 @@ final class WandHoldToShowTests: XCTestCase {
         XCTAssertTrue(keysActions.isEmpty)
     }
 
+    func testClickUnlocksAdjustedCopyPasteEvenWhenTheClickContainsMovement() {
+        openUtilities()
+        tap(hold())
+        let clip = PhysicalCell(rawValue: 4)!
+        hoverAim(at: clip)
+        tap(hold())
+        let drag = hold()
+        control.handle(.init(.motion, id: drag, sequence: 1, y: -7))
+        releaseHold(drag, sequence: 2)
+        XCTAssertEqual(control.armedCell, clip)
+        XCTAssertNil(target.activeWheelControl)
+
+        // The receiver still classifies this as a click by its button timing.
+        // A step during that short press must not swallow its unlock intent.
+        let click = hold()
+        control.handle(.init(.motion, id: click, sequence: 1, y: -7))
+        control.handle(.init(.park, id: click, sequence: 2))
+        control.handle(.init(.activate, id: nextID("activate")))
+        XCTAssertNil(control.armedCell, "one click unlocks the adjusted wedge")
+        XCTAssertNil(target.pointerFocus?.adjustment)
+        XCTAssertNil(target.activeWheelControl)
+        XCTAssertEqual(wheelReleases, [.clipboard, .clipboard], "each actual held step is released once")
+        XCTAssertTrue(homeActions.isEmpty, "unlocking never falls through to a click action")
+
+        let enter = PhysicalCell(rawValue: 7)!
+        hoverAim(at: enter)
+        tap(hold())
+        XCTAssertEqual(homeActions, [enter], "Enter is reachable without closing the HUD")
+        XCTAssertTrue(control.isOpen)
+    }
+
+    func testTerminalOnlyClickUnlocksDottedCardAfterItsNavigationPacketWasLost() {
+        openUtilities()
+        let zoom = WheelChordControl.zoom.utilityCell!
+        hoverAim(at: zoom)
+        tap(hold())
+        XCTAssertEqual(control.armedCell, zoom)
+        control.handle(.init(.activate, id: nextID("activate")))
+        XCTAssertNil(control.armedCell, "a delivered click is enough to unlock")
+        XCTAssertNil(target.pointerFocus?.adjustment)
+        XCTAssertTrue(control.isOpen)
+        XCTAssertTrue(wheelChanges.compactMap { $0 }.isEmpty, "unlocking presses nothing")
+    }
+
     func testAHeldAdjustmentWithoutItsParkStillLetsGoOnce() {
         openUtilities()
         let zoom = WheelChordControl.zoom.utilityCell!
