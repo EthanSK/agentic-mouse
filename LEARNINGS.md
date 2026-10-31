@@ -3342,3 +3342,8 @@ other controls and physical mouse wheels keep their prior direction mapping.
 Keep the first pre-snap size across repeated built-in snaps and monitor hops only while the window still matches its last accepted frame. A manual resize, close, or move without the hardware left button held invalidates that memory. Observe resize as well as move and destruction; a move-only observer misses stationary resizing.
 
 Restoration and snapping use one serial AX worker. A newer requested snap invalidates queued restores immediately, and entry/source/global generations plus fresh input permission and hardware-button checks guard each restore write. Normal source release cancels pending output while retaining the original size for a later drag; lock and global teardown discard the tracking. Successful AX setters and matching readback are required before reporting restoration. Focused fake-window and queue tests verify these boundaries; they do not establish real application drag acceptance.
+
+
+## 2026-10-31 — Fill the reserved wand band without shifting Zoom
+
+The home Utility wedge reserves a thin second-layer band even when its legend has no card there. Brightness now fills that band using the existing Utility gesture, accent and adjustment route. Keep Zoom on layer 2, with identical wedge geometry and navigation reach; adding a layer-1 card must not move the inner ring or affect physical mouse mappings. Offscreen render fixtures cover the new band and existing third-layer Zoom without opening a live HUD.
