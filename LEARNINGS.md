@@ -1,5 +1,17 @@
 # Learnings
 
+## 2026-10-31 — Magnet wedge uses built-in snapping, Magnet stays installed
+
+**Trigger:** Ethan asked for the wand's Magnet wedge to work "via the inbuilt thing" inside Agentic Mouse rather than a standalone app, keeping Magnet installed and running, and said cross-monitor snapping "sometimes it's dodgy".
+
+**Cause of the cross-monitor flakiness (Magnet route):** Magnet animates each placement and decides the next Left/Right result from the window's committed frame, so a queued synthetic accelerator can race the animation. Apps with a minimum width larger than a display's half (the MacBook half is 864 pt) never match the half, so a repeated press can't recognise "already there" and the window can end up straddling two monitors.
+
+**Fix:** `WindowSnapController` + `WindowSnapGeometry` (ported from the Lodestone prototype in ~/Projects/lodestone) place the focused window with Accessibility on a serial worker: size → position → size, read back, slide a size-refusing window flush to its side and fully onto the target display, and remember the accepted frame per window so the next press hops anyway. `MagnetWindowActionExecutor` uses this by default; Magnet's Control-Option-Arrow lifecycle remains only as the fallback when no snapper is injected.
+
+**Guard:** `WindowSnapGeometryTests` pin Ethan's three-display walk, the lower-left MacBook neighbour, rounding tolerance, remembered hops and the straddle correction; `WindowSnapControllerTests` pin write order and the minimum-width case; `ModeUtilityActionExecutorTests` pin the default route and lock/Accessibility gates. Physical multi-monitor acceptance with the wand is still required.
+
+**Review hardening:** Source-scoped generation tokens also cancel worker requests on release, mode exit, source loss and global teardown. The worker rechecks the live input/focus gate before every AX write; normal release completes an already-started frame transaction, as window resizing does. Failed writes and failed corrective readbacks never become remembered successful snaps. Focused tests cover queued cancellation, independent mouse sources, lock-time interruption, refused writes and completed in-flight release transactions.
+
 ## 2026-09-06 — Reuse the original portrait for every lounge-image correction
 
 **Trigger:** After the generated lounge image's legs were lengthened, Ethan spotted that the lower torso still looked compressed and asked to supply his real face again.

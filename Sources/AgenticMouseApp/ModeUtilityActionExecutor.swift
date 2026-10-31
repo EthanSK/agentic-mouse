@@ -148,7 +148,7 @@ struct ModeUtilityActionExecutor {
         self.postQuitApplication = postQuitApplication
     }
 
-    func perform(_ action: ModeUtilityAction) -> Result<Void, ModeUtilityActionError> {
+    func perform(_ action: ModeUtilityAction, source: MouseSource? = nil) -> Result<Void, ModeUtilityActionError> {
         switch action {
         case .increaseDisplayBrightness, .decreaseDisplayBrightness:
             switch brightness.perform(action) {
@@ -219,7 +219,7 @@ struct ModeUtilityActionExecutor {
                 ? .success(())
                 : .failure(.clipboardEventCreationFailed)
         case .moveWindowLeftWithMagnet, .moveWindowRightWithMagnet:
-            switch magnet.perform(action) {
+            switch magnet.perform(action, source: source) {
             case .success:
                 return .success(())
             case .failure(.inputBlocked):

@@ -617,50 +617,46 @@ final class ModeUtilityActionExecutorTests: XCTestCase {
         else { return XCTFail("failed Magnet events should be surfaced") }
     }
 
-    func testMagnetWedgeUsesLodestoneWhenItIsRunning() {
-        var posted: [String] = []
+    func testMagnetWedgeUsesBuiltInSnappingWithoutSynthesizingMagnetsShortcut() {
+        var snapped: [WindowSnapDirection] = []
         let executor = ModeUtilityActionExecutor(
             magnet: MagnetWindowActionExecutor(
-                postChord: { _ in XCTFail("Lodestone route must not synthesize Magnet's shortcut"); return true },
+                postChord: { _ in XCTFail("built-in snapping must not synthesize Magnet's shortcut"); return true },
                 accessibilityTrusted: { true },
                 inputAllowed: { true },
-                lodestoneAvailable: { true },
-                postLodestone: { posted.append($0); return true }
+                snapWindow: { side, _, _ in snapped.append(side); return true }
             ),
             accessibilityTrusted: { true }
         )
 
         guard case .success = executor.perform(.moveWindowLeftWithMagnet),
               case .success = executor.perform(.moveWindowRightWithMagnet)
-        else { return XCTFail("both wedge directions should reach Lodestone") }
-        XCTAssertEqual(posted, ["left", "right"])
+        else { return XCTFail("both wedge directions should snap") }
+        XCTAssertEqual(snapped, [.left, .right])
     }
 
-    func testMagnetWedgeFallsBackToMagnetWhenLodestoneIsNotRunning() {
+    func testMagnetWedgeUsesMagnetsShortcutWhenNoBuiltInSnapperIsInjected() {
         var chords: [[MagnetWindowActionExecutor.KeyEvent]] = []
         let executor = ModeUtilityActionExecutor(
             magnet: MagnetWindowActionExecutor(
                 postChord: { chords.append($0); return true },
                 accessibilityTrusted: { true },
                 inputAllowed: { true },
-                lodestoneAvailable: { false },
-                postLodestone: { _ in XCTFail("absent Lodestone must not be messaged"); return true }
+                snapWindow: nil
             ),
             accessibilityTrusted: { true }
         )
-
         guard case .success = executor.perform(.moveWindowRightWithMagnet)
-        else { return XCTFail("Magnet fallback should run") }
+        else { return XCTFail("Magnet route should run") }
         XCTAssertEqual(chords, [MagnetWindowActionExecutor.keyEvents(for: .moveWindowRightWithMagnet)!])
     }
 
-    func testLodestoneRouteKeepsTheLockAndAccessibilityGates() {
+    func testBuiltInSnappingKeepsTheLockAndAccessibilityGates() {
         let locked = MagnetWindowActionExecutor(
             postChord: { _ in XCTFail("locked"); return true },
             accessibilityTrusted: { true },
             inputAllowed: { false },
-            lodestoneAvailable: { true },
-            postLodestone: { _ in XCTFail("locked input must not reach Lodestone"); return true }
+            snapWindow: { _, _, _ in XCTFail("locked input must not move windows"); return true }
         )
         guard case .failure(.inputBlocked) = locked.perform(.moveWindowLeftWithMagnet)
         else { return XCTFail("locked input should be rejected") }
@@ -669,28 +665,25 @@ final class ModeUtilityActionExecutorTests: XCTestCase {
             postChord: { _ in XCTFail("untrusted"); return true },
             accessibilityTrusted: { false },
             inputAllowed: { true },
-            lodestoneAvailable: { true },
-            postLodestone: { _ in XCTFail("untrusted input must not reach Lodestone"); return true }
+            snapWindow: { _, _, _ in XCTFail("untrusted input must not move windows"); return true }
         )
         guard case .failure(.accessibilityPermissionMissing) = untrusted.perform(.moveWindowRightWithMagnet)
         else { return XCTFail("untrusted input should be rejected") }
 
-        let undeliverable = MagnetWindowActionExecutor(
-            postChord: { _ in XCTFail("no silent fallback after a failed post"); return true },
+        let nothingToMove = MagnetWindowActionExecutor(
+            postChord: { _ in XCTFail("no silent Magnet fallback"); return true },
             accessibilityTrusted: { true },
             inputAllowed: { true },
-            lodestoneAvailable: { true },
-            postLodestone: { _ in false }
+            snapWindow: { _, _, _ in false }
         )
-        guard case .failure(.eventCreationFailed) = undeliverable.perform(.moveWindowRightWithMagnet)
-        else { return XCTFail("an undeliverable Lodestone command should be surfaced") }
+        guard case .failure(.eventCreationFailed) = nothingToMove.perform(.moveWindowRightWithMagnet)
+        else { return XCTFail("a snap that could not start should be surfaced") }
     }
 
-    func testLodestoneCommandIDsArePinned() {
-        XCTAssertEqual(MagnetWindowActionExecutor.lodestoneCommandID(for: .moveWindowLeftWithMagnet), "left")
-        XCTAssertEqual(MagnetWindowActionExecutor.lodestoneCommandID(for: .moveWindowRightWithMagnet), "right")
-        XCTAssertNil(MagnetWindowActionExecutor.lodestoneCommandID(for: .copy))
-        XCTAssertEqual(MagnetWindowActionExecutor.lodestonePerformNotification, "com.ethansk.lodestone.perform")
+    func testSnapDirectionsArePinned() {
+        XCTAssertEqual(MagnetWindowActionExecutor.snapDirection(for: .moveWindowLeftWithMagnet), .left)
+        XCTAssertEqual(MagnetWindowActionExecutor.snapDirection(for: .moveWindowRightWithMagnet), .right)
+        XCTAssertNil(MagnetWindowActionExecutor.snapDirection(for: .copy))
     }
 
     func testStoredPasswordUsesTheSecurityCheckedTextPath() {
