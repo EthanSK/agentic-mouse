@@ -96,11 +96,12 @@ final class ModeHUDViewModel: ObservableObject {
             target = resolved.outerAngle(at: index)
         } else if let index = resolved.ringIndex(of: focus.cell) {
             target = resolved.angle(at: index)
-        } else if resolved.center == focus.cell, (focus.pullX * focus.pullX + focus.pullY * focus.pullY) > 0.04 {
-            // While the centre drop leans toward a card, keep its direction so
-            // the morph onto that card starts where the drop already points.
-            target = WandRadialLayout.angle(x: focus.pullX, y: focus.pullY)
         } else {
+            // Ethan: entering the centre must not briefly go "up and then
+            // down". Keep the incoming card's angle while its outline returns
+            // to the disc. Re-aiming that in-flight wedge at the centre's live
+            // pull bent the return path toward an unrelated card. The disc
+            // still leans with pullX/pullY; it does not need a new wedge angle.
             return
         }
         let turns = ((wandFocusAngle - target) / (2 * .pi)).rounded()

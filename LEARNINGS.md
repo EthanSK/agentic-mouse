@@ -3365,6 +3365,10 @@ A live AppKit/SwiftUI probe reproduced the remaining wand selection snap: applyi
 
 Native320 gives the navigation shape one animation owner keyed by the selected cell. Pull remains live without starting another animation transaction. `WandNavigationMotionTests` runs that exact SwiftUI modifier in a real non-activating panel and compares the selection spring with and without continuing pull updates; the initial installed-build run reached 90% at 144 ms in both cases. This catches the earlier interruption without claiming physical wand acceptance or changing the separate adjustment-ring animation.
 
+## 2026-10-31 — Preserve the incoming direction when returning to the centre
+
+The centre disc's live pull must not retarget `wandFocusAngle`. During a wedge-to-centre spring, the partly collapsed outline still uses that angle to locate its wedge-shaped end. Updating it from the centre pull turns the return into a detour, even though the final disc looks correct. Keep the previous card angle while the centre is selected; its disc lean already uses `pullX` and `pullY` independently. The regression exercises every home-ring card with several changing centre pulls and preserves the existing short-way ring navigation. The test failed before removing the centre-angle retarget and passes afterward. (Codex task: 01a1930f-a345-7bb0-a9a7-c6e9d8222b83)
+
 ## 2026-10-31 — Wand home is an active coordinator for the Default action map
 
 Do not reject a Default action merely because its coordinator is active: the wand home HUD deliberately stays open while invoking those actions. Use `ModePickerCoordinator.acceptsDefaultInput` for that boundary; it admits inactive coordinators and the active wand home, while rejecting wand child pages and physical-mouse modes. The old generic active-mode guard rejected every repeated wand YouTube rewind despite valid receiver clicks; Forward shared the same error. Keep feedback on the visible wand presenter. Exercise both press and release when testing entry into a wand child page, because home navigation acts on release.
