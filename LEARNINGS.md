@@ -3335,3 +3335,10 @@ positions; the rendered third layer fits the original transparent frame.
 Wand direction exceptions belong in `WheelChordControl.wandRightDirection`, not
 in the shared physical-wheel mapping. Spaces uses dragging semantics while all
 other controls and physical mouse wheels keep their prior direction mapping.
+
+
+## 2026-10-31 — Snapped-window drag restoration shares the snap transaction boundary
+
+Keep the first pre-snap size across repeated built-in snaps and monitor hops only while the window still matches its last accepted frame. A manual resize, close, or move without the hardware left button held invalidates that memory. Observe resize as well as move and destruction; a move-only observer misses stationary resizing.
+
+Restoration and snapping use one serial AX worker. A newer requested snap invalidates queued restores immediately, and entry/source/global generations plus fresh input permission and hardware-button checks guard each restore write. Normal source release cancels pending output while retaining the original size for a later drag; lock and global teardown discard the tracking. Successful AX setters and matching readback are required before reporting restoration. Focused fake-window and queue tests verify these boundaries; they do not establish real application drag acceptance.

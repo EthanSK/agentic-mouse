@@ -147,4 +147,39 @@ final class WindowSnapControllerTests: XCTestCase {
         XCTAssertEqual(WindowSnapController(access: FakeAccess(window: window)).snap(.right, pid: 1, displays: [ultrawide, macbook]),
                        .unchanged)
     }
+
+    func testVerifiedSnapRegistersOriginalSizeAndQueuedNewSnapCancelsOldRestore() {
+        let queue = DispatchQueue(label: "snap-restore-integration")
+        let restorer = WindowSnapDragRestorer(queue: queue, dragging: { true }, pointer: { CGPoint(x: 900, y: 40) })
+        let original = CGRect(x: 100, y: 100, width: 800, height: 600)
+        let window = FakeWindow(original)
+        let controller = WindowSnapController(access: FakeAccess(window: window), queue: queue, restorer: restorer)
+        guard case .moved = controller.snap(.left, pid: 1, displays: [ultrawide]) else { return XCTFail() }
+        window.current.origin.x += 40
+        restorer.changed(WindowSnapKey(testID: 1)); queue.sync {}
+        XCTAssertEqual(window.current.size, original.size)
+
+        _ = controller.snap(.left, pid: 1, displays: [ultrawide])
+        window.current.origin.x += 40
+        window.writes.removeAll()
+        queue.suspend()
+        restorer.changed(WindowSnapKey(testID: 1))
+        controller.enqueue(.right, pid: 1, displays: [ultrawide], source: .corsair, inputAllowed: { true })
+        queue.resume(); queue.sync {}
+        XCTAssertEqual(window.writes, ["size", "position", "size"], "stale restore must not run before the newer requested snap")
+        XCTAssertEqual(window.current.minX, 1720)
+    }
+
+    func testFailedSnapDoesNotRegisterDragRestoration() {
+        let queue = DispatchQueue(label: "snap-restore-failed")
+        let restorer = WindowSnapDragRestorer(queue: queue, dragging: { true })
+        let window = FakeWindow(CGRect(x: 100, y: 100, width: 800, height: 600))
+        window.allowSize = false
+        let controller = WindowSnapController(access: FakeAccess(window: window), queue: queue, restorer: restorer)
+        XCTAssertEqual(controller.snap(.left, pid: 1, displays: [ultrawide]), .failed)
+        window.allowSize = true; window.current.origin.x += 40; window.writes.removeAll()
+        restorer.changed(WindowSnapKey(testID: 1)); queue.sync {}
+        XCTAssertTrue(window.writes.isEmpty)
+    }
+
 }
