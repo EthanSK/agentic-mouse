@@ -1652,8 +1652,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return true
         }
         // Outer-layer quick actions: the same native keys Keys mode sends.
-        if cell == .wandUndo || cell == .wandSpace {
-            if case .success = keysModeActionExecutor.perform(cell == .wandUndo ? .undo : .insertSpace) { return true }
+        if cell == .wandUndo || cell == .wandSpace || cell == .wandBackspace {
+            let action: KeysModeAction = cell == .wandUndo ? .undo : cell == .wandSpace ? .insertSpace : .pressBackspace
+            if case .success = keysModeActionExecutor.perform(action) { return true }
+            return false
+        }
+        // Utility's outer Copy reuses the existing native Copy output.
+        if cell == .wandCopy {
+            if case .success = modeUtilityActionExecutor.perform(.copy) { return true }
             return false
         }
         if currentFrontmostAppModeContext().target == .vsCode, cell.rawValue == 5 || cell.rawValue == 8 {

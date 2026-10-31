@@ -80,6 +80,10 @@ public struct PhysicalCell: RawRepresentable, Hashable, Codable, Sendable, Compa
     /// that's where zoom is normally". The same Utility Zoom wheel control,
     /// two reaches beyond the home Utility card.
     public static let wandZoom = PhysicalCell(wandSlot: 19)
+    /// Ethan (2026-10-31): the existing Utility Select all card owns
+    /// Backspace on its second layer, then Copy on its third layer.
+    public static let wandBackspace = PhysicalCell(wandSlot: 20)
+    public static let wandCopy = PhysicalCell(wandSlot: 21)
     /// Wand-only presentation slots that are not physical cells.
     public var isWandOnlySlot: Bool { rawValue > 12 }
     public var wandReviewMode: String? {

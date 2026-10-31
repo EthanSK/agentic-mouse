@@ -355,6 +355,13 @@ final class WandRadialHUDTests: XCTestCase {
             self.navigatorFocus(layout, from: .modeExit, moves: [(5, -6)])
         })
         states.append(("utility-wedge-selection", utilityAim))
+        // Select all's second and third layers, using the real Utility page.
+        for cell in [PhysicalCell.wandBackspace, .wandCopy] {
+            let snapshot = try childSnapshot(open: { self.select($0, 12) }, focus: { _ in
+                ModeHUDPointerFocus(cell: cell)
+            })
+            states.append((cell == .wandBackspace ? "utility-outer-backspace" : "utility-outer-copy", snapshot))
+        }
 
         var chromeHome = home
         chromeHome.pointerFocus = ModeHUDPointerFocus(cell: .frontmostAppModeSelector)
@@ -1216,5 +1223,31 @@ final class WandZoomThirdLayerGeometryTests: XCTestCase {
             XCTAssertTrue((0...geometry.size).contains(lifted.x) && (0...geometry.size).contains(lifted.y),
                           "lifted and outlined, Zoom stays inside the fixed wheel frame")
         }
+    }
+}
+
+/// Ethan (2026-10-31): Select all's Backspace and Copy outer layers fit the
+/// fixed wheel frame, lifted and outlined.
+final class WandUtilityOuterGeometryTests: XCTestCase {
+    func testSelectAllOuterLayersFitTheFixedFrame() throws {
+        let hud = RecordingModeHUDPresenter()
+        let coordinator = ModePickerCoordinator(lease: WandModeLease(), hud: hud, scheduler: ManualTickScheduler(),
+                                                log: Log(category: "test", sink: NullLogSink()))
+        coordinator.enterWandHome(source: .wand, pointerFocus: ModeHUDPointerFocus(cell: .switchApp))
+        coordinator.handle(.init(action: .select, source: .wand, physicalCell: .modePickerEntry, phase: .press))
+        coordinator.handle(.init(action: .select, source: .wand, physicalCell: .modePickerEntry, phase: .release))
+        let layout = coordinator.wandRadialLayout
+        let geometry = WandWheelGeometry(layout: layout)
+        for cell in [PhysicalCell.wandBackspace, .wandCopy] {
+            let index = try XCTUnwrap(layout.outerIndex(of: cell))
+            let pose = WandCardLift.transform(WandCardLift.pose(for: .outer(index), lifted: true, in: geometry), size: geometry.size)
+            for point in geometry.outerWedge(at: index).expanded(by: WandWheelMetrics.focusOutset).outline(step: 4) {
+                let lifted = CGPoint(x: point.x + geometry.center.x, y: point.y + geometry.center.y).applying(pose)
+                XCTAssertTrue((0...geometry.size).contains(lifted.x) && (0...geometry.size).contains(lifted.y), "\(cell)")
+            }
+        }
+        let copy = geometry.outerWedge(at: try XCTUnwrap(layout.outerIndex(of: .wandCopy)))
+        let backspace = geometry.outerWedge(at: try XCTUnwrap(layout.outerIndex(of: .wandBackspace)))
+        XCTAssertGreaterThan(copy.inner, backspace.outer, "Copy sits beyond Backspace")
     }
 }

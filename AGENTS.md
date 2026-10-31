@@ -57,6 +57,6 @@ When Stay Restore is disabled, the saved monitor layout does not match, Organize
 
 - Before restarting Wand Receiver or Agentic Mouse, check Agent Flow automatically using its current authoritative idle probe, then recheck immediately after the restart warning and before replacement. Do not ask me whether I am finished when the app can report that itself. Busy or unknown capture state blocks the swap; do not stop recording to manufacture idle. Leave Agent Flow itself running. Table-rest detection must never stop dictation or dismiss an explicitly open wand HUD. User-requested — 2026-10-18.
 
-## Opus for UX
+## Opus for UX taste
 
-- Ethan: “Do any UX related stuff with Opus actually and bug fixing and stuff you do yourself and like testing and installing.” Use Opus for Magic Wand UX implementation; Codex owns bug fixes, verification and installation. Announce each use with “Opus for UX” and say why it is being used. User-requested — 2026-10-19.
+- Ethan: “anything that is not UX taste related you implement yourself because Opus is taking too long.” Codex implements functional behaviour, bug fixes, tests and installation. Use Opus only for UX taste decisions, such as visual composition and style; routine behaviour and mechanical UI implementation stay with Codex. This replaces the broader Opus-for-UX implementation rule. User-requested — 2026-10-31.

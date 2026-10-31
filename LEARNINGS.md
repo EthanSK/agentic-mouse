@@ -3309,3 +3309,17 @@ A locally attended replacement needs the same Developer ID designated requiremen
 ## 2026-10-30 — Wand pill: one title line, one dot-separated subtitle line
 
 Ethan rejected the review reminder's three stacked rows (“This shouldn't be double line”) and asked for a wider pill with a smaller subtitle, short hints separated by a vertically centred dot. `WandIndicatorContent` now owns each pill's title, symbol and hints, and `WandReviewIndicatorView` sizes from the same rounded-font metrics it draws. Two measured lessons: SwiftUI can draw the rounded face about a point wider than AppKit measures, so fitted text keeps 2 pt slack; and small sizes of the system font are relatively wider, so a narrow-screen fallback must re-measure at each candidate scale rather than scale linearly. A drawn circle, lifted from the line-box centre to half way between the x-height and cap-height centres, reads as centred in mixed-case hints. The wording became `Hold to stage selection · Double-click for Stage files mode` (staging, never a Git commit).
+
+
+## 2026-10-31 — Extend a submenu without moving its existing ring
+
+Wand outer shortcuts are page-specific. Keep the existing inner-ring cell as
+parent, add its outer cards to that page's legend, and route their release through
+the existing native action executor. Validate layout membership before accepting
+an outer-cell action so a stale cell from a different page cannot fire. Utility's
+Select all → Backspace → Copy preserves the existing Select all and Keys Backspace
+positions; the rendered third layer fits the original transparent frame.
+
+Wand direction exceptions belong in `WheelChordControl.wandRightDirection`, not
+in the shared physical-wheel mapping. Spaces uses dragging semantics while all
+other controls and physical mouse wheels keep their prior direction mapping.

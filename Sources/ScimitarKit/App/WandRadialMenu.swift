@@ -190,8 +190,21 @@ public enum WandOuterLayer {
         WandOuterCard(cell: .wandReviewFiles, parent: .frontmostAppModeSelector, height: .large),
     ]
 
+    /// Select all stays in its existing Utility slot. Reach outward for
+    /// Backspace, then Copy; Keys keeps its separate ordinary Backspace key.
+    public static let utility: [WandOuterCard] = [
+        WandOuterCard(cell: .wandBackspace, parent: .selectAll, height: .thin),
+        WandOuterCard(cell: .wandCopy, parent: .selectAll, height: .thin, layer: 2),
+    ]
+
+    /// The outer layer a wand page carries; only cards in its legend are drawn.
+    public static func cards(page: ModePickerPage, isHome: Bool) -> [WandOuterCard] {
+        if isHome { return home }
+        return page == .modes ? utility : []
+    }
+
     /// Cells that live only in the outer layer and never take a ring slot.
-    public static let cells: Set<PhysicalCell> = Set(home.map(\.cell))
+    public static let cells: Set<PhysicalCell> = Set((home + utility).map(\.cell))
 }
 
 public extension WandRadialLayout {
@@ -219,7 +232,7 @@ public extension WandRadialLayout {
         let duplicateExits: Set<PhysicalCell> = !isHome && (page == .appSpecific || page == .chromeWebsites)
             ? [.modeExit]
             : []
-        let outer = isHome ? WandOuterLayer.home.filter { card in legend.contains { $0.cell == card.cell } } : []
+        let outer = WandOuterLayer.cards(page: page, isHome: isHome).filter { card in legend.contains { $0.cell == card.cell } }
         return menu(legend: legend, center: center, omitting: duplicateExits, outer: outer,
                     order: WandRingOrder.order(page: page, isHome: isHome, appTarget: appTarget))
     }
@@ -367,20 +380,27 @@ public struct WandRadialTuning: Equatable, Sendable {
     public var thirdRestingDegrees: Double
 
     public init(
-        reachDegrees: Double = 7,
-        centerReturnDegrees: Double = 4,
-        maximumDegrees: Double = 11,
-        restingDegrees: Double = 9,
+        // Ethan (2026-10-31): "The sensitivity on the HUD between switching
+        // things needs to be higher ... it's kind of hard sometimes to get the
+        // full range." Every radius is about three quarters of its former
+        // value (7/4/11/9, 16/13/19/17, 24/21/27/25 degrees), so each reach
+        // and the travel around the ring need a quarter less wand rotation.
+        // Bands, saturation and hysteresis keep their proportions, so a
+        // reversal at the edge still acts at once and nothing winds up.
+        reachDegrees: Double = 5.5,
+        centerReturnDegrees: Double = 3,
+        maximumDegrees: Double = 8.5,
+        restingDegrees: Double = 7,
         angularHysteresis: Double = 0.22,
         maximumHysteresisDegrees: Double = 9,
-        outerReachDegrees: Double = 16,
-        outerReturnDegrees: Double = 13,
-        outerMaximumDegrees: Double = 19,
-        outerRestingDegrees: Double = 17,
-        thirdReachDegrees: Double = 24,
-        thirdReturnDegrees: Double = 21,
-        thirdMaximumDegrees: Double = 27,
-        thirdRestingDegrees: Double = 25
+        outerReachDegrees: Double = 12,
+        outerReturnDegrees: Double = 10,
+        outerMaximumDegrees: Double = 14.5,
+        outerRestingDegrees: Double = 13,
+        thirdReachDegrees: Double = 18,
+        thirdReturnDegrees: Double = 16,
+        thirdMaximumDegrees: Double = 20.5,
+        thirdRestingDegrees: Double = 19
     ) {
         self.reachDegrees = reachDegrees
         self.centerReturnDegrees = centerReturnDegrees
@@ -404,17 +424,17 @@ public struct WandRadialTuning: Equatable, Sendable {
         func bounded(_ value: Double, _ range: ClosedRange<Double>, _ fallback: Double) -> Double {
             value.isFinite ? min(range.upperBound, max(range.lowerBound, value)) : fallback
         }
-        let reach = bounded(reachDegrees, 1...60, 7)
-        let back = bounded(centerReturnDegrees, 0.25...(reach * 0.9), min(4, reach * 0.9))
-        let maximum = bounded(maximumDegrees, (reach + 0.5)...120, max(11, reach + 0.5))
+        let reach = bounded(reachDegrees, 1...60, 5.5)
+        let back = bounded(centerReturnDegrees, 0.25...(reach * 0.9), min(3, reach * 0.9))
+        let maximum = bounded(maximumDegrees, (reach + 0.5)...120, max(8.5, reach + 0.5))
         let resting = bounded(restingDegrees, reach...maximum, (reach + maximum) / 2)
         // The outer band lies wholly beyond the ring's own saturation.
-        let outerReach = bounded(outerReachDegrees, (maximum + 1)...180, max(16, maximum + 1))
+        let outerReach = bounded(outerReachDegrees, (maximum + 1)...180, max(12, maximum + 1))
         let outerBack = bounded(outerReturnDegrees, (maximum + 0.5)...(outerReach - 0.5), max(maximum + 0.5, outerReach - 3))
         let outerMaximum = bounded(outerMaximumDegrees, (outerReach + 0.5)...240, outerReach + 3)
         let outerResting = bounded(outerRestingDegrees, outerReach...outerMaximum, (outerReach + outerMaximum) / 2)
         // The third band lies wholly beyond the first layer's saturation.
-        let thirdReach = bounded(thirdReachDegrees, (outerMaximum + 1)...200, max(24, outerMaximum + 1))
+        let thirdReach = bounded(thirdReachDegrees, (outerMaximum + 1)...200, max(18, outerMaximum + 1))
         let thirdBack = bounded(thirdReturnDegrees, (outerMaximum + 0.5)...(thirdReach - 0.5), max(outerMaximum + 0.5, thirdReach - 3))
         let thirdMaximum = bounded(thirdMaximumDegrees, (thirdReach + 0.5)...260, thirdReach + 3)
         let thirdResting = bounded(thirdRestingDegrees, thirdReach...thirdMaximum, (thirdReach + thirdMaximum) / 2)

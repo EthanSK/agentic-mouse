@@ -77,19 +77,19 @@ final class WandRadialNavigatorTests: XCTestCase {
 
     func testCentreDeadZoneHoldsUntilADeliberateReach() {
         var nav = WandRadialNavigator(layout: home, start: .switchApp)!
-        XCTAssertFalse(nav.apply(deltaX: 6.5, deltaY: 0), "short of the reach")
+        XCTAssertFalse(nav.apply(deltaX: tuning.reachDegrees - 0.5, deltaY: 0), "short of the reach")
         XCTAssertEqual(nav.focusedCell, .switchApp)
         XCTAssertTrue(nav.apply(deltaX: 0.6, deltaY: 0))
         XCTAssertEqual(nav.focusedCell, cell(3), "straight right is 3 o'clock")
     }
 
     func testReturningToTheCentreNeedsTheInnerRadius() {
-        var nav = WandRadialNavigator(layout: home, start: cell(3))! // rests 9° right
-        XCTAssertFalse(nav.apply(deltaX: -4.5, deltaY: 0), "4.5° from centre: inside the band, still the card")
+        var nav = WandRadialNavigator(layout: home, start: cell(3))!
+        XCTAssertFalse(nav.apply(deltaX: -(tuning.restingDegrees - tuning.centerReturnDegrees - 0.5), deltaY: 0), "inside the return band, still the card")
         XCTAssertEqual(nav.focusedCell, cell(3))
-        XCTAssertTrue(nav.apply(deltaX: -1, deltaY: 0), "3.5° from centre returns to it")
+        XCTAssertTrue(nav.apply(deltaX: -1, deltaY: 0), "crossing the inner radius returns to centre")
         XCTAssertEqual(nav.focusedCell, .switchApp)
-        XCTAssertFalse(nav.apply(deltaX: 3, deltaY: 0), "6.5°: the centre holds until the reach again")
+        XCTAssertFalse(nav.apply(deltaX: tuning.reachDegrees - tuning.centerReturnDegrees, deltaY: 0), "the centre holds until the reach again")
         XCTAssertEqual(nav.focusedCell, .switchApp)
     }
 
@@ -198,7 +198,7 @@ final class WandRadialNavigatorTests: XCTestCase {
 
     func testCentrePullPointsWhereTheStickPoints() {
         var nav = WandRadialNavigator(layout: home, start: .switchApp)!
-        nav.apply(deltaX: 2.1, deltaY: -2.8) // 3.5° toward 1 o'clock-ish
+        nav.apply(deltaX: tuning.reachDegrees * 0.3, deltaY: -tuning.reachDegrees * 0.4) // half a reach toward 1 o'clock-ish
         let pull = nav.pointerFocus
         XCTAssertEqual(pull.cell, .switchApp)
         XCTAssertEqual(pull.pullX, 0.3, accuracy: 1e-9)
@@ -214,8 +214,9 @@ final class WandRadialNavigatorTests: XCTestCase {
         XCTAssertEqual(along.cell, cell(12))
         XCTAssertGreaterThan(along.pullX, 0.2, "pulled clockwise toward Play/Pause")
         var inward = WandRadialNavigator(layout: home, start: cell(3))!
-        inward.apply(deltaX: -4.5, deltaY: 0)
-        XCTAssertEqual(inward.pointerFocus.pullX, -(7 - 4.5) / 3, accuracy: 1e-9, "toward the centre")
+        let midway = (tuning.reachDegrees + tuning.centerReturnDegrees) / 2
+        inward.apply(deltaX: midway - tuning.restingDegrees, deltaY: 0)
+        XCTAssertEqual(inward.pointerFocus.pullX, -0.5, accuracy: 1e-9, "halfway toward the centre")
         XCTAssertEqual(inward.pointerFocus.pullY, 0, accuracy: 1e-9)
     }
 
@@ -246,15 +247,15 @@ final class WandRadialNavigatorTests: XCTestCase {
 
     func testSecondReachOutwardChoosesTheOuterCardAndComingBackReturns() {
         var nav = WandRadialNavigator(layout: outerHome, start: .switchApp)!
-        drive(&nav, toward: 270, distance: 9)
+        drive(&nav, toward: 270, distance: tuning.restingDegrees)
         XCTAssertEqual(nav.focusedCell, .keysModeEntry, "the first reach is the ring card")
-        drive(&nav, toward: 270, distance: 5)
+        drive(&nav, toward: 270, distance: tuning.outerReachDegrees - tuning.restingDegrees - 0.5)
         XCTAssertEqual(nav.focusedCell, .keysModeEntry, "short of the second reach stays on Keys")
-        drive(&nav, toward: 270, distance: 3)
+        drive(&nav, toward: 270, distance: 1)
         XCTAssertEqual(nav.focusedCell, .wandUndo, "the second reach chooses Undo")
         drive(&nav, toward: 270, distance: 30)
         XCTAssertEqual(nav.focusedCell, .wandUndo, "an over-long sweep saturates, never winds up")
-        drive(&nav, toward: 90, distance: 4.5)
+        drive(&nav, toward: 90, distance: tuning.outerMaximumDegrees - tuning.outerReturnDegrees - 0.5)
         XCTAssertEqual(nav.focusedCell, .wandUndo, "the return band absorbs tremor")
         drive(&nav, toward: 90, distance: 2)
         XCTAssertEqual(nav.focusedCell, .keysModeEntry, "coming back drops to the ring card")

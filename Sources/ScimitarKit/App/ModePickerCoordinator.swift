@@ -482,6 +482,19 @@ public final class ModePickerCoordinator {
             return
         }
         if isWandHome { routeWandHome(cell: cell, phase: phase); return }
+        if source == .wand, cell.isWandOnlySlot {
+            // Utility's Backspace and Copy outer shortcuts use the existing
+            // quick-action callback once on release. Reject stale cards from
+            // another page before they can invoke a native action.
+            guard pageSnapshot().legend.contains(where: { $0.cell == cell }),
+                  phase == .release else { return }
+            if onWandHomeInput?(cell) == true { recordSelection(cell: cell) }
+            else {
+                let title = pageSnapshot().legend.first { $0.cell == cell }?.actionTitle ?? "Action"
+                hud.flashProblem("\(title) could not be performed")
+            }
+            return
+        }
         if source.isPhysicalAdapter, page == .appSpecific, appSpecificTarget == .codex,
            cell == CodexMode.pinModifierCell || cell == CodexMode.pinToggleCell {
             guard !nativeOutputHandled else { return }
@@ -1369,8 +1382,17 @@ public final class ModePickerCoordinator {
                 accent: RGBColor(red: 110, green: 116, blue: 132)
             )
         }
-        }
+        } + (source == .wand ? wandUtilityOuterLegend : [])
     }
+
+    /// Keep the existing action names and palette on Utility's outer bands.
+    static let wandUtilityOuterLegend: [ModeHUDLegendItem] = [
+        ModeHUDLegendItem(cell: .wandBackspace, actionTitle: KeysModeAction.pressBackspace.actionTitle,
+                          accent: KeysModeAction.pressBackspace.hudAccent),
+        ModeHUDLegendItem(cell: .wandCopy, actionTitle: ModeUtilityAction.copy.actionTitle,
+                          accent: ModeUtilityAction.copy.hudAccent),
+    ]
+
 
     public static let modesLegend = modesLegend(for: .corsair)
 }
