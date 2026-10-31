@@ -106,6 +106,12 @@ public final class ModePickerCoordinator {
 
     public private(set) var isWandHome = false
     public private(set) var isActive = false
+    /// The wand's home HUD is the Default map even while its coordinator is
+    /// active. Physical mice must still leave a mode before using Default
+    /// actions; the wand's child pages have that same boundary.
+    public var acceptsDefaultInput: Bool {
+        !isActive || (source == .wand && isWandHome)
+    }
     public private(set) var isLegendVisible = false
     public private(set) var source: MouseSource?
     public private(set) var lightingTargets: ModeLightingTargets = []

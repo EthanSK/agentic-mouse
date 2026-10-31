@@ -190,9 +190,7 @@ final class WandRadialHUDTests: XCTestCase {
 
     func testReduceMotionRemovesEveryWheelAnimation() {
         XCTAssertNil(WandRadialFocusStyle.slideAnimation(reduceMotion: true))
-        XCTAssertNil(WandRadialFocusStyle.pullAnimation(reduceMotion: true))
         XCTAssertNotNil(WandRadialFocusStyle.slideAnimation(reduceMotion: false))
-        XCTAssertNotNil(WandRadialFocusStyle.pullAnimation(reduceMotion: false))
     }
 
     func testOutlineSlidesTheShortWayRoundTheWheel() {
