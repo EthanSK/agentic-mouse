@@ -584,7 +584,7 @@ extension WheelChordControl {
     /// The wand home page's held-wheel cards (the coordinator routes these).
     public static func wandHomeControl(for cell: PhysicalCell) -> WheelChordControl? {
         [1: .horizontalScroll, 3: .screenshotPaste, 4: .clipboard, 6: .youtubeScrub,
-         PhysicalCell.wandZoom.rawValue: .zoom][cell.rawValue]
+         PhysicalCell.wandZoom.rawValue: .zoom, PhysicalCell.wandBrightness.rawValue: .brightness][cell.rawValue]
     }
 }
 

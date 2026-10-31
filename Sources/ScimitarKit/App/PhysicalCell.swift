@@ -84,6 +84,9 @@ public struct PhysicalCell: RawRepresentable, Hashable, Codable, Sendable, Compa
     /// Backspace on its second layer, then Copy on its third layer.
     public static let wandBackspace = PhysicalCell(wandSlot: 20)
     public static let wandCopy = PhysicalCell(wandSlot: 21)
+    /// Ethan (2026-10-31): fill the empty band between Utility and Zoom
+    /// with the existing Brightness adjustment, for the wand only.
+    public static let wandBrightness = PhysicalCell(wandSlot: 22)
     /// Wand-only presentation slots that are not physical cells.
     public var isWandOnlySlot: Bool { rawValue > 12 }
     public var wandReviewMode: String? {

@@ -179,6 +179,8 @@ public enum WandOuterLayer {
         // Ethan (2026-10-30): "space should be on the second layer of enter,
         // not copy paste" (superseding "move space outside of copy paste").
         WandOuterCard(cell: .wandSpace, parent: PhysicalCell(rawValue: 7)!, height: .thin),
+        // Fill the vacant second layer; Zoom keeps its existing third layer.
+        WandOuterCard(cell: .wandBrightness, parent: .modePickerEntry, height: .thin),
         // Ethan: "maybe it should be a third layer wedge. Yeah, because that's
         // where zoom is normally" — Utility's Zoom. New Codex chat used to sit
         // in the layer between; it moved into the ring (2026-10-30), and Zoom

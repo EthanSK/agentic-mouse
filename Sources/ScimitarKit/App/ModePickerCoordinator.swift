@@ -1164,13 +1164,16 @@ public final class ModePickerCoordinator {
         value.legend.removeAll { $0.cell == .screenshotToggle }
         value.legend.append(ModeHUDLegendItem(cell: .wandPlayPause, actionTitle: "Play/Pause", accent: ModeHUDActionFamilyPalette.media))
         // Ethan's outer layer (`WandOuterLayer.home`): Undo beyond Keys, Space
-        // beyond Enter and Zoom beyond Utility are always present; the review
+        // beyond Enter and Brightness then Zoom beyond Utility are always present; the review
         // pair joins them beyond the app card only while VS Code is
         // frontmost. New Codex chat is a ring card in Screenshot's old slot.
         value.legend += [
             ModeHUDLegendItem(cell: .wandUndo, actionTitle: "Undo", accent: KeysModeAction.undo.hudAccent),
             ModeHUDLegendItem(cell: .wandSpace, actionTitle: "Space", accent: KeysModeAction.insertSpace.hudAccent),
             ModeHUDLegendItem(cell: .wandCodexNewChat, actionTitle: "New Codex chat", accent: CodexMode.accent),
+            // The existing Utility adjustments, with their shared gesture and accent.
+            ModeHUDLegendItem(cell: .wandBrightness, gesture: WheelChordControl.brightness.hudGesture,
+                              accent: WheelChordControl.brightness.hudAccent),
             // Utility's own Zoom wheel control, two reaches beyond Utility.
             ModeHUDLegendItem(cell: .wandZoom, gesture: WheelChordControl.zoom.hudGesture,
                               accent: WheelChordControl.zoom.hudAccent)
