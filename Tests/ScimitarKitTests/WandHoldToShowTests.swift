@@ -134,6 +134,23 @@ final class WandHoldToShowTests: XCTestCase {
         XCTAssertEqual(wheelReleases, [.youtubeScrub], "YouTube keeps its click")
         XCTAssertNil(control.armedCell)
         XCTAssertTrue(control.isOpen)
+        XCTAssertTrue(target.acceptsDefaultInput, "the app's Default action guard must admit this wand-home release")
+    }
+
+    func testDefaultInputContextKeepsPhysicalModesAndWandChildrenBlocked() {
+        XCTAssertTrue(target.acceptsDefaultInput)
+        target.enterWandHome(source: .wand)
+        XCTAssertTrue(target.acceptsDefaultInput)
+        target.handle(.init(action: .select, source: .wand, physicalCell: .modePickerEntry, phase: .press))
+        target.handle(.init(action: .select, source: .wand, physicalCell: .modePickerEntry, phase: .release))
+        XCTAssertFalse(target.acceptsDefaultInput, "Utility is a child page, not the wand home map")
+        target.exit(reason: .userRequested)
+        XCTAssertTrue(target.acceptsDefaultInput)
+        for source in [MouseSource.corsair, .razer] {
+            target.handle(.init(action: .open, source: source, physicalCell: .modePickerEntry, phase: .press))
+            XCTAssertFalse(target.acceptsDefaultInput, "a physical mouse mode still blocks delayed Default actions")
+            target.exit(reason: .userRequested)
+        }
     }
 
     func testUtilityOuterShortcutsStayOnTheirCardForRepeatedClicks() {

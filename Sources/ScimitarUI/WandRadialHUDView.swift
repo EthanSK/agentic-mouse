@@ -285,13 +285,18 @@ enum WandRadialFocusStyle {
         reduceMotion ? nil : .interactiveSpring(response: 0.3, dampingFraction: 0.8)
     }
 
-    static func pullAnimation(reduceMotion: Bool) -> Animation? {
-        reduceMotion ? nil : .linear(duration: 0.03)
-    }
-
     /// The wheel-adjustment ring leans less than navigation so its stretch
     /// stays inside the panel at the outer edge.
     static let adjustmentPullScale = 0.6
+}
+
+/// One animation owner for the navigation shape. Live pull values still
+/// update immediately, but must not start a new 30 ms animation on the same
+/// animatable vector: that used to cut an in-flight card spring short.
+extension View {
+    func wandNavigationMotion(focus: ModeHUDPointerFocus, reduceMotion: Bool) -> some View {
+        animation(WandRadialFocusStyle.slideAnimation(reduceMotion: reduceMotion), value: focus.cell)
+    }
 }
 
 /// Solid while moving, marching dashes when a wheel card is armed, and a
@@ -313,11 +318,7 @@ private struct WandRadialFocusOutline: View {
         } else {
             morph(pullX: focus.pullX, pullY: focus.pullY)
                 .stroke(navigationGradient, style: navigationStyle)
-                // Innermost wins: a card change springs the whole morph; pull
-                // alone keeps its 30 ms follow.
-                .animation(WandRadialFocusStyle.slideAnimation(reduceMotion: reduceMotion), value: focus.cell)
-                .animation(WandRadialFocusStyle.pullAnimation(reduceMotion: reduceMotion), value: focus.pullX)
-                .animation(WandRadialFocusStyle.pullAnimation(reduceMotion: reduceMotion), value: focus.pullY)
+                .wandNavigationMotion(focus: focus, reduceMotion: reduceMotion)
                 .shadow(color: Color.white.opacity(0.75), radius: 6)
         }
     }

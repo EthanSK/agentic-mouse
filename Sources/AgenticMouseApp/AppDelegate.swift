@@ -1716,8 +1716,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         source == .wand ? wandVirtualWheel.activeControl : wheelChordMonitor?.activeControl(for:source)
     }
     private func isDefaultWheelContext(_ source:MouseSource) -> Bool {
-        guard let coordinator=modePickerCoordinators[source] else {return true}
-        return !coordinator.isActive || (source == .wand && coordinator.isWandHome)
+        modePickerCoordinators[source]?.acceptsDefaultInput ?? true
     }
 
     @discardableResult
@@ -2860,7 +2859,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// must suppress this single −5-second action.
     private func performTopLevelYouTubeRewind(from source: MouseSource) {
         guard mouseCommandsAllowed else { return }
-        guard modePickerCoordinators[source]?.isActive != true else {
+        guard isDefaultWheelContext(source) else {
             log.notice("ignored delayed top-level YouTube rewind during a mode")
             return
         }
@@ -2878,14 +2877,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 tone: .notConfirmed
             )
         }
-        defaultMapHintCoordinators[source]?.flashActionFeedback(
-            source: source,
-            feedback: feedback
-        )
+        if source == .wand, modePickerCoordinators[source]?.isWandHome == true {
+            modeHUDPresenters[source]?.flashFeedback(feedback)
+        } else {
+            defaultMapHintCoordinators[source]?.flashActionFeedback(source: source, feedback: feedback)
+        }
     }
 
     private func performTopLevelForward(from source: MouseSource) {
-        guard modePickerCoordinators[source]?.isActive != true else {
+        guard isDefaultWheelContext(source) else {
             log.notice("ignored delayed top-level Forward during a mode")
             return
         }
