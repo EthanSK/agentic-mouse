@@ -225,8 +225,8 @@ class KarabinerGeneratorTests(unittest.TestCase):
                     self.assertEqual(release["physical_cell"], payload["physical_cell"])
 
         self.assertEqual(actions[:2], ["close", "close"])
-        self.assertEqual(actions.count("select"), 62)
-        self.assertEqual(actions.count("selectNative"), 22)
+        self.assertEqual(actions.count("select"), 66)
+        self.assertEqual(actions.count("selectNative"), 18)
         self.assertEqual(actions[-2:], ["open", "open"])
         self.assertEqual(
             {(item["source"], item["physical_cell"]) for item in legend_toggles},
@@ -655,34 +655,20 @@ class KarabinerGeneratorTests(unittest.TestCase):
                 in manipulator.get("conditions", [])
             ]
             self.assertEqual(len(voice_routes), 4)
-            native_voice_routes = [
-                manipulator
-                for manipulator in voice_routes
-                if any(
-                    event.get("send_user_command", {}).get("payload", {}).get("action")
-                    == "selectNative"
-                    for event in manipulator["to"]
-                )
-            ]
-            self.assertEqual(len(native_voice_routes), 2)
-            for manipulator in native_voice_routes:
-                self.assertEqual(
-                    manipulator["to"][-1],
-                    {
-                        "key_code": "f17",
-                        "modifiers": ["left_command", "left_control", "left_option", "left_shift"],
-                        "repeat": False,
-                        "conditions": [
-                            {
-                                "type": "expression_if",
-                                "expression": (
-                                    "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and "
-                                    "(agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
-                                ),
-                            }
-                        ],
-                    },
-                )
+            # Both explicit Codex selection and automatic detection must use
+            # the same private app delivery as HeyChat, never a global chord.
+            for manipulator in voice_routes:
+                self.assertEqual(len(manipulator["to"]), 1)
+                for phase, events in (
+                    ("press", manipulator["to"]),
+                    ("release", manipulator["to_after_key_up"]),
+                ):
+                    self.assertEqual(len(events), 1)
+                    self.assertNotIn("key_code", events[0])
+                    payload = events[0]["send_user_command"]["payload"]
+                    self.assertEqual(payload["action"], "select")
+                    self.assertEqual(payload["phase"], phase)
+                    self.assertEqual(payload["physical_cell"], 12)
 
         for rule in generated_base["rules"]:
             for manipulator in rule["manipulators"]:

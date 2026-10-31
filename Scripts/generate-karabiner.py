@@ -1035,7 +1035,6 @@ def build_mode_picker_rule(
         source: str,
         physical_cell: int,
         selection_expression: str,
-        native: bool,
         frontmost_condition: dict[str, Any] | None = None,
     ) -> None:
         conditions = device_conditions(binding, source=source, active=True)
@@ -1052,26 +1051,20 @@ def build_mode_picker_rule(
         )
         if frontmost_condition is not None:
             conditions.append(frontmost_condition)
-        action = "selectNative" if native else "select"
+        # Ethan's "HeyChat" Voice route: the app sends Toggle voice chat
+        # privately to Codex. A global Hyper-F17 cycle can trigger Agent Flow
+        # while Karabiner presses its modifiers, before F17 reaches Codex.
+        action = "select"
         to = [command_event(action, source, physical_cell, "press")]
-        if native:
-            to.append(
-                {
-                    "key_code": "f17",  # Hello Chat parity: configured composer.startVoiceMode (Toggle voice chat), independent of Dvorak letter positions.
-                    "modifiers": ["left_command", "left_control", "left_option", "left_shift"],
-                    "repeat": False,
-                }
-            )
         manipulator: dict[str, Any] = {
             "type": "basic",
             "from": copy.deepcopy(binding["from"]),
             "to": to,
             "conditions": conditions,
         }
-        if not native:
-            manipulator["to_after_key_up"] = [
-                command_event(action, source, physical_cell, "release")
-            ]
+        manipulator["to_after_key_up"] = [
+            command_event(action, source, physical_cell, "release")
+        ]
         manipulators.append(manipulator)
 
     manipulators: list[dict[str, Any]] = []
@@ -1199,7 +1192,6 @@ def build_mode_picker_rule(
                     selection_expression=(
                         f"{app_selection_variable} == {APP_SELECTION_CODEX}"
                     ),
-                    native=True,
                 )
                 automatic_expression = (
                     f"{app_selection_variable} == {APP_SELECTION_AUTOMATIC}"
@@ -1209,7 +1201,6 @@ def build_mode_picker_rule(
                     source=source,
                     physical_cell=physical_cell,
                     selection_expression=automatic_expression,
-                    native=True,
                     frontmost_condition={
                         "type": "frontmost_application_if",
                         "bundle_identifiers": CODEX_BUNDLE_IDENTIFIERS,
@@ -1223,14 +1214,12 @@ def build_mode_picker_rule(
                         f"{app_selection_variable} == {APP_SELECTION_OTHER} or "
                         f"{app_selection_variable} == {APP_SELECTION_CHROME}"
                     ),
-                    native=False,
                 )
                 append_app_specific_input(
                     binding=binding,
                     source=source,
                     physical_cell=physical_cell,
                     selection_expression=automatic_expression,
-                    native=False,
                     frontmost_condition={
                         "type": "frontmost_application_unless",
                         "bundle_identifiers": CODEX_BUNDLE_IDENTIFIERS,
