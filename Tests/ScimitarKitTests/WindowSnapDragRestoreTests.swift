@@ -6,12 +6,23 @@ final class WindowSnapDragRestoreTests: XCTestCase {
     let original = CGRect(x: 600, y: 200, width: 800, height: 600)
     let snapped = CGRect(x: 0, y: 30, width: 1720, height: 1410)
 
-    func testDraggingAwayRestoresTheOriginalSizeUnderThePointer() {
-        // Grabbed the title bar at its midpoint and moved 40 pt right.
-        let current = snapped.offsetBy(dx: 40, dy: 0)
+    func testDraggingAwayRestoresTheOriginalSizeInPlaceWithoutMovingTheWindow() {
+        // macOS owns the drag; moving the window mid-drag makes it jump, so only
+        // the size changes and the origin stays wherever the drag has it.
+        let current = snapped.offsetBy(dx: 40, dy: 12)
         let frame = WindowSnapDragRestore.restoredFrame(current: current, accepted: snapped, original: original,
-                                                        pointer: CGPoint(x: 900, y: 40))
-        XCTAssertEqual(frame, CGRect(x: 500, y: 30, width: 800, height: 600))
+                                                        pointer: CGPoint(x: 900, y: 52))
+        XCTAssertEqual(frame, CGRect(x: 40, y: 42, width: 800, height: 600))
+    }
+
+    func testFarEdgeGrabRetainsTheMacOSOffsetEvenOutsideTheRestoredNarrowWindow() {
+        let current = snapped.offsetBy(dx: 40, dy: 0)
+        let pointer = CGPoint(x: current.maxX - 20, y: current.minY + 10)
+        let frame = WindowSnapDragRestore.restoredFrame(current: current, accepted: snapped,
+                                                        original: original, pointer: pointer)
+        XCTAssertEqual(frame?.origin, current.origin)
+        XCTAssertEqual(frame?.size, original.size)
+        XCTAssertGreaterThan(pointer.x, frame!.maxX, "known limit: the OS grab offset is not re-anchored")
     }
 
     func testNoRestoreBeforeTheWindowLeavesItsSnappedPosition() {

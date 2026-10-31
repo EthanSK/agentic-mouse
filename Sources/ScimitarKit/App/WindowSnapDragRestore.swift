@@ -9,8 +9,9 @@ import Foundation
 ///
 /// Magnet's own setting for this is "Restore windows to original size"
 /// ("dragging windows away from target positions restores them to original
-/// size"). Only the SIZE comes back; the window stays under the pointer so
-/// the drag continues naturally. Coordinates are top-left (Accessibility).
+/// size"). Only the SIZE comes back in place; macOS retains the title-bar
+/// drag's original grab offset. A grab near the far edge of a wide snap can
+/// lie beyond the restored narrow window. Coordinates are top-left (AX).
 public enum WindowSnapDragRestore {
     /// Which pre-snap frame to remember for a new snap. A window that is
     /// still exactly where Agentic Mouse last snapped it (e.g. a second
@@ -29,16 +30,22 @@ public enum WindowSnapDragRestore {
     ///    resizing, or the app changed it) → nil, and the caller forgets it;
     ///  - it hasn't actually left its snapped position yet → nil;
     ///  - its original size is the same as the snapped size → nil.
-    /// Otherwise: original size, same top edge, with the pointer kept at the
-    /// same fraction across the title bar so the window doesn't jump away.
+    /// Otherwise: the original SIZE at the window's CURRENT origin — a
+    /// resize in place. Do not move the window: macOS owns the drag and keeps
+    /// its own grab offset, so a position write mid-drag is undone on the next
+    /// mouse event and the window jumps away from the pointer. That jump was
+    /// the symptom in Ethan's "doesn't quite work" report. Mac mini drag tests
+    /// (upstream synthetic title-bar drags with movement deltas) reported:
+    /// size+position → window jumped back ~130 pt from the pointer; size only →
+    /// window kept following smoothly with the pointer on its title bar.
+    /// Magnet does the same: its log reads "Restored window fits screen,
+    /// resizing in place." `pointer` is kept for callers/tests and unused.
     public static func restoredFrame(current: CGRect, accepted: CGRect, original: CGRect,
                                      pointer: CGPoint) -> CGRect? {
         guard sameSize(current, accepted) else { return nil }
         let moved = abs(current.minX - accepted.minX) > 3 || abs(current.minY - accepted.minY) > 3
         guard moved, !sameSize(original, accepted), current.width > 0 else { return nil }
-        let fraction = min(max((pointer.x - current.minX) / current.width, 0), 1)
-        let x = (pointer.x - original.width * fraction).rounded()
-        return CGRect(x: x, y: current.minY.rounded(), width: original.width, height: original.height)
+        return CGRect(origin: current.origin, size: original.size)
     }
 
     /// True when the window was resized away from the snapped size, so the
