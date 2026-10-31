@@ -149,7 +149,7 @@ Agentic Mouse does not edit vendor profile databases. Its runtime modes restore 
 
 [**Follow me on LinkedIn →**](https://www.linkedin.com/in/ethansk/) for more tips on the agentic future — the tools, skills and setup I use. [See recent posts](https://www.linkedin.com/in/ethansk/recent-activity/all/).
 
-MIT licensed. [Read the license](LICENSE).
+Source-available under [Ethan Source-Available No-Sale Terms 1.0](LICENSE). You can use and modify the covered code, including internally at work, and share it without charge. Selling the software, modified versions, paid access, or bundles requires a separate commercial license. Earlier licenses and third-party rights remain in force. See [scope and release policy](LICENSING.md).
 
 ### App icon
 
