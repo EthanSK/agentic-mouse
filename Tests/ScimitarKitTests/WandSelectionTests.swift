@@ -646,15 +646,15 @@ final class WandSelectionControllerTests: XCTestCase {
     func testWheelCardArmsThenTheNextHoldAdjustsWithTilt() {
         frontmost = .codex
         begin()
-        aim(at: 4, seq: 1) // cell 4: Reasoning Effort + Wheel
-        XCTAssertEqual(controller.focusedCell?.rawValue, 4)
+        aim(at: 6, seq: 1) // cell 6: Reasoning Effort + Wheel
+        XCTAssertEqual(controller.focusedCell?.rawValue, 6)
         end()
         XCTAssertEqual(controller.phase, .armed)
         XCTAssertEqual(coordinator.activeWheelControl, .codexReasoningEffort)
         XCTAssertEqual(wheelChanges.last, .codexReasoningEffort)
-        XCTAssertEqual(hud.snapshots.last?.pointerFocus, ModeHUDPointerFocus(cell: PhysicalCell(rawValue: 4)!, isArmed: true))
+        XCTAssertEqual(hud.snapshots.last?.pointerFocus, ModeHUDPointerFocus(cell: PhysicalCell(rawValue: 6)!, isArmed: true))
         XCTAssertEqual(
-            hud.snapshots.last?.legend.first { $0.cell.rawValue == 4 }?.actionTitle,
+            hud.snapshots.last?.legend.first { $0.cell.rawValue == 6 }?.actionTitle,
             "Reasoning Effort",
             "wheel hints stay exactly as they are"
         )
@@ -679,7 +679,7 @@ final class WandSelectionControllerTests: XCTestCase {
     func testArmedCardTimesOutWithoutAClickRelease() {
         frontmost = .codex
         begin()
-        aim(at: 4, seq: 1)
+        aim(at: 6, seq: 1)
         end()
         tickAfter(8.1)
         XCTAssertFalse(coordinator.isActive)
@@ -690,7 +690,7 @@ final class WandSelectionControllerTests: XCTestCase {
     func testRetargetedFrontmostAppDisarmsTheWandCard() {
         frontmost = .codex
         begin()
-        aim(at: 4, seq: 1)
+        aim(at: 6, seq: 1)
         end()
         XCTAssertEqual(controller.phase, .armed)
         frontmost = .chrome

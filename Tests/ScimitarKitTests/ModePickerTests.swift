@@ -215,11 +215,11 @@ final class ModePickerTests: XCTestCase {
         XCTAssertEqual(closeTab.printedControlLabel(on: .corsair), "Corsair 8")
         XCTAssertEqual(closeTab.printedControlLabel(on: .razer), "Razer 8")
 
-        let spare = CodexMode.definition.legend.first {
-            $0.cell == PhysicalCell(rawValue: 1)!
+        let speed = CodexMode.definition.legend.first {
+            $0.cell == CodexMode.responseSpeedWheelCell
         }!
-        XCTAssertEqual(spare.controlStatus, .normal)
-        XCTAssertEqual(spare.actionTitle, "Speed")
+        XCTAssertEqual(speed.controlStatus, .normal)
+        XCTAssertEqual(speed.actionTitle, "Speed")
 
         XCTAssertEqual(VSCodeModeAction.toggleTerminal.hudControlStatus, .normal)
         XCTAssertEqual(VSCodeModeAction.stageAndNext.hudControlStatus, .normal)
@@ -2495,7 +2495,7 @@ final class ModePickerTests: XCTestCase {
         XCTAssertEqual(hud.snapshots.last?.footerTitle, "App-specific — TextEdit")
     }
 
-    func testCodexChildCellFourArmsReasoningEffortWheel() {
+    func testCodexChildCellSixArmsReasoningEffortWheel() {
         let hud = RecordingModeHUDPresenter()
         let coordinator = makeCoordinator(hud: hud)
         var controls: [WheelChordControl?] = []
@@ -2505,7 +2505,7 @@ final class ModePickerTests: XCTestCase {
 
         coordinator.enterAppSelector(source: .corsair)
         coordinator.handle(.init(action: .select, source: .corsair, physicalCell: AppSpecificTarget.codex.selectorCell!))
-        let reasoningEffortCell = PhysicalCell(rawValue: 4)!
+        let reasoningEffortCell = CodexMode.reasoningEffortWheelCell
         coordinator.handle(.init(action: .select, source: .corsair, physicalCell: reasoningEffortCell))
 
         XCTAssertTrue(coordinator.isActive)
@@ -2544,7 +2544,7 @@ final class ModePickerTests: XCTestCase {
                     coordinator.enterAppSpecific(source: source)
                 }
 
-                let chatCell = PhysicalCell(rawValue: 6)!
+                let chatCell = CodexMode.chatHistoryWheelCell
                 let micCell = PhysicalCell(rawValue: 11)!
                 coordinator.handle(.init(action: .select, source: source, physicalCell: chatCell))
                 XCTAssertEqual(coordinator.activeWheelControl, .codexChatHistory)
@@ -2634,70 +2634,70 @@ final class ModePickerTests: XCTestCase {
         XCTAssertEqual(CodexModeAction.newTask.cell.rawValue, 5)
         XCTAssertEqual(CodexModeAction.newTask.cell.printedSide(on: .razer), 5)
         XCTAssertEqual(CodexModeAction.newTask.cell.printedSide(on: .corsair), 5)
-        XCTAssertEqual(CodexModeAction.togglePin.cell.rawValue, 3)
+        XCTAssertEqual(CodexModeAction.togglePin.cell.rawValue, 1)
         XCTAssertEqual(CodexModeAction.toggleMicrophoneMute.cell.rawValue, 11)
         XCTAssertEqual(CodexModeAction.toggleMicrophoneMute.cell.printedSide(on: .corsair), 11)
         XCTAssertEqual(CodexModeAction.toggleMicrophoneMute.cell.printedSide(on: .razer), 11)
-        XCTAssertEqual(CodexMode.chatHistoryWheelCell.printedSide(on: .corsair), 6)
-        XCTAssertEqual(CodexMode.chatHistoryWheelCell.printedSide(on: .razer), 4)
+        XCTAssertEqual(CodexMode.chatHistoryWheelCell.printedSide(on: .corsair), 9)
+        XCTAssertEqual(CodexMode.chatHistoryWheelCell.printedSide(on: .razer), 7)
         XCTAssertEqual(
             CodexModeAction.toggleMicrophoneMute.title,
             "Mute / unmute voice mic"
         )
-        XCTAssertEqual(CodexModeAction.togglePin.cell.printedSide(on: .razer), 1)
-        XCTAssertEqual(CodexModeAction.togglePin.cell.printedSide(on: .corsair), 3)
+        XCTAssertEqual(CodexModeAction.togglePin.cell.printedSide(on: .razer), 3)
+        XCTAssertEqual(CodexModeAction.togglePin.cell.printedSide(on: .corsair), 1)
         XCTAssertEqual(CodexModeAction.toggleVoiceMode.cell.rawValue, 12)
         XCTAssertEqual(CodexModeAction.toggleVoiceMode.cell.printedSide(on: .corsair), 12)
         XCTAssertEqual(CodexModeAction.toggleVoiceMode.cell.printedSide(on: .razer), 10)
         XCTAssertEqual(CodexModeAction.newTask.title, "New chat")
         XCTAssertEqual(CodexModeAction.toggleVoiceMode.title, "Voice mode")
-        XCTAssertEqual(CodexModeAction.openSideChat.cell.rawValue, 9)
-        XCTAssertEqual(CodexModeAction.openSideChat.cell.printedSide(on: .corsair), 9)
-        XCTAssertEqual(CodexModeAction.openSideChat.cell.printedSide(on: .razer), 7)
+        XCTAssertEqual(CodexModeAction.openSideChat.cell.rawValue, 4)
+        XCTAssertEqual(CodexModeAction.openSideChat.cell.printedSide(on: .corsair), 4)
+        XCTAssertEqual(CodexModeAction.openSideChat.cell.printedSide(on: .razer), 6)
         XCTAssertEqual(CodexModeAction.openSideChat.title, "Open side chat")
-        XCTAssertNil(CodexModeAction.action(for: PhysicalCell(rawValue: 1)!))
-        XCTAssertEqual(CodexMode.responseSpeedWheelCell.printedSide(on: .corsair), 1)
-        XCTAssertEqual(CodexMode.responseSpeedWheelCell.printedSide(on: .razer), 3)
+        XCTAssertNil(CodexModeAction.action(for: PhysicalCell(rawValue: 3)!))
+        XCTAssertEqual(CodexMode.responseSpeedWheelCell.printedSide(on: .corsair), 3)
+        XCTAssertEqual(CodexMode.responseSpeedWheelCell.printedSide(on: .razer), 1)
         XCTAssertEqual(CodexModeAction.closeTab.cell.rawValue, 8)
         XCTAssertEqual(CodexModeAction.closeTab.title, "⌘W Close tab")
         XCTAssertEqual(CodexModeAction.pressEnter.cell.rawValue, 7)
         XCTAssertEqual(CodexModeAction.pressEnter.cell.printedSide(on: .razer), 9)
         XCTAssertEqual(CodexModeAction.pressEnter.cell.printedSide(on: .corsair), 7)
         XCTAssertEqual(CodexModeAction.action(for: .modePickerEntry), .toggleVoiceMode)
-        XCTAssertNil(CodexModeAction.action(for: PhysicalCell(rawValue: 4)!))
+        XCTAssertEqual(CodexModeAction.action(for: PhysicalCell(rawValue: 4)!), .openSideChat)
         XCTAssertNil(CodexModeAction.action(for: PhysicalCell(rawValue: 6)!))
         XCTAssertEqual(CodexModeAction.action(for: PhysicalCell(rawValue: 11)!), .toggleMicrophoneMute)
         XCTAssertNil(WheelChordControl.appSpecificControl(for: .codex, cell: PhysicalCell(rawValue: 11)!))
         XCTAssertEqual(
             WheelChordControl.appSpecificControl(
                 for: .codex,
-                cell: PhysicalCell(rawValue: 4)!
+                cell: PhysicalCell(rawValue: 6)!
             ),
             .codexReasoningEffort
         )
         XCTAssertEqual(
             WheelChordControl.appSpecificControl(
                 for: .codex,
-                cell: PhysicalCell(rawValue: 6)!
+                cell: PhysicalCell(rawValue: 9)!
             ),
             .codexChatHistory
         )
         XCTAssertEqual(CodexMode.definition.legend[1].actionTitle, "Exit · Hold for Pin/Unpin")
         XCTAssertEqual(CodexMode.definition.legend[4].actionTitle, "New chat")
-        XCTAssertEqual(CodexMode.definition.legend[2].actionTitle, "Pin/Unpin + Hold 2")
-        XCTAssertEqual(CodexMode.definition.legend[0].actionTitle, "Speed")
+        XCTAssertEqual(CodexMode.definition.legend[0].actionTitle, "Pin/Unpin")
+        XCTAssertEqual(CodexMode.definition.legend[2].actionTitle, "Speed")
         XCTAssertEqual(CodexMode.definition.legend[10].actionTitle, "Mute / unmute voice mic")
-        XCTAssertEqual(CodexMode.definition.legend[8].actionTitle, "Open side chat")
+        XCTAssertEqual(CodexMode.definition.legend[3].actionTitle, "Open side chat")
         XCTAssertEqual(CodexMode.definition.legend[9].actionTitle, "Exit Codex mode")
-        XCTAssertEqual(CodexMode.definition.legend[3].actionTitle, "Reasoning Effort")
+        XCTAssertEqual(CodexMode.definition.legend[5].actionTitle, "Reasoning Effort")
         XCTAssertEqual(CodexMode.definition.legend[11].actionTitle, "Voice mode")
-        XCTAssertEqual(CodexMode.definition.legend[5].actionTitle, "Chats Selection")
+        XCTAssertEqual(CodexMode.definition.legend[8].actionTitle, "Chats Selection")
         XCTAssertEqual(
-            CodexMode.definition.legend[3].accent,
+            CodexMode.definition.legend[5].accent,
             ModeHUDActionFamilyPalette.reasoningEffort
         )
         XCTAssertEqual(
-            CodexMode.definition.legend[5].accent,
+            CodexMode.definition.legend[8].accent,
             ModeHUDActionFamilyPalette.historyNavigation
         )
         XCTAssertNotEqual(CodexMode.definition.legend[11].actionTitle, "Choose another app")
@@ -2733,7 +2733,7 @@ final class ModePickerTests: XCTestCase {
 
             let expectedCellThreeTitle: String
             switch page {
-            case .appSpecific: expectedCellThreeTitle = "Pin/Unpin + Hold 2"
+            case .appSpecific: expectedCellThreeTitle = "Speed"
             case .appSelector: expectedCellThreeTitle = "Claude"
             case .keys: expectedCellThreeTitle = "⌘Z Undo"
             case .chromeWebsites: expectedCellThreeTitle = "X"
@@ -3133,11 +3133,11 @@ final class ModePickerTests: XCTestCase {
             }
             coordinator.enterAppSpecific(source: source)
             let cell = CodexMode.screenshotPinWheelCell
-            XCTAssertEqual(hud.snapshots.last?.legend.first { $0.cell == cell }?.actionTitle, "Pin/Unpin + Hold 2")
+            XCTAssertEqual(hud.snapshots.last?.legend.first { $0.cell == cell }?.actionTitle, "Pin/Unpin")
             coordinator.handle(.init(action: .select, source: source, physicalCell: cell, phase: .press))
-            XCTAssertEqual(hud.snapshots.last?.legend.first { $0.cell == cell }?.actionTitle, "Pin/Unpin + Hold 2")
+            XCTAssertEqual(hud.snapshots.last?.legend.first { $0.cell == cell }?.actionTitle, "Pin/Unpin")
             coordinator.handle(.init(action: .select, source: source, physicalCell: cell, phase: .release))
-            XCTAssertEqual(hud.snapshots.last?.legend.first { $0.cell == cell }?.actionTitle, "Pin/Unpin + Hold 2")
+            XCTAssertEqual(hud.snapshots.last?.legend.first { $0.cell == cell }?.actionTitle, "Pin/Unpin")
             XCTAssertNil(coordinator.activeWheelControl)
             XCTAssertTrue(coordinator.isActive)
         }
@@ -3173,7 +3173,7 @@ final class ModePickerTests: XCTestCase {
 
     func testRepeatedCodexExitAndSpeedClicksDoNotRouteActionsOnEitherMouse() {
         for source in MouseSource.allCases {
-            for cell in [PhysicalCell.frontmostAppModeSelector, .modeExit, PhysicalCell(rawValue: 1)!] {
+            for cell in [PhysicalCell.frontmostAppModeSelector, .modeExit, CodexMode.responseSpeedWheelCell] {
                 let coordinator = makeCoordinator()
                 coordinator.resolveFrontmostApp = {
                     FrontmostAppModeContext(target: .codex, displayName: "Codex", bundleIdentifier: CodexMode.bundleIdentifier)

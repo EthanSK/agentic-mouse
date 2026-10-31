@@ -124,8 +124,17 @@ public struct ModeHUDLegendItem: Equatable, Hashable, Sendable {
     /// wand) does something. Plain click cards leave it nil.
     public let gesture: ModeHUDGesture?
     /// The wand's own title, where the shared one names a physical-mouse
-    /// chord the wand does not perform (Codex's "Pin/Unpin + Hold 2").
+    /// chord the wand does not perform (Codex's source-specific Pin modifier).
     public private(set) var wandTitle: String?
+    /// A separate physical button held while clicking this card. Resolve its
+    /// printed mouse label at presentation time, never bake "Hold 2" into copy.
+    public private(set) var heldModifierCell: PhysicalCell?
+
+    public func withHeldModifier(_ cell: PhysicalCell) -> ModeHUDLegendItem {
+        var copy = self
+        copy.heldModifierCell = cell
+        return copy
+    }
 
     /// This card with its wand-only title.
     public func withWandTitle(_ title: String) -> ModeHUDLegendItem {
@@ -192,6 +201,9 @@ public struct ModeHUDLegendItem: Equatable, Hashable, Sendable {
     /// can perform shows just its click.
     public func displayTitle(on source: MouseSource) -> String {
         if source == .wand, let wandTitle { return wandTitle }
+        if let heldModifierCell {
+            return "\(actionTitle) + Hold \(heldModifierCell.displayLabel(on: source))"
+        }
         guard let gesture else { return actionTitle }
         guard gesture.isAvailable(on: source) else { return gesture.click ?? gesture.hold }
         return "\(gesture.words) \(gesture.motion(on: source).glyph)"
@@ -201,7 +213,7 @@ public struct ModeHUDLegendItem: Equatable, Hashable, Sendable {
     /// so this says what the click and the hold each do.
     public func accessibilityDescription(on source: MouseSource) -> String {
         if source == .wand, let wandTitle { return wandTitle }
-        guard let gesture else { return actionTitle }
+        guard let gesture else { return displayTitle(on: source) }
         guard gesture.isAvailable(on: source) else {
             return gesture.click ?? "\(gesture.hold), mouse wheel only"
         }

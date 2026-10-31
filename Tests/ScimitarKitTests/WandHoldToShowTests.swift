@@ -354,9 +354,9 @@ final class WandHoldToShowTests: XCTestCase {
         releaseHold(id)
         XCTAssertEqual(target.page, .appSpecific)
         let effort = hold()
-        aim(effort, at: PhysicalCell(rawValue: 4)!)
+        aim(effort, at: CodexMode.reasoningEffortWheelCell)
         releaseHold(effort)
-        XCTAssertEqual(control.armedCell, PhysicalCell(rawValue: 4)!)
+        XCTAssertEqual(control.armedCell, CodexMode.reasoningEffortWheelCell)
         frontmost = .chrome
         target.updateFrontmostApp(target.resolveFrontmostApp!())
         let next = hold()

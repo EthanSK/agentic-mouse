@@ -146,7 +146,7 @@ final class WandGroupedLayoutTests: XCTestCase {
 
     func testCodexKeepsModelSettingsAndChatsTogether() {
         let layout = coordinator(.codex, open: [2]).wandRadialLayout
-        XCTAssertTrue(clockwiseNeighbours(layout, CodexMode.responseSpeedWheelCell, PhysicalCell(rawValue: 4)!))
+        XCTAssertTrue(clockwiseNeighbours(layout, CodexMode.responseSpeedWheelCell, CodexMode.reasoningEffortWheelCell))
         XCTAssertTrue(clockwiseNeighbours(layout, PhysicalCell(rawValue: 11)!, PhysicalCell(rawValue: 12)!), "voice pair")
         XCTAssertEqual(layout.ring.count, 10)
     }
@@ -172,7 +172,7 @@ final class WandGroupedLayoutTests: XCTestCase {
         let legend = CodexMode.definition.legend
         let pin = legend.first { $0.cell == CodexMode.pinToggleCell }!
         XCTAssertEqual(pin.displayTitle(on: .wand), "Pin/Unpin", "no physical cell-2 chord cue on the wand")
-        XCTAssertEqual(pin.displayTitle(on: .corsair), "Pin/Unpin + Hold 2", "the mice keep their chord")
+        XCTAssertEqual(pin.displayTitle(on: .corsair), "Pin/Unpin + Hold Corsair 2", "the mice name their actual modifier")
         let centre = legend.first { $0.cell == CodexMode.pinModifierCell }!
         XCTAssertEqual(centre.displayTitle(on: .wand), "Exit Codex mode")
         XCTAssertEqual(centre.displayTitle(on: .razer), "Exit · Hold for Pin/Unpin")

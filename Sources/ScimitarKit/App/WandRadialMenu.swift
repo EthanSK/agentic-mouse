@@ -316,7 +316,15 @@ public enum WandRingOrder {
 
     /// Codex: model settings together (Speed, Reasoning Effort), Pin and
     /// Enter, the chat cards together, then the voice pair.
-    public static let codex: [PhysicalCell] = cells([1, 4, 3, 7, 5, 6, 9, 8, 11, 12])
+    // Keep the wand's established semantic order when Ethan rearranges mouse
+    // buttons: fixed cell numbers would silently move different actions here.
+    public static let codex: [PhysicalCell] = [
+        CodexMode.responseSpeedWheelCell, CodexMode.reasoningEffortWheelCell,
+        CodexModeAction.togglePin.cell, CodexModeAction.pressEnter.cell,
+        CodexModeAction.newTask.cell, CodexMode.chatHistoryWheelCell,
+        CodexModeAction.openSideChat.cell, CodexModeAction.closeTab.cell,
+        CodexModeAction.toggleMicrophoneMute.cell, CodexModeAction.toggleVoiceMode.cell,
+    ]
 
     public static func order(page: ModePickerPage, isHome: Bool, appTarget: AppSpecificTarget?) -> [PhysicalCell]? {
         if isHome { return home }

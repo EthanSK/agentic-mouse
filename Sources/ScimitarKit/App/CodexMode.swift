@@ -12,10 +12,10 @@ public enum CodexModeAction: String, CaseIterable, Equatable, Sendable {
     public var cell: PhysicalCell {
         switch self {
         case .newTask: return PhysicalCell(rawValue: 5)!
-        case .togglePin: return PhysicalCell(rawValue: 3)!
+        case .togglePin: return CodexMode.pinToggleCell
         case .toggleMicrophoneMute: return PhysicalCell(rawValue: 11)!
         case .toggleVoiceMode: return PhysicalCell(rawValue: 12)!
-        case .openSideChat: return PhysicalCell(rawValue: 9)!
+        case .openSideChat: return PhysicalCell(rawValue: 4)!
         case .closeTab: return PhysicalCell(rawValue: 8)!
         case .pressEnter: return PhysicalCell(rawValue: 7)!
         }
@@ -24,7 +24,7 @@ public enum CodexModeAction: String, CaseIterable, Equatable, Sendable {
     public var title: String {
         switch self {
         case .newTask: return "New chat"
-        case .togglePin: return "Pin/Unpin + Hold 2"
+        case .togglePin: return "Pin/Unpin"
         case .toggleMicrophoneMute: return "Mute / unmute voice mic"
         case .toggleVoiceMode: return "Voice mode"
         case .openSideChat: return "Open side chat"
@@ -63,13 +63,17 @@ public enum CodexModeAction: String, CaseIterable, Equatable, Sendable {
 }
 
 public enum CodexMode {
-    public static let responseSpeedWheelCell = PhysicalCell(rawValue: 1)!
-    public static let pinToggleCell = PhysicalCell(rawValue: 3)!
+    // Ethan's Codex layout: "flip pin unpin and speed", put Reasoning on
+    // Corsair 6, Open side chat on 4, and Chats Selection on 9. These canonical
+    // cells also drive the mirrored Razer HUD and both app-entry journeys.
+    public static let responseSpeedWheelCell = PhysicalCell(rawValue: 3)!
+    public static let pinToggleCell = PhysicalCell(rawValue: 1)!
+    public static let reasoningEffortWheelCell = PhysicalCell(rawValue: 6)!
     public static let pinModifierCell = PhysicalCell.frontmostAppModeSelector
     public static let screenshotPinWheelCell = pinToggleCell // Compatibility with the retired Codex wheel route.
     public static let bundleIdentifier = "com.openai.codex"
     public static let accent = RGBColor(red: 32, green: 128, blue: 255)
-    public static let chatHistoryWheelCell = PhysicalCell(rawValue: 6)! // Swap Codex cells 6 and 11 on both mice; share this cell between routing, the HUD and wheel feedback. (Codex task: 01a039f7-873c-7c30-b3dc-af8a6724ace5)
+    public static let chatHistoryWheelCell = PhysicalCell(rawValue: 9)!
 
     public static let definition = AppSpecificModeDefinition(
         title: "Codex mode",
@@ -95,7 +99,7 @@ public enum CodexMode {
                         actionTitle: CodexModeAction.togglePin.title,
                         accent: control.hudAccent,
                         controlStatus: control.hudControlStatus
-                    ).withWandTitle("Pin/Unpin")
+                    ).withHeldModifier(pinModifierCell).withWandTitle("Pin/Unpin")
                 }
                 return ModeHUDLegendItem(
                     cell: cell,
@@ -113,8 +117,9 @@ public enum CodexMode {
                 )
                 // Ethan (2026-10-30): "we don't need to do that hold 2x thing"
                 // on the wand. A wand click sends the Pin shortcut directly;
-                // "+ Hold 2" is the physical mice's cell-2 chord.
-                return action == .togglePin ? item.withWandTitle("Pin/Unpin") : item
+                // The physical mice name their actual source-specific modifier.
+                return action == .togglePin
+                    ? item.withHeldModifier(pinModifierCell).withWandTitle("Pin/Unpin") : item
             }
             return ModeHUDLegendItem(
                 cell: cell,
