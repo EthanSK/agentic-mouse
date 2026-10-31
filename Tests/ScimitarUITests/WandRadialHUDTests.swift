@@ -214,6 +214,26 @@ final class WandRadialHUDTests: XCTestCase {
         XCTAssertEqual(model.wandFocusAngle, top, accuracy: 1e-9)
     }
 
+    func testReturningToCentreKeepsTheIncomingWedgeDirection() throws {
+        let model = ModeHUDViewModel(source: .wand, appIconProvider: NoRadialIconProvider())
+        var snapshot = try homeSnapshot(frontmost: nil)
+        let layout = try XCTUnwrap(snapshot.wandRadialLayout)
+        let centre = try XCTUnwrap(layout.center)
+        for wedge in layout.ring {
+            snapshot.pointerFocus = ModeHUDPointerFocus(cell: wedge)
+            model.apply(snapshot)
+            let incoming = model.wandFocusAngle
+            // The wand may be pulled up, down or across as it enters the
+            // centre. That changes the disc's lean, not the return route.
+            for pull in [CGPoint(x: 0, y: -0.7), CGPoint(x: -0.6, y: 0), CGPoint(x: 0.5, y: 0.4), .zero] {
+                snapshot.pointerFocus = ModeHUDPointerFocus(cell: centre, pullX: pull.x, pullY: pull.y)
+                XCTAssertTrue(model.apply(snapshot))
+                XCTAssertEqual(model.wandFocusAngle, incoming, accuracy: 1e-9,
+                               "returning from \(wedge) must not detour toward the centre's live pull")
+            }
+        }
+    }
+
     /// The angle each card is drawn at is the angle the navigator selects.
     func testDrawnCardsSitExactlyWhereSelectionAimsForThem() {
         let layout = WandRadialLayout(center: .modeExit, ring: PhysicalCell.all.filter { $0 != .modeExit })
