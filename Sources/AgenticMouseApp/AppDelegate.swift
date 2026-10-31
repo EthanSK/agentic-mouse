@@ -366,6 +366,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         userCommandReceiver?.stop()
         wheelChordMonitor?.stop()
         magnetWheelActionSequencer.cancelAll()
+        WindowSnapController.shared.cancelAll()
         chromeYouTubeSpeedHoldController.cancelAll()
         pendingSpaceDiagnostic = nil
         spaceDiagnosticGeneration &+= 1
@@ -462,6 +463,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         codexModeActionExecutor.cancelPendingActions()
         wheelChordMonitor?.clearAll()
         magnetWheelActionSequencer.cancelAll()
+        WindowSnapController.shared.cancelAll()
         chromeYouTubeSpeedHoldController.cancelAll()
         pendingSpaceDiagnostic = nil
         spaceDiagnosticGeneration &+= 1
@@ -522,6 +524,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         codexModeActionExecutor.cancelPendingActions()
         wheelChordMonitor?.clearAll()
         magnetWheelActionSequencer.cancelAll()
+        WindowSnapController.shared.cancelAll()
         chromeYouTubeSpeedHoldController.cancelAll()
         notificationCenterToggleVerifier.cancel()
         pendingSpaceDiagnostic = nil
@@ -1149,6 +1152,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 }
                 self.wheelChordMonitor?.clear(source: source)
                 self.magnetWheelActionSequencer.cancel(source: source)
+                WindowSnapController.shared.cancel(source: source)
                 if active {
                     // A top-level mode button can be pressed while Better Git still owns
                     // a release-only hold. Close that transaction before the mode switch
@@ -1535,6 +1539,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 }
                 if control == nil {
                     self?.magnetWheelActionSequencer.cancel(source: source)
+                    WindowSnapController.shared.cancel(source: source)
                     self?.wheelChordMonitor?.clear(source: source)
                     return
                 }
@@ -2039,6 +2044,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             )
         }
         monitor.onClear = { [weak self] source, nextControl in
+            self?.magnetWheelActionSequencer.cancel(source: source)
+            WindowSnapController.shared.cancel(source: source)
             if self?.activeWheelControl(for: source) == .codexResponseSpeed {
                 self?.codexModeActionExecutor.cancelResponseSpeed()
             }
@@ -2065,6 +2072,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 self?.codexModeActionExecutor.cancelReasoningEffort()
             case .windowWidth, .windowHeight:
                 self?.windowResizeController.cancel(source: release.source)
+            case .magnetWindow:
+                self?.magnetWheelActionSequencer.cancel(source: release.source)
+                WindowSnapController.shared.cancel(source: release.source)
             case .youtubeScrub:
                 guard self?.youtubeScrubHoldController.release(source: release.source, inputTime: inputTime) == true,
                       !release.didObserveWheelInput else { return }
@@ -2092,7 +2102,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     self.log.error("Copy/Paste click could not insert space: \(error)")
                 }
             case .horizontalScroll, .youtubeVolume, .brightness, .zoom,
-                 .systemOverview, .applicationWindows, .magnetWindow, .spaces,
+                 .systemOverview, .applicationWindows, .spaces,
                  .chromeTabs, .spotifyVolume, .vsCodeCursorHistory, .vsCodeStageRange,
                  .codexChatHistory, .claudeTabs:
                 return
@@ -2667,7 +2677,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func performSequencedMagnetAction(
         _ request: MagnetWheelActionSequencer.Request
     ) {
-        switch modeUtilityActionExecutor.perform(request.action) {
+        switch modeUtilityActionExecutor.perform(request.action, source: request.source) {
         case .success:
             log.info(
                 "\(request.action.actionTitle) ratchet \(request.detentCount) posted from "
