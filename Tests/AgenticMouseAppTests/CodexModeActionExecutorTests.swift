@@ -238,10 +238,12 @@ final class CodexModeActionExecutorTests: XCTestCase {
         )
         var pidTargetedEvents: [(pid_t, CGKeyCode, CGEventFlags, Bool)] = []
         var hardwareShortcuts: [CodexModeActionExecutor.Shortcut] = []
+        var systemShortcuts: [CodexModeActionExecutor.Shortcut] = []
         let executor = CodexModeActionExecutor(
             targetProcessResolver: { 4242 },
             postEvent: { pidTargetedEvents.append(($0, $1, $2, $3)); return true },
             targetProcessIsActive: { _ in false },
+            postSystemShortcut: { systemShortcuts.append($0); return true },
             postHardwareSystemShortcut: { hardwareShortcuts.append($0); return true },
             accessibilityTrusted: { true },
         )
@@ -257,6 +259,28 @@ final class CodexModeActionExecutorTests: XCTestCase {
         ])
         XCTAssertEqual(pidTargetedEvents.map(\.3), [true, false])
         XCTAssertTrue(hardwareShortcuts.isEmpty)
+        XCTAssertTrue(systemShortcuts.isEmpty)
+    }
+
+    func testVoiceEventsUseHeyChatsPrivateStateAndFreshTimestamps() throws {
+        let source = try XCTUnwrap(CGEventSource(stateID: .privateState))
+        var states: [Int64] = []
+        for isDown in [true, false] {
+            let event = try XCTUnwrap(CodexModeActionExecutor.voiceKeyboardEvent(
+                source: source, keyCode: 64, flags: CodexModeActionExecutor.hyper, isDown: isDown
+            ))
+            XCTAssertEqual(event.type, isDown ? .keyDown : .keyUp)
+            XCTAssertEqual(event.getIntegerValueField(.keyboardEventKeycode), 64)
+            let state = event.getIntegerValueField(.eventSourceStateID)
+            // privateState is a creation sentinel; macOS assigns each private
+            // source its own ID. Neither shared system state may be used.
+            XCTAssertNotEqual(state, Int64(CGEventSourceStateID.hidSystemState.rawValue))
+            XCTAssertNotEqual(state, Int64(CGEventSourceStateID.combinedSessionState.rawValue))
+            states.append(state)
+            XCTAssertEqual(event.flags, CodexModeActionExecutor.hyper)
+            XCTAssertGreaterThan(event.timestamp, 0)
+        }
+        XCTAssertEqual(states.first, states.last, "press/release share one private key state")
     }
 
     func testOpenSideChatUsesCodexsBuiltInAppShortcut() {

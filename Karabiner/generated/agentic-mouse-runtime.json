@@ -3859,28 +3859,12 @@
               "send_user_command": {
                 "payload": {
                   "command": "agentic_mouse_mode_picker",
-                  "action": "selectNative",
+                  "action": "select",
                   "source": "corsair",
                   "physical_cell": 12,
                   "phase": "press"
                 }
               },
-              "repeat": false,
-              "conditions": [
-                {
-                  "type": "expression_if",
-                  "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
-                }
-              ]
-            },
-            {
-              "key_code": "f17",
-              "modifiers": [
-                "left_command",
-                "left_control",
-                "left_option",
-                "left_shift"
-              ],
               "repeat": false,
               "conditions": [
                 {
@@ -3917,6 +3901,26 @@
               "type": "expression_if",
               "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
             }
+          ],
+          "to_after_key_up": [
+            {
+              "send_user_command": {
+                "payload": {
+                  "command": "agentic_mouse_mode_picker",
+                  "action": "select",
+                  "source": "corsair",
+                  "physical_cell": 12,
+                  "phase": "release"
+                }
+              },
+              "repeat": false,
+              "conditions": [
+                {
+                  "type": "expression_if",
+                  "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+                }
+              ]
+            }
           ]
         },
         {
@@ -3934,28 +3938,12 @@
               "send_user_command": {
                 "payload": {
                   "command": "agentic_mouse_mode_picker",
-                  "action": "selectNative",
+                  "action": "select",
                   "source": "corsair",
                   "physical_cell": 12,
                   "phase": "press"
                 }
               },
-              "repeat": false,
-              "conditions": [
-                {
-                  "type": "expression_if",
-                  "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
-                }
-              ]
-            },
-            {
-              "key_code": "f17",
-              "modifiers": [
-                "left_command",
-                "left_control",
-                "left_option",
-                "left_shift"
-              ],
               "repeat": false,
               "conditions": [
                 {
@@ -3997,6 +3985,26 @@
             {
               "type": "expression_if",
               "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+            }
+          ],
+          "to_after_key_up": [
+            {
+              "send_user_command": {
+                "payload": {
+                  "command": "agentic_mouse_mode_picker",
+                  "action": "select",
+                  "source": "corsair",
+                  "physical_cell": 12,
+                  "phase": "release"
+                }
+              },
+              "repeat": false,
+              "conditions": [
+                {
+                  "type": "expression_if",
+                  "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+                }
+              ]
             }
           ]
         },
@@ -6911,28 +6919,12 @@
               "send_user_command": {
                 "payload": {
                   "command": "agentic_mouse_mode_picker",
-                  "action": "selectNative",
+                  "action": "select",
                   "source": "razer",
                   "physical_cell": 12,
                   "phase": "press"
                 }
               },
-              "repeat": false,
-              "conditions": [
-                {
-                  "type": "expression_if",
-                  "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
-                }
-              ]
-            },
-            {
-              "key_code": "f17",
-              "modifiers": [
-                "left_command",
-                "left_control",
-                "left_option",
-                "left_shift"
-              ],
               "repeat": false,
               "conditions": [
                 {
@@ -6969,6 +6961,26 @@
               "type": "expression_if",
               "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
             }
+          ],
+          "to_after_key_up": [
+            {
+              "send_user_command": {
+                "payload": {
+                  "command": "agentic_mouse_mode_picker",
+                  "action": "select",
+                  "source": "razer",
+                  "physical_cell": 12,
+                  "phase": "release"
+                }
+              },
+              "repeat": false,
+              "conditions": [
+                {
+                  "type": "expression_if",
+                  "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+                }
+              ]
+            }
           ]
         },
         {
@@ -6986,28 +6998,12 @@
               "send_user_command": {
                 "payload": {
                   "command": "agentic_mouse_mode_picker",
-                  "action": "selectNative",
+                  "action": "select",
                   "source": "razer",
                   "physical_cell": 12,
                   "phase": "press"
                 }
               },
-              "repeat": false,
-              "conditions": [
-                {
-                  "type": "expression_if",
-                  "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
-                }
-              ]
-            },
-            {
-              "key_code": "f17",
-              "modifiers": [
-                "left_command",
-                "left_control",
-                "left_option",
-                "left_shift"
-              ],
               "repeat": false,
               "conditions": [
                 {
@@ -7049,6 +7045,26 @@
             {
               "type": "expression_if",
               "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+            }
+          ],
+          "to_after_key_up": [
+            {
+              "send_user_command": {
+                "payload": {
+                  "command": "agentic_mouse_mode_picker",
+                  "action": "select",
+                  "source": "razer",
+                  "physical_cell": 12,
+                  "phase": "release"
+                }
+              },
+              "repeat": false,
+              "conditions": [
+                {
+                  "type": "expression_if",
+                  "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+                }
+              ]
             }
           ]
         },

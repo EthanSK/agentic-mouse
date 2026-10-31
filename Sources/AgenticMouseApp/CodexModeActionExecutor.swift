@@ -1,4 +1,5 @@
 import AppKit
+import Darwin
 import ScimitarKit
 
 /// Delivers Codex's own configured keyboard shortcuts. Renderer-owned commands
@@ -46,10 +47,11 @@ final class CodexModeActionExecutor {
         flags: [.maskCommand, .maskAlternate]
     )
     static let closeTabShortcut = Shortcut(keyCode: 13, flags: .maskCommand) // Command-W
-    static let voiceModeShortcut = Shortcut(keyCode: 64, flags: hyper) // Hello Chat parity: composer.startVoiceMode toggles native Voice; physical mice use the same chord through Karabiner.
+    static let voiceModeShortcut = Shortcut(keyCode: 64, flags: hyper) // Codex's configured "Toggle voice chat", delivered privately like Ethan's HeyChat.
     static let submitShortcut = Shortcut(keyCode: 36, flags: [])
 
     private let shortcutDispatcher: ApplicationShortcutDispatcher
+    private let voiceShortcutDispatcher: ApplicationShortcutDispatcher
     private let pinChangeVerifier: CodexPinChangeVerifier
     private let voiceSessionVerifier: CodexVoiceSessionVerifier
     private let accessibilityTrusted: AccessibilityTrustProvider
@@ -94,6 +96,19 @@ final class CodexModeActionExecutor {
             targetProcessIsActive: targetProcessIsActive,
             postSystemShortcut: postSystemShortcut,
             postHardwareSystemShortcut: postHardwareSystemShortcut,
+            accessibilityTrusted: accessibilityTrusted,
+            inputAllowed: inputAllowed
+        )
+        let voiceEventSource = CGEventSource(stateID: .privateState)
+        self.voiceShortcutDispatcher = ApplicationShortcutDispatcher(
+            targetProcessResolver: { _ in targetProcessResolver() },
+            postEvent: postEvent ?? { pid, keyCode, flags, isDown in
+                guard let voiceEventSource, let event = Self.voiceKeyboardEvent(
+                    source: voiceEventSource, keyCode: keyCode, flags: flags, isDown: isDown
+                ) else { return false }
+                event.postToPid(pid)
+                return true
+            },
             accessibilityTrusted: accessibilityTrusted,
             inputAllowed: inputAllowed
         )
@@ -144,7 +159,11 @@ final class CodexModeActionExecutor {
         case .toggleMicrophoneMute:
             result = postShortcut(Self.microphoneShortcut)
         case .toggleVoiceMode:
-            result = postShortcut(Self.voiceModeShortcut)
+            result = voiceShortcutDispatcher.perform(
+                Self.voiceModeShortcut,
+                targetBundleIdentifier: CodexMode.bundleIdentifier,
+                targetDisplayName: "Codex"
+            )
         case .openSideChat:
             result = postForegroundShortcut(Self.openSideChatShortcut)
         case .closeTab:
@@ -288,6 +307,20 @@ final class CodexModeActionExecutor {
             targetBundleIdentifier: CodexMode.bundleIdentifier,
             targetDisplayName: "Codex"
         )
+    }
+
+    /// HeyChat's established pattern: private event state, fresh timestamps,
+    /// then postToPid. Never broadcast Voice's modifier chord to global
+    /// recorders, and never alter the transport of other Codex shortcuts.
+    static func voiceKeyboardEvent(
+        source: CGEventSource, keyCode: CGKeyCode, flags: CGEventFlags, isDown: Bool
+    ) -> CGEvent? {
+        guard let event = CGEvent(
+                keyboardEventSource: source, virtualKey: keyCode, keyDown: isDown
+              ) else { return nil }
+        event.flags = flags
+        event.timestamp = mach_absolute_time()
+        return event
     }
 
     private func postForegroundShortcut(_ shortcut: Shortcut) -> Result<Void, ActionError> {
