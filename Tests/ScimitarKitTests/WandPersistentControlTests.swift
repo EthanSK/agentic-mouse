@@ -289,7 +289,7 @@ final class WandPersistentControlTests:XCTestCase {
         XCTAssertEqual(control.focusedCell?.rawValue,5,"the outline never jumps to whatever now sits there")
         XCTAssertEqual(target.wandRadialLayout.ring.count,12)
         XCTAssertEqual(Set(target.wandRadialLayout.outer.map(\.cell)),
-                       [.wandReviewChanges, .wandReviewFiles, .wandUndo, .wandSpace, .wandBrightness, .wandZoom])
+                       [.wandReviewChanges, .wandReviewFiles, .wandUndo, .wandSpace, .wandZoom])
         control.handle(.init(.park,id:id,sequence:3))
         XCTAssertTrue(clicks.isEmpty,"hover alone never acts")
     }

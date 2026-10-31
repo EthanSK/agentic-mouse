@@ -73,14 +73,14 @@ final class WandRadialHUDTests: XCTestCase {
 
     // MARK: Layout contract
 
-    func testHomeBrightnessReusesUtilityGestureAndAccent() throws {
+    func testHomeZoomReusesUtilityGestureAndAccent() throws {
         let home = try homeSnapshot(frontmost: .chrome)
-        let item = try XCTUnwrap(home.legend.first { $0.cell == .wandBrightness })
-        XCTAssertEqual(item.gesture, WheelChordControl.brightness.hudGesture)
-        XCTAssertEqual(item.accent, WheelChordControl.brightness.hudAccent)
+        let item = try XCTUnwrap(home.legend.first { $0.cell == .wandZoom })
+        XCTAssertEqual(item.gesture, WheelChordControl.zoom.hudGesture)
+        XCTAssertEqual(item.accent, WheelChordControl.zoom.hudAccent)
         XCTAssertEqual(item.displayTitle(on: .wand),
-                       ModeHUDLegendItem(cell: .brightnessWheelControl, gesture: WheelChordControl.brightness.hudGesture,
-                                         accent: WheelChordControl.brightness.hudAccent).displayTitle(on: .wand))
+                       ModeHUDLegendItem(cell: .zoomWheelControl, gesture: WheelChordControl.zoom.hudGesture,
+                                         accent: WheelChordControl.zoom.hudAccent).displayTitle(on: .wand))
     }
 
     func testHomeWheelCentresSwitchAppAndKeepsEveryOtherCardInOrder() throws {
@@ -95,10 +95,10 @@ final class WandRadialHUDTests: XCTestCase {
         XCTAssertEqual(layout.ring.last, .frontmostAppModeSelector, "the app card at 12 o'clock")
         XCTAssertEqual(layout.ring.firstIndex(of: .wandPlayPause), layout.ring.firstIndex(of: .modePickerEntry).map { $0 + 1 },
                        "Play/Pause stays immediately after Utility, clockwise")
-        XCTAssertEqual(layout.outer.map(\.cell), [.wandBrightness, .wandZoom, .wandSpace, .wandUndo].sorted {
+        XCTAssertEqual(layout.outer.map(\.cell), [.wandZoom, .wandSpace, .wandUndo].sorted {
             layout.outerIndex(of: $0)! < layout.outerIndex(of: $1)!
         }, "outer cards follow their parents clockwise")
-        XCTAssertEqual(Set(layout.outer.map(\.cell)), [.wandSpace, .wandUndo, .wandBrightness, .wandZoom])
+        XCTAssertEqual(Set(layout.outer.map(\.cell)), [.wandSpace, .wandUndo, .wandZoom])
         XCTAssertEqual(layout.ringIndex(of: .wandCodexNewChat), 8, "New Codex chat in Screenshot's old ring slot")
 
         // Ethan: "you don't want to break your muscle memory of like where
@@ -108,7 +108,7 @@ final class WandRadialHUDTests: XCTestCase {
         for index in layout.ring.indices {
             XCTAssertEqual(vsCode.angle(at: index), layout.angle(at: index), accuracy: 1e-12)
         }
-        XCTAssertEqual(Set(vsCode.outer.map(\.cell)), [.wandReviewChanges, .wandReviewFiles, .wandSpace, .wandUndo, .wandBrightness, .wandZoom])
+        XCTAssertEqual(Set(vsCode.outer.map(\.cell)), [.wandReviewChanges, .wandReviewFiles, .wandSpace, .wandUndo, .wandZoom])
         let app = try XCTUnwrap(vsCode.ringIndex(of: .frontmostAppModeSelector))
         let review = try XCTUnwrap(vsCode.outerIndex(of: .wandReviewChanges))
         let stage = try XCTUnwrap(vsCode.outerIndex(of: .wandReviewFiles))
@@ -377,15 +377,7 @@ final class WandRadialHUDTests: XCTestCase {
         chromeHome.pointerFocus = ModeHUDPointerFocus(cell: .frontmostAppModeSelector)
         states.append(("home-app-artwork", chromeHome))
 
-        // Retained visual proof for Utility → Brightness → Zoom.
-        var brightnessAimed = home
-        brightnessAimed.pointerFocus = ModeHUDPointerFocus(cell: .wandBrightness)
-        states.append(("home-outer-brightness-aimed", brightnessAimed))
-        var brightnessAdjusting = home
-        brightnessAdjusting.pointerFocus = ModeHUDPointerFocus(
-            cell: .wandBrightness, adjustment: ModeHUDWheelAdjustment(pull: 0.6, netSteps: 2, sentSteps: 2, lastStepWasUp: true))
-        states.append(("home-outer-brightness-adjusting", brightnessAdjusting))
-        // Ethan's third-layer Zoom on Utility's wedge, aimed and adjusting.
+        // Zoom is the sole outer card one reach beyond home Utility.
         var zoomAimed = home
         zoomAimed.pointerFocus = navigatorFocus(layout, from: .modePickerEntry,
                                                 moves: [(sin(layout.outerAngle(at: layout.outerIndex(of: .wandZoom)!)) * 17,
@@ -1219,34 +1211,22 @@ final class WandFinalVisualQATests: XCTestCase {
     }
 }
 
-/// Ethan (2026-10-30): New Codex chat moved into Screenshot's ring slot. Zoom,
-/// which sat beyond it on Utility's wedge, keeps its exact place.
-final class WandZoomThirdLayerGeometryTests: XCTestCase {
-    func testZoomKeepsItsBandRadiusAndFitsTheFixedFrame() throws {
+/// Ethan (2026-10-31): Zoom replaces Brightness directly outside Utility.
+final class WandZoomSecondLayerGeometryTests: XCTestCase {
+    func testZoomUsesSecondLayerAndFitsTheFixedFrame() throws {
         let hud = RecordingModeHUDPresenter()
         let coordinator = ModePickerCoordinator(lease: WandModeLease(), hud: hud, scheduler: ManualTickScheduler(),
                                                 log: Log(category: "test", sink: NullLogSink()))
         coordinator.enterWandHome(source: .wand, pointerFocus: ModeHUDPointerFocus(cell: .switchApp))
         let layout = coordinator.wandRadialLayout
         let utility = try XCTUnwrap(layout.ringIndex(of: .modePickerEntry))
-        XCTAssertEqual(layout.outerIndices(ofRing: utility, layer: 1).map { layout.outer[$0].cell }, [.wandBrightness])
+        XCTAssertEqual(layout.outerIndices(ofRing: utility, layer: 1).map { layout.outer[$0].cell }, [.wandZoom])
+        XCTAssertTrue(layout.outerIndices(ofRing: utility, layer: 2).isEmpty)
+        XCTAssertNil(layout.outerIndex(of: .wandBrightness))
         let geometry = WandWheelGeometry(layout: layout)
         let wedge = geometry.outerWedge(at: try XCTUnwrap(layout.outerIndex(of: .wandZoom)))
-        let before = WandRadialLayout(center: layout.center, ring: layout.ring,
-                                      outer: layout.outer.filter { $0.cell != .wandBrightness })
-        let previousGeometry = WandWheelGeometry(layout: before)
-        XCTAssertEqual(wedge, previousGeometry.outerWedge(at: try XCTUnwrap(before.outerIndex(of: .wandZoom))),
-                       "adding Brightness must not change any Zoom geometry")
-        for index in layout.ring.indices {
-            XCTAssertEqual(geometry.wedge(at: index), previousGeometry.wedge(at: index), "no inner ring displacement")
-        }
-        let brightness = geometry.outerWedge(at: try XCTUnwrap(layout.outerIndex(of: .wandBrightness)))
-        XCTAssertEqual(brightness.inner, WandWheelMetrics.outerLayerInner)
-        XCTAssertEqual(brightness.outer + WandWheelMetrics.gap, wedge.inner)
-
-        let inner = WandWheelMetrics.outerLayerInner + WandWheelMetrics.thinOuterHeight + WandWheelMetrics.gap
-        XCTAssertEqual(wedge.inner, inner, "the same radius as when New Codex chat sat beneath it")
-        XCTAssertEqual(wedge.outer, inner + WandWheelMetrics.thinOuterHeight)
+        XCTAssertEqual(wedge.inner, WandWheelMetrics.outerLayerInner)
+        XCTAssertEqual(wedge.outer, wedge.inner + WandWheelMetrics.thinOuterHeight)
         let pose = WandCardLift.transform(WandCardLift.pose(for: .outer(layout.outerIndex(of: .wandZoom)!), lifted: true, in: geometry),
                                           size: geometry.size)
         for point in wedge.expanded(by: WandWheelMetrics.focusOutset).outline(step: 4) {

@@ -2,7 +2,7 @@ import XCTest
 @testable import ScimitarKit
 
 /// Ethan's 2026-10-30 wand wheel: grouped cards, Space beyond Enter, Zoom a
-/// third reach beyond Utility, wand arrows on each control's own axis, and
+/// second layer beyond Utility, wand arrows on each control's own axis, and
 /// wand-only wording where the mice's chord cue does not apply.
 final class WandGroupedLayoutTests: XCTestCase {
     private func coordinator(_ frontmost: AppSpecificTarget?, open: [Int] = []) -> ModePickerCoordinator {
@@ -50,16 +50,15 @@ final class WandGroupedLayoutTests: XCTestCase {
         XCTAssertEqual(parent(.wandUndo), .keysModeEntry)
         XCTAssertEqual(parent(.wandSpace), PhysicalCell(rawValue: 7)!, "Space beyond Enter, not Copy / Paste")
         XCTAssertNil(parent(.wandCodexNewChat), "New Codex chat is a ring card, never also an outer card")
-        XCTAssertEqual(parent(.wandBrightness), .modePickerEntry)
-        XCTAssertEqual(layout.outer.first { $0.cell == .wandBrightness }?.layer, 1)
+        XCTAssertNil(parent(.wandBrightness), "Brightness is not a home outer card")
         XCTAssertEqual(parent(.wandZoom), .modePickerEntry)
-        XCTAssertEqual(layout.outer.first { $0.cell == .wandZoom }?.layer, 2, "Zoom is the third layer")
+        XCTAssertEqual(layout.outer.first { $0.cell == .wandZoom }?.layer, 1, "Zoom is the second layer")
         XCTAssertEqual(parent(.wandReviewChanges), .frontmostAppModeSelector)
         XCTAssertEqual(parent(.wandReviewFiles), .frontmostAppModeSelector)
-        // Zoom keeps to Utility's own sector, on its side nearer the diagonal.
+        // The second-layer Zoom uses Utility's full sector.
         let zoom = layout.outerIndex(of: .wandZoom)!, utility = layout.ringIndex(of: .modePickerEntry)!
         let half = layout.outerHalfWidth(at: zoom)
-        XCTAssertEqual(half * 2, layout.sectorWidth * WandRadialLayout.thirdLayerSpan, accuracy: 1e-12)
+        XCTAssertEqual(half * 2, layout.sectorWidth, accuracy: 1e-12)
         XCTAssertLessThanOrEqual(abs(WandRadialLayout.angularDifference(layout.outerAngle(at: zoom), layout.angle(at: utility))) + half,
                                  layout.sectorWidth / 2 + 1e-12)
     }
@@ -80,49 +79,17 @@ final class WandGroupedLayoutTests: XCTestCase {
         }
     }
 
-    func testHomeBrightnessUsesTheExistingUtilityControlAndStaysWandOnly() {
+    func testHomeRemovesBrightnessButUtilityKeepsIt() {
         let home = coordinator(.chrome)
-        var changes: [WheelChordControl?] = []
-        var releases: [WheelChordControl] = []
-        home.onWheelControlChange = { _, control in changes.append(control) }
-        home.onWheelControlRelease = { _, control in releases.append(control) }
-        XCTAssertEqual(home.wandAdjustableControl(for: .wandBrightness), .brightness)
-        XCTAssertTrue(home.wandRadialLayout.contains(.wandBrightness))
-        home.handle(.init(action: .select, source: .wand, physicalCell: .wandBrightness, phase: .press))
-        XCTAssertEqual(home.activeWheelControl, .brightness)
-        XCTAssertTrue(WheelChordControl.brightness.isActiveUtilityRoute(page: home.page, activeControl: home.activeWheelControl))
-        home.handle(.init(action: .select, source: .wand, physicalCell: .wandBrightness, phase: .release))
-        XCTAssertNil(home.activeWheelControl)
-        XCTAssertEqual(changes.first!, .brightness)
-        XCTAssertEqual(releases, [.brightness])
-        XCTAssertNil(PhysicalCell(rawValue: PhysicalCell.wandBrightness.rawValue))
-        XCTAssertFalse(PhysicalCell.all.contains(.wandBrightness))
-        for source in MouseSource.allCases {
-            XCTAssertFalse(DefaultMapLegend.snapshot(source: source).legend.contains { $0.cell == .wandBrightness })
-        }
+        XCTAssertFalse(home.wandRadialLayout.contains(.wandBrightness))
+        let utility = coordinator(.chrome, open: [12])
+        XCTAssertTrue(utility.wandRadialLayout.contains(.brightnessWheelControl))
+        XCTAssertEqual(utility.wandAdjustableControl(for: .brightnessWheelControl), .brightness)
     }
 
-    func testAddingBrightnessLeavesZoomAndTheInnerRingExactlyInPlace() {
-        let current = coordinator(.chrome).wandRadialLayout
-        let previous = WandRadialLayout(center: current.center, ring: current.ring,
-                                        outer: current.outer.filter { $0.cell != .wandBrightness })
-        let now = current.outerIndex(of: .wandZoom)!, before = previous.outerIndex(of: .wandZoom)!
-        XCTAssertEqual(current.outer[now], previous.outer[before])
-        XCTAssertEqual(current.outerAngle(at: now), previous.outerAngle(at: before))
-        XCTAssertEqual(current.outerHalfWidth(at: now), previous.outerHalfWidth(at: before))
-        XCTAssertEqual(WandRadialNavigator.restingPosition(of: .wandZoom, in: current).x,
-                       WandRadialNavigator.restingPosition(of: .wandZoom, in: previous).x)
-        XCTAssertEqual(WandRadialNavigator.restingPosition(of: .wandZoom, in: current).y,
-                       WandRadialNavigator.restingPosition(of: .wandZoom, in: previous).y)
-        XCTAssertEqual(current.ring, previous.ring)
-        for index in current.ring.indices { XCTAssertEqual(current.angle(at: index), previous.angle(at: index)) }
-    }
-
-    // MARK: Navigation: a real third reach
-
-    /// Zoom keeps its third-layer place after New Codex chat left the layer
-    /// between: the same 24° reach from Utility, with its return band.
-    func testThirdReachStillChoosesZoomWithHysteresis() {
+    /// One outward reach from Utility now chooses Zoom; farther motion must
+    /// not enter a redundant third-layer card or change the inner ring.
+    func testSecondReachChoosesZoomWithHysteresis() {
         let layout = coordinator(.chrome).wandRadialLayout
         let tuning = WandRadialTuning()
         var navigator = WandRadialNavigator(layout: layout, start: .modePickerEntry)!
@@ -130,17 +97,15 @@ final class WandGroupedLayoutTests: XCTestCase {
         let direction = (x: sin(theta), y: -cos(theta))
         func push(_ degrees: Double) { navigator.apply(deltaX: direction.x * degrees, deltaY: direction.y * degrees) }
         push(tuning.outerReachDegrees - tuning.restingDegrees + 0.5)
-        XCTAssertEqual(navigator.focusedCell, .wandBrightness, "Brightness fills the second layer")
-        push(tuning.thirdReachDegrees - tuning.outerReachDegrees - 1)
-        XCTAssertEqual(navigator.focusedCell, .wandBrightness, "short of the third reach")
-        push(1.5)
-        XCTAssertEqual(navigator.focusedCell, .wandZoom, "the third reach")
+        XCTAssertEqual(navigator.focusedCell, .wandZoom)
         push(20)
-        XCTAssertEqual(navigator.focusedCell, .wandZoom, "saturates on Zoom")
-        push(-(tuning.thirdMaximumDegrees - tuning.thirdReturnDegrees) + 0.5)
-        XCTAssertEqual(navigator.focusedCell, .wandZoom, "inside its return band")
+        XCTAssertEqual(navigator.focusedCell, .wandZoom)
+        XCTAssertEqual(hypot(navigator.positionX, navigator.positionY), tuning.outerMaximumDegrees, accuracy: 1e-9)
+        push(-(tuning.outerMaximumDegrees - tuning.outerReturnDegrees) + 0.5)
+        XCTAssertEqual(navigator.focusedCell, .wandZoom)
         push(-1)
-        XCTAssertEqual(navigator.focusedCell, .wandBrightness, "back below the third return, to Brightness")
+        XCTAssertEqual(navigator.focusedCell, .modePickerEntry)
+        XCTAssertFalse(layout.outer.contains { $0.parent == .modePickerEntry && $0.layer > 1 })
         XCTAssertEqual(WandRadialNavigator(layout: layout, start: .wandZoom)?.focusedCell, .wandZoom)
     }
 

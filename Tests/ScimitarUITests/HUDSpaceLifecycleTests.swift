@@ -120,6 +120,52 @@ final class HUDSpaceLifecycleTests: XCTestCase {
         XCTAssertFalse(presenter.isVisible)
     }
 
+    func testScreenshotRecoveryKeepsVisiblePanelIdentity() async throws {
+        let presenter = AppKitModeHUDPresenter(source: .wand, panelIsOnActiveSpace: { _ in true })
+        let baseline = visibleHUDPanels()
+        presenter.show(DefaultMapLegend.snapshot(source: .wand))
+        await waitForMainQueueTurns()
+        let originalWindows = NSApplication.shared.windows.filter { $0 is HUDPanel && $0.isVisible }
+        defer { withExtendedLifetime(originalWindows) {} }
+        let original = visibleHUDPanels().subtracting(baseline)
+
+        presenter.recoverAfterScreenshot()
+        XCTAssertEqual(visibleHUDPanels().subtracting(baseline), original, "no immediate flash")
+        try await Task.sleep(nanoseconds: 800_000_000)
+        XCTAssertEqual(visibleHUDPanels().subtracting(baseline), original, "no second flash after 500 ms")
+        presenter.hide()
+    }
+
+    func testScreenshotRecoveryStillRepairsAStaleSpaceOnce() async throws {
+        let presenter = AppKitModeHUDPresenter(source: .wand, panelIsOnActiveSpace: { _ in false })
+        let baseline = visibleHUDPanels()
+        presenter.show(DefaultMapLegend.snapshot(source: .wand))
+        await waitForMainQueueTurns()
+        let originalWindows = NSApplication.shared.windows.filter { $0 is HUDPanel && $0.isVisible }
+        defer { withExtendedLifetime(originalWindows) {} }
+        let original = visibleHUDPanels().subtracting(baseline)
+
+        presenter.recoverAfterScreenshot()
+        XCTAssertEqual(visibleHUDPanels().subtracting(baseline), original, "keep the HUD until recovery is needed")
+        try await Task.sleep(nanoseconds: 800_000_000)
+        await waitForMainQueueTurns()
+        let repaired = visibleHUDPanels().subtracting(baseline)
+        XCTAssertEqual(repaired.count, original.count)
+        XCTAssertTrue(repaired.isDisjoint(with: original))
+        try await Task.sleep(nanoseconds: 600_000_000)
+        XCTAssertEqual(visibleHUDPanels().subtracting(baseline), repaired, "recovery is bounded, never a recreation loop")
+        presenter.hide()
+    }
+
+    func testScreenshotRecoveryCannotResurrectAnExplicitlyHiddenHUD() async throws {
+        let presenter = AppKitModeHUDPresenter(source: .wand, panelIsOnActiveSpace: { _ in false })
+        presenter.show(DefaultMapLegend.snapshot(source: .wand))
+        presenter.recoverAfterScreenshot()
+        presenter.hide()
+        try await Task.sleep(nanoseconds: 800_000_000)
+        XCTAssertFalse(presenter.isVisible)
+    }
+
     func testFeedbackDoesNotReopenExplicitlyHiddenModeHUD() async {
         let presenter = AppKitModeHUDPresenter(source: .corsair)
         presenter.show(DefaultMapLegend.snapshot(source: .corsair))

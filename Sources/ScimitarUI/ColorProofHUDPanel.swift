@@ -30,6 +30,8 @@ public final class AppKitModeHUDPresenter: NSObject, ModeHUDPresenting {
     private var feedbackDismissWorkItem: DispatchWorkItem?
     private var delayedScreenReconcileWorkItem: DispatchWorkItem?
     private var delayedSpaceReattachWorkItem: DispatchWorkItem?
+    private var screenshotRecoveryWorkItem: DispatchWorkItem?
+    private let panelIsOnActiveSpace: (NSPanel) -> Bool
     private var displayScope: DisplayScope = .target
     private var panelOpacity: CGFloat
 
@@ -38,7 +40,8 @@ public final class AppKitModeHUDPresenter: NSObject, ModeHUDPresenting {
         configuration: AppConfiguration.HUDConfiguration = .init(),
         appIconProvider: WorkspaceModeHUDAppIconProvider = .init(),
         scaleStore: HUDScaleStore = .shared,
-        workspaceNotificationCenter: NotificationCenter = NSWorkspace.shared.notificationCenter
+        workspaceNotificationCenter: NotificationCenter = NSWorkspace.shared.notificationCenter,
+        panelIsOnActiveSpace: @escaping (NSPanel) -> Bool = { $0.isOnActiveSpace }
     ) {
         self.source = source
         self.model = ModeHUDViewModel(
@@ -48,6 +51,7 @@ public final class AppKitModeHUDPresenter: NSObject, ModeHUDPresenting {
         self.configuration = configuration
         self.scaleStore = scaleStore
         self.workspaceNotificationCenter = workspaceNotificationCenter
+        self.panelIsOnActiveSpace = panelIsOnActiveSpace
         self.panelOpacity = CGFloat(configuration.opacity)
         super.init()
         NotificationCenter.default.addObserver(
@@ -72,6 +76,7 @@ public final class AppKitModeHUDPresenter: NSObject, ModeHUDPresenting {
     deinit {
         delayedScreenReconcileWorkItem?.cancel()
         delayedSpaceReattachWorkItem?.cancel()
+        screenshotRecoveryWorkItem?.cancel()
         NotificationCenter.default.removeObserver(self)
         workspaceNotificationCenter.removeObserver(self)
     }
@@ -102,6 +107,7 @@ public final class AppKitModeHUDPresenter: NSObject, ModeHUDPresenting {
         feedbackDismissWorkItem?.cancel()
         delayedScreenReconcileWorkItem?.cancel()
         delayedSpaceReattachWorkItem?.cancel()
+        screenshotRecoveryWorkItem?.cancel()
         model.resetAfterHide()
         discardPanels()
         displayScope = .target
@@ -111,6 +117,26 @@ public final class AppKitModeHUDPresenter: NSObject, ModeHUDPresenting {
         guard model.isActive else { return }
         reattachPanelsToCurrentSpaces()
         scheduleSettledSpaceReattachment()
+    }
+
+    /// Screenshot completion usually leaves these join-all-Spaces panels in
+    /// place. Keep their windows and SwiftUI animation state instead of
+    /// discarding every visible HUD twice (the old post-screenshot flash).
+    /// Retain the stale-Space repair, but only when a panel still needs it
+    /// after the native overlay has settled. An explicitly hidden HUD stays hidden.
+    public func recoverAfterScreenshot() {
+        guard model.isActive else { return }
+        screenshotRecoveryWorkItem?.cancel()
+        reconcilePanels(show: true)
+        let work = DispatchWorkItem { [weak self] in
+            guard let self, self.model.isActive else { return }
+            guard self.panels.values.contains(where: {
+                !$0.panel.isVisible || !self.panelIsOnActiveSpace($0.panel)
+            }) else { return }
+            self.reattachPanelsToCurrentSpaces()
+        }
+        screenshotRecoveryWorkItem = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5, execute: work)
     }
 
     public func flashProblem(_ message: String) {
