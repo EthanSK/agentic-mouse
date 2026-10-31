@@ -122,10 +122,12 @@ final class WindowSnapDragRestorer {
                     original: entry.original, pointer: self.pointer()) else { return }
             let permitted = { current() && entry.inputAllowed() && self.dragging() }
             let restored = entry.target.withoutAnimation { () -> CGRect? in
+                // Size only (resize in place); see WindowSnapDragRestore.restoredFrame
+                // for why a mid-drag position write makes the window jump away.
+                // The origin keeps moving with the drag, so verify size alone.
                 guard permitted(), entry.target.setSize(restore.size),
-                      permitted(), entry.target.setPosition(restore.origin),
                       permitted(), let actual = entry.target.frame(),
-                      WindowSnapGeometry.approximatelyEqual(actual, restore, tolerance: 2) else { return nil }
+                      abs(actual.width - restore.width) <= 2, abs(actual.height - restore.height) <= 2 else { return nil }
                 return actual
             }
             // Never remove a newer snap or claim an ignored/failed AX write.

@@ -7,18 +7,19 @@ private final class RestoreWindow: WindowResizeTarget {
     var current: CGRect?
     var writes: [String] = []
     var allowSize = true
-    var ignorePosition = false
+    var ignoreSize = false
     var onWrite: (() -> Void)?
     init(_ current: CGRect) { self.current = current }
     func frame() -> CGRect? { current }
     func setSize(_ size: CGSize) -> Bool {
         writes.append("size"); onWrite?()
         guard allowSize else { return false }
-        current?.size = size; return true
+        if !ignoreSize { current?.size = size }
+        return true
     }
     func setPosition(_ position: CGPoint) -> Bool {
         writes.append("position"); onWrite?()
-        if !ignorePosition { current?.origin = position }
+        current?.origin = position
         return true
     }
 }
@@ -28,7 +29,7 @@ final class WindowSnapDragRestorerTests: XCTestCase {
     private let original = CGRect(x: 600, y: 200, width: 800, height: 600)
     private let snapped = CGRect(x: 0, y: 30, width: 1720, height: 1410)
 
-    func testImmediateDragRestoresOnceAndKeepsPointerFraction() {
+    func testImmediateDragRestoresOnceInPlaceWithoutAPositionWrite() {
         let queue = DispatchQueue(label: "restore-test")
         let restorer = WindowSnapDragRestorer(queue: queue, dragging: { true }, pointer: { CGPoint(x: 900, y: 40) })
         let window = RestoreWindow(snapped)
@@ -37,9 +38,26 @@ final class WindowSnapDragRestorerTests: XCTestCase {
         restorer.didSnap(key: key, target: window, preSnap: original, accepted: snapped)
         window.current = snapped.offsetBy(dx: 40, dy: 0)
         queue.suspend(); restorer.changed(key); restorer.changed(key); queue.resume(); queue.sync {}
-        XCTAssertEqual(restored, [CGRect(x: 500, y: 30, width: 800, height: 600)])
+        // Resize in place: macOS keeps dragging from the current origin.
+        XCTAssertEqual(restored, [CGRect(x: 40, y: 30, width: 800, height: 600)])
         restorer.changed(key); queue.sync {}
-        XCTAssertEqual(window.writes, ["size", "position"])
+        XCTAssertEqual(window.writes, ["size"], "a mid-drag position write makes the window jump away from the pointer")
+    }
+
+    func testOngoingDragOriginMayChangeDuringResizeWithoutFailingSizeReadback() {
+        let queue = DispatchQueue(label: "restore-moving-origin")
+        let restorer = WindowSnapDragRestorer(queue: queue, dragging: { true })
+        let window = RestoreWindow(snapped)
+        var restored: [CGRect] = []
+        restorer.onRestore = { restored.append($0) }
+        restorer.didSnap(key: key, target: window, preSnap: original, accepted: snapped)
+        window.current = snapped.offsetBy(dx: 40, dy: 12)
+        // Simulate the next title-bar drag update during AXSetSize. Origin
+        // cannot be compared to the earlier frame while macOS owns the drag.
+        window.onWrite = { window.current?.origin = CGPoint(x: 65, y: 50) }
+        restorer.changed(key); queue.sync {}
+        XCTAssertEqual(restored, [CGRect(x: 65, y: 50, width: 800, height: 600)])
+        XCTAssertEqual(window.writes, ["size"])
     }
 
     func testRepeatedSnapsAndMonitorHopsKeepFirstOriginal() {
@@ -115,7 +133,7 @@ final class WindowSnapDragRestorerTests: XCTestCase {
         XCTAssertTrue(window.writes.isEmpty)
     }
 
-    func testFailedOrIgnoredWritesDoNotReportSuccessAndCancellationStopsSecondWrite() {
+    func testFailedIgnoredOrCancelledSizeWriteDoesNotReportSuccess() {
         for action in 0..<3 {
             let queue = DispatchQueue(label: "restore-write")
             let restorer = WindowSnapDragRestorer(queue: queue, dragging: { true }, pointer: { CGPoint(x: 900, y: 40) })
@@ -124,11 +142,12 @@ final class WindowSnapDragRestorerTests: XCTestCase {
             restorer.didSnap(key: key, target: window, preSnap: original, accepted: snapped)
             window.current = snapped.offsetBy(dx: 40, dy: 0)
             if action == 0 { window.allowSize = false }
-            if action == 1 { window.ignorePosition = true }
+            // An app that reports success but keeps its size must not count as restored.
+            if action == 1 { window.ignoreSize = true }
             if action == 2 { window.onWrite = { restorer.cancelAll() } }
             restorer.changed(key); queue.sync {}
             XCTAssertEqual(count, 0)
-            if action != 1 { XCTAssertEqual(window.writes, ["size"]) }
+            XCTAssertEqual(window.writes, ["size"])
         }
     }
 

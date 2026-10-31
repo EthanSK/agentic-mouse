@@ -3347,3 +3347,10 @@ Restoration and snapping use one serial AX worker. A newer requested snap invali
 ## 2026-10-31 — Fill the reserved wand band without shifting Zoom
 
 The home Utility wedge reserves a thin second-layer band even when its legend has no card there. Brightness now fills that band using the existing Utility gesture, accent and adjustment route. Keep Zoom on layer 2, with identical wedge geometry and navigation reach; adding a layer-1 card must not move the inner ring or affect physical mouse mappings. Offscreen render fixtures cover the new band and existing third-layer Zoom without opening a live HUD.
+
+
+## 2026-10-31 — Resize a dragged-away snapped window in place
+
+Restore only the original size during a title-bar drag. The 315/316 implementation also wrote a pointer-adjusted origin; the upstream synthetic Mac mini harness reported that macOS then reapplied its original drag grab offset on the next movement, undoing the position write. This is upstream harness evidence, not Ethan's physical acceptance on this Mac. Keep macOS in charge of position and verify size alone because origin can legitimately change while AXSetSize runs. Preserve the existing entry/source/global generation gates and held-button checks.
+
+In-place restoration preserves the original grab offset, not the pointer's fraction across the snapped title bar. A grab near the far side of a wide snapped window can therefore lie beyond the restored narrow window. Do not claim that every grab stays under the pointer, or fix it by restoring the rejected mid-drag position write.
