@@ -83,8 +83,16 @@ final class WandRadialHUDTests: XCTestCase {
                                          accent: WheelChordControl.zoom.hudAccent).displayTitle(on: .wand))
     }
 
+    @MainActor
     func testHomeWheelCentresSwitchAppAndKeepsEveryOtherCardInOrder() throws {
         let home = try homeSnapshot(frontmost: .chrome)
+        XCTAssertEqual(WandRadialWheel.versionLabel("v1.2.3 (456)"), "wand V1.2.3 (456)")
+        if let directory = ProcessInfo.processInfo.environment["WAND_RADIAL_VISUAL_OUTPUT"] {
+            try FileManager.default.createDirectory(atPath: directory, withIntermediateDirectories: true)
+            let bitmap = try XCTUnwrap(NSBitmapImageRep(data: try XCTUnwrap(render(home).tiffRepresentation)))
+            try XCTUnwrap(bitmap.representation(using: .png, properties: [:]))
+                .write(to: URL(fileURLWithPath: directory).appendingPathComponent("home-version.png"))
+        }
         let layout = try XCTUnwrap(home.wandRadialLayout)
         XCTAssertEqual(layout.center, .switchApp)
         let others = home.legend.map(\.cell).filter { $0 != .switchApp && !WandOuterLayer.cells.contains($0) }

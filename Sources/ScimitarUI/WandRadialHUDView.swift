@@ -49,7 +49,8 @@ struct WandRadialWheel: View {
             if let center = geometry.layout.center, let item = item(for: center), let card = plan.center {
                 WandRadialCard(model: model, item: item,
                                shape: .disc(WandCenterDiscShape(radius: WandWheelMetrics.centerRadius)),
-                               text: card.text, wheelCenter: geometry.center, artworkFrame: geometry.centerBounds)
+                               text: card.text, wheelCenter: geometry.center, artworkFrame: geometry.centerBounds,
+                               header: center == .switchApp ? Self.versionLabel(model.appVersion) : nil)
                     .wandCardLift(WandCardLift.pose(for: .center, lifted: lifted == .center, in: geometry),
                                   reduceMotion: reduceMotion)
                     .zIndex(lifted == .center ? 1 : 0)
@@ -97,6 +98,13 @@ struct WandRadialWheel: View {
     static func caption(for cell: PhysicalCell, in layout: WandRadialLayout) -> String? {
         layout.center == cell ? ModeHUDCopy.wandDoubleClickCloseHint : nil
     }
+
+    /// Ethan: "just above switch app ... wand V and then the version number".
+    /// Read the same installed-bundle identity as the footer, never a saved
+    /// version that can become stale after another app update.
+    static func versionLabel(_ version: String) -> String {
+        version.hasPrefix("v") ? "wand V\(version.dropFirst())" : "wand \(version)"
+    }
 }
 
 /// A wheel card's shape: the centre disc or one ring wedge.
@@ -128,6 +136,7 @@ private struct WandRadialCard: View {
     let wheelCenter: CGPoint
     /// The card's own bounds, which its app artwork fills edge to edge.
     let artworkFrame: CGRect
+    var header: String? = nil
 
     var body: some View {
         let selected = item.cell == model.selection?.cell
@@ -183,6 +192,21 @@ private struct WandRadialCard: View {
     private func label(foreground: Color, reviewSelected: Bool) -> some View {
         if let text {
             ZStack {
+                if let header, let firstLine = text.lines.first {
+                    // Keep the build label above the title without moving
+                    // Switch App or changing the centre's selection area.
+                    let y = firstLine.center.y - text.lineHeight / 2 - 15
+                    let room = WandCardRoom(shape: .disc(radius: WandWheelMetrics.centerRadius))
+                        .width(column: 0, top: y - 10, bottom: y + 10)
+                    Text(header)
+                        .font(.system(size: 15, weight: .medium, design: .rounded))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                        .frame(width: room)
+                        .foregroundStyle(foreground.opacity(0.85))
+                        .modifier(WandCardTextHalo(foregroundIsDark: reviewSelected))
+                        .position(x: wheelCenter.x, y: wheelCenter.y + y)
+                }
                 if reviewSelected, let lock = text.lock {
                     Image(systemName: "lock.fill")
                         .font(.system(size: 11, weight: .bold))
@@ -214,7 +238,7 @@ private struct WandRadialCard: View {
                     .position(drawn(text.label.center, in: text))
             }
             .accessibilityElement(children: .ignore)
-            .accessibilityLabel(Text([item.accessibilityDescription(on: model.source), text.label.text]
+            .accessibilityLabel(Text([header ?? "", item.accessibilityDescription(on: model.source), text.label.text]
                 .filter { !$0.isEmpty }.joined(separator: ". ")))
         }
     }
