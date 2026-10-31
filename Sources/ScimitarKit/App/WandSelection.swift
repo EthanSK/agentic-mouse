@@ -556,12 +556,15 @@ extension WheelChordControl {
         }
     }
     /// The normalized wheel direction a rightward wand movement sends, read
-    /// from each family's own action mapping (Spaces up = space right, Tracks
+    /// from each family's own action mapping (Spaces drag right = space left, Tracks
     /// down = next, Chrome down = forward, Magnet down = right, horizontal
     /// scroll up = right).
     public var wandRightDirection: WheelChordDirection {
         switch self {
-        case .mediaTracks, .chromeTabs, .magnetWindow: return .down
+        // Ethan: Spaces follows dragging the desktop, so a rightward
+        // wand swipe reveals the Space on the left. This exception belongs
+        // here, leaving physical wheels and the other wand controls alone.
+        case .spaces, .mediaTracks, .chromeTabs, .magnetWindow: return .down
         default: return .up
         }
     }

@@ -136,6 +136,24 @@ final class WandHoldToShowTests: XCTestCase {
         XCTAssertTrue(control.isOpen)
     }
 
+    func testUtilityOuterShortcutsStayOnTheirCardForRepeatedClicks() {
+        openUtilities()
+        for cell in [PhysicalCell.wandBackspace, .wandCopy] {
+            hoverAim(at: cell)
+            let before = homeActions.count
+            tap(hold())
+            XCTAssertEqual(homeActions.count, before + 1)
+            XCTAssertEqual(homeActions.last, cell)
+            XCTAssertTrue(control.isOpen)
+            XCTAssertEqual(target.page, .modes)
+            XCTAssertEqual(control.focusedCell, cell)
+            XCTAssertNil(control.armedCell, "a shortcut never enters dotted adjustment")
+            tap(hold())
+            XCTAssertEqual(homeActions.count, before + 2)
+            XCTAssertEqual(control.focusedCell, cell)
+        }
+    }
+
     // MARK: Pages stay open
 
     func testReceiverFinalMotionParkChooseOpensUtility() {
@@ -1034,15 +1052,17 @@ final class WandHoldToShowTests: XCTestCase {
         XCTAssertTrue(adjustSteps.isEmpty, "Spaces ignores up/down")
         clock.advance(by: 0.3)
         seq = stream(hover, from: seq, steps: 6, dx: 1, origin: &at)
-        XCTAssertEqual(adjustSteps, [WheelChordControl.spaces.wandDirection(positive: true)], "one quick swipe right: one space right")
-        XCTAssertEqual(WheelChordControl.spaces.wandDirection(positive: true), .up)
+        XCTAssertEqual(adjustSteps, [WheelChordControl.spaces.wandDirection(positive: true)], "one quick drag right: one space left")
+        XCTAssertEqual(WheelChordControl.spaces.wandDirection(positive: true), .down)
+        XCTAssertEqual(target.pointerFocus?.adjustment?.lastStepWasUp, false, "right drag lights the right arrow despite sending wheel-down")
         seq = stream(hover, from: seq, steps: 100, dx: -0.06, origin: &at)
         XCTAssertEqual(adjustSteps.count, 1, "a slow return never acts")
         seq = stream(hover, from: seq, steps: 6, dx: 1, origin: &at)
         XCTAssertEqual(adjustSteps.count, 2, "the same direction acts again without leaving dotted mode")
         seq = stream(hover, from: seq, steps: 40, dx: 0, origin: &at)
         seq = stream(hover, from: seq, steps: 6, dx: -1, origin: &at)
-        XCTAssertEqual(adjustSteps.last, .down, "a quick swipe left: one space left")
+        XCTAssertEqual(adjustSteps.last, .up, "a quick drag left: one space right")
+        XCTAssertEqual(target.pointerFocus?.adjustment?.lastStepWasUp, true, "left drag lights the left arrow")
         XCTAssertEqual(rearms, 3)
         XCTAssertEqual(control.armedCell, spaces, "dotted mode stays until a HUD button click")
         _ = seq
@@ -1066,7 +1086,7 @@ final class WandHoldToShowTests: XCTestCase {
         for control in [WheelChordControl.zoom, .brightness, .spotifyVolume, .codexResponseSpeed, .codexReasoningEffort, .clipboard, .systemOverview] {
             XCTAssertEqual(control.wandAxis, .vertical, "\(control) changes a value or is a vertical gesture")
         }
-        XCTAssertEqual(WheelChordControl.spaces.utilityAction(for: WheelChordControl.spaces.wandDirection(positive: true)), .moveToSpaceRight)
+        XCTAssertEqual(WheelChordControl.spaces.utilityAction(for: WheelChordControl.spaces.wandDirection(positive: true)), .moveToSpaceLeft)
         XCTAssertEqual(WheelChordControl.magnetWindow.utilityAction(for: WheelChordControl.magnetWindow.wandDirection(positive: true)), .moveWindowRightWithMagnet)
         XCTAssertEqual(WheelChordControl.chromeTabs.chromeTabHistoryAction(for: WheelChordControl.chromeTabs.wandDirection(positive: true)), .forward)
         XCTAssertEqual(WheelChordControl.mediaTracks.mediaTrackAction(for: WheelChordControl.mediaTracks.wandDirection(positive: true)), .next)
