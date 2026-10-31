@@ -241,7 +241,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let isActive = selectedAreaScreenshotController.isCapturing
         defaultMapHintCoordinators.values.forEach { $0.refresh() }
         if screenshotInteractionWasActive, !isActive {
-            modeHUDPresenters.values.forEach { $0.reattachToCurrentSpaces() } // The native Screenshot overlay can strand fully rendered panels on its temporary/stale Spaces after either a plain-click cancel or a dragged capture; recreate only presenters whose model is still explicitly active. (Codex task: 01a039f7-873c-7c30-b3dc-af8a6724ace5)
+            modeHUDPresenters.values.forEach { $0.recoverAfterScreenshot() } // Keep visible HUD windows stable; repair only panels stranded by the native overlay, after it settles.
         }
         screenshotInteractionWasActive = isActive
         modePickerCoordinators[.wand]?.refreshWandHome()

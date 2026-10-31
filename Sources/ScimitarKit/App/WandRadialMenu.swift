@@ -179,13 +179,10 @@ public enum WandOuterLayer {
         // Ethan (2026-10-30): "space should be on the second layer of enter,
         // not copy paste" (superseding "move space outside of copy paste").
         WandOuterCard(cell: .wandSpace, parent: PhysicalCell(rawValue: 7)!, height: .thin),
-        // Fill the vacant second layer; Zoom keeps its existing third layer.
-        WandOuterCard(cell: .wandBrightness, parent: .modePickerEntry, height: .thin),
-        // Ethan: "maybe it should be a third layer wedge. Yeah, because that's
-        // where zoom is normally" — Utility's Zoom. New Codex chat used to sit
-        // in the layer between; it moved into the ring (2026-10-30), and Zoom
-        // keeps its third-layer place, reach and band so muscle memory holds.
-        WandOuterCard(cell: .wandZoom, parent: .modePickerEntry, height: .thin, layer: 2),
+        // Ethan (2026-10-31): "Just move zoom to the second layer. We don't
+        // need brightness." Only home's outer Utility branch changes;
+        // Brightness remains available inside the Utility submenu.
+        WandOuterCard(cell: .wandZoom, parent: .modePickerEntry, height: .thin),
         // Ethan: "two wedges for outside of VS Code mode when we're in VS
         // Code ... the review and stage buttons ... bigger ones".
         WandOuterCard(cell: .wandReviewChanges, parent: .frontmostAppModeSelector, height: .large),

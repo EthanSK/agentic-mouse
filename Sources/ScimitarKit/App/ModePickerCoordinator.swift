@@ -1171,10 +1171,7 @@ public final class ModePickerCoordinator {
             ModeHUDLegendItem(cell: .wandUndo, actionTitle: "Undo", accent: KeysModeAction.undo.hudAccent),
             ModeHUDLegendItem(cell: .wandSpace, actionTitle: "Space", accent: KeysModeAction.insertSpace.hudAccent),
             ModeHUDLegendItem(cell: .wandCodexNewChat, actionTitle: "New Codex chat", accent: CodexMode.accent),
-            // The existing Utility adjustments, with their shared gesture and accent.
-            ModeHUDLegendItem(cell: .wandBrightness, gesture: WheelChordControl.brightness.hudGesture,
-                              accent: WheelChordControl.brightness.hudAccent),
-            // Utility's own Zoom wheel control, two reaches beyond Utility.
+            // Utility's own Zoom wheel control, one reach beyond Utility.
             ModeHUDLegendItem(cell: .wandZoom, gesture: WheelChordControl.zoom.hudGesture,
                               accent: WheelChordControl.zoom.hudAccent)
         ]
