@@ -3419,3 +3419,8 @@ Competing inward and sideways preview components must not multiply one another d
 Ethan explicitly liked the preceding overall behavior except the aiming defects. The single cross-project [behaviour checkpoint register](https://github.com/EthanSK/magic-wand/blob/main/magic-wand/BEHAVIOUR_CHECKPOINTS.md) pins Agentic Mouse330 and Receiver190 separately; consult it before a future rollback rather than resetting unrelated improvements.
 
 Repeated cumulative positions are stream keepalives, not new navigation. After a batched turn into the inner band, rerunning the one-neighbour resolver on zero deltas could keep stepping toward the old angle after the hand stopped. Ignore zero deltas before resolving selection. The regression reproduced App becoming Keys on unchanged readings, then passed with the guard; real movement and the controller's stream-liveness timestamps stay independent.
+
+
+## 2026-11-01 — A used wand adjustment keeps its selected card
+
+A brief held adjustment can emit a real wheel step yet receive the receiver's short-tap terminal. The old terminal precedence then unlocked the dotted card as well. Ethan clarified that holding to act must keep the lock, and a separate plain tap unlocks. Consume a used gesture before the plain-tap unlock branch; retain no-motion tap unlock, held-only listening and page/generation teardown. Clipboard and Codex Speed regressions failed nine assertions before this change; the focused native lifecycle/navigation checks pass after it. No pointer timing or physical mouse mapping changed.

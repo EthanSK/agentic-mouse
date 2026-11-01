@@ -287,17 +287,19 @@ public final class WandPersistentController {
                 activate(.switchApp)
                 return
             }
-            // Ethan's click to "delock" a dotted wedge wins even if that
-            // short press moved enough to adjust it. Otherwise the used-step
-            // terminal guard below swallowed the unlock. The receiver owns
-            // click/hold timing; a delivered click also works if its earlier
-            // navigation packet was lost. This never presses the card again.
+            // Ethan (2026-11-01): "if I'm holding it, it shouldn't" unlock.
+            // An adjustment already used this press, even when it was brief
+            // enough for the receiver to call its release a tap. Consume that
+            // terminal first: adjusting and unlocking must never both happen.
+            if consumeNextTerminal {consumeNextTerminal=false;pending=nil;return}
+            // A plain tap still "delocks" the selected wedge. It also works
+            // when its earlier navigation packet was lost, without pressing
+            // the card again. This supersedes unlocking after a used step.
             if command.phase == .activate, let card=liveArmedCard(), card.control != nil {
                 armed=nil;pending=nil;consumeNextTerminal=false;hold=nil
                 keepOutline(after:card.cell,generation:card.pageGeneration)
                 return
             }
-            if consumeNextTerminal {consumeNextTerminal=false;pending=nil;return}
             if let ended=pending {pending=nil;finishPending(ended,tap:command.phase == .activate);return}
             let cell=target.pointerFocus?.cell ?? selected
             if target.isWandHome,cell.wandReviewMode != nil,target.wandReviewAvailable {
