@@ -66,6 +66,42 @@ final class HUDScaleTests: XCTestCase {
         XCTAssertEqual(relaunchedStore.scale, 0.73)
     }
 
+    func testResetRestoresAndPersistsTheSharedDefault() {
+        let store = HUDScaleStore(defaults: defaults)
+        store.setScale(0.43125)
+        store.resetScale()
+        XCTAssertEqual(store.scale, HUDScaleStore.defaultScale)
+        XCTAssertEqual(HUDScaleStore(defaults: defaults).scale, HUDScaleStore.defaultScale)
+        store.setScale(0.78)
+        XCTAssertEqual(store.scale, 0.78, "a subsequent drag still chooses a size")
+    }
+
+    func testDoubleClickOnTheActualSliderWinsOverItsTrackPosition() throws {
+        guard let screen = NSScreen.screens.first(where: { $0.localizedName == "Built-in Retina Display" }) else {
+            throw XCTSkip("slider interaction check requires the built-in test display")
+        }
+        let store = HUDScaleStore(defaults: defaults)
+        store.setScale(0.8)
+        let panel = HUDScaleControlPanel(scaleStore: store)
+        panel.setFrameOrigin(NSPoint(x: screen.visibleFrame.midX, y: screen.visibleFrame.midY))
+        panel.orderFrontRegardless()
+        defer { panel.close() }
+        RunLoop.main.run(until: Date().addingTimeInterval(0.1))
+        let point = NSPoint(x: 44, y: 20)
+        for count in [1, 2] {
+            for type: NSEvent.EventType in [.leftMouseDown, .leftMouseUp] {
+                let event = try XCTUnwrap(NSEvent.mouseEvent(with: type, location: point,
+                    modifierFlags: [], timestamp: ProcessInfo.processInfo.systemUptime,
+                    windowNumber: panel.windowNumber, context: nil, eventNumber: count,
+                    clickCount: count, pressure: type == .leftMouseDown ? 1 : 0))
+                NSApp.sendEvent(event)
+                RunLoop.main.run(until: Date().addingTimeInterval(0.015))
+            }
+        }
+        RunLoop.main.run(until: Date().addingTimeInterval(0.1))
+        XCTAssertEqual(store.scale, HUDScaleStore.defaultScale)
+    }
+
     func testScaleIsBoundedAndInvalidValuesRestoreTheDefault() {
         let store = HUDScaleStore(defaults: defaults)
 

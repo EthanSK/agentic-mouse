@@ -104,6 +104,17 @@ struct WandWheelSilhouette: Shape {
 /// everywhere else. `path` uses SwiftUI's y-down coordinates within `canvas`;
 /// the returned image's first row is the top of the wheel.
 enum WandWheelMask {
+    /// SwiftUI paths are y-down; the hosted AppKit layer is y-up. Transform
+    /// the same card contours directly instead of allocating and painting a
+    /// full Retina bitmap at every frame of the existing card-lift spring.
+    static func vectorPath(of path: CGPath, canvas: CGSize, size: CGSize) -> CGPath? {
+        guard canvas.width > 0, canvas.height > 0, size.width > 0, size.height > 0 else { return nil }
+        var transform = CGAffineTransform(a: size.width / canvas.width, b: 0,
+                                         c: 0, d: -size.height / canvas.height,
+                                         tx: 0, ty: size.height)
+        return path.copy(using: &transform)
+    }
+
     static func image(of path: CGPath, canvas: CGSize, size: CGSize, scale: CGFloat) -> CGImage? {
         let width = Int((size.width * scale).rounded(.up))
         let height = Int((size.height * scale).rounded(.up))
@@ -199,13 +210,13 @@ private struct WandWheelGlassBacking: NSViewRepresentable {
 
 /// Native glass clipped to the wheel's cards. SwiftUI clipping is not relied
 /// on for a hosted AppKit view: macOS 26 glass is masked by its container's
-/// layer, and the older visual-effect fallback uses its documented
-/// `maskImage`. Both masks come from the same image, whose orientation is
-/// fixed when it is drawn. Without a usable mask the glass stays hidden, so
+/// layer using a vector mask, and the older visual-effect fallback uses its
+/// documented `maskImage`. Both follow the same card contours and orientation.
+/// Without a usable mask the glass stays hidden, so
 /// the wheel can never fall back to a square or circular plate.
 final class WandMaskedGlassView: NSView {
     private let effect = ModeHUDNativeGlass.makeEffectView(cornerRadius: 0)
-    private let maskLayer = CALayer()
+    private let maskLayer = CAShapeLayer()
     private var silhouette: CGPath?
     private var canvas: CGSize = .zero
 
@@ -271,18 +282,24 @@ final class WandMaskedGlassView: NSView {
         }
         let key = MaskKey(path: silhouette, canvas: canvas, size: bounds.size, scale: scale)
         guard key != appliedMask else { return }
-        guard let image = WandWheelMask.image(of: silhouette, canvas: canvas, size: bounds.size, scale: scale) else {
-            effect.isHidden = true
-            appliedMask = nil
-            return
-        }
         if #available(macOS 26.0, *) {
-            maskLayer.contents = image
-            maskLayer.contentsGravity = .resize
-            maskLayer.contentsScale = scale
+            guard let path = WandWheelMask.vectorPath(of: silhouette, canvas: canvas, size: bounds.size) else {
+                effect.isHidden = true; appliedMask = nil; return
+            }
+            // SwiftUI already supplies each animated lift pose. An implicit
+            // Core Animation transition here would chase those poses again.
+            // Only presentation work changes; navigation and its timing do not.
+            CATransaction.begin()
+            CATransaction.setDisableActions(true)
+            maskLayer.path = path
+            maskLayer.fillColor = NSColor.white.cgColor
             maskLayer.frame = layer?.bounds ?? bounds
             layer?.mask = maskLayer
+            CATransaction.commit()
         } else if let fallback = effect as? NSVisualEffectView {
+            guard let image = WandWheelMask.image(of: silhouette, canvas: canvas, size: bounds.size, scale: scale) else {
+                effect.isHidden = true; appliedMask = nil; return
+            }
             fallback.maskImage = NSImage(cgImage: image, size: bounds.size)
         }
         effect.isHidden = false

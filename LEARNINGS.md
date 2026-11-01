@@ -3400,3 +3400,10 @@ Tests for a later tap on an already-open HUD must aim through unheld `hover`, th
 ## 2026-10-31 — Faster Switch App keeps the single HIGH sensitivity owner
 
 Ethan requested a faster held Switch App chooser that follows the overall sensitivity slider. The receiver already supplies gain-adjusted cumulative HIGH `mouseX`; the native controller adds a fixed 1.5× chooser boost after its unchanged 86.4 unit conversion, while the angle-only fallback gets the same boost. This supersedes the earlier 604.8-count step size: a reference-gain step is now 403.2 counts. Keep the first sample and every metric transition as a baseline only, preserve immediate reversals and bounded detents, and leave normal pointer, LOW and HUD aiming untouched. Tests cover the extra speed, both directions and mouse/angle transitions.
+
+
+## 2026-11-01 — Keep wand glass-mask animation on the vector path
+
+The native wheel mask previously painted a complete Retina RGBA bitmap for each card-lift frame. A live process sample attributed work to that path. On macOS26 the same contours can be attached to a CAShapeLayer mask instead; transform SwiftUI y-down coordinates into AppKit y-up coordinates once and disable implicit layer actions because SwiftUI already supplies each spring pose. Keep the older NSVisualEffectView maskImage fallback. Contour, gutter, orientation and interrupted-lift tests must remain unchanged. A local200-frame preparation benchmark measured181ms for bitmap creation and0.059ms for path transforms; this is mask preparation only, not measured end-to-end HUD latency.
+
+The shared HUD size slider now recognises a simultaneous double tap after track updates and resets through HUDScaleStore to its existing50-percent default. A native AppKit event test exercises the actual slider so a second track position cannot overwrite the reset; ordinary dragging and persistence retain the same source of truth.
