@@ -8,6 +8,27 @@ import XCTest
 /// the normal background that we just removed ... just for that wedge, it's
 /// like masked". The backing covers exactly the drawn cards.
 final class WandWheelBackingTests: XCTestCase {
+    func testVectorMaskPreservesEveryContourAndClearGapAtDifferentSizes() throws {
+        let g = geometry
+        for fraction in [0.0, 0.3, 0.7, 1.0] {
+            var silhouette = WandWheelSilhouette(geometry: g, includesCenter: true,
+                                                  ringIndices: Array(layout.ring.indices))
+            silhouette.liftValues = [Double](repeating: fraction, count: layout.ring.count + 1)
+            let source = silhouette.path(in: CGRect(x: 0, y: 0, width: g.size, height: g.size)).cgPath
+            for scale in [0.35, 0.43125, 0.5, 1.0] {
+                let size = CGSize(width: g.size * scale, height: g.size * scale)
+                let vector = try XCTUnwrap(WandWheelMask.vectorPath(of: source,
+                    canvas: CGSize(width: g.size, height: g.size), size: size))
+                for x in stride(from: 5.0, to: Double(g.size), by: 17) {
+                    for y in stride(from: 5.0, to: Double(g.size), by: 19) {
+                        XCTAssertEqual(source.contains(CGPoint(x: x, y: y)),
+                            vector.contains(CGPoint(x: x * scale, y: (g.size - y) * scale)))
+                    }
+                }
+            }
+        }
+    }
+
     func testGlassMaskHasAnIntermediatePoseAndCanReverse() {
         let g = geometry
         var card = WandWheelSilhouette(geometry: g, includesCenter: true, ringIndices: [])

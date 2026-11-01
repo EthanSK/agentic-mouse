@@ -31,6 +31,10 @@ public final class HUDScaleStore: ObservableObject {
         defaults.set(updatedScale, forKey: defaultsKey)
     }
 
+    /// Ethan: double-clicking the size slider restores its default, rather
+    /// than treating the second click as another position on the track.
+    public func resetScale() { setScale(Self.defaultScale) }
+
     private static func sanitized(_ scale: Double) -> Double {
         guard scale.isFinite else { return defaultScale }
         return min(maximumScale, max(minimumScale, scale))

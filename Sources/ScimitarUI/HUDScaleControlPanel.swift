@@ -104,6 +104,10 @@ private struct HUDScaleControlView: View {
                         )
                     }
             )
+            // Run after the second tap's drag update so its track position
+            // cannot overwrite the reset. Ordinary one-finger dragging stays
+            // immediate, and the one shared store updates every HUD copy.
+            .simultaneousGesture(TapGesture(count: 2).onEnded { store.resetScale() })
         }
         .frame(width: HUDScaleControlPanel.sliderSize.width, height: HUDScaleControlPanel.sliderSize.height)
         .accessibilityElement(children: .ignore)
