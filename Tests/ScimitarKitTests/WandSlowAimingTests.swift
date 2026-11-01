@@ -98,6 +98,20 @@ final class WandSlowAimingTests: XCTestCase {
         XCTAssertEqual(still.visited, [.frontmostAppModeSelector], "a held-still wand stays where it stopped")
     }
 
+    func testAnUnchangedReadingCannotContinueABatchedTurn() {
+        let layout = coordinator(.chrome).wandRadialLayout
+        var nav = WandRadialNavigator(layout: layout, start: .modePickerEntry)!
+        // One delivered diagonal turn reaches the inner band. The next
+        // readings can contain exactly the same cumulative position.
+        nav.apply(deltaX: -7, deltaY: 2.56)
+        let stopped = nav.focusedCell
+        XCTAssertEqual(stopped, .frontmostAppModeSelector)
+        for _ in 0..<20 {
+            XCTAssertFalse(nav.apply(deltaX: 0, deltaY: 0))
+            XCTAssertEqual(nav.focusedCell, stopped, "unchanged input must not replay a pending selection")
+        }
+    }
+
     func testASlowLeftTurnOnTheUtilityPageShowsTheAppCardBeforeKeys() {
         let layout = coordinator(.chrome, open: [12]).wandRadialLayout
         XCTAssertEqual(layout.ring.first, .extraUtilitiesSelector)

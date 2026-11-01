@@ -607,6 +607,10 @@ public struct WandRadialNavigator: Equatable, Sendable {
     @discardableResult
     public mutating func apply(deltaX: Double, deltaY: Double) -> Bool {
         guard deltaX.isFinite, deltaY.isFinite else { return false }
+        // Repeated positions keep the stream alive; they are not another
+        // movement. Never walk more neighbours using a previous burst after
+        // Ethan has stopped the wand on the card he wants.
+        guard deltaX != 0 || deltaY != 0 else { return false }
         positionX += deltaX
         positionY += deltaY
         // The widest band first, so the reach this sample made is judged
