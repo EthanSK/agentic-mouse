@@ -553,7 +553,7 @@ final class WandHoldToShowTests: XCTestCase {
         XCTAssertTrue(keysActions.isEmpty)
     }
 
-    func testClickUnlocksAdjustedCopyPasteEvenWhenTheClickContainsMovement() {
+    func testBriefAdjustmentKeepsCopyPasteLockedUntilANoActionTap() {
         openUtilities()
         tap(hold())
         let clip = PhysicalCell(rawValue: 4)!
@@ -565,23 +565,52 @@ final class WandHoldToShowTests: XCTestCase {
         XCTAssertEqual(control.armedCell, clip)
         XCTAssertNil(target.activeWheelControl)
 
-        // The receiver still classifies this as a click by its button timing.
-        // A step during that short press must not swallow its unlock intent.
+        // Ethan's later clarification: holding to do the action keeps the
+        // wedge locked. A brief but successful adjustment must not also
+        // become an unlock just because the receiver calls it a short tap.
         let click = hold()
         control.handle(.init(.motion, id: click, sequence: 1, y: -7))
         control.handle(.init(.park, id: click, sequence: 2))
         control.handle(.init(.activate, id: nextID("activate")))
-        XCTAssertNil(control.armedCell, "one click unlocks the adjusted wedge")
-        XCTAssertNil(target.pointerFocus?.adjustment)
+        XCTAssertEqual(control.armedCell, clip, "an actual adjustment keeps the selected wedge locked")
+        XCTAssertNotNil(target.pointerFocus?.adjustment)
         XCTAssertNil(target.activeWheelControl)
         XCTAssertEqual(wheelReleases, [.clipboard, .clipboard], "each actual held step is released once")
-        XCTAssertTrue(homeActions.isEmpty, "unlocking never falls through to a click action")
+        XCTAssertTrue(homeActions.isEmpty, "adjusting never falls through to a click action")
+
+        tap(hold())
+        XCTAssertNil(control.armedCell, "a separate tap without an action unlocks")
+        XCTAssertNil(target.pointerFocus?.adjustment)
 
         let enter = PhysicalCell(rawValue: 7)!
         hoverAim(at: enter)
         tap(hold())
         XCTAssertEqual(homeActions, [enter], "Enter is reachable without closing the HUD")
         XCTAssertTrue(control.isOpen)
+    }
+
+    func testBriefAdjustmentKeepsCodexSpeedLocked() throws {
+        frontmost = .codex
+        let opening = holdFromClosed()
+        aim(opening, at: .frontmostAppModeSelector)
+        releaseHold(opening)
+        let speed = try XCTUnwrap(PhysicalCell.all.first {
+            WheelChordControl.appSpecificControl(for: .codex, cell: $0) == .codexResponseSpeed
+        })
+        hoverAim(at: speed)
+        tap(hold())
+        XCTAssertEqual(control.armedCell, speed)
+        let adjustment = hold()
+        control.handle(.init(.motion, id: adjustment, sequence: 1, y: -7))
+        control.handle(.init(.park, id: adjustment, sequence: 2))
+        control.handle(.init(.activate, id: nextID("activate")))
+        XCTAssertEqual(adjustSteps.count, 1)
+        XCTAssertEqual(control.armedCell, speed, "the short adjustment keeps Codex Speed selected")
+        XCTAssertEqual(target.pointerFocus?.adjustment?.isHeld, false)
+        XCTAssertNil(target.activeWheelControl)
+        tap(hold())
+        XCTAssertNil(control.armedCell, "a plain tap still unlocks")
+        XCTAssertEqual(adjustSteps.count, 1, "unlocking never changes the value")
     }
 
     func testTerminalOnlyClickUnlocksDottedCardAfterItsNavigationPacketWasLost() {
