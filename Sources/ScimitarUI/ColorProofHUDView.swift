@@ -27,6 +27,10 @@ final class ModeHUDViewModel: ObservableObject {
     /// updated just before `pointerFocus`, whose publication redraws it.
     private(set) var wandFocusAngle: Double = 0
     private var appliedSnapshot: ModeHUDSnapshot?
+    /// The centre's live pull has a radius even while its outline is still
+    /// arriving. A changing preview during that inward motion must not rotate
+    /// the incoming wedge end. Outward or sideways aiming may still re-aim it.
+    private var wandCenterPullRadius: Double?
     let appVersion = AgenticMouseVersion.displayString()
     private let appIconProvider: ModeHUDAppIconProviding
 
@@ -51,6 +55,9 @@ final class ModeHUDViewModel: ObservableObject {
                 }
                 return true
             }
+        }
+        if appliedSnapshot?.wandRadialLayout != snapshot.wandRadialLayout || !snapshot.isActive {
+            wandCenterPullRadius = nil
         }
         appliedSnapshot = snapshot
         var resolvedIcons: [PhysicalCell: NSImage] = [:]
@@ -91,16 +98,31 @@ final class ModeHUDViewModel: ObservableObject {
     private func updateWandFocusAngle(_ focus: ModeHUDPointerFocus?, layout: WandRadialLayout?) {
         guard source == .wand, let focus else { return }
         let resolved = layout ?? .inferred(legend: legend)
+        let onCenter = focus.cell == resolved.center
+        let radius = onCenter ? hypot(focus.pullX, focus.pullY) : nil
+        defer { wandCenterPullRadius = radius }
+        if onCenter {
+            // Ethan: returning "down back to the center" must not visit a
+            // different wedge first. The navigator may legitimately preview
+            // another card as its angle changes near the middle. That does
+            // not select it: keep the return's angle while the radius shrinks.
+            // A fresh outward reach re-aims immediately, with no timer or
+            // change to selection, gesture input, or pointer movement.
+            let arrivingFromCard = pointerFocus.map { previous in
+                resolved.ringIndex(of: previous.cell) != nil || resolved.outerIndex(of: previous.cell) != nil
+            } ?? false
+            if arrivingFromCard { return }
+            if let radius, let previous = wandCenterPullRadius, radius < previous - 1e-9 { return }
+        }
         let target: Double
         if let index = resolved.outerIndex(of: focus.cell) {
             target = resolved.outerAngle(at: index)
         } else if let index = resolved.ringIndex(of: focus.cell) {
             target = resolved.angle(at: index)
         } else if let aim = focus.aim, let index = resolved.ringIndex(of: aim) {
-            // On the centre the wedge end follows the card the wand is aimed
-            // at, never the live pull. A return keeps aiming at the card it
-            // left, so this changes nothing on the way in; once the wand aims
-            // at another card, the next reach grows straight toward it
+            // On an outward reach the wedge end follows the actual aimed
+            // card, never the live pull's arbitrary angle. The inward return
+            // above keeps its own angle; the next reach grows toward its card
             // instead of sweeping round from the last card (Ethan: "towards
             // an actual valid wedge"). The disc alone is drawn at rest here.
             target = resolved.angle(at: index)
@@ -121,6 +143,7 @@ final class ModeHUDViewModel: ObservableObject {
     /// next open can never render or diff against a stale page.
     func resetAfterHide() {
         appliedSnapshot = nil
+        wandCenterPullRadius = nil
         isActive = false
         feedback = nil
         if pointerFocus != nil { pointerFocus = nil }

@@ -242,6 +242,63 @@ final class WandRadialHUDTests: XCTestCase {
         }
     }
 
+    /// A centre preview can rotate while its radius shrinks. That is still
+    /// the incoming return, not permission to drag its in-flight wedge end
+    /// toward the new preview. No real card selection changes in this case.
+    func testShrinkingCentreAimCannotBendTheReturnTowardAnotherWedge() throws {
+        let model = ModeHUDViewModel(source: .wand, appIconProvider: NoRadialIconProvider())
+        var snapshot = try homeSnapshot(frontmost: .chrome)
+        let layout = try XCTUnwrap(snapshot.wandRadialLayout)
+        let centre = try XCTUnwrap(layout.center)
+        for (index, card) in layout.ring.enumerated() {
+            var navigator = try XCTUnwrap(WandRadialNavigator(layout: layout, start: card))
+            snapshot.pointerFocus = navigator.pointerFocus
+            model.apply(snapshot)
+            let incoming = model.wandFocusAngle
+            for step in 0..<8 {
+                let direction = layout.direction(at: (index + step) % layout.ring.count)
+                let radius = (0.4 - Double(step) * 0.04) * navigator.tuning.reachDegrees
+                navigator.apply(deltaX: direction.x * radius - navigator.positionX,
+                                deltaY: direction.y * radius - navigator.positionY)
+                snapshot.pointerFocus = navigator.pointerFocus
+                model.apply(snapshot)
+                XCTAssertEqual(model.wandFocusAngle, incoming, accuracy: 1e-9,
+                               "an inward centre return must not detour to the preview card")
+                XCTAssertEqual(model.pointerFocus?.cell, centre)
+            }
+            // A genuinely outward reach still previews the next real card.
+            let target = (index + 3) % layout.ring.count
+            let direction = layout.direction(at: target)
+            snapshot.pointerFocus = .init(cell: centre, pullX: direction.x * 0.6,
+                                           pullY: direction.y * 0.6, aim: layout.ring[target])
+            model.apply(snapshot)
+            XCTAssertEqual(WandRadialLayout.angularDifference(model.wandFocusAngle, layout.angle(at: target)),
+                           0, accuracy: 1e-9)
+        }
+    }
+
+    func testCentreCanAimAroundTheRingAtAConstantRadiusAndAfterHide() throws {
+        let model = ModeHUDViewModel(source: .wand, appIconProvider: NoRadialIconProvider())
+        var snapshot = try homeSnapshot(frontmost: .chrome)
+        let layout = try XCTUnwrap(snapshot.wandRadialLayout)
+        let centre = try XCTUnwrap(layout.center)
+        for index in layout.ring.indices {
+            let direction = layout.direction(at: index)
+            snapshot.pointerFocus = .init(cell: centre, pullX: direction.x * 0.4,
+                                           pullY: direction.y * 0.4, aim: layout.ring[index])
+            model.apply(snapshot)
+            XCTAssertEqual(WandRadialLayout.angularDifference(model.wandFocusAngle, layout.angle(at: index)),
+                           0, accuracy: 1e-9, "sideways centre aiming is not an inward return")
+        }
+        model.resetAfterHide()
+        let direction = layout.direction(at: 0)
+        snapshot.pointerFocus = .init(cell: centre, pullX: direction.x * 0.2,
+                                       pullY: direction.y * 0.2, aim: layout.ring[0])
+        model.apply(snapshot)
+        XCTAssertEqual(WandRadialLayout.angularDifference(model.wandFocusAngle, layout.angle(at: 0)),
+                       0, accuracy: 1e-9, "hiding discards the prior return radius")
+    }
+
     /// Ethan (2026-11-01): "towards an actual valid wedge ... midway through
     /// committing that movement." Real navigator output drives the view
     /// model: the return keeps the incoming angle, aiming elsewhere moves the
