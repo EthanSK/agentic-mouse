@@ -1,3 +1,4 @@
+// Exercise the wand's persistent HUD using fake clocks and input only.
 import XCTest
 @testable import ScimitarKit
 
@@ -23,11 +24,13 @@ final class WandPersistentControlTests:XCTestCase {
         return (goal.x*scale-start.x,goal.y*scale-start.y)
     }
     var navigateCount=0
-    func select(_ cell:PhysicalCell){
+    func select(_ cell:PhysicalCell, unheld:Bool=false){
         navigateCount+=1
         let id="navigate-\(navigateCount)-wand"
         let goal=offset(to:cell)
-        control.handle(.init(.navigate,id:id))
+        // A tap on an already-open HUD follows unheld hover. An opening
+        // navigate + activate is the deliberate quick Switch App gesture.
+        control.handle(.init(unheld ? .hover : .navigate,id:id))
         control.handle(.init(.motion,id:id,sequence:1,x:goal.x/2,y:goal.y/2))
         control.handle(.init(.motion,id:id,sequence:2,x:goal.x,y:goal.y))
         control.handle(.init(.park,id:id,sequence:3))
@@ -108,9 +111,9 @@ final class WandPersistentControlTests:XCTestCase {
         XCTAssertEqual(control.armedCell,.switchApp)
         XCTAssertTrue(switched.isEmpty,"unheld movement never switches apps")
         control.handle(.init(.navigate,id:"held-switch"))
-        control.handle(.init(.motion,id:"held-switch",sequence:1,x:7))
+        control.handle(.init(.motion,id:"held-switch",sequence:1,x:4.7))
         XCTAssertTrue(switched.isEmpty,"the first detent right is Command-Tab itself")
-        control.handle(.init(.motion,id:"held-switch",sequence:2,x:14))
+        control.handle(.init(.motion,id:"held-switch",sequence:2,x:9.4))
         XCTAssertEqual(switched,[.down])
         control.handle(.init(.park,id:"held-switch",sequence:3))
         XCTAssertFalse(control.isOpen,"releasing the chooser commits")
@@ -243,7 +246,7 @@ final class WandPersistentControlTests:XCTestCase {
     }
     func testReviewSelectionSurvivesNavigationHidingAndAppSwitch() {
         target.resolveFrontmostApp={FrontmostAppModeContext(target:.vsCode,displayName:"VS Code",bundleIdentifier:"com.microsoft.VSCode")}
-        select(.wandReviewChanges)
+        select(.wandReviewChanges,unheld:true)
         control.handle(.init(.activate,id:"select-review-1"))
         XCTAssertEqual(control.selectedReviewMode,"changes")
         XCTAssertEqual(control.pinnedReviewCell,.wandReviewChanges)
@@ -296,7 +299,7 @@ final class WandPersistentControlTests:XCTestCase {
 
     func testTappingSelectedReviewCardAgainClearsMode() {
         target.resolveFrontmostApp={FrontmostAppModeContext(target:.vsCode,displayName:"VS Code",bundleIdentifier:"com.microsoft.VSCode")}
-        select(.wandReviewFiles)
+        select(.wandReviewFiles,unheld:true)
         control.handle(.init(.activate,id:"select-files-1"))
         XCTAssertEqual(control.selectedReviewMode,"files")
         control.handle(.init(.activate,id:"select-files-1"))
@@ -329,12 +332,12 @@ extension WandPersistentControlTests {
         // Fine movement accumulates exactly the same travel as one fast sweep.
         for n in 1...20 {
             control.handle(.init(.motion,id:"high-stream",sequence:n+1,x:100+Double(n)*10,
-                                 mouseX:500+Double(n)*30.24))
+                                 mouseX:500+Double(n)*20.16))
         }
         // A HUD button hold presses Command with its first detent: Command-Tab
         // itself highlights the next app, so that detent sends no extra step.
-        XCTAssertTrue(switched.isEmpty,"604.8 HIGH counts are one seven-degree reference detent: Command-Tab")
-        control.handle(.init(.motion,id:"high-stream",sequence:22,x:300,mouseX:500+2*604.8))
+        XCTAssertTrue(switched.isEmpty,"403.2 HIGH counts are one detent with the 1.5x chooser boost: Command-Tab")
+        control.handle(.init(.motion,id:"high-stream",sequence:22,x:300,mouseX:500+2*403.2))
         XCTAssertEqual(switched,[.down],"the next detent steps on, independent of raw angle")
         XCTAssertEqual(target.pointerFocus?.adjustment?.netSteps,1)
         control.handle(.init(.motion,id:"high-stream",sequence:23,x:300,mouseX:500))
@@ -468,7 +471,7 @@ extension WandPersistentControlTests {
 extension WandPersistentControlTests {
     private func selectReview(_ cell:PhysicalCell) {
         target.resolveFrontmostApp={FrontmostAppModeContext(target:.vsCode,displayName:"VS Code",bundleIdentifier:"com.microsoft.VSCode")}
-        select(cell)
+        select(cell,unheld:true)
         control.handle(.init(.activate,id:"select-review-\(cell.rawValue)"))
         XCTAssertFalse(control.isOpen)
     }

@@ -103,6 +103,11 @@ public final class WandPersistentController {
     /// gain, the existing seven-degree detent spans 604.8 mouse counts. The
     /// receiver owns Ethan's live mouse gain/response and excludes the mouse button's LOW lane.
     private static let switchAppReferenceGain: Double = 86.4
+    /// Ethan: "the sensitivity of switching app is not fast enough" and it
+    /// should "correlate with overall sensitivity". HIGH mouse counts already
+    /// carry the receiver's live gain; this fixed 1.5x chooser boost keeps that
+    /// single setting in charge without speeding up the pointer or HUD aiming.
+    private static let switchAppSensitivity: Double = 1.5
     public var onAdjustStep: ((WheelChordDirection)->Bool)?
     /// Lets a held one-action wheel control act again after a fresh swipe.
     public var onAdjustRearm: (()->Void)?
@@ -272,6 +277,16 @@ public final class WandPersistentController {
             lastFinished=command.id
             // A held gesture whose park datagram was lost ends here first.
             if let current=hold, current.held {hold=nil;endHold(current);guard isOpen else {return}}
+            // Ethan: "tap hard ... pause, tap hard again" must quick-switch
+            // and close both times. An opening tap can jolt the live outline
+            // onto a neighbouring card, but the receiver's classified tap
+            // still means Switch App. Do not delay aiming to hide the jolt:
+            // a genuine hold's `choose` still uses its immediately live card.
+            if command.phase == .activate, gestureOpenedHUD, target.isWandHome {
+                consumeNextTerminal=false
+                activate(.switchApp)
+                return
+            }
             // Ethan's click to "delock" a dotted wedge wins even if that
             // short press moved enough to adjust it. Otherwise the used-step
             // terminal guard below swallowed the unlock. The receiver owns
@@ -714,14 +729,14 @@ public final class WandPersistentController {
                 hold.tracker=WandAdjustDetentTracker()
                 return 0
             }
-            return (mouseX-previous)/Self.switchAppReferenceGain
+            return (mouseX-previous)/Self.switchAppReferenceGain * Self.switchAppSensitivity
         }
         defer {hold.switchMetric = .angle;hold.lastMouseX=nil}
         if hold.switchMetric == .mouse {
             hold.tracker=WandAdjustDetentTracker()
             return 0
         }
-        return angleDelta
+        return angleDelta * Self.switchAppSensitivity
     }
 
     /// Dots on a selected card, HUD button up: nothing listens.
