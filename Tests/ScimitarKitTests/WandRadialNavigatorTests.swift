@@ -93,13 +93,37 @@ final class WandRadialNavigatorTests: XCTestCase {
         XCTAssertEqual(nav.focusedCell, .switchApp)
     }
 
-    func testInsideTheBandTheAngleCannotSwapRingCards() {
+    /// Superseded 2026-11-01: the band used to freeze the card here, so the
+    /// stick could sweep past 10 and 9 o'clock unseen and then jump. A path
+    /// beside the centre now follows the cards it passes, one at a time.
+    func testAPathBesideTheCentreFollowsTheCardsOneAtATime() {
         var nav = WandRadialNavigator(layout: home, start: .modePickerEntry)! // 11 o'clock
-        // Straight down from 11 o'clock passes close to the centre, where the
-        // angle swings through 10 o'clock; the card must not change.
-        let visited = drive(&nav, toward: 180, distance: 5.2)
-        XCTAssertEqual(visited, [.modePickerEntry])
-        XCTAssertGreaterThan(nav.pointerFocus.pullY, 0.1, "the outline leans toward the centre")
+        // Straight down from 11 o'clock passes 3.5° left of the centre.
+        let visited = drive(&nav, toward: 180, distance: 10)
+        XCTAssertGreaterThanOrEqual(visited.count, 3, "it passed 10 and 9 o'clock: \(visited)")
+        XCTAssertFalse(visited.contains(.switchApp), "never close enough to return to the centre")
+        for (from, to) in zip(visited, visited.dropFirst()) {
+            let a = home.ringIndex(of: from)!, b = home.ringIndex(of: to)!
+            XCTAssertEqual((a - b + 12) % 12, 1, "\(from) → \(to) skips a card in \(visited)")
+        }
+    }
+
+    /// The band still protects the way home: a wobbling return never visits
+    /// a neighbour on its way to the centre.
+    func testAWobblingReturnToTheCentreNeverVisitsANeighbour() {
+        for start in home.ring {
+            var nav = WandRadialNavigator(layout: home, start: start)!
+            let index = home.ringIndex(of: start)!
+            let inward = home.direction(at: index), across = (x: -inward.y, y: inward.x)
+            var visited = [nav.focusedCell]
+            for sample in 0..<40 {
+                // 0.2° per 30 ms inward with a ±0.7° side-to-side wobble.
+                let wobble = 0.7 * (sin(Double(sample + 1) * 0.9) - sin(Double(sample) * 0.9))
+                nav.apply(deltaX: -inward.x * 0.2 + across.x * wobble, deltaY: -inward.y * 0.2 + across.y * wobble)
+                if visited.last != nav.focusedCell { visited.append(nav.focusedCell) }
+            }
+            XCTAssertEqual(visited, [start, .switchApp], "returning from \(start)")
+        }
     }
 
     // MARK: Ring and angular hysteresis
@@ -196,13 +220,19 @@ final class WandRadialNavigatorTests: XCTestCase {
 
     // MARK: Liquid pull
 
-    func testCentrePullPointsWhereTheStickPoints() {
+    /// Superseded 2026-11-01 ("towards an actual valid wedge"): the centre
+    /// no longer leans wherever the stick points, only toward the card a
+    /// reach would choose, by the same share of the reach.
+    func testCentrePullPointsAtTheCardAReachWouldChoose() {
         var nav = WandRadialNavigator(layout: home, start: .switchApp)!
-        nav.apply(deltaX: tuning.reachDegrees * 0.3, deltaY: -tuning.reachDegrees * 0.4) // half a reach toward 1 o'clock-ish
+        nav.apply(deltaX: tuning.reachDegrees * 0.3, deltaY: -tuning.reachDegrees * 0.4) // half a reach at 36.9°
         let pull = nav.pointerFocus
         XCTAssertEqual(pull.cell, .switchApp)
-        XCTAssertEqual(pull.pullX, 0.3, accuracy: 1e-9)
-        XCTAssertEqual(pull.pullY, -0.4, accuracy: 1e-9)
+        XCTAssertEqual(pull.aim, cell(1), "36.9° is inside the 1 o'clock card")
+        XCTAssertEqual(pull.pullX, sin(.pi / 6) * 0.5, accuracy: 1e-9, "straight at 1 o'clock, half way")
+        XCTAssertEqual(pull.pullY, -cos(.pi / 6) * 0.5, accuracy: 1e-9)
+        nav.apply(deltaX: tuning.reachDegrees * 0.36, deltaY: -tuning.reachDegrees * 0.48)
+        XCTAssertEqual(nav.focusedCell, cell(1), "the reach chooses exactly the card the outline leaned toward")
     }
 
     func testRingPullGrowsTowardTheNeighbourAndTowardTheCentre() {

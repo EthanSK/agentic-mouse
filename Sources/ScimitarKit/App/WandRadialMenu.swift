@@ -349,14 +349,16 @@ public extension ModeHUDLegendItem {
 /// How the wand steers its weapon wheel.
 ///
 /// Wand rotation moves a virtual stick. The centre card is held until the
-/// stick travels `reachDegrees` from the centre; the ring card in that
-/// direction is then chosen. A ring card is held until the stick comes back
+/// stick travels `reachDegrees` from the centre; the ring card it was aimed
+/// at is then chosen. A ring card is held until the stick comes back
 /// within `centerReturnDegrees`, so the band in between absorbs tremor at the
 /// centre boundary. Around the ring, the stick must pass a sector edge by
 /// `angularHysteresis` of a sector (at most `maximumHysteresisDegrees`)
 /// before the neighbour takes over, so tremor on an edge never flickers.
-/// Ring cards change only while the stick is out at the reach radius,
-/// where its angle is reliable. The stick saturates at `maximumDegrees`: an over-long sweep never winds
+/// Inside the band the ring still follows the stick, one card at a time and
+/// with extra hysteresis that grows toward the centre, where the angle is
+/// less reliable (see `WandRadialNavigator.bandHysteresis`).
+/// The stick saturates at `maximumDegrees`: an over-long sweep never winds
 /// up, and a reversal acts at once.
 ///
 /// Outer layer (Ethan: "you have to go up twice to get there ... you don't
@@ -475,6 +477,29 @@ public struct WandRadialNavigator: Equatable, Sendable {
     public private(set) var ringIndex: Int?
     /// Index into `layout.outer` while an outer card beyond `ringIndex` is selected.
     public private(set) var outerIndex: Int?
+    /// While the centre is selected: the ring card a reach would choose now.
+    /// The centre outline leans only toward it, and the reach chooses exactly
+    /// it, so what the outline shows is what the wand selects. It keeps the
+    /// ring's edge hysteresis, so a stick near a boundary never flickers
+    /// between two aims. A return to the centre keeps aiming at the card it
+    /// left until the stick clearly points elsewhere.
+    public private(set) var aimIndex: Int?
+
+    /// Ethan (2026-11-01): "I'm in utility mode and then I like move it slowly
+    /// over to the right. And then it jumps straight to keys mode instead of
+    /// chrome mode. It just skips one." A sideways turn moves the stick in a
+    /// straight line, so between two top cards it cuts inside the ring. The
+    /// band used to freeze the card there and then jump straight to whichever
+    /// sector the stick came out in. Inside the band the ring now follows
+    /// one card at a time; the extra edge, in sectors, grows from nothing at
+    /// the reach to this share at the return radius, where a small wobble
+    /// swings the angle most. It stays below one and a half sectors with the
+    /// ordinary edge, so slow motion always lands on the adjacent card.
+    public static let bandHysteresis = 0.75
+
+    /// Below this share of the return radius the angle is mostly tremor, so
+    /// the centre's aim holds instead of following it.
+    public static let aimFloor = 1.0 / 3.0
 
     public init?(
         layout: WandRadialLayout,
@@ -561,6 +586,22 @@ public struct WandRadialNavigator: Equatable, Sendable {
         min(tuning.angularHysteresis * layout.sectorWidth, tuning.maximumHysteresisDegrees * .pi / 180)
     }
 
+    /// How far from a ring card's centre the stick must point before the
+    /// neighbour takes over: the sector edge plus hysteresis at the reach and
+    /// beyond, widening through the band toward the return radius.
+    private func switchingEdge(at length: Double) -> Double {
+        let edge = layout.sectorWidth / 2 + hysteresisRadians
+        guard length < tuning.reachDegrees else { return edge }
+        let span = max(tuning.reachDegrees - tuning.centerReturnDegrees, 0.0001)
+        let depth = max(0, min(1, (tuning.reachDegrees - length) / span))
+        return edge + Self.bandHysteresis * layout.sectorWidth * depth
+    }
+
+    private func neighbour(of index: Int, clockwise: Bool) -> Int {
+        let count = layout.ring.count
+        return ((index + (clockwise ? 1 : -1)) % count + count) % count
+    }
+
     /// Applies one bias-corrected angular delta. Returns true only when the
     /// selected card changed.
     @discardableResult
@@ -592,31 +633,54 @@ public struct WandRadialNavigator: Equatable, Sendable {
         let length = radius
         let theta = WandRadialLayout.angle(x: positionX, y: positionY)
         guard let current = ringIndex else {
-            // On the centre: only a deliberate reach picks a ring card.
+            // On the centre: the stick aims at one ring card, and only a
+            // deliberate reach chooses it.
             outerIndex = nil
-            if length >= tuning.reachDegrees {
-                ringIndex = layout.nearestIndex(toAngle: theta)
+            updateAim(theta: theta, length: length)
+            if length >= tuning.reachDegrees, let aimIndex {
+                ringIndex = aimIndex
+                self.aimIndex = nil
                 resolveOuter(length: length, theta: theta)
             }
             return
         }
         if layout.center != nil, length < tuning.centerReturnDegrees {
+            // Keep aiming at the card just left: the outline returns along
+            // its own direction instead of swinging toward stick noise.
+            aimIndex = current
             ringIndex = nil
             outerIndex = nil
             return
         }
-        // Close to the centre the stick's angle swings wildly with tiny
-        // motion, so only a stick out at the ring may change ring cards.
+        let offset = WandRadialLayout.angularDifference(theta, layout.angle(at: current))
         guard length >= tuning.reachDegrees else {
+            // Inside the band: never skip a card the stick swept past, and
+            // without a centre never trust the angle right at the middle.
             outerIndex = nil
+            if layout.ring.count > 1, layout.center != nil || length >= tuning.centerReturnDegrees,
+               abs(offset) > switchingEdge(at: length) {
+                ringIndex = neighbour(of: current, clockwise: offset > 0)
+            }
             return
         }
-        let offset = WandRadialLayout.angularDifference(theta, layout.angle(at: current))
-        if abs(offset) > layout.sectorWidth / 2 + hysteresisRadians {
+        if abs(offset) > switchingEdge(at: length) {
             ringIndex = layout.nearestIndex(toAngle: theta)
             outerIndex = nil
         }
         resolveOuter(length: length, theta: theta)
+    }
+
+    /// The ring card the centre is aimed at. It changes only once the stick
+    /// clearly points past that card's edge, so the aim never flickers on a
+    /// boundary, and it holds through tremor right at the middle.
+    private mutating func updateAim(theta: Double, length: Double) {
+        guard !layout.ring.isEmpty, length >= tuning.centerReturnDegrees * Self.aimFloor else { return }
+        if let aimIndex,
+           abs(WandRadialLayout.angularDifference(theta, layout.angle(at: aimIndex)))
+            <= layout.sectorWidth / 2 + hysteresisRadians {
+            return
+        }
+        aimIndex = layout.nearestIndex(toAngle: theta)
     }
 
     /// The outer band beyond the current ring card: a second deliberate reach
@@ -669,16 +733,25 @@ public struct WandRadialNavigator: Equatable, Sendable {
 
     /// Screen-space pull toward the card that would come next, length ≤ 1.
     ///
-    /// On the centre it points where the stick points, growing toward the
-    /// reach. On a ring card it combines travel toward a neighbour (along the
-    /// ring, ±1 at the hysteresis edge) with travel back toward the centre
-    /// (1 at the return radius). Just after any change it leans back toward
-    /// the card that was left, exactly like the grid outline after a snap.
+    /// Ethan (2026-11-01): "make the animation of the liquid outline thing not
+    /// let me do it in any direction, but rather towards an actual valid
+    /// wedge so I can actually aim it while it's like midway through
+    /// committing that movement." On the centre it leans only toward the
+    /// aimed card (`aimIndex`), growing toward the reach, never between two
+    /// cards. On a ring card it combines travel toward a neighbour (along the
+    /// ring, ±1 at the switching edge) with travel back toward the centre
+    /// (1 at the return radius) or out toward an outer card; each is damped
+    /// by how close the other is to taking over (`guided`), so the outline
+    /// leans toward the one card the wand is heading for. Just after any
+    /// change it leans back toward the card that was left, exactly like the
+    /// grid outline after a snap.
     public var pull: (x: Double, y: Double) {
         let length = radius
         guard let ringIndex else {
-            let scale = 1 / tuning.reachDegrees
-            return Self.clampedUnit(x: positionX * scale, y: positionY * scale)
+            guard let aimIndex, length > 0 else { return (0, 0) }
+            let direction = layout.direction(at: aimIndex)
+            let amount = min(1, length / tuning.reachDegrees)
+            return (direction.x * amount, direction.y * amount)
         }
         if let outerIndex {
             // Along toward a sibling (or out of the parent sector), and back
@@ -699,24 +772,21 @@ public struct WandRadialNavigator: Equatable, Sendable {
                 inward -= max(0, min(1, (length - tuning.outerMaximumDegrees)
                     / (tuning.thirdReachDegrees - tuning.outerMaximumDegrees)))
             }
+            let lean = Self.guided(along: along, inward: inward)
             return Self.clampedUnit(
-                x: tangent.x * along - direction.x * inward,
-                y: tangent.y * along - direction.y * inward
+                x: tangent.x * lean.along - direction.x * lean.inward,
+                y: tangent.y * lean.along - direction.y * lean.inward
             )
         }
         let direction = layout.direction(at: ringIndex)
         let tangent = (x: -direction.y, y: direction.x) // clockwise along the ring
         var along = 0.0
-        if length > 0 {
+        if length > 0, layout.ring.count > 1 {
             let theta = WandRadialLayout.angle(x: positionX, y: positionY)
             let offset = WandRadialLayout.angularDifference(theta, layout.angle(at: ringIndex))
-            let edge = layout.sectorWidth / 2 + hysteresisRadians
-            // Inside the band the ring cannot change, so travel toward a
-            // neighbour fades out on the way in and is full at the reach.
-            let band = max(0, min(1, (length - tuning.centerReturnDegrees)
-                / (tuning.reachDegrees - tuning.centerReturnDegrees)))
-            let confidence = band * band * (3 - 2 * band)
-            along = layout.ring.count > 1 ? max(-1, min(1, offset / edge)) * confidence : 0
+            // The band follows the ring too, so travel toward a neighbour is
+            // measured against the same edge that switches to it there.
+            along = max(-1, min(1, offset / switchingEdge(at: length)))
         }
         let span = tuning.reachDegrees - tuning.centerReturnDegrees
         var inward = layout.center == nil ? 0 : max(0, min(1, (tuning.reachDegrees - length) / span))
@@ -729,15 +799,37 @@ public struct WandRadialNavigator: Equatable, Sendable {
                 ? tuning.thirdReachDegrees : tuning.outerReachDegrees
             inward -= max(0, min(1, (length - tuning.maximumDegrees) / (next - tuning.maximumDegrees)))
         }
+        let lean = Self.guided(along: along, inward: inward)
         return Self.clampedUnit(
-            x: tangent.x * along - direction.x * inward,
-            y: tangent.y * along - direction.y * inward
+            x: tangent.x * lean.along - direction.x * lean.inward,
+            y: tangent.y * lean.along - direction.y * lean.inward
         )
     }
 
+    /// Leans toward the target that is closer to taking over. Each component
+    /// is damped by how far the other has progressed, so a sideways sweep
+    /// that also drifts inward reads as travel to the neighbour, a return to
+    /// the centre reads as a return, and at the moment either switch happens
+    /// the outline points only at the card it switches to. Both are
+    /// continuous away from a simultaneous completed reach. Keep the stronger
+    /// component's progress: multiplying both by the other's remaining reach
+    /// made a diagonal approach shrink back to zero just before selection.
+    static func guided(along: Double, inward: Double) -> (along: Double, inward: Double) {
+        let towardNeighbour = min(1, abs(along)), towardInOrOut = min(1, abs(inward))
+        let remaining = 1 - min(towardNeighbour, towardInOrOut)
+        // At the exact shared boundary, show one valid radial destination;
+        // neither an invisible outline nor division by zero is useful feedback.
+        guard remaining > 1e-9 else { return (0, inward) }
+        return (along * (1 - towardInOrOut) / remaining,
+                inward * (1 - towardNeighbour) / remaining)
+    }
+
+    /// The outline plus, on the centre, the card it is aimed at, so the HUD
+    /// can start the next outward morph from that card's direction.
     public var pointerFocus: ModeHUDPointerFocus {
         let value = pull
-        return ModeHUDPointerFocus(cell: focusedCell, pullX: value.x, pullY: value.y)
+        let aim = ringIndex == nil ? aimIndex.map { layout.ring[$0] } : nil
+        return ModeHUDPointerFocus(cell: focusedCell, pullX: value.x, pullY: value.y, aim: aim)
     }
 
     private static func clampedUnit(x: Double, y: Double) -> (x: Double, y: Double) {

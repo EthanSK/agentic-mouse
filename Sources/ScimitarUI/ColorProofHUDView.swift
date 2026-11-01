@@ -96,6 +96,14 @@ final class ModeHUDViewModel: ObservableObject {
             target = resolved.outerAngle(at: index)
         } else if let index = resolved.ringIndex(of: focus.cell) {
             target = resolved.angle(at: index)
+        } else if let aim = focus.aim, let index = resolved.ringIndex(of: aim) {
+            // On the centre the wedge end follows the card the wand is aimed
+            // at, never the live pull. A return keeps aiming at the card it
+            // left, so this changes nothing on the way in; once the wand aims
+            // at another card, the next reach grows straight toward it
+            // instead of sweeping round from the last card (Ethan: "towards
+            // an actual valid wedge"). The disc alone is drawn at rest here.
+            target = resolved.angle(at: index)
         } else {
             // Ethan: entering the centre must not briefly go "up and then
             // down". Keep the incoming card's angle while its outline returns
