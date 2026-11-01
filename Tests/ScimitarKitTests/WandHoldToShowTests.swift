@@ -101,6 +101,25 @@ final class WandHoldToShowTests: XCTestCase {
         XCTAssertFalse(target.isActive, "then it ends")
     }
 
+    func testHardOpeningTapsIgnoreJoltsAndEachSwitchAppThenClose() {
+        // The first repeat reopens during concealment; the next follows its
+        // expiry. A release classified as a tap never activates the jolt's card.
+        for attempt in 0..<3 {
+            let id = holdFromClosed()
+            aim(id, at: .wandPlayPause)
+            XCTAssertEqual(control.focusedCell, .wandPlayPause, "aim stays immediate")
+            control.handle(.init(.park, id: id, sequence: 2))
+            control.handle(.init(.activate, id: nextID("activate")))
+            XCTAssertTrue(homeActions.isEmpty, "a hard tap must not trigger the neighbouring action")
+            XCTAssertEqual(buttonPhases, Array(repeating: ["press", "release"], count: attempt + 1).flatMap { $0 })
+            XCTAssertTrue(control.isConcealed)
+            XCTAssertFalse(control.isOpen)
+            XCTAssertFalse(hud.isVisible)
+            clock.advance(by: attempt == 0 ? 0.5 : WandPersistentController.followUpLinger + 0.1)
+            tick.fire()
+        }
+    }
+
     /// Ethan (2026-10-30): "Single clicking any HUD item, I don't want it to
     /// ever dismiss the HUD ... so then I can just select as many times as I
     /// want." Hold-steer-release acts once and the HUD stays on the card.
@@ -759,10 +778,10 @@ final class WandHoldToShowTests: XCTestCase {
         XCTAssertTrue(buttonPhases.isEmpty, "release arms without pressing Command")
         XCTAssertEqual(control.armedCell, .switchApp)
         let held = hold()
-        control.handle(.init(.motion, id: held, sequence: 1, x: 7))
+        control.handle(.init(.motion, id: held, sequence: 1, x: 4.7))
         XCTAssertEqual(buttonPhases, ["press"], "the first step right is Command-Tab itself: the next app")
         XCTAssertTrue(switchSteps.isEmpty)
-        control.handle(.init(.motion, id: held, sequence: 2, x: 14))
+        control.handle(.init(.motion, id: held, sequence: 2, x: 9.4))
         XCTAssertEqual(switchSteps, [.down], "the next step right moves on one more")
         releaseHold(held, sequence: 3)
         XCTAssertEqual(buttonPhases, ["press", "release"])
@@ -805,6 +824,35 @@ final class WandHoldToShowTests: XCTestCase {
         releaseHold(held, sequence: 3)
         XCTAssertFalse(control.isOpen)
         XCTAssertEqual(buttonPhases, ["press", "release"])
+    }
+
+    func testSwitchAppUsesFasterHighGainCountsAndImmediateReversal() {
+        let held = adjustArmedSwitchApp()
+        control.handle(.init(.qualify, id: held, sequence: 1))
+        control.handle(.init(.motion, id: held, sequence: 2, mouseX: 1_000))
+        // The live HIGH count stream is already scaled by the single receiver
+        // sensitivity. 806.4 counts at the reference gain used to make one
+        // detent; the 1.5x chooser boost makes exactly two.
+        control.handle(.init(.motion, id: held, sequence: 3, mouseX: 1_806.4))
+        XCTAssertEqual(switchSteps, [.down, .down])
+        control.handle(.init(.motion, id: held, sequence: 4, mouseX: 1_000))
+        XCTAssertEqual(switchSteps, [.down, .down, .up, .up], "reverse immediately, without a latch")
+        releaseHold(held, sequence: 5)
+        XCTAssertEqual(buttonPhases, ["press", "release"])
+    }
+
+    func testSwitchAppMetricChangesOnlyRebaseEvenWithFasterSensitivity() {
+        let held = adjustArmedSwitchApp()
+        control.handle(.init(.qualify, id: held, sequence: 1))
+        control.handle(.init(.motion, id: held, sequence: 2, x: 4.7))
+        XCTAssertEqual(switchSteps, [.down], "angle fallback receives the same 1.5x boost")
+        control.handle(.init(.motion, id: held, sequence: 3, x: 100, mouseX: 5_000))
+        XCTAssertEqual(switchSteps, [.down], "first HIGH sample only rebases")
+        control.handle(.init(.motion, id: held, sequence: 4, x: 200))
+        XCTAssertEqual(switchSteps, [.down], "leaving HIGH also only rebases")
+        control.handle(.init(.motion, id: held, sequence: 5, x: 195.3))
+        XCTAssertEqual(switchSteps, [.down, .up])
+        releaseHold(held, sequence: 6)
     }
 
     func testChildPagesAndOtherCardsStayOrdinaryHover() {
@@ -855,9 +903,9 @@ final class WandHoldToShowTests: XCTestCase {
         let held = hold()
         XCTAssertTrue(control.switchAppAdjusting)
         control.handle(.init(.motion,id:held,sequence:1,mouseX:1_000))
-        control.handle(.init(.motion,id:held,sequence:2,mouseX:1_604.8))
-        XCTAssertEqual(buttonPhases,["press"],"one detent right: Command-Tab")
-        control.handle(.init(.motion,id:held,sequence:3,mouseX:2_209.6))
+        control.handle(.init(.motion,id:held,sequence:2,mouseX:1_403.2))
+        XCTAssertEqual(buttonPhases,["press"],"one boosted detent right: Command-Tab")
+        control.handle(.init(.motion,id:held,sequence:3,mouseX:1_806.4))
         XCTAssertEqual(switchSteps,[.down])
         releaseHold(held,sequence:4)
         XCTAssertFalse(control.switchAppAdjusting)

@@ -1,3 +1,4 @@
+// Check wand clipboard routing without posting real keyboard or mouse input.
 import XCTest
 import ScimitarKit
 @testable import AgenticMouseApp
@@ -131,7 +132,9 @@ final class WandClipboardRoutingTests: XCTestCase {
         let layout=target.wandRadialLayout
         let start=WandRadialNavigator.restingPosition(of:.switchApp,in:layout)
         let goal=WandRadialNavigator.restingPosition(of:.clipboardWheelControl,in:layout)
-        persistent.handle(.init(.navigate,id:"space-aim"))
+        // The user aims with the button up, then taps the already-open HUD.
+        // A quick opening press instead owns Switch App, even after a jolt.
+        persistent.handle(.init(.hover,id:"space-aim"))
         persistent.handle(.init(.motion,id:"space-aim",sequence:1,x:goal.x-start.x,y:goal.y-start.y))
         persistent.handle(.init(.park,id:"space-aim",sequence:2))
         persistent.handle(.init(.activate,id:"space-tap"))
