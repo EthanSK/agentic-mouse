@@ -805,7 +805,7 @@ public final class WandPersistentController {
     private func armedPresentation(_ focus:ModeHUDPointerFocus) -> ModeHUDPointerFocus {
         guard focus.adjustment == nil, focus.cell == .switchApp, let card=armed, card.control == nil,
               target.isWandHome, target.pageGeneration == card.pageGeneration else { return focus }
-        return .init(cell:focus.cell,isArmed:true,pullX:focus.pullX,pullY:focus.pullY)
+        return .init(cell:focus.cell,isArmed:true,pullX:focus.pullX,pullY:focus.pullY,aim:focus.aim)
     }
     public func refreshContext(screenshotActive:Bool = false) {
         screenshotInteractionActive=screenshotActive

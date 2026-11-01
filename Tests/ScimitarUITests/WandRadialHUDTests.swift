@@ -242,6 +242,41 @@ final class WandRadialHUDTests: XCTestCase {
         }
     }
 
+    /// Ethan (2026-11-01): "towards an actual valid wedge ... midway through
+    /// committing that movement." Real navigator output drives the view
+    /// model: the return keeps the incoming angle, aiming elsewhere moves the
+    /// wedge end while only the disc is drawn, and the reach then grows
+    /// straight out instead of sweeping round from the last card.
+    func testTheReachGrowsStraightTowardTheAimedCard() throws {
+        let model = ModeHUDViewModel(source: .wand, appIconProvider: NoRadialIconProvider())
+        var snapshot = try homeSnapshot(frontmost: .chrome)
+        let layout = try XCTUnwrap(snapshot.wandRadialLayout)
+        let start = layout.ring[0], opposite = layout.ring[6]
+        var navigator = try XCTUnwrap(WandRadialNavigator(layout: layout, start: start))
+        snapshot.pointerFocus = navigator.pointerFocus
+        model.apply(snapshot)
+        let incoming = model.wandFocusAngle
+        let inward = layout.direction(at: 0)
+        var angleWhenTheReachHappened: Double?
+        for _ in 0..<64 {
+            navigator.apply(deltaX: -inward.x * 0.25, deltaY: -inward.y * 0.25)
+            let before = model.wandFocusAngle
+            snapshot.pointerFocus = navigator.pointerFocus
+            model.apply(snapshot)
+            if navigator.focusedCell == layout.center, navigator.pointerFocus.aim == start {
+                XCTAssertEqual(model.wandFocusAngle, incoming, accuracy: 1e-9, "the return keeps its own direction")
+            }
+            if navigator.focusedCell == opposite {
+                angleWhenTheReachHappened = before
+                XCTAssertEqual(model.wandFocusAngle, before, accuracy: 1e-9, "the reach itself does not turn the wedge")
+                break
+            }
+        }
+        let reached = try XCTUnwrap(angleWhenTheReachHappened, "the straight line through the middle reaches the far card")
+        XCTAssertEqual(WandRadialLayout.angularDifference(reached, layout.angle(at: 6)), 0, accuracy: 1e-9,
+                       "the wedge end was already pointing at the aimed card")
+    }
+
     /// The angle each card is drawn at is the angle the navigator selects.
     func testDrawnCardsSitExactlyWhereSelectionAimsForThem() {
         let layout = WandRadialLayout(center: .modeExit, ring: PhysicalCell.all.filter { $0 != .modeExit })

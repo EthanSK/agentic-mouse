@@ -457,6 +457,10 @@ public struct ModeHUDPointerFocus: Equatable, Sendable {
     public let pullY: Double
     /// Present only while an armed wheel card is being adjusted by tilt.
     public let adjustment: ModeHUDWheelAdjustment?
+    /// The wand's centre only: the ring card a reach would choose, which the
+    /// centre outline leans toward. The wheel starts its outward morph from
+    /// that card's direction instead of sweeping round from the last one.
+    public let aim: PhysicalCell?
 
     /// An adjusting card never carries navigation pull: its outline shows
     /// detent progress instead, so the two residuals can never mix.
@@ -465,13 +469,15 @@ public struct ModeHUDPointerFocus: Equatable, Sendable {
         isArmed: Bool = false,
         pullX: Double = 0,
         pullY: Double = 0,
-        adjustment: ModeHUDWheelAdjustment? = nil
+        adjustment: ModeHUDWheelAdjustment? = nil,
+        aim: PhysicalCell? = nil
     ) {
         self.cell = cell
         self.isArmed = isArmed || adjustment != nil
         self.adjustment = adjustment
         self.pullX = adjustment == nil && pullX.isFinite ? min(1, max(-1, pullX)) : 0
         self.pullY = adjustment == nil && pullY.isFinite ? min(1, max(-1, pullY)) : 0
+        self.aim = adjustment == nil && aim != cell ? aim : nil
     }
 }
 
