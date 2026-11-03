@@ -7,6 +7,17 @@ import XCTest
 final class VSCodeCommandBridgeTests: XCTestCase {
     private let appURL = URL(fileURLWithPath: "/Applications/Visual Studio Code.app")
 
+    func testOnlyAtomicEyesBootstrapHasInitialMarker() {
+        for source in MouseSource.allCases {
+            XCTAssertEqual(VSCodeCommandBridge.stagePreviewModeURL(active: true, source: source, initial: true)?.query,
+                           "source=\(source.rawValue)&initial=1")
+            XCTAssertEqual(VSCodeCommandBridge.stagePreviewModeURL(active: true, source: source)?.query,
+                           "source=\(source.rawValue)", "Legacy begin still needs its bootstrap on Better Git146")
+            XCTAssertEqual(VSCodeCommandBridge.stagePreviewModeURL(active: false, source: source, initial: true)?.query,
+                           "source=\(source.rawValue)", "Explicit mode-off must never be treated as bootstrap")
+        }
+    }
+
     func testBuildsOnlyTheAllowListedBridgeURLs() {
         XCTAssertEqual(
             VSCodeCommandBridge.url(for: .cursorHistoryBack)?.absoluteString,

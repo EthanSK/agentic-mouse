@@ -40,6 +40,9 @@ final class HorizontalScrollOutputTests: XCTestCase {
             let toggle = VSCodeStagePreviewModifierCommand(source: source)
             XCTAssertEqual(modifier.handle(toggle, whileStageRangeActive: true), false)
             XCTAssertFalse(modifier.isActive(for: source), "First adjacent tap restores range selection")
+            monitor.handle(.init(control: .vsCodeStageRange, source: source, phase: .press))
+            XCTAssertFalse(modifier.isActive(for: source), "Duplicate readiness preserves deliberate mode-off")
+            XCTAssertEqual(modeRequests, [true], "Duplicate readiness does not issue another bootstrap")
             // Releasing the adjacent button sends no state command, so its latch remains off.
             XCTAssertFalse(modifier.isActive(for: source))
             XCTAssertEqual(modifier.handle(toggle, whileStageRangeActive: true), true)

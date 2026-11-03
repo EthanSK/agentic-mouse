@@ -120,6 +120,9 @@ final class ScrollWheelChordMonitor {
             finishHold(for: source, inputTime: inputTime)
             return
         }
+        // Repeated F20/readiness for this one stage hold must not reset its
+        // wheel progress or restore Eyes after an intentional adjacent toggle.
+        if control == .vsCodeStageRange, state.activeControl(for: source) == control { return }
         if state.activeControl(for: source) != control { onClear?(source, control) }
         state.setActive(control, for: source)
         onControlChange?(source, control, inputTime)

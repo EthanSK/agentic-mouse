@@ -81,6 +81,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var wandRejectedPayloadCount = 0
     private var vsCodeModeGestureClassifiers: [MouseSource: VSCodeModeGestureClassifier] = [:]
     private let vsCodeStagePreviewModifier = VSCodeStagePreviewModifierState()
+    private var vsCodeInitialPreviewSources = Set<MouseSource>()
+    private lazy var vsCodeEyesBeginGate: VSCodeEyesBeginGate = {
+        let lease = KarabinerCLIModeLease(leaseDuration: 3, variableName: VSCodeEyesBeginGate.variableName)
+        let gate = VSCodeEyesBeginGate(lease: lease, scheduler: DispatchTickScheduler(),
+            allowed: { [weak self] in self?.mouseCommandsAllowed == true })
+        lease.onFailure = { [weak gate] _ in gate?.reset() }
+        return gate
+    }()
     private var defaultMapHintCoordinators: [MouseSource: DefaultMapHintCoordinator] = [:]
     private var sessionSecurityController: SessionSecurityController?
     private var userCommandReceiver: KarabinerUserCommandReceiver?
@@ -342,6 +350,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     /// Runs on every exit path, including signals.
     private func teardown() {
+        vsCodeEyesBeginGate.reset()
         wandNewChatService.stop()
         wandChatCreationStatus.reset()
         codexPinNotifications.stop()
@@ -434,6 +443,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func startSessionSecurityBoundary() {
+        _ = vsCodeEyesBeginGate
         let lease = KarabinerCLIModeLease(
             leaseDuration: 3,
             variableName: SessionSecurityController.variableName
@@ -454,6 +464,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func handleSessionLocked() {
+        vsCodeEyesBeginGate.reset()
         wandNewChatService.reset()
         wandChatCreationStatus.reset()
         wandSelectionController?.reset(reason: .systemSleep)
@@ -2019,7 +2030,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     source: source,
                     appSpecificModeActive: self.modePickerCoordinators[source]?.isActive == true
                    ) {
-                    self.performVSCodeStagePreviewMode(true, source: source)
+                    self.performVSCodeStagePreviewMode(true, source: source,
+                        initial: self.vsCodeInitialPreviewSources.contains(source))
                 }
             }
             if let axis = control.windowResizeAxis,
@@ -2431,11 +2443,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    private func performVSCodeStagePreviewMode(_ active: Bool, source: MouseSource) {
+    private func performVSCodeStagePreviewMode(_ active: Bool, source: MouseSource, initial: Bool = false) {
         guard mouseCommandsAllowed,
               !active || wheelChordMonitor?.activeControl(for: source) == .vsCodeStageRange
         else { return }
-        vsCodeCommandBridge.performStagePreviewMode(active, source: source) { [weak self] result in
+        vsCodeCommandBridge.performStagePreviewMode(active, source: source, initial: initial) { [weak self] result in
             switch result {
             case .success:
                 self?.log.info("VS Code stage preview mode \(active ? "on" : "off") requested from \(source.displayName)")
@@ -2449,6 +2461,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         source: MouseSource,
         reason: VSCodeStagePreviewModifierState.CleanupReason = .cancellation
     ) {
+        vsCodeInitialPreviewSources.remove(source)
         if vsCodeStagePreviewModifier.clear(source: source, reason: reason) {
             performVSCodeStagePreviewMode(false, source: source)
         }
@@ -2756,6 +2769,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     return
                 }
                 if self.floatingMouseClutch.handle(data, inputTime: inputTime) { return }
+                if let command = try? VSCodeEyesBeginGate.Command.decode(data) {
+                    self.log.info("VS Code atomic Eyes gate \(self.vsCodeEyesBeginGate.handle(command) && command.enabled ? "enabled" : "off")")
+                    return
+                }
                 if let command = try? WandChatCreationStatusCommand.decode(data) {
                     self.wandChatCreationStatus.handle(command)
                     return
@@ -2765,6 +2782,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     return
                 }
                 if let command = try? WheelChordCommand.decodeTopLevel(data) {
+                    if command.control == .vsCodeStageRange, command.phase == .press {
+                        if command.initialPreview == true { self.vsCodeInitialPreviewSources.insert(command.source) }
+                        else { self.vsCodeInitialPreviewSources.remove(command.source) }
+                    }
                     if command.control == .vsCodeStageRange, command.phase == .release {
                         // Even a short owner hold must clear a click latched
                         // before the range was armed, without waiting for onRelease.

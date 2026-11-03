@@ -78,6 +78,7 @@ EXTERNAL_OUTPUT_FIELDS = {
 FORBIDDEN_ACTION_FIELDS = {"from", "type", "manipulator", "manipulators"}
 BINDING_VARIABLE_PLACEHOLDER = "$binding_variable"
 VSCODE_LEGACY_STAGE_FLAG = "agentic_mouse_vscode_legacy_stage_chords_enabled"
+VSCODE_EYES_BEGIN_EXPIRY = "agentic_mouse_vscode_eyes_begin_expires_at"
 
 
 def vscode_hold_templates(binding: dict[str, Any]) -> list[dict[str, Any]]:
@@ -119,7 +120,7 @@ def vscode_hold_templates(binding: dict[str, Any]) -> list[dict[str, Any]]:
         }]
     short = {"type": "variable_if", "name": pending, "value": 1}
     held = {"type": "variable_if", "name": pending, "value": 2}
-    return [{
+    legacy = {
         "conditions": enabled,
         "parameters": {"basic.to_if_held_down_threshold_milliseconds": 200, "basic.to_if_alone_timeout_milliseconds": 200},
         "to": [
@@ -142,7 +143,19 @@ def vscode_hold_templates(binding: dict[str, Any]) -> list[dict[str, Any]]:
             {"set_variable": {"name": pending, "value": 0}},
             copy.deepcopy(clear_feedback),
         ],  # Every hold stages independently. Undo is only the held adjacent-button chord; never restore double-hold undo. (Codex task: 01a039f7-873c-7c30-b3dc-af8a6724ace5)
-    }]
+    }
+    # Ethan's fresh Default hold starts in Eyes. Enable only after the running
+    # Better Git hosts are qualified; installed extension files are not proof.
+    # Karabiner selects one complete lifecycle on down, so expiry during a hold
+    # cannot change its finish/cancel/release path or its bootstrap identity.
+    modern = copy.deepcopy(legacy)
+    gate = _active_expression(VSCODE_EYES_BEGIN_EXPIRY)
+    legacy["conditions"].append({"type": "expression_unless", "expression": gate})
+    modern["conditions"].append({"type": "expression_if", "expression": gate})
+    modern["to"][2]["modifiers"] = (["left_option", "left_command", "left_shift"]
+        if source == "razer" else ["left_control", "left_command", "left_shift"])
+    modern["to_if_held_down"][2]["send_user_command"]["payload"]["initialPreview"] = True
+    return [legacy, modern]
 
 
 def vscode_preview_partner_template(binding: dict[str, Any]) -> dict[str, Any] | None:
