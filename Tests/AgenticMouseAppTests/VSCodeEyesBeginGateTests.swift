@@ -6,6 +6,74 @@ import XCTest
 
 @MainActor
 final class VSCodeEyesBeginGateTests: XCTestCase {
+    func testRealHostChildSpawnKeepsAdmissionAndHostExitStillRevokes() async throws {
+        let code = Process(), host = Process(), input = Pipe(), output = Pipe()
+        code.executableURL = URL(fileURLWithPath: "/bin/sleep"); code.arguments = ["30"]
+        host.executableURL = URL(fileURLWithPath: "/usr/bin/python3")
+        host.arguments = ["-c", "import os,sys\nprint('ready',flush=True)\nsys.stdin.readline()\npid=os.fork()\nif pid==0: os._exit(0)\nos.waitpid(pid,0)\nprint('spawned',flush=True)\nsys.stdin.readline()"]
+        host.standardInput = input; host.standardOutput = output; host.standardError = FileHandle.nullDevice
+        let hostReady = expectation(description: "host finished interpreter startup")
+        output.fileHandleForReading.readabilityHandler = { handle in
+            if !handle.availableData.isEmpty { handle.readabilityHandler = nil; hostReady.fulfill() }
+        }
+        try code.run(); try host.run()
+        defer {
+            output.fileHandleForReading.readabilityHandler = nil
+            for process in [host, code] { if process.isRunning { process.terminate() }; process.waitUntilExit() }
+        }
+        await fulfillment(of: [hostReady], timeout: 3)
+        let registered = expectation(description: "all kernel process watches registered")
+        registered.expectedFulfillmentCount = 3
+        let forked = expectation(description: "independent observer saw actual child creation")
+        let childFinished = expectation(description: "real child finished")
+        let witness = DispatchSource.makeProcessSource(identifier: host.processIdentifier, eventMask: .fork, queue: .main)
+        witness.setRegistrationHandler { registered.fulfill() }
+        witness.setEventHandler { forked.fulfill(); witness.cancel() }; witness.resume()
+        defer { witness.cancel() }
+        let lease = GateLease()
+        let gate = VSCodeEyesBeginGate(lease: lease, scheduler: ManualTickScheduler(),
+            allowed: { true }, validate: { _, _ in true }, watch: { pid, events, changed in
+                let source = DispatchSource.makeProcessSource(identifier: pid, eventMask: events, queue: .main)
+                source.setRegistrationHandler { registered.fulfill() }
+                source.setEventHandler { MainActor.assumeIsolated { changed() } }; source.resume()
+                return { source.cancel() }
+            })
+        let enable = try VSCodeEyesBeginGate.Command.decode(JSONSerialization.data(withJSONObject: [
+            "command": "agentic_mouse_vscode_eyes_begin_gate", "enabled": true,
+            "code_pid": code.processIdentifier, "host_pids": [host.processIdentifier],
+        ]))
+        XCTAssertTrue(gate.handle(enable))
+        await fulfillment(of: [registered], timeout: 3)
+        output.fileHandleForReading.readabilityHandler = { handle in
+            if !handle.availableData.isEmpty { handle.readabilityHandler = nil; childFinished.fulfill() }
+        }
+        input.fileHandleForWriting.write(Data("spawn\n".utf8))
+        await fulfillment(of: [forked, childFinished], timeout: 3)
+        await withCheckedContinuation { continuation in DispatchQueue.main.async { continuation.resume() } }
+        XCTAssertTrue(gate.isEnabled, "Routine host children must not revoke admission")
+        let exited = expectation(description: "actual host replacement still revokes admission")
+        lease.onDeactivate = { if lease.activations > 0 { exited.fulfill() } }
+        host.terminate()
+        await fulfillment(of: [exited], timeout: 3)
+        XCTAssertFalse(gate.isEnabled)
+        lease.onDeactivate = nil
+    }
+
+    func testRoutineExtensionHostChildrenCannotInvalidateAdmission() throws {
+        var masks: [Int32: DispatchSource.ProcessEvent] = [:]
+        let gate = VSCodeEyesBeginGate(lease: GateLease(), scheduler: ManualTickScheduler(),
+            allowed: { true }, validate: { _, _ in true },
+            watch: { pid, events, _ in masks[pid] = events; return {} })
+        XCTAssertTrue(gate.handle(try command(true)))
+        XCTAssertEqual(masks[111], [.fork, .exec, .exit])
+        for pid: Int32 in [222, 333] {
+            XCTAssertEqual(masks[pid], [.exec, .exit])
+            XCTAssertFalse(masks[pid]?.contains(.fork) == true,
+                "Routine Git/language-worker child creation must neither drop the lease nor trigger qualification")
+        }
+        XCTAssertTrue(gate.isEnabled)
+    }
+
     func testRealProcessExitRevokesTheLeaseWithoutWaitingForHeartbeat() async throws {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/bin/sleep")
@@ -37,7 +105,7 @@ final class VSCodeEyesBeginGateTests: XCTestCase {
         var allowed = true
         let gate = VSCodeEyesBeginGate(lease: lease, scheduler: scheduler,
             allowed: { allowed }, validate: { $0 == 111 && $1 == [222, 333] },
-            watch: { pid, changed in callbacks[pid] = changed; return { cancels += 1 } })
+            watch: { pid, _, changed in callbacks[pid] = changed; return { cancels += 1 } })
         let enable = try command(true)
         XCTAssertFalse(gate.isEnabled)
         XCTAssertEqual(lease.activations, 0)
@@ -64,14 +132,14 @@ final class VSCodeEyesBeginGateTests: XCTestCase {
         let lease = GateLease()
         let scheduler = ManualTickScheduler()
         let gate = VSCodeEyesBeginGate(lease: lease, scheduler: scheduler,
-            allowed: { true }, validate: { _, _ in true }, watch: { _, _ in nil })
+            allowed: { true }, validate: { _, _ in true }, watch: { _, _, _ in nil })
         XCTAssertFalse(gate.handle(try command(true)))
         XCTAssertFalse(gate.isEnabled)
         for hosts: [Int32] in [[], [222, 222], [111], [0]] {
             XCTAssertFalse(gate.handle(try command(true, hosts: hosts)))
         }
         let working = VSCodeEyesBeginGate(lease: lease, scheduler: scheduler,
-            allowed: { true }, validate: { _, _ in true }, watch: { _, _ in {} })
+            allowed: { true }, validate: { _, _ in true }, watch: { _, _, _ in {} })
         lease.fails = true
         XCTAssertFalse(working.handle(try command(true)))
         XCTAssertFalse(working.isEnabled)
