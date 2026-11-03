@@ -149,7 +149,7 @@ Agentic Mouse does not edit vendor profile databases. Its runtime modes restore 
 
 [**Follow me on LinkedIn →**](https://www.linkedin.com/in/ethansk/) for more tips on the agentic future — the tools, skills and setup I use. [See recent posts](https://www.linkedin.com/in/ethansk/recent-activity/all/).
 
-Source-available under [Ethan Source-Available No-Sale Terms 1.0](LICENSE). You can use and modify the covered code, including internally at work, and share it without charge. Selling the software, modified versions, paid access, or bundles requires a separate commercial license. Earlier licenses and third-party rights remain in force. See [scope and release policy](LICENSING.md).
+Source-available under [Apache License 2.0 with Commons Clause v1.0](LICENSE). You may use and modify the covered software, including internally at work, and redistribute it under these terms. Commons Clause restricts selling products or services whose value derives entirely or substantially from the software's functionality; it does not prohibit every commercial use. Earlier licenses and third-party rights remain in force. See [scope and release policy](LICENSING.md).
 
 ### App icon
 
