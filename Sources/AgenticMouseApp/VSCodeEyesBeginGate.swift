@@ -28,7 +28,7 @@ final class VSCodeEyesBeginGate {
         }
     }
 
-    typealias WatchProcess = @MainActor (Int32, @escaping @MainActor () -> Void) -> (() -> Void)?
+    typealias WatchProcess = @MainActor (Int32, DispatchSource.ProcessEvent, @escaping @MainActor () -> Void) -> (() -> Void)?
     private let lease: ColorProofLeaseControlling
     private let scheduler: TickScheduler
     private let allowed: () -> Bool
@@ -58,7 +58,7 @@ final class VSCodeEyesBeginGate {
               validate(codePID, hostPIDs) else { return false }
         let token = generation
         for pid in [codePID] + hostPIDs {
-            guard let cancel = watch(pid, { [weak self] in
+            guard let cancel = watch(pid, Self.events(for: pid, codePID: codePID), { [weak self] in
                 guard let self, self.generation == token else { return }
                 self.reset()
             }) else { reset(); return false }
@@ -97,12 +97,16 @@ final class VSCodeEyesBeginGate {
         }
     }
 
-    private static func watchProcess(_ pid: Int32, changed: @escaping @MainActor () -> Void) -> (() -> Void)? {
+    static func events(for pid: Int32, codePID: Int32) -> DispatchSource.ProcessEvent {
+        // Git and language-worker children are routine extension-host work.
+        // They neither change that host's identity nor justify a Code --status
+        // query. Only the Code main process watches fork for new host creation.
+        pid == codePID ? [.exit, .fork, .exec] : [.exit, .exec]
+    }
+
+    private static func watchProcess(_ pid: Int32, events: DispatchSource.ProcessEvent, changed: @escaping @MainActor () -> Void) -> (() -> Void)? {
         guard kill(pid, 0) == 0 else { return nil }
-        // Fork/exec also revoke admission: a new window/host or replacement
-        // must be qualified again. This conservative gate never delays input;
-        // the unchanged legacy transport remains available after revocation.
-        let source = DispatchSource.makeProcessSource(identifier: pid, eventMask: [.exit, .fork, .exec], queue: .main)
+        let source = DispatchSource.makeProcessSource(identifier: pid, eventMask: events, queue: .main)
         source.setEventHandler { MainActor.assumeIsolated { changed() } }
         source.resume()
         return { source.cancel() }
