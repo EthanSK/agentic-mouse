@@ -63,7 +63,7 @@ Browser dependencies are pinned and served from `lib/`, without runtime CDN impo
 - [Manrope](https://fonts.google.com/specimen/Manrope), loaded through Google Fonts,
   with a system sans-serif fallback.
 
-The repository's [no-sale terms](../LICENSE) cover only its first-party code, not third-party trademarks,
+The repository's [Apache 2.0 + Commons Clause v1.0 terms](../LICENSE) cover only its first-party code, not third-party trademarks,
 photography or separately licensed dependencies.
 
 ## Rebuild the 3D hardware
