@@ -1049,21 +1049,26 @@ public struct WheelChordCommand: Equatable, Codable, Sendable {
     public let control: WheelChordControl
     public let source: MouseSource
     public let phase: ModePickerCommand.Phase
+    /// Present only when this Default hold actually used the atomic Eyes begin.
+    public let initialPreview: Bool?
 
     public init(
         control: WheelChordControl,
         source: MouseSource,
-        phase: ModePickerCommand.Phase
+        phase: ModePickerCommand.Phase,
+        initialPreview: Bool? = nil
     ) {
         command = Self.commandName
         self.control = control
         self.source = source
         self.phase = phase
+        self.initialPreview = initialPreview
     }
 
     public static func decode(_ data: Data) throws -> WheelChordCommand {
         let decoded = try JSONDecoder().decode(WheelChordCommand.self, from: data)
-        guard decoded.command == commandName else {
+        guard decoded.command == commandName,
+              decoded.initialPreview == nil || (decoded.control == .vsCodeStageRange && decoded.phase == .press) else {
             throw DecodingError.dataCorrupted(
                 .init(codingPath: [], debugDescription: "unexpected user-command namespace")
             )

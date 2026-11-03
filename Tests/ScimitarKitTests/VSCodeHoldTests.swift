@@ -2,6 +2,34 @@ import XCTest
 @testable import ScimitarKit
 
 final class VSCodeHoldTests: XCTestCase {
+    func testDefaultInitializationIsOncePerHoldEvenAfterIntentionalModeOff() throws {
+        for source in MouseSource.allCases {
+            let state = VSCodeStagePreviewModifierState()
+            XCTAssertTrue(state.activateDefaultForReadyStage(source: source, appSpecificModeActive: false))
+            XCTAssertFalse(state.activateDefaultForReadyStage(source: source, appSpecificModeActive: false))
+            XCTAssertEqual(state.handle(.init(source: source), whileStageRangeActive: true), false)
+            XCTAssertFalse(state.activateDefaultForReadyStage(source: source, appSpecificModeActive: false))
+            XCTAssertFalse(state.isActive(for: source))
+            XCTAssertFalse(state.clear(source: source, reason: .ownerRelease))
+            XCTAssertTrue(state.activateDefaultForReadyStage(source: source, appSpecificModeActive: false))
+            state.clearAll()
+            XCTAssertFalse(state.activateDefaultForReadyStage(source: source, appSpecificModeActive: true))
+            XCTAssertTrue(state.activateDefaultForReadyStage(source: source, appSpecificModeActive: false))
+        }
+    }
+
+    func testAtomicInitialPreviewMetadataCannotEnterAnotherWheelControlOrRelease() throws {
+        for control in [WheelChordControl.clipboard, .vsCodeStageRange] {
+            for phase in [ModePickerCommand.Phase.press, .release] {
+                let command = WheelChordCommand(control: control, source: .corsair, phase: phase, initialPreview: true)
+                let data = try JSONEncoder().encode(command)
+                if control == .vsCodeStageRange && phase == .press {
+                    XCTAssertEqual(try WheelChordCommand.decodeTopLevel(data), command)
+                } else { XCTAssertThrowsError(try WheelChordCommand.decodeTopLevel(data)) }
+            }
+        }
+    }
+
     func testEyesOwnerReleaseDefersRemoteCleanupButCancellationStillSendsOff() {
         for source in MouseSource.allCases {
             let state = VSCodeStagePreviewModifierState()

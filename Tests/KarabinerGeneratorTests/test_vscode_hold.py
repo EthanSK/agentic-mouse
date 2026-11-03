@@ -10,6 +10,35 @@ spec.loader.exec_module(generator)
 
 
 class VSCodeHoldTests(unittest.TestCase):
+    def test_atomic_begin_is_gated_and_keeps_the_selected_release_lifecycle(self):
+        for source in ("corsair", "razer"):
+            for cell, action in ((5, "previous"), (8, "next")):
+                self.setUp()
+                legacy, modern = generator.vscode_hold_templates({
+                    "id": f"{source}-vscode-side-{cell:02d}",
+                    "action": f"vscode-go-to-{action}-change",
+                })
+                self.assertTrue(self.matches(legacy["conditions"]))
+                self.assertFalse(self.matches(modern["conditions"]))
+                self.variables[generator.VSCODE_EYES_BEGIN_EXPIRY] = self.now + 3000
+                self.assertFalse(self.matches(legacy["conditions"]))
+                self.assertTrue(self.matches(modern["conditions"]))
+                expected = ["left_option", "left_command", "left_shift"] if source == "razer" else ["left_control", "left_command", "left_shift"]
+                self.assertEqual(modern["to"][2]["modifiers"], expected)
+                self.assertNotIn("left_option" if source == "corsair" else "left_control", expected)
+                self.assertTrue(modern["to_if_held_down"][2]["send_user_command"]["payload"]["initialPreview"])
+                self.assertNotIn("initialPreview", legacy["to_if_held_down"][2]["send_user_command"]["payload"])
+                self.assertEqual(legacy["to_after_key_up"], modern["to_after_key_up"])
+                self.assertEqual(legacy["to_if_alone"], modern["to_if_alone"])
+                self.assertEqual(legacy["parameters"], modern["parameters"])
+                self.events(modern["to"])
+                self.variables[generator.VSCODE_EYES_BEGIN_EXPIRY] = 0
+                self.events(modern["to_if_held_down"])
+                self.events(modern["to_after_key_up"])
+                self.assertEqual(self.keys, ["f17" if cell == 5 else "f13", "f19" if cell == 5 else "f18"])
+                self.assertEqual([c["phase"] for c in self.user_commands], ["press", "release"])
+                self.assertTrue(self.user_commands[0]["initialPreview"], "Gate expiry mid-hold cannot relabel its bootstrap")
+
     def setUp(self):
         self.variables = {}
         self.now = 10000

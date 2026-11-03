@@ -105,9 +105,10 @@ final class VSCodeCommandBridge {
     func performStagePreviewMode(
         _ active: Bool,
         source: MouseSource,
+        initial: Bool = false,
         completion: @escaping Completion
     ) {
-        guard let url = Self.stagePreviewModeURL(active: active, source: source) else {
+        guard let url = Self.stagePreviewModeURL(active: active, source: source, initial: initial) else {
             completion(.failure(BridgeError(
                 description: "Could not create the Better Git preview navigation request"
             )))
@@ -180,12 +181,15 @@ final class VSCodeCommandBridge {
         return components.url
     }
 
-    static func stagePreviewModeURL(active: Bool, source: MouseSource) -> URL? {
+    static func stagePreviewModeURL(active: Bool, source: MouseSource, initial: Bool = false) -> URL? {
         var components = URLComponents()
         components.scheme = "vscode"
         components.host = betterGitExtensionIdentifier
         components.path = "/mouse-stage-preview-mode/\(active ? "on" : "off")"
         components.queryItems = [URLQueryItem(name: "source", value: source.rawValue)]
+        // Only an atomic Eyes-begin hold may label its redundant bootstrap.
+        // Legacy begins still need their unmarked URI, including on Better Git 146.
+        if active && initial { components.queryItems?.append(URLQueryItem(name: "initial", value: "1")) }
         return components.url
     }
 

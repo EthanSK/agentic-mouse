@@ -394,6 +394,7 @@ public final class VSCodeStagePreviewModifierState {
     }
 
     private var activeSources = Set<MouseSource>()
+    private var initializedDefaultSources = Set<MouseSource>()
 
     public init() {}
 
@@ -412,7 +413,8 @@ public final class VSCodeStagePreviewModifierState {
         source: MouseSource,
         appSpecificModeActive: Bool
     ) -> Bool {
-        guard !appSpecificModeActive else { return false }
+        guard !appSpecificModeActive,
+              initializedDefaultSources.insert(source).inserted else { return false }
         _ = setActive(true, for: source)
         return true
     }
@@ -442,11 +444,13 @@ public final class VSCodeStagePreviewModifierState {
     @discardableResult
     public func clear(source: MouseSource, reason: CleanupReason = .cancellation) -> Bool {
         let wasActive = activeSources.remove(source) != nil
+        initializedDefaultSources.remove(source)
         return wasActive && reason == .cancellation
     }
 
     public func clearAll() {
         activeSources.removeAll()
+        initializedDefaultSources.removeAll()
     }
 }
 
