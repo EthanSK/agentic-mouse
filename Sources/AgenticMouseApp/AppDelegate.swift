@@ -89,6 +89,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         lease.onFailure = { [weak gate] _ in gate?.reset() }
         return gate
     }()
+    private lazy var vsCodeEyesReceiptObserver = VSCodeEyesReceiptObserver(
+        gate: vsCodeEyesBeginGate,
+        allowed: { [weak self] in self?.mouseCommandsAllowed == true },
+        onStatus: { [weak self] active in
+            self?.log.notice("VS Code Eyes running-host receipts \(active ? "qualified" : "not qualified")")
+        }
+    )
     private var defaultMapHintCoordinators: [MouseSource: DefaultMapHintCoordinator] = [:]
     private var sessionSecurityController: SessionSecurityController?
     private var userCommandReceiver: KarabinerUserCommandReceiver?
@@ -332,6 +339,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         startModePicker()
         startWheelChordMonitor()
         startKarabinerUserCommands()
+        vsCodeEyesReceiptObserver.start()
         floatingMouseClutch.start()
         startICUE()
         startMultiTap()
@@ -350,6 +358,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     /// Runs on every exit path, including signals.
     private func teardown() {
+        vsCodeEyesReceiptObserver.stop()
         vsCodeEyesBeginGate.reset()
         wandNewChatService.stop()
         wandChatCreationStatus.reset()
@@ -464,6 +473,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func handleSessionLocked() {
+        vsCodeEyesReceiptObserver.invalidate()
         vsCodeEyesBeginGate.reset()
         wandNewChatService.reset()
         wandChatCreationStatus.reset()
@@ -492,6 +502,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func handleSessionUnlocked() {
+        vsCodeEyesReceiptObserver.refresh()
         // Never restore a mode, page, legend, selection, or pending text after
         // authentication. A fresh short lease enables only the ordinary map.
         refreshStatus()
@@ -2770,7 +2781,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 }
                 if self.floatingMouseClutch.handle(data, inputTime: inputTime) { return }
                 if let command = try? VSCodeEyesBeginGate.Command.decode(data) {
-                    self.log.info("VS Code atomic Eyes gate \(self.vsCodeEyesBeginGate.handle(command) && command.enabled ? "enabled" : "off")")
+                    let admitted = self.vsCodeEyesBeginGate.handle(command)
+                    self.log.info("VS Code atomic Eyes gate \(admitted && command.enabled ? "enabled" : "off")")
                     return
                 }
                 if let command = try? WandChatCreationStatusCommand.decode(data) {

@@ -37,6 +37,7 @@ final class VSCodeEyesBeginGate {
     private var cancelWatches: [() -> Void] = []
     private var generation = 0
     private(set) var isEnabled = false
+    var onProcessInvalidation: (() -> Void)?
 
     init(lease: ColorProofLeaseControlling, scheduler: TickScheduler,
          allowed: @escaping () -> Bool,
@@ -61,6 +62,7 @@ final class VSCodeEyesBeginGate {
             guard let cancel = watch(pid, Self.events(for: pid, codePID: codePID), { [weak self] in
                 guard let self, self.generation == token else { return }
                 self.reset()
+                self.onProcessInvalidation?()
             }) else { reset(); return false }
             cancelWatches.append(cancel)
         }
