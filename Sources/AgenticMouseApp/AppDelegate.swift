@@ -28,6 +28,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var runtimeRetention = ApplicationRuntimeRetention()
 
     private var configuration: AppConfiguration = .default
+    private var configurationURL = ConfigurationLoader.defaultConfigurationURL
     private var configurationWarnings: [String] = []
 
     private var statusItem: StatusItemController?
@@ -427,8 +428,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 })
             self.refreshStatus()
         }
-        controlState.onRevealConfiguration = {
-            let file = ConfigurationLoader.defaultConfigurationURL
+        controlState.onRevealConfiguration = { [weak self] in
+            guard let self else { return }
+            let file = self.configurationURL
             let target = FileManager.default.fileExists(atPath: file.path) ? file : file.deletingLastPathComponent()
             if FileManager.default.fileExists(atPath: target.path) {
                 NSWorkspace.shared.activateFileViewerSelecting([target])
@@ -687,10 +689,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     // MARK: - Configuration
 
     private func loadConfiguration() {
-        let (loaded, warnings) = ConfigurationLoader.load(log: log)
-        configuration = loaded
-        configurationWarnings = warnings
-        warnings.forEach { log.notice($0) }
+        let result = ConfigurationLoader.loadResult(log: log)
+        configuration = result.configuration
+        configurationURL = result.sourceURL
+        configurationWarnings = result.warnings
+        result.warnings.forEach { log.notice($0) }
     }
 
     private func reload() {

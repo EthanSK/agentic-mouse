@@ -324,14 +324,15 @@ func runRedStrobe(controller: RazerLampArrayController) {
 
 func runConfig() {
     heading("Configuration")
-    let (configuration, warnings) = ConfigurationLoader.load(log: log)
-    output(ConfigurationLoader.describe(configuration))
+    let result = ConfigurationLoader.loadResult(log: log)
+    output(result.sourceURL.path)
+    output(ConfigurationLoader.describe(result.configuration))
 
     heading("Warnings")
-    if warnings.isEmpty {
+    if result.warnings.isEmpty {
         output("  none")
     } else {
-        warnings.forEach { output("  ⚠︎ \($0)") }
+        result.warnings.forEach { output("  ⚠︎ \($0)") }
     }
 
     heading("Accessibility")

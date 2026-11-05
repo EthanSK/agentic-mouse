@@ -158,7 +158,7 @@ For complete removal:
 2. In Karabiner's selected profile, remove only the rules whose descriptions start with `Agentic Mouse — `. This includes the locked-session sink, bases, app overrides and runtime Modes rule. Keep every unrelated rule and profile. The complete installer block must come out together: leaving the sink while deleting the app would keep custom buttons consumed.
 3. Restore the mouse's desired ordinary assignments through its vendor/onboard settings, using the saved profile export where appropriate. Without the Agentic rules, neutral digit/keypad/function-key transports can reach ordinary apps. Do not reset other devices or profiles.
 4. Remove `/Applications/AgenticMouse.app` and its row under **Privacy & Security → Accessibility**. Verify its supervisor is no longer enabled.
-5. Keep the private config and backups until rollback is no longer needed. Optionally archive or remove only `~/.config/agentic-mouse` afterward. Removing the app alone does not delete that directory or a separately installed VS Code extension.
+5. Keep the private config and backups until rollback is no longer needed. The active config is under `~/Library/Application Support/Agentic Mouse`; older installs and retained migration backups may also use `~/.config/agentic-mouse`. Optionally archive or remove those app-specific directories afterward. Removing the app alone does not delete them or a separately installed VS Code extension.
 
 Uninstalling the app does not revert vendor profiles or configure external apps. Check pointer, scrolling, primary/secondary clicks, side buttons and an ordinary keyboard before considering removal complete.
 

@@ -1,5 +1,11 @@
 # Learnings
 
+## 2026-11-05 — Configuration migration must retain one authoritative file
+
+The macOS configuration now lives at `~/Library/Application Support/Agentic Mouse/config.json`. On first default load, validate and publish the legacy file's exact bytes atomically with mode 0600; never replace a destination that already exists, even when its timestamp is older. Retain the legacy copy and its backups for recovery and old-app rollbacks, but never merge later legacy edits into the new file. A failed publication keeps loading the legacy source; diagnostics and Show in Finder must report that actual selected path. Explicit configuration paths bypass migration. The optional password remains in Keychain.
+
+Ten isolated migration tests cover exact bytes and settings, permissions, existing-destination precedence, repeated loads, write failure, racing publication, malformed input, and no-config startup. The signed build349 restart migrated the live135-byte file without changing its hash or the live Karabiner profile; the installed doctor selected the new path without warnings. This verifies the migration and installed loading, not new physical-button acceptance. (Codex task: 01a078f7-3df8-77e0-853d-208189f8f418)
+
 ## 2026-10-31 — Magnet wedge uses built-in snapping, Magnet stays installed
 
 **Trigger:** Ethan asked for the wand's Magnet wedge to work "via the inbuilt thing" inside Agentic Mouse rather than a standalone app, keeping Magnet installed and running, and said cross-monitor snapping "sometimes it's dodgy".

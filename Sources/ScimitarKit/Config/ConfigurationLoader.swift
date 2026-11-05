@@ -8,17 +8,32 @@ public enum ConfigurationLoaderError: Error, Equatable {
 /// Loads, validates and reports on the on-disk configuration.
 public enum ConfigurationLoader {
     public static var defaultDirectory: URL {
-        URL(fileURLWithPath: NSHomeDirectory())
-            .appendingPathComponent(".config/agentic-mouse", isDirectory: true)
+        defaultConfigurationURL.deletingLastPathComponent()
     }
 
     public static var defaultConfigurationURL: URL {
-        defaultDirectory.appendingPathComponent("config.json")
+        ConfigurationFileMigration.destination(in: URL(fileURLWithPath: NSHomeDirectory()))
+    }
+
+    public struct Result {
+        public let configuration: AppConfiguration
+        public let warnings: [String]
+        public let sourceURL: URL
     }
 
     /// Loads from disk, falling back to defaults when the file is absent.
     public static func load(from url: URL? = nil, log: Log) -> (AppConfiguration, [String]) {
-        let target = url ?? defaultConfigurationURL
+        let result = loadResult(from: url, log: log)
+        return (result.configuration, result.warnings)
+    }
+
+    /// The app and doctor retain the selected path, including a legacy fallback
+    /// after migration failure. An explicit path never migrates the user's file.
+    public static func loadResult(from url: URL? = nil, log: Log) -> Result {
+        let home = URL(fileURLWithPath: NSHomeDirectory())
+        let target = url ?? ConfigurationFileMigration.resolve(
+            legacy: ConfigurationFileMigration.legacy(in: home),
+            destination: defaultConfigurationURL, log: log)
         var warnings: [String] = []
 
         guard FileManager.default.fileExists(atPath: target.path) else {
@@ -26,7 +41,7 @@ public enum ConfigurationLoader {
                 "No config file at \(target.path). Running with defaults — "
                 + "copy Config/config.example.json there and fill it in."
             )
-            return (.default, warnings)
+            return Result(configuration: .default, warnings: warnings, sourceURL: target)
         }
 
         // A world-readable configuration can expose private device or
@@ -44,13 +59,13 @@ public enum ConfigurationLoader {
             let sanitized = sanitize(decoded)
             warnings.append(contentsOf: sanitized.warnings)
             warnings.append(contentsOf: semanticWarnings(sanitized.configuration))
-            return (sanitized.configuration, warnings)
+            return Result(configuration: sanitized.configuration, warnings: warnings, sourceURL: target)
         } catch let error as DecodingError {
             warnings.append("Config file could not be parsed (\(describe(error))); using defaults.")
-            return (.default, warnings)
+            return Result(configuration: .default, warnings: warnings, sourceURL: target)
         } catch {
             warnings.append("Config file could not be read; using defaults.")
-            return (.default, warnings)
+            return Result(configuration: .default, warnings: warnings, sourceURL: target)
         }
     }
 
