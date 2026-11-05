@@ -3498,3 +3498,7 @@ Ethan asked to turn the app icon's grid 90 degrees so its four columns and three
 ## 2026-11-05 — Activation alone is not a request to open Settings
 
 Keep Settings presentation on the explicit Dock/Finder reopen and menu paths rather than `applicationDidBecomeActive`. The desktop addition's activation callback called `openWindow`, which activates the app again and raises Settings even when the activation did not request that window. The 1.0.341 (347) change removes that callback and its otherwise-unused launch flag while preserving the existing initial-launch and explicit-open paths. Computer Use also deliberately brought this app forward during diagnosis; those foreground checks do not prove the origin of every earlier reported focus change. Ethan clarified that agents should prefer background Computer Use for any app and activate it only when needed or when background control causes issues; that cross-app preference belongs in the shared display skill.
+
+## 2026-11-05 — Reuse checksum-verified release signing tools
+
+Release workflows invoke the signing host's versioned Sparkle copy at `~/.local/share/sparkle-tools/2.10.1/bin`, after comparing it with the freshly downloaded, checksum-verified SDK. Provision this directory during signing-host setup; a missing or mismatched copy blocks signing instead of invoking an unverified or disposable helper. Keep per-app Keychain accounts and public-key checks. Reusing identical tool bytes does not promise approval survives a tool upgrade or a changed key.
