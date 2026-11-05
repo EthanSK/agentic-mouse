@@ -14,7 +14,8 @@ OUTPUT = ROOT / ".build.noindex" / "site"
 
 
 def build():
-    raw = subprocess.check_output(["swift", "run", "--scratch-path", str(ROOT / ".build.noindex"), "agentic-mouse-site"], cwd=ROOT)
+    # Match the native build's bounded parallelism on small hosted Mac runners.
+    raw = subprocess.check_output(["swift", "run", "--jobs", "2", "--scratch-path", str(ROOT / ".build.noindex"), "agentic-mouse-site"], cwd=ROOT)
     data = json.loads(raw)
     revision = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
     data["revision"] = revision
