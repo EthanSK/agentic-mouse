@@ -138,7 +138,9 @@ For updates, omit `--initialize`, use a fresh hash and unused backup path, and k
 
 Optionally copy [config.example.json](../Config/config.example.json) to `~/.config/agentic-mouse/config.json` **only if no config exists**. Keep it private with `chmod 600`. Missing settings use defaults. Validate with `swift run --scratch-path .build.noindex agentic-mouse-doctor config`. Keep personal identifiers and credentials out of Git.
 
-Launch `/Applications/AgenticMouse.app`. It is a menu-bar app with no Dock icon. Add that exact app under **System Settings → Privacy & Security → Accessibility**, then use **Quit Agentic Mouse** and relaunch. Follow Karabiner's separate permission and background-service prompts. Do not reset all Accessibility permissions or edit TCC databases.
+Launch `/Applications/AgenticMouse.app`. Its Dock icon opens the native settings window; the menu-bar item also has **Open Agentic Mouse**. The window shows actual mouse, permission, command and recovery status, per-mouse legend controls, the shared HUD size, and the optional Utility password stored in Keychain. Close the window to keep the mouse controls running. Use **Quit Agentic Mouse** to stop the app and its recovery helper.
+
+Add that exact app under **System Settings → Privacy & Security → Accessibility**, then use **Quit Agentic Mouse** and relaunch. Follow Karabiner's separate permission and background-service prompts. Do not reset all Accessibility permissions or edit TCC databases. Background recovery and attended `open -g` launches keep the settings window closed.
 
 Every GUI launch attempts to register the signed nested **Agentic Mouse Runtime Supervisor** through `SMAppService.loginItem`. It starts at login and recovers unexpected exits. If approval is required, enable it under **System Settings → General → Login Items & Extensions**. The app's own Quit unregisters it; reopening enables it. This also applies to a GUI bundle opened outside `/Applications`, which is why the development bundle should stay unlaunched.
 

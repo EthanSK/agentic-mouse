@@ -1,6 +1,7 @@
 import AppKit
 import ScimitarKit
 import ScimitarUI
+import ServiceManagement
 
 /// Wires the whole helper together.
 ///
@@ -30,6 +31,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var configurationWarnings: [String] = []
 
     private var statusItem: StatusItemController?
+    private let controlState = AgenticMouseControlState()
+    private var didFinishLaunching = false
+    private var intentionalQuitDisarmed = false
+    private lazy var controlWindow: AgenticMouseWindowController = {
+        let controller = AgenticMouseWindowController(state: controlState)
+        controller.onRefresh = { [weak self] in self?.refreshStatus() }
+        controller.onQuit = { [weak self] in self?.quit() }
+        return controller
+    }()
     private let launchAtLoginController = LaunchAtLoginController()
     private var launchAtLoginState = "unknown"
     private var isQuitInProgress = false
@@ -306,9 +316,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        // Accessory: no Dock icon, and — critically — the app can never become
-        // active, which is what keeps the HUD from stealing focus.
-        NSApp.setActivationPolicy(.accessory)
+        // Only the normal settings window activates. HUDPanel still refuses
+        // key/main status and retains its nonactivating panel style.
+        NSApp.setActivationPolicy(.regular)
         NSApp.unhideWithoutActivation() // Launching the LSUIElement with `open -j` left Agentic Mouse running while macOS suppressed every fully rendered HUD window. Unhide without activation so a background install cannot strand an invisible runtime or steal focus. (Codex task: 01a039f7-873c-7c30-b3dc-af8a6724ace5)
 
         // Take AppKit's supported process-lifetime automatic-termination
@@ -347,6 +357,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         statusItem?.onToggleMode = { [weak self] in self?.toggleMode() }
         statusItem?.onSetKeysPassword = { [weak self] in self?.promptToStoreKeysPassword() }
         statusItem?.onClearKeysPassword = { [weak self] in self?.confirmClearKeysPassword() }
+        statusItem?.onOpenApplication = { [weak self] in self?.controlWindow.openWindow() }
+        configureControlWindow()
 
         startDefaultMapHint()
         startRazerLighting()
@@ -362,6 +374,71 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         codexPinNotifications.start()
         log.info("Accessibility trusted: \(permission.isTrusted)")
         refreshStatus()
+        didFinishLaunching = true
+        // Finder/Dock launches activate us; `open -g` and the supervisor don't.
+        // Observing activation avoids inventing another launch-state marker.
+        if NSApp.isActive { controlWindow.openWindow() }
+    }
+
+    func applicationDidBecomeActive(_ notification: Notification) {
+        if didFinishLaunching, !isQuitInProgress { controlWindow.openWindow() }
+    }
+
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        controlWindow.openWindow()
+        return false
+    }
+
+    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { false }
+
+    func applicationDidHide(_ notification: Notification) {
+        controlWindow.restoreLegendsAfterHide()
+    }
+
+    func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        if intentionalQuitDisarmed || updatePrepared || AgenticMouseTerminationPolicy.isHandlingSystemQuit {
+            return .terminateNow
+        }
+        quit()
+        return .terminateCancel
+    }
+
+    private func configureControlWindow() {
+        controlState.onLegend = { [weak self] source in
+            guard let self, self.mouseCommandsAllowed else { return }
+            self.defaultMapHintCoordinators[source]?.handleToggle(source: source)
+            self.refreshStatus()
+        }
+        controlState.onExitMode = { [weak self] source in
+            self?.modePickerCoordinators[source]?.exit(reason: .userRequested)
+            self?.multiTapCoordinators[source]?.exit(reason: .userRequested)
+            self?.refreshStatus()
+        }
+        controlState.onSetPassword = { [weak self] in self?.promptToStoreKeysPassword() }
+        controlState.onClearPassword = { [weak self] in self?.confirmClearKeysPassword() }
+        controlState.onReload = { [weak self] in self?.reload() }
+        controlState.onAccessibility = {
+            if let url = URL(string: AccessibilityPermission.settingsURLString) { NSWorkspace.shared.open(url) }
+        }
+        controlState.onLoginItems = { SMAppService.openSystemSettingsLoginItems() }
+        controlState.onRetryRecovery = { [weak self] in
+            guard let self, !self.isQuitInProgress, !self.updatePrepared else { return }
+            self.launchAtLoginState = self.launchAtLoginController.ensureRegistered(
+                revision: self.runtimeSupervisorRevision(), log: self.log,
+                onStatusChange: { [weak self] state in
+                    self?.launchAtLoginState = state
+                    self?.refreshStatus()
+                })
+            self.refreshStatus()
+        }
+        controlState.onRevealConfiguration = {
+            let file = ConfigurationLoader.defaultConfigurationURL
+            let target = FileManager.default.fileExists(atPath: file.path) ? file : file.deletingLastPathComponent()
+            if FileManager.default.fileExists(atPath: target.path) {
+                NSWorkspace.shared.activateFileViewerSelecting([target])
+            }
+        }
+        controlWindow.installApplicationMenu()
     }
 
     func applicationWillTerminate(_ notification: Notification) {
@@ -630,10 +707,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         startModePicker()
         startWheelChordMonitor()
         startKarabinerUserCommands()
+        vsCodeEyesReceiptObserver.start()
         startICUE()
         startMultiTap()
         startFocusMonitoring()
         startRuntimeHealthMonitor()
+        codexPinNotifications.start()
         refreshStatus()
     }
 
@@ -678,6 +757,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     // Persistent Default legends are presentation, not an active input mode.
     private var updateWorkIsIdle: Bool {
         mouseCommandsAllowed && !isQuitInProgress
+            && controlWindow.window?.attachedSheet == nil
             && !modePickerCoordinators.values.contains(where: { $0.isActive })
             && !multiTapCoordinators.values.contains(where: { $0.isActive })
             && colorProofCoordinator?.isActive != true
@@ -728,6 +808,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             self.isQuitInProgress = false
             switch result {
             case .success:
+                self.intentionalQuitDisarmed = true
                 self.sessionSecurityController?.stop()
                 self.teardown()
                 NSApp.terminate(nil)
@@ -2890,6 +2971,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 }
                 if let command = try? DefaultMapHintCommand.decode(data) {
                     self.defaultMapHintCoordinators[command.source]?.handleToggle(source: command.source)
+                    self.refreshStatus()
                     return
                 }
                 if let command = try? WandScreenshotStartCommand.decode(data) {
@@ -3276,21 +3358,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         alert.accessoryView = field
         alert.addButton(withTitle: "Save")
         alert.addButton(withTitle: "Cancel")
-
-        guard alert.runModal() == .alertFirstButtonReturn else {
-            field.stringValue = ""
-            return
+        alert.buttons.first?.isEnabled = false
+        let changeObserver = NotificationCenter.default.addObserver(
+            forName: NSControl.textDidChangeNotification, object: field, queue: .main
+        ) { [weak alert, weak field] _ in
+            MainActor.assumeIsolated { alert?.buttons.first?.isEnabled = field?.stringValue.isEmpty == false }
         }
-        let password = field.stringValue
-        field.stringValue = ""
-        guard !password.isEmpty else {
-            showPasswordStorageProblem("The password was empty.")
-            return
+        presentControlAlert(alert) { [weak self] response in
+            NotificationCenter.default.removeObserver(changeObserver)
+            defer { field.stringValue = "" }
+            guard response == .alertFirstButtonReturn, !field.stringValue.isEmpty,
+                  self?.mouseCommandsAllowed == true else { return }
+            if case .failure = StoredPasswordKeychain.save(field.stringValue) {
+                self?.showPasswordStorageProblem("Keychain could not save the password.")
+            }
+            self?.refreshStatus()
         }
-        if case .failure(let error) = StoredPasswordKeychain.save(password) {
-            showPasswordStorageProblem("Keychain could not save the password (\(error)).")
-        }
-        refreshStatus()
     }
 
     private func confirmClearKeysPassword() {
@@ -3300,11 +3383,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         alert.informativeText = "This removes the device-local Keychain item."
         alert.addButton(withTitle: "Clear")
         alert.addButton(withTitle: "Cancel")
-        guard alert.runModal() == .alertFirstButtonReturn else { return }
-        if case .failure(let error) = StoredPasswordKeychain.clear() {
-            showPasswordStorageProblem("Keychain could not clear the password (\(error)).")
+        presentControlAlert(alert) { [weak self] response in
+            guard response == .alertFirstButtonReturn, self?.mouseCommandsAllowed == true else { return }
+            if case .failure = StoredPasswordKeychain.clear() {
+                self?.showPasswordStorageProblem("Keychain could not clear the password.")
+            }
+            self?.refreshStatus()
         }
-        refreshStatus()
+    }
+
+    private func presentControlAlert(_ alert: NSAlert, completion: @escaping (NSApplication.ModalResponse) -> Void) {
+        if let window = controlWindow.window, window.isVisible {
+            alert.beginSheetModal(for: window, completionHandler: completion)
+        } else {
+            completion(alert.runModal())
+        }
     }
 
     private func showPasswordStorageProblem(_ message: String) {
@@ -3342,6 +3435,33 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             warnings.append(selection.explanation)
         }
 
+        warnings = warnings.map { LogRedaction.redact($0) }
+        var snapshot = AgenticMouseControlSnapshot()
+        snapshot.sessionReady = mouseCommandsAllowed
+        snapshot.accessibilityGranted = permission.isTrusted
+        snapshot.commandsReady = userCommandReceiver?.isHealthy == true
+        snapshot.wheelReady = wheelChordMonitor?.isRunning == true
+        snapshot.corsairConnected = selectedDevice != nil
+        snapshot.razerConnected = razerRecoveryMonitor?.isPresent == true
+        snapshot.recovery = launchAtLoginState
+        switch ICUESession.shared.state {
+        case .connected: snapshot.icue = "Connected"
+        case .connecting: snapshot.icue = "Connecting…"
+        case .closed: snapshot.icue = "Not connected"
+        case .timedOut: snapshot.icue = "Not responding"
+        case .connectionRefused: snapshot.icue = "SDK access off"
+        case .connectionLost: snapshot.icue = "Disconnected"
+        }
+        snapshot.passwordConfigured = StoredPasswordKeychain.isConfigured
+        snapshot.corsairLegend = defaultMapHintCoordinators[.corsair]?.isShowingHint == true
+        snapshot.razerLegend = defaultMapHintCoordinators[.razer]?.isShowingHint == true
+        snapshot.corsairMode = modePickerCoordinators[.corsair]?.activeModeTitle
+        snapshot.razerMode = modePickerCoordinators[.razer]?.activeModeTitle
+        snapshot.corsairAccent = modePickerCoordinators[.corsair]?.activeModeAccent
+        snapshot.razerAccent = modePickerCoordinators[.razer]?.activeModeAccent
+        snapshot.warnings = warnings
+        controlState.snapshot = snapshot
+        NSApp.dockTile.badgeLabel = snapshot.health == .unavailable ? "!" : nil
         statusItem?.update(
             StatusItemController.Status(
                 isModeActive: multiTapCoordinators.values.contains(where: { $0.isActive })

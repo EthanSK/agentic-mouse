@@ -15,7 +15,7 @@ final class RazerDeviceRecoveryMonitor {
     private let onLost: () -> Void
     private let onRecovered: () -> Void
 
-    private var isPresent: Bool
+    private(set) var isPresent: Bool
     private var isRecovered: Bool
 
     init(

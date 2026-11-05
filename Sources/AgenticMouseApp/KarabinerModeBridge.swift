@@ -95,6 +95,7 @@ final class KarabinerCLIModeLease: ColorProofLeaseControlling {
             guard let self else { return }
             do {
                 let process = Process()
+                process.environment = ChildProcessEnvironment.minimal
                 process.executableURL = URL(fileURLWithPath: Self.commandLinePath)
                 process.arguments = ["--silent", "--set-variables", json]
                 process.standardOutput = FileHandle.nullDevice

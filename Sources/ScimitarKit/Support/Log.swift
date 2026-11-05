@@ -35,6 +35,7 @@ public final class OSLogSink: LogSink, @unchecked Sendable {
     }
 
     public func write(level: LogLevel, category: String, message: String) {
+        let message = LogRedaction.redact(message)
         lock.lock()
         let logger: Logger
         if let existing = loggers[category] {
@@ -45,8 +46,8 @@ public final class OSLogSink: LogSink, @unchecked Sendable {
         }
         lock.unlock()
 
-        // All interpolated values are pre-redacted by the caller; marking them
-        // public keeps them readable in Console.app without leaking anything.
+        // Filter at the destination too: direct sink callers receive the same
+        // protection as the facade rather than relying on caller discipline.
         switch level {
         case .debug: logger.debug("\(message, privacy: .public)")
         case .info: logger.info("\(message, privacy: .public)")
@@ -67,6 +68,7 @@ public final class StandardErrorLogSink: LogSink, @unchecked Sendable {
 
     public func write(level: LogLevel, category: String, message: String) {
         guard level >= minimumLevel else { return }
+        let message = LogRedaction.redact(message)
         let line = "[\(level.label)] \(category): \(message)\n"
         lock.lock()
         FileHandle.standardError.write(Data(line.utf8))
@@ -99,7 +101,7 @@ public final class RecordingLogSink: LogSink, @unchecked Sendable {
 
     public func write(level: LogLevel, category: String, message: String) {
         lock.lock()
-        storage.append(Entry(level: level, category: category, message: message))
+        storage.append(Entry(level: level, category: category, message: LogRedaction.redact(message)))
         if storage.count > limit { storage.removeFirst(storage.count - limit) }
         lock.unlock()
     }
@@ -133,19 +135,19 @@ public struct Log: Sendable {
     }
 
     public func debug(_ message: @autoclosure () -> String) {
-        sink.write(level: .debug, category: category, message: message())
+        sink.write(level: .debug, category: category, message: LogRedaction.redact(message()))
     }
 
     public func info(_ message: @autoclosure () -> String) {
-        sink.write(level: .info, category: category, message: message())
+        sink.write(level: .info, category: category, message: LogRedaction.redact(message()))
     }
 
     public func notice(_ message: @autoclosure () -> String) {
-        sink.write(level: .notice, category: category, message: message())
+        sink.write(level: .notice, category: category, message: LogRedaction.redact(message()))
     }
 
     public func error(_ message: @autoclosure () -> String) {
-        sink.write(level: .error, category: category, message: message())
+        sink.write(level: .error, category: category, message: LogRedaction.redact(message()))
     }
 
     public func scoped(_ newCategory: String) -> Log {

@@ -3,6 +3,7 @@
 import AppKit
 import Darwin
 import Foundation
+import ScimitarKit
 
 struct VSCodeEyesHostProof: Equatable {
     struct ProcessIdentity: Equatable {
@@ -152,14 +153,7 @@ final class VSCodeEyesProcessReader {
         process.executableURL = executable; process.arguments = arguments
         // Code --status forwards its environment through macOS open. Keep
         // ambient credentials and other apps' launch settings out of that CLI.
-        process.environment = [
-            "PATH": "/usr/bin:/bin:/usr/sbin:/sbin",
-            "HOME": FileManager.default.homeDirectoryForCurrentUser.path,
-            "USER": NSUserName(), "LOGNAME": NSUserName(),
-            "TMPDIR": FileManager.default.temporaryDirectory.path,
-            "LC_ALL": "C", "LANG": "C", "TZ": "UTC",
-            "VSCODE_CLI": "1",
-        ]
+        process.environment = ChildProcessEnvironment.minimal.merging(["VSCODE_CLI": "1"]) { _, value in value }
         process.standardOutput = pipe; process.standardError = FileHandle.nullDevice
         lock.lock(); current = process; lock.unlock()
         let deadline = DispatchWorkItem { [weak process] in

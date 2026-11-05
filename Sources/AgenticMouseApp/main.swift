@@ -13,9 +13,8 @@ if CommandLine.arguments.count == 2 && CommandLine.arguments[1] == "--check-pack
     exit(0)
 }
 
-// A plain `main.swift` rather than `@main` so the activation policy is set
-// before any window can be created — the HUD must never be able to activate
-// this process.
+// Establish the normal Dock application before creating windows. HUDPanel's
+// nonactivating style and key-window refusal keep legends from stealing focus.
 let runtimeInstanceLock: RuntimeInstanceLock
 do {
     runtimeInstanceLock = try RuntimeInstanceLock.acquire(at: RuntimeInstanceLock.defaultURL())
@@ -31,7 +30,7 @@ MainActor.assumeIsolated {
     let application = NSApplication.shared
     let delegate = AppDelegate()
     application.delegate = delegate
-    application.setActivationPolicy(.accessory)
+    application.setActivationPolicy(.regular)
     withExtendedLifetime(runtimeInstanceLock) {
         application.run()
     }

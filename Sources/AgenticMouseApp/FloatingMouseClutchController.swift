@@ -1,4 +1,5 @@
 import Foundation
+import ScimitarKit
 import CoreFoundation
 
 /// A short, source-specific lease; no camera or pointer state crosses this bridge.
@@ -187,6 +188,7 @@ final class FloatingMouseKarabinerLeaseWriter {
             lock.lock(); let current = generation == token; lock.unlock()
             guard current else { return }
             let process = Process()
+            process.environment = ChildProcessEnvironment.minimal
             process.executableURL = URL(fileURLWithPath: KarabinerCLIModeLease.commandLinePath)
             process.arguments = ["--silent", "--set-variables", "{\"\(FloatingMouseClutchController.variableName)\":\(expiry)}"]
             process.standardOutput = FileHandle.nullDevice
