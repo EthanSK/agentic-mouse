@@ -14,7 +14,11 @@ codesign --verify --deep --strict "$APP"
 for executable in "$APP/Contents/MacOS/AgenticMouse" "$APP/Contents/MacOS/agentic-mouse-doctor" "$APP/Contents/Library/LoginItems/AgenticMouseSupervisor.app/Contents/MacOS/AgenticMouseSupervisor"; do
   details=$(codesign -dvv "$executable" 2>&1)
   [[ "$details" == *"Authority=Developer ID Application:"* && "$details" == *"runtime"* && "$details" == *"Timestamp="* ]]
-  lipo "$executable" -verify_arch arm64 x86_64
+  # Apple's lipo rejects multiple verify_arch values on the signing Mac.
+  # Verify each required slice separately; either missing slice blocks release.
+  for architecture in arm64 x86_64; do
+    /usr/bin/lipo "$executable" -verify_arch "$architecture"
+  done
 done
 mkdir -p "$OUT"
 SUBMISSION="$BUILD_DIR/notary-submission.zip"
