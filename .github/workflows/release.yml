@@ -43,6 +43,10 @@ jobs:
         run: bash Scripts/sign-prebuilt-release.sh "$RUNNER_TEMP/prebuilt.noindex"
       - name: Publish immutable signed updates
         run: |
+          # The signing Mac's existing Keychain login has workflow permission;
+          # a job token cannot publish an older source after workflow edits.
+          unset GH_TOKEN GITHUB_TOKEN
+          test "$(gh api --hostname github.com user --jq .login)" = EthanSK
           version=$(/usr/libexec/PlistBuddy -c 'Print CFBundleShortVersionString' Resources/Info.plist)
           build=$(/usr/libexec/PlistBuddy -c 'Print CFBundleVersion' Resources/Info.plist)
           tag="v$version-build.$build"
