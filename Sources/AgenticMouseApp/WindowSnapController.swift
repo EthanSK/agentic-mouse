@@ -130,7 +130,8 @@ final class WindowSnapController {
             // Match WindowResizeController: release cancels queued detents, but
             // finishes an already-started frame transaction. Lock, focus change
             // and global teardown still stop before each subsequent AX write.
-            let outcome = self.snap(side, pid: pid, displays: displays, source: source, permitted: permitted)
+            let outcome = self.snap(side, pid: pid, displays: displays, source: source,
+                                    permitted: permitted, restorationAllowed: inputAllowed)
             if self.isCurrent(source, generation) { self.onOutcome?(side, outcome) }
         }
     }
@@ -157,7 +158,8 @@ final class WindowSnapController {
 
     /// Synchronous core (worker thread, or directly in tests).
     func snap(_ side: WindowSnapDirection, pid: pid_t, displays: [WindowSnapDisplay],
-              source: MouseSource? = nil, permitted: @escaping () -> Bool = { true }) -> Outcome {
+              source: MouseSource? = nil, permitted: @escaping () -> Bool = { true },
+              restorationAllowed: (() -> Bool)? = nil) -> Outcome {
         guard permitted() else { return .cancelled }
         guard let (target, key) = access.focusedWindow(pid: pid) else { return .noWindow }
         guard let current = target.frame() else { return .failed }
@@ -188,8 +190,10 @@ final class WindowSnapController {
         guard let accepted else { return permitted() ? .failed : .cancelled }
         guard permitted() else { return .cancelled }
         remember(key, WindowSnapMemory(direction: plan.side, displayID: plan.display.id, acceptedFrame: accepted))
+        // Restoration belongs to a later physical drag. Keep its live session/
+        // focus gate, not this one snap request's permanently invalidated token.
         restorer.didSnap(key: key, target: target, preSnap: current, accepted: accepted,
-                         source: source, inputAllowed: permitted)
+                         source: source, inputAllowed: restorationAllowed ?? permitted)
         return plan.traversedDisplay ? .traversed(accepted) : .moved(accepted)
     }
 

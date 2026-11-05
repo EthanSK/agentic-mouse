@@ -6,6 +6,16 @@ The macOS configuration now lives at `~/Library/Application Support/Agentic Mous
 
 Ten isolated migration tests cover exact bytes and settings, permissions, existing-destination precedence, repeated loads, write failure, racing publication, malformed input, and no-config startup. The signed build349 restart migrated the live135-byte file without changing its hash or the live Karabiner profile; the installed doctor selected the new path without warnings. This verifies the migration and installed loading, not new physical-button acceptance. (Codex task: 01a078f7-3df8-77e0-853d-208189f8f418)
 
+## 2026-11-05 — Preserve the first custom-snap size and observe the actual drag
+
+**Trigger:** Ethan reported that drag-away restore had stopped working and required the first pre-custom-snap size to survive multiple app-owned size changes.
+
+**Verified causes:** AX move notifications can arrive after mouse-up, so reading the current button state loses a genuine quick drag. The old notification handler also deleted history on programmatic moves/settling resizes, and `originalForSnap` replaced the original whenever a later frame differed. Lock/sleep cleared the saved entries, while their stored snap-request permission closure remained invalid after a global generation change.
+
+**Repair and guard:** Track a window-identity-bound down/drag/up session with a listen-only event tap; keep AX work on the serial worker, retain the first size until a verified restore/window destruction, and recheck the live focus/session gate before writes. Lock/sleep invalidates pending interactions while retaining dimensions. A released drag is eligible only for its immediately following notifications, with a freshness check rather than a timer or added wait. Programmatic moves, content drags, corner resizing, failed AX writes, newer snaps and cancelled input do not produce a reported restore.
+
+**Evidence:** 37 focused Swift tests passed on the Mini. Against a disposable native window, the old code passed a long drag but failed quick release, repeated resizes/snaps and simulated cancel/unlock; the repaired code restored 600 × 400 in all six matched trials, including repeated nil-source events matching the receiver. These were synthetic native event/AX checks, not physical wand acceptance. Restoration remains in place; do not claim the separate far-edge pointer correction from Magnet has been implemented.
+
 ## 2026-10-31 — Magnet wedge uses built-in snapping, Magnet stays installed
 
 **Trigger:** Ethan asked for the wand's Magnet wedge to work "via the inbuilt thing" inside Agentic Mouse rather than a standalone app, keeping Magnet installed and running, and said cross-monitor snapping "sometimes it's dodgy".
