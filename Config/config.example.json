@@ -1,6 +1,6 @@
 {
   "_comment": [
-    "For a first setup, copy this file to ~/.config/agentic-mouse/config.json,",
+    "For a first setup, copy this file to ~/Library/Application Support/Agentic Mouse/config.json,",
     "then `chmod 600` it. Preserve an existing config; defaults need no placeholders.",
     "",
     "No real device identifier belongs in this repository.",

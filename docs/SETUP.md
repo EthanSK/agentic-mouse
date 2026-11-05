@@ -136,7 +136,9 @@ For updates, omit `--initialize`, use a fresh hash and unused backup path, and k
 
 ## 7. Launch and grant permissions
 
-Optionally copy [config.example.json](../Config/config.example.json) to `~/.config/agentic-mouse/config.json` **only if no config exists**. Keep it private with `chmod 600`. Missing settings use defaults. Validate with `swift run --scratch-path .build.noindex agentic-mouse-doctor config`. Keep personal identifiers and credentials out of Git.
+Configuration lives at `~/Library/Application Support/Agentic Mouse/config.json`. On first launch, an existing `~/.config/agentic-mouse/config.json` is copied there with owner-only permissions; the old file and backups remain available for recovery. An existing destination always wins and is never overwritten or merged with the old copy. If migration fails, the app continues using the old file and reports the failure in its log; the doctor and Show in Finder use that actual source path. Retry loading after correcting the filesystem problem.
+
+Optionally copy [config.example.json](../Config/config.example.json) to the new path **only if neither location contains a config**. Keep it private with `chmod 600`. Missing settings use defaults. Validate with `swift run --scratch-path .build.noindex agentic-mouse-doctor config`. Keep personal identifiers and credentials out of Git.
 
 Launch `/Applications/AgenticMouse.app`. Its Dock icon opens the native settings window; the menu-bar item also has **Open Agentic Mouse**. The window shows actual mouse, permission, command and recovery status, per-mouse legend controls, the shared HUD size, and the optional Utility password stored in Keychain. Close the window to keep the mouse controls running. Use **Quit Agentic Mouse** to stop the app and its recovery helper.
 

@@ -2,7 +2,7 @@ import Foundation
 
 /// Everything Agentic Mouse reads from disk.
 ///
-/// The file lives at `~/.config/agentic-mouse/config.json`, **outside**
+/// The file lives at `~/Library/Application Support/Agentic Mouse/config.json`, **outside**
 /// this repository. `Config/config.example.json` ships placeholders only; the
 /// loader recognises those placeholders and treats the corresponding feature as
 /// unconfigured rather than trying to use them.
