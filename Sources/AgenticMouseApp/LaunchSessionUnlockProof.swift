@@ -16,6 +16,7 @@ final class GlobalInputLaunchSessionUnlockProof: LaunchSessionUnlockProofObservi
     var onUnlockedInput: (() -> Void)?
 
     private var monitor: Any?
+    private var localMonitor: Any?
     private let frontmostBundleIdentifier: () -> String?
 
     init(
@@ -39,7 +40,7 @@ final class GlobalInputLaunchSessionUnlockProof: LaunchSessionUnlockProofObservi
 
     @discardableResult
     func start() -> Bool {
-        guard monitor == nil else { return true }
+        guard monitor == nil && localMonitor == nil else { return true }
         let mask: NSEvent.EventTypeMask = [
             .mouseMoved,
             .leftMouseDown,
@@ -51,22 +52,34 @@ final class GlobalInputLaunchSessionUnlockProof: LaunchSessionUnlockProofObservi
         ]
         monitor = NSEvent.addGlobalMonitorForEvents(matching: mask) { [weak self] _ in
             MainActor.assumeIsolated {
-                guard let self else { return }
-                guard !Self.blocksSession(self.frontmostBundleIdentifier()) else { return }
-                self.stop()
-                self.onUnlockedInput?()
+                self?.observeUnlockedInput()
             }
         }
-        return monitor != nil
+        // A normal Dock app also receives real input in its own settings
+        // window. Global monitors exclude that input; use the same blocked-
+        // session check locally, without consuming or synthesizing events.
+        localMonitor = NSEvent.addLocalMonitorForEvents(matching: mask) { [weak self] event in
+            MainActor.assumeIsolated { self?.observeUnlockedInput() }
+            return event
+        }
+        return monitor != nil || localMonitor != nil
+    }
+
+    private func observeUnlockedInput() {
+        guard !Self.blocksSession(frontmostBundleIdentifier()) else { return }
+        stop()
+        onUnlockedInput?()
     }
 
     func stop() {
-        guard let monitor else { return }
-        NSEvent.removeMonitor(monitor)
+        if let monitor { NSEvent.removeMonitor(monitor) }
+        if let localMonitor { NSEvent.removeMonitor(localMonitor) }
         self.monitor = nil
+        self.localMonitor = nil
     }
 
     deinit {
         if let monitor { NSEvent.removeMonitor(monitor) }
+        if let localMonitor { NSEvent.removeMonitor(localMonitor) }
     }
 }

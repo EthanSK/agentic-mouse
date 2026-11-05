@@ -63,6 +63,7 @@ public final class StatusItemController {
     public var onReloadConfiguration: (() -> Void)?
     public var onSetKeysPassword: (() -> Void)?
     public var onClearKeysPassword: (() -> Void)?
+    public var onOpenApplication: (() -> Void)?
 
     public init() {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
@@ -123,6 +124,11 @@ public final class StatusItemController {
             menu.addItem(toggle)
         }
 
+        menu.addItem(.separator())
+
+        let open = NSMenuItem(title: "Open Agentic Mouse", action: #selector(openApplication), keyEquivalent: "")
+        open.target = self
+        menu.addItem(open)
         menu.addItem(.separator())
 
         addInfo(to: menu, "Mouse", status.deviceDescription ?? "not detected")
@@ -210,6 +216,8 @@ public final class StatusItemController {
         item.isEnabled = false
         menu.addItem(item)
     }
+
+    @objc private func openApplication() { onOpenApplication?() }
 
     // MARK: - Actions
 

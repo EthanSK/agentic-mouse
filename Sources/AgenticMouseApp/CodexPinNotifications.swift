@@ -1,5 +1,6 @@
 import AppKit
 import Foundation
+import ScimitarKit
 import SQLite3
 import UserNotifications
 import os
@@ -63,6 +64,7 @@ struct CodexPinSharedSender {
 
     static func send(_ notice: CodexPinNotice, using executable: URL) throws {
         let process = Process()
+        process.environment = ChildProcessEnvironment.minimal
         process.executableURL = executable
         // Pass chat names as data, never through a shell. The shared sender is
         // silent and keeps its Codex icon, click target and retained history.

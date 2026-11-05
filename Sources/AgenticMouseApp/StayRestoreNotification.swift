@@ -1,4 +1,5 @@
 import Foundation
+import ScimitarKit
 import UserNotifications
 import os
 
@@ -33,6 +34,7 @@ struct StayRestoreNotification {
         // Never wait for a banner on the mouse input thread.
         if let executable = Self.sharedSender() {
             let process = Process()
+            process.environment = ChildProcessEnvironment.minimal
             process.executableURL = executable
             process.arguments = arguments()
             process.standardOutput = FileHandle.nullDevice

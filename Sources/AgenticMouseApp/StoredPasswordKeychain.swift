@@ -15,7 +15,15 @@ enum StoredPasswordKeychain {
     private static let service = "com.ethan.agentic-mouse.keys-mode-password"
     private static let account = "local-user"
 
-    static var isConfigured: Bool { load() != nil }
+    static var isConfigured: Bool {
+        // The live settings window asks for presence regularly. Query metadata
+        // only; a status refresh must never fetch the stored password itself.
+        let query = baseQuery.merging([
+            kSecMatchLimit as String: kSecMatchLimitOne,
+            kSecUseAuthenticationUI as String: kSecUseAuthenticationUIFail,
+        ]) { _, value in value }
+        return SecItemCopyMatching(query as CFDictionary, nil) == errSecSuccess
+    }
 
     static func load() -> String? {
         var result: CFTypeRef?

@@ -18,22 +18,17 @@
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>1.0.337</string>
+	<string>1.0.338</string>
 	<key>CFBundleVersion</key>
-	<string>343</string>
+	<string>344</string>
 	<key>LSMinimumSystemVersion</key>
 	<string>13.0</string>
 
-	<!--
-	  Menu-bar accessory: no Dock icon, and the process cannot become active.
-	  This is what allows the reference HUD to appear without stealing focus
-	  or moving the text caret in whatever app is being typed into.
-	-->
-	<key>LSUIElement</key>
-	<true/>
+	<!-- Normal Dock app; only its settings window activates. The separate HUD
+	     panels remain nonactivating and cannot become key or main windows. -->
 
 	<key>NSHumanReadableCopyright</key>
-	<string>Local Corsair helper.</string>
+	<string>Speech to text with VoiceInk++ and 12 thumb controls for custom superpowers.</string>
 
 	<!--
 	  Shown by macOS in the Accessibility permission prompt. Multi-tap mode

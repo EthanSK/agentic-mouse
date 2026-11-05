@@ -106,6 +106,10 @@ public final class ModePickerCoordinator {
 
     public private(set) var isWandHome = false
     public private(set) var isActive = false
+    /// Read-only presentation uses the exact active HUD definition, so the app
+    /// window cannot drift from its title, colour or source mapping.
+    public var activeModeTitle: String? { isActive ? snapshot().modeTitle : nil }
+    public var activeModeAccent: RGBColor? { isActive ? activeAccent : nil }
     /// The wand's home HUD is the Default map even while its coordinator is
     /// active. Physical mice must still leave a mode before using Default
     /// actions; the wand's child pages have that same boundary.

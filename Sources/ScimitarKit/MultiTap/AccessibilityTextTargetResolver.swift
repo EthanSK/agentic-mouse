@@ -57,9 +57,8 @@ public final class AccessibilityTextTargetResolver: TextTargetResolving {
         guard let application = workspace.frontmostApplication,
               application.processIdentifier != ownProcessIdentifier
         else {
-            // Our own HUD is a non-activating panel and this process is an
-            // accessory, so it should never be frontmost. If it somehow is,
-            // there is no user text field to type into.
+            // Our HUD is nonactivating, but the normal settings window can be
+            // frontmost. Mouse typing must never target our own settings.
             return .refused(.noFrontmostApplication)
         }
 
