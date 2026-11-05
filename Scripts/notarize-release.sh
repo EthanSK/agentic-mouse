@@ -11,6 +11,7 @@ BUILD=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$APP/Contents/Info.
 [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ && "$BUILD" =~ ^[1-9][0-9]*$ ]]
 test ! -e "$APP/Contents/Frameworks/iCUESDK.framework"
 codesign --verify --deep --strict "$APP"
+python3 "$ROOT/Scripts/check-packaged-launch.py" "$APP"
 for executable in "$APP/Contents/MacOS/AgenticMouse" "$APP/Contents/MacOS/agentic-mouse-doctor" "$APP/Contents/Library/LoginItems/AgenticMouseSupervisor.app/Contents/MacOS/AgenticMouseSupervisor"; do
   details=$(codesign -dvv "$executable" 2>&1)
   [[ "$details" == *"Authority=Developer ID Application:"* && "$details" == *"runtime"* && "$details" == *"Timestamp="* ]]
@@ -40,6 +41,7 @@ ditto -x -k "$OUT/$ARCHIVE" "$VERIFY"
 codesign --verify --deep --strict "$VERIFY/AgenticMouse.app"
 xcrun stapler validate "$VERIFY/AgenticMouse.app"
 spctl --assess --type execute --verbose=2 "$VERIFY/AgenticMouse.app"
+python3 "$ROOT/Scripts/check-packaged-launch.py" "$VERIFY/AgenticMouse.app"
 (cd "$OUT" && shasum -a 256 "$ARCHIVE" > SHA256SUMS)
 python3 - "$ROOT" "$VERSION" "$BUILD" "$OUT/$ARCHIVE" <<'PY'
 import hashlib,json,pathlib,subprocess,sys

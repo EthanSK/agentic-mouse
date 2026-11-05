@@ -4,9 +4,8 @@ import ScimitarKit
 /// The menu bar presence.
 ///
 /// Deliberately minimal: status, the things that commonly go wrong, and a way
-/// out. It never mutates iCUE or system settings — the only action that
-/// leaves the app is opening the Accessibility pane, and that is a direct
-/// response to the user clicking it.
+/// out. It never mutates iCUE or system settings. Update actions use Sparkle;
+/// opening the Accessibility pane remains a direct response to a user click.
 public final class StatusItemController {
     public struct Status {
         public var isModeActive: Bool

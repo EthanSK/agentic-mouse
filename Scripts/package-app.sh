@@ -252,6 +252,8 @@ if ! codesign --verify --deep --strict "${APP_DIR}"; then
   exit 1
 fi
 
+python3 "${REPO_ROOT}/Scripts/check-packaged-launch.py" "${APP_DIR}"
+
 if [[ "${INSTALL_CANDIDATE}" == "1" ]]; then
   python3 "${REPO_ROOT}/Scripts/install-provenance.py" verify --candidate "${APP_DIR}"
   # Record the exact successfully signed candidate only after all packaging and
