@@ -32,7 +32,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private var statusItem: StatusItemController?
     private let controlState = AgenticMouseControlState()
-    private var didFinishLaunching = false
     private var intentionalQuitDisarmed = false
     private lazy var controlWindow: AgenticMouseWindowController = {
         let controller = AgenticMouseWindowController(state: controlState)
@@ -374,16 +373,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         codexPinNotifications.start()
         log.info("Accessibility trusted: \(permission.isTrusted)")
         refreshStatus()
-        didFinishLaunching = true
         // Finder/Dock launches activate us; `open -g` and the supervisor don't.
-        // Observing activation avoids inventing another launch-state marker.
         if NSApp.isActive { controlWindow.openWindow() }
     }
 
-    func applicationDidBecomeActive(_ notification: Notification) {
-        if didFinishLaunching, !isQuitInProgress { controlWindow.openWindow() }
-    }
-
+    // Ethan: the app "keeps coming to front". Becoming active is not an Open
+    // request: presenting Settings there also reactivates us and raises it.
+    // Keep window presentation on explicit Dock/Finder reopen and menu actions.
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
         controlWindow.openWindow()
         return false
