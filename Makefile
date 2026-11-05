@@ -3,6 +3,7 @@ SHELL := /bin/bash
 
 .PHONY: help build release test test-extension test-vscode-bridge vscode-bridge test-karabiner test-install test-packaging test-verbose clean app install-candidate doctor keymap mapping simulate karabiner check site test-site
 
+SWIFT_JOBS ?= 2
 CODE_SIGN_IDENTITY ?=
 REQUIRE_ICUE_SDK ?= 1
 
@@ -11,13 +12,13 @@ help: ## Show this help
 		| awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-14s\033[0m %s\n", $$1, $$2}'
 
 build: ## Debug build
-	swift build --scratch-path .build.noindex
+	swift build --jobs $(SWIFT_JOBS) --scratch-path .build.noindex
 
 release: ## Release build
-	swift build --scratch-path .build.noindex -c release
+	swift build --jobs $(SWIFT_JOBS) --scratch-path .build.noindex -c release
 
 test: ## Run the hardware-free test suite
-	swift test --scratch-path .build.noindex
+	swift test --jobs $(SWIFT_JOBS) --scratch-path .build.noindex
 
 test-extension: ## Test the fail-closed Musixmatch Chrome extension
 	node --test extensions/musixmatch-playback/tests/*.test.mjs
@@ -52,7 +53,7 @@ test-karabiner: ## Validate semantic action sources and generated Karabiner JSON
 	fi
 
 test-verbose: ## Run tests with full output
-	swift test --scratch-path .build.noindex --verbose
+	swift test --jobs $(SWIFT_JOBS) --scratch-path .build.noindex --verbose
 
 check: clean build test test-extension test-vscode-bridge test-karabiner test-install test-packaging test-site ## Clean build followed by the full test suite
 	bash -n Scripts/package-app.sh

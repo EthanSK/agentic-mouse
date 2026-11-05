@@ -1,6 +1,6 @@
 # Set up Agentic Mouse
 
-Start with the [browser walkthrough](https://ethansk.github.io/agentic-mouse/). The native app needs manual setup for your own Mac, mice, keyboard layout and installed apps. There is no signed, notarized app download yet.
+Start with the [browser walkthrough](https://ethansk.github.io/agentic-mouse/). The native app needs manual setup for your own Mac, mice, keyboard layout and installed apps. Signed, notarized builds are published through [GitHub Releases](https://github.com/EthanSK/agentic-mouse/releases/latest); commissioning the device mappings remains a separate step.
 
 Using a coding agent? Start with the [reproduction guide and copyable prompt](REPRODUCE.md), then give it [AGENT-SETUP.md](AGENT-SETUP.md) before letting it change your machine.
 
@@ -158,6 +158,12 @@ Start in a disposable text field. Confirm ordinary pointer/scroll/left/right cli
 Then verify wheel polarity, sleep/wake, session lock/unlock, intentional Quit, restart and physical lighting restoration. Test external actions only after their receiver and shortcuts are configured. Avoid testing interruption, screenshots, staging, clipboard or window actions over valuable work.
 
 Keep automated tests, installed-byte checks and physical acceptance separate. See [release readiness](RELEASE.md) for public-release gates and [recovery](RECOVERY.md) for rollback and removal.
+
+### Automatic app updates
+
+Use **Check for Updates…** in the menu bar for an explicit check. Automatic checks run daily and use Sparkle's standard update dialog; automatic downloads are a separate menu option. Installation waits for Agent Flow, active mouse modes, held wheel controls and screenshot work to be idle. The recovery helper is disarmed before replacement and restored after an installer abort.
+
+Keep the optional Corsair SDK outside the app, for example `~/.local/lib/iCUESDK.framework`, using the existing audited SDK loader. Public updates omit this proprietary framework. Keep its original vendor signature; do not modify a signed public app to insert it.
 
 ### Reconcile concurrent local updates before replacing the app
 

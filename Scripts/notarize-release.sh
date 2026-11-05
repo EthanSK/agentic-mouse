@@ -2,8 +2,9 @@
 # Run only against a clean, checked public-source distribution build.
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-APP="$ROOT/build.noindex/AgenticMouse.app"
-OUT="$ROOT/build.noindex/release"
+BUILD_DIR="${AGENTIC_MOUSE_BUILD_DIR:-$ROOT/build.noindex}"
+APP="$BUILD_DIR/AgenticMouse.app"
+OUT="$BUILD_DIR/release"
 : "${NOTARY_PROFILE:?Set NOTARY_PROFILE to an existing notarytool Keychain profile}"
 VERSION=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$APP/Contents/Info.plist")
 BUILD=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$APP/Contents/Info.plist")
@@ -16,7 +17,7 @@ for executable in "$APP/Contents/MacOS/AgenticMouse" "$APP/Contents/MacOS/agenti
   lipo "$executable" -verify_arch arm64 x86_64
 done
 mkdir -p "$OUT"
-SUBMISSION="$ROOT/build.noindex/notary-submission.zip"
+SUBMISSION="$BUILD_DIR/notary-submission.zip"
 ditto -c -k --keepParent "$APP" "$SUBMISSION"
 NOTARY_FLAGS=()
 if [[ -n "${NOTARY_KEYCHAIN:-}" ]]; then NOTARY_FLAGS=(--keychain "$NOTARY_KEYCHAIN"); fi
@@ -36,10 +37,21 @@ codesign --verify --deep --strict "$VERIFY/AgenticMouse.app"
 xcrun stapler validate "$VERIFY/AgenticMouse.app"
 spctl --assess --type execute --verbose=2 "$VERIFY/AgenticMouse.app"
 (cd "$OUT" && shasum -a 256 "$ARCHIVE" > SHA256SUMS)
-python3 - "$ROOT" "$VERSION" "$BUILD" "$ARCHIVE" <<'PY'
+python3 - "$ROOT" "$VERSION" "$BUILD" "$OUT/$ARCHIVE" <<'PY'
 import hashlib,json,pathlib,subprocess,sys
 root=pathlib.Path(sys.argv[1]); version,build,archive=sys.argv[2:]
-path=root/'build.noindex/release'/archive
+path=pathlib.Path(archive)
+archive=path.name
 manifest=dict(version=version,build=int(build),commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=root,text=True).strip(),archive=archive,sha256=hashlib.sha256(path.read_bytes()).hexdigest(),architectures=['arm64','x86_64'],minimumMacOS='13.0',notarized=True,stapled=True,bundledCorsairSDK=False)
 (path.parent/'release.json').write_text(json.dumps(manifest,indent=2)+'\n')
 PY
+
+# Only final, stapled bytes enter the update feed. Keys remain in Keychain.
+: "${SPARKLE_TOOLS:?Set SPARKLE_TOOLS to the verified Sparkle bin directory}"
+expected=$(/usr/libexec/PlistBuddy -c 'Print SUPublicEDKey' "$APP/Contents/Info.plist")
+actual=$("$SPARKLE_TOOLS/generate_keys" --account com.ethansk.AgenticMouse -p)
+[[ "$expected" == "$actual" ]]
+"$SPARKLE_TOOLS/generate_appcast" --account com.ethansk.AgenticMouse --maximum-deltas 0 \
+  --download-url-prefix "https://github.com/EthanSK/agentic-mouse/releases/download/v${VERSION}-build.${BUILD}/" \
+  -o "$OUT/appcast.xml" "$OUT"
+(cd "$OUT" && shasum -a 256 "$ARCHIVE" appcast.xml > SHA256SUMS)
