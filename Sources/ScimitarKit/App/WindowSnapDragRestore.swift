@@ -47,8 +47,8 @@ public enum WindowSnapDragRestore {
         return CGRect(origin: current.origin, size: original.size)
     }
 
-    /// True when the window was resized away from the snapped size, so the
-    /// snap no longer applies and the remembered original should be dropped.
+    /// True when the current size differs from the accepted snap. This does
+    /// not invalidate the remembered first size; later snaps still retain it.
     public static func sizeChanged(current: CGRect, accepted: CGRect) -> Bool {
         !sameSize(current, accepted)
     }
