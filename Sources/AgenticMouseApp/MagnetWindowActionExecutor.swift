@@ -16,10 +16,9 @@ enum MagnetWindowActionError: Error, Equatable {
 /// app" and to work "via the inbuilt thing" while the third-party Magnet app
 /// stays installed and running for his keyboard shortcuts.
 ///
-///  1. Built-in route (default): Accessibility places the focused window on
-///     the left/right half, hopping to the neighbouring monitor on repeated
-///     presses. No keyboard events are synthesized, so nothing leaks into
-///     the focused app and nothing depends on Magnet's animation timing.
+///  1. Native desktop route (default): invoke macOS Move & Resize and native
+///     Move to Display commands. macOS owns the original size and restores it
+///     when the window is dragged away. Never select Full-Screen Tile.
 ///  2. Magnet route (kept, not the default): Magnet's configured global
 ///     Control-Option-Arrow accelerator, sent as the complete modifier/arrow
 ///     lifecycle a physical keyboard produces. Used only when no built-in

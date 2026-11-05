@@ -3502,3 +3502,14 @@ Keep Settings presentation on the explicit Dock/Finder reopen and menu paths rat
 ## 2026-11-05 — Reuse checksum-verified release signing tools
 
 Release workflows invoke the signing host's versioned Sparkle copy at `~/.local/share/sparkle-tools/2.10.1/bin`, after comparing it with the freshly downloaded, checksum-verified SDK. Provision this directory during signing-host setup; a missing or mismatched copy blocks signing instead of invoking an unverified or disposable helper. Keep per-app Keychain accounts and public-key checks. Reusing identical tool bytes does not promise approval survives a tool upgrade or a changed key.
+
+
+## 2026-11-05 — Native desktop tiling owns drag-away restoration
+
+The Magnet wedge now selects macOS's native desktop Move & Resize actions, not Full-Screen Tile. Native menu AX identifiers `_zoomLeft:` / `_zoomRight:` differ from full-screen `_tileLeft:` / `_tileRight:`. On a document-free SwiftUI fixture, the MacBook's macOS26.6.2 native menu sequence and the Mini's macOS27.2 production-controller check stayed outside full screen. Repeated native placements followed by a quick real-delta synthetic drag restored the first600×400 size to601×401 on the Mini. This is synthetic GUI evidence, not physical wand acceptance or exact pixel parity.
+
+Closed native menus can expose stale disabled items: direct AXPress/AXPick returned success without moving the fixture. Open the target Window menu to validate it, select only the observed native desktop action, and close that exact menu on every exit. The native menu may appear during dispatch. Direct PID-targeted and global synthetic Fn-Control-Left experiments did not move the Mini fixture; neither path ships here. An AX acknowledgement alone is not completed placement.
+
+Native Move to Display cleared Return to Previous Size state in the MacBook comparison. A monitor hop must therefore compose native Restore Previous Size, Move to Display and tile, in that order. Keep original-size ownership in macOS. Scope frame observers to in-flight commands; no permanent snap input tap or drag cache remains. AX can expose an intermediate animation frame, so reconcile near-half hop memory only after the validated native menu confirms the window remains tiled. Preserve strict geometry for ordinary manually changed windows.
+
+Evidence: wand-window-snapping outputs/native-desktop-351 and the preceding outputs/macos-native-20261105 comparison. Native actions require macOS15+ and a supporting resizable window; actual owner-specific multi-monitor/physical acceptance remains separate.
