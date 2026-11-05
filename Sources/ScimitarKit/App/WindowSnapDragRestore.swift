@@ -13,21 +13,19 @@ import Foundation
 /// drag's original grab offset. A grab near the far edge of a wide snap can
 /// lie beyond the restored narrow window. Coordinates are top-left (AX).
 public enum WindowSnapDragRestore {
-    /// Which pre-snap frame to remember for a new snap. A window that is
-    /// still exactly where Agentic Mouse last snapped it (e.g. a second
-    /// Left press hopping monitors) keeps its ORIGINAL pre-snap frame; a
-    /// window the user has moved or resized since gets its current frame.
+    /// Ethan's "pre-magnet, pre-our custom magnet size" is the size before
+    /// the FIRST snap, not the frame before the latest command. Keep it until
+    /// a real drag successfully restores it, or the window closes. Settling
+    /// frame changes and subsequent app-owned resizes must not replace it.
     public static func originalForSnap(preSnap: CGRect, previousOriginal: CGRect?,
                                        previousAccepted: CGRect?) -> CGRect {
-        guard let previousOriginal, let previousAccepted,
-              WindowSnapGeometry.approximatelyEqual(preSnap, previousAccepted, tolerance: 2) else { return preSnap }
-        return previousOriginal
+        previousOriginal ?? preSnap
     }
 
     /// Where the window should go when a move of a snapped window is seen
-    /// while the mouse button is down, or nil when nothing should happen:
+    /// during an observed mouse drag, or nil when nothing should happen:
     ///  - the window's size no longer matches the snap (the user is
-    ///    resizing, or the app changed it) → nil, and the caller forgets it;
+    ///    resizing, or the app changed it) → nil, without losing the original;
     ///  - it hasn't actually left its snapped position yet → nil;
     ///  - its original size is the same as the snapped size → nil.
     /// Otherwise: the original SIZE at the window's CURRENT origin — a
@@ -38,8 +36,9 @@ public enum WindowSnapDragRestore {
     /// (upstream synthetic title-bar drags with movement deltas) reported:
     /// size+position → window jumped back ~130 pt from the pointer; size only →
     /// window kept following smoothly with the pointer on its title bar.
-    /// Magnet does the same: its log reads "Restored window fits screen,
-    /// resizing in place." `pointer` is kept for callers/tests and unused.
+    /// The 2026-11-01 binary investigation found that Magnet also corrects
+    /// some far-edge grabs; size-only restoration does not implement that
+    /// separate correction. `pointer` remains unused by this size decision.
     public static func restoredFrame(current: CGRect, accepted: CGRect, original: CGRect,
                                      pointer: CGPoint) -> CGRect? {
         guard sameSize(current, accepted) else { return nil }

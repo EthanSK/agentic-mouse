@@ -49,9 +49,17 @@ final class WindowSnapDragRestoreTests: XCTestCase {
         // Second snap starts from where the first snap left it → keep the first original.
         XCTAssertEqual(WindowSnapDragRestore.originalForSnap(preSnap: snapped, previousOriginal: original,
                                                              previousAccepted: snapped), original)
-        // Moved by hand in between → the hand-placed frame becomes the original.
+        // Frame drift or another app-owned resize must not replace the first size.
         XCTAssertEqual(WindowSnapDragRestore.originalForSnap(preSnap: hopped.offsetBy(dx: 100, dy: 0),
                                                              previousOriginal: original, previousAccepted: hopped),
-                       hopped.offsetBy(dx: 100, dy: 0))
+                       original)
+    }
+
+    func testFirstSnapCapturesItsStartingFrameAndLaterDifferentSizesKeepIt() {
+        XCTAssertEqual(WindowSnapDragRestore.originalForSnap(preSnap: original,
+            previousOriginal: nil, previousAccepted: nil), original)
+        let resizedAgain = CGRect(x: 10, y: 40, width: 1300, height: 900)
+        XCTAssertEqual(WindowSnapDragRestore.originalForSnap(preSnap: resizedAgain,
+            previousOriginal: original, previousAccepted: snapped), original)
     }
 }

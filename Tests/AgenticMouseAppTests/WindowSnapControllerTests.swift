@@ -150,19 +150,25 @@ final class WindowSnapControllerTests: XCTestCase {
 
     func testVerifiedSnapRegistersOriginalSizeAndQueuedNewSnapCancelsOldRestore() {
         let queue = DispatchQueue(label: "snap-restore-integration")
-        let restorer = WindowSnapDragRestorer(queue: queue, dragging: { true }, pointer: { CGPoint(x: 900, y: 40) })
         let original = CGRect(x: 100, y: 100, width: 800, height: 600)
         let window = FakeWindow(original)
+        let restorer = WindowSnapDragRestorer(queue: queue, windows: {
+            [WindowSnapPointerWindow(id: 1, pid: 0, frame: window.current)]
+        })
         let controller = WindowSnapController(access: FakeAccess(window: window), queue: queue, restorer: restorer)
         guard case .moved = controller.snap(.left, pid: 1, displays: [ultrawide]) else { return XCTFail() }
+        restorer.mouseEvent(.leftMouseDown, point: CGPoint(x: 900, y: 44))
         window.current.origin.x += 40
+        restorer.mouseEvent(.leftMouseDragged, point: CGPoint(x: 940, y: 44))
         restorer.changed(WindowSnapKey(testID: 1)); queue.sync {}
         XCTAssertEqual(window.current.size, original.size)
 
         _ = controller.snap(.left, pid: 1, displays: [ultrawide])
-        window.current.origin.x += 40
         window.writes.removeAll()
         queue.suspend()
+        restorer.mouseEvent(.leftMouseDown, point: CGPoint(x: 900, y: 44))
+        window.current.origin.x += 40
+        restorer.mouseEvent(.leftMouseDragged, point: CGPoint(x: 940, y: 44))
         restorer.changed(WindowSnapKey(testID: 1))
         controller.enqueue(.right, pid: 1, displays: [ultrawide], source: .corsair, inputAllowed: { true })
         queue.resume(); queue.sync {}
@@ -172,7 +178,7 @@ final class WindowSnapControllerTests: XCTestCase {
 
     func testFailedSnapDoesNotRegisterDragRestoration() {
         let queue = DispatchQueue(label: "snap-restore-failed")
-        let restorer = WindowSnapDragRestorer(queue: queue, dragging: { true })
+        let restorer = WindowSnapDragRestorer(queue: queue, windows: { [] })
         let window = FakeWindow(CGRect(x: 100, y: 100, width: 800, height: 600))
         window.allowSize = false
         let controller = WindowSnapController(access: FakeAccess(window: window), queue: queue, restorer: restorer)
