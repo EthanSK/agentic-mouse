@@ -25,6 +25,7 @@ CONFIGURATION="${CONFIGURATION:-release}"
 CODE_SIGN_IDENTITY="${CODE_SIGN_IDENTITY:--}"
 INSTALL_CANDIDATE="${INSTALL_CANDIDATE:-0}"
 DISTRIBUTION_BUILD="${DISTRIBUTION_BUILD:-0}"
+PUBLIC_UNSIGNED_BUILD="${PUBLIC_UNSIGNED_BUILD:-0}"
 REQUIRE_ICUE_SDK="${REQUIRE_ICUE_SDK:-1}"
 INFO_PLIST="${REPO_ROOT}/Resources/Info.plist"
 CURRENT_MARKETING_VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "${INFO_PLIST}")"
@@ -135,7 +136,7 @@ BUILD_FLAGS=()
 SIGN_FLAGS=()
 APP_SIGN_FLAGS=()
 if [[ "${DISTRIBUTION_BUILD}" == "1" ]]; then
-  if [[ "${CODE_SIGN_IDENTITY}" != "Developer ID Application: "* || "${INSTALL_CANDIDATE}" != "0" ]]; then
+  if [[ "${INSTALL_CANDIDATE}" != "0" || ( "${CODE_SIGN_IDENTITY}" != "Developer ID Application: "* && "${PUBLIC_UNSIGNED_BUILD}" != "1" ) ]]; then
     printf 'error: distribution requires Developer ID and an already recorded version.\n' >&2
     exit 65
   fi
@@ -148,8 +149,8 @@ elif [[ "${INSTALL_CANDIDATE}" == "1" && "${CODE_SIGN_IDENTITY}" == "Developer I
   SIGN_FLAGS=(--timestamp=none)
 fi
 log "Building (${CONFIGURATION})"
-swift build --package-path "${REPO_ROOT}" --scratch-path "${SWIFT_SCRATCH_PATH}" -c "${CONFIGURATION}" ${BUILD_FLAGS[@]+"${BUILD_FLAGS[@]}"}
-BIN_PATH="$(swift build --package-path "${REPO_ROOT}" --scratch-path "${SWIFT_SCRATCH_PATH}" -c "${CONFIGURATION}" ${BUILD_FLAGS[@]+"${BUILD_FLAGS[@]}"} --show-bin-path)"
+swift build --jobs 2 --package-path "${REPO_ROOT}" --scratch-path "${SWIFT_SCRATCH_PATH}" -c "${CONFIGURATION}" ${BUILD_FLAGS[@]+"${BUILD_FLAGS[@]}"}
+BIN_PATH="$(swift build --jobs 2 --package-path "${REPO_ROOT}" --scratch-path "${SWIFT_SCRATCH_PATH}" -c "${CONFIGURATION}" ${BUILD_FLAGS[@]+"${BUILD_FLAGS[@]}"} --show-bin-path)"
 
 log "Assembling ${APP_NAME}.app ${PACKAGE_VERSION_LABEL}"
 if [[ -n "${PROVENANCE_FILE}" ]]; then
@@ -189,6 +190,19 @@ if [[ "${SUPERVISOR_MARKETING_VERSION}" != "${PACKAGE_MARKETING_VERSION}" \
   printf '\033[31m error:\033[0m runtime supervisor version does not match the outer app.\n' >&2
   exit 1
 fi
+
+# SwiftPM links Sparkle dynamically; preserve its versioned symlinks and sign
+# every nested installer component with the containing app's identity.
+SPARKLE_FRAMEWORK="${BIN_PATH}/Sparkle.framework"
+test -d "${SPARKLE_FRAMEWORK}"
+ditto "${SPARKLE_FRAMEWORK}" "${APP_DIR}/Contents/Frameworks/Sparkle.framework"
+for component in "${APP_DIR}/Contents/Frameworks/Sparkle.framework/Versions/B/Autoupdate" \
+  "${APP_DIR}/Contents/Frameworks/Sparkle.framework/Versions/B/Updater.app" \
+  "${APP_DIR}/Contents/Frameworks/Sparkle.framework/Versions/B/XPCServices/Downloader.xpc" \
+  "${APP_DIR}/Contents/Frameworks/Sparkle.framework/Versions/B/XPCServices/Installer.xpc" \
+  "${APP_DIR}/Contents/Frameworks/Sparkle.framework"; do
+  codesign --force --sign "${CODE_SIGN_IDENTITY}" ${SIGN_FLAGS[@]+"${SIGN_FLAGS[@]}"} "$component"
+done
 
 # The app dlopen()s the SDK from Contents/Frameworks first, so no rpath or
 # install_name surgery is needed.

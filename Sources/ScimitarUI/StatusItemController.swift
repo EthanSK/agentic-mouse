@@ -46,6 +46,20 @@ public final class StatusItemController {
     private var status = Status()
 
     public var onToggleMode: (() -> Void)?
+    public var onCheckForUpdates: (() -> Void)?
+    public var onToggleAutomaticChecks: (() -> Void)?
+    public var onToggleAutomaticDownloads: (() -> Void)?
+    private var canCheckForUpdates = false
+    private var automaticChecks = false
+    private var automaticDownloads = false
+
+    public func updateUpdater(canCheck: Bool, automaticChecks: Bool, automaticDownloads: Bool) {
+        canCheckForUpdates = canCheck
+        self.automaticChecks = automaticChecks
+        self.automaticDownloads = automaticDownloads
+        rebuildMenu()
+    }
+
     public var onQuit: (() -> Void)?
     public var onReloadConfiguration: (() -> Void)?
     public var onSetKeysPassword: (() -> Void)?
@@ -170,6 +184,21 @@ public final class StatusItemController {
         reload.target = self
         menu.addItem(reload)
 
+        let check = NSMenuItem(title: "Check for Updates…", action: #selector(checkForUpdates), keyEquivalent: "")
+        check.target = self
+        // This menu also contains intentional informational rows. Manage this
+        // item's availability explicitly rather than AppKit auto-enabling it.
+        check.isEnabled = canCheckForUpdates
+        menu.autoenablesItems = false
+        menu.addItem(check)
+        let checks = NSMenuItem(title: "Check for Updates Automatically", action: #selector(toggleAutomaticChecks), keyEquivalent: "")
+        checks.target = self; checks.state = automaticChecks ? .on : .off
+        menu.addItem(checks)
+        let downloads = NSMenuItem(title: "Download Updates Automatically", action: #selector(toggleAutomaticDownloads), keyEquivalent: "")
+        downloads.target = self; downloads.state = automaticDownloads ? .on : .off
+        menu.addItem(downloads)
+        menu.addItem(.separator())
+
         let quit = NSMenuItem(title: "Quit Agentic Mouse", action: #selector(quit), keyEquivalent: "q")
         quit.target = self
         menu.addItem(quit)
@@ -187,6 +216,9 @@ public final class StatusItemController {
 
     @objc private func toggleMode() { onToggleMode?() }
     @objc private func reload() { onReloadConfiguration?() }
+    @objc private func checkForUpdates() { onCheckForUpdates?() }
+    @objc private func toggleAutomaticChecks() { onToggleAutomaticChecks?() }
+    @objc private func toggleAutomaticDownloads() { onToggleAutomaticDownloads?() }
     @objc private func quit() { onQuit?() }
     @objc private func setKeysPassword() { onSetKeysPassword?() }
     @objc private func clearKeysPassword() { onClearKeysPassword?() }

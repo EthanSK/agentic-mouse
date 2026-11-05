@@ -16,6 +16,7 @@ let package = Package(
         .executable(name: "agentic-mouse-doctor", targets: ["ScimitarDoctor"]),
         .executable(name: "agentic-mouse-site", targets: ["ShowcaseExporter"])
     ],
+    dependencies: [.package(url: "https://github.com/sparkle-project/Sparkle.git", exact: "2.10.1")],
     targets: [
         // Thin C shim that dlopen()s the proprietary iCUE SDK at runtime.
         // No Corsair headers or binaries are vendored into this repository; the
@@ -59,7 +60,7 @@ let package = Package(
 
         .executableTarget(
             name: "AgenticMouseApp",
-            dependencies: ["ScimitarKit", "ScimitarUI"],
+            dependencies: ["ScimitarKit", "ScimitarUI", .product(name: "Sparkle", package: "Sparkle")],
             path: "Sources/AgenticMouseApp"
         ),
 

@@ -150,9 +150,13 @@ struct WandGlassLiftValues: VectorArithmetic {
     static func + (lhs: Self, rhs: Self) -> Self { combine(lhs, rhs, sign: 1) }
     static func - (lhs: Self, rhs: Self) -> Self { combine(lhs, rhs, sign: -1) }
     private static func combine(_ lhs: Self, _ rhs: Self, sign: Double) -> Self {
-        Self(values: (0..<max(lhs.values.count, rhs.values.count)).map {
-            ($0 < lhs.values.count ? lhs.values[$0] : 0) + sign * ($0 < rhs.values.count ? rhs.values[$0] : 0)
-        })
+        let count = max(lhs.values.count, rhs.values.count)
+        let values: [Double] = (0..<count).map { index in
+            let left = index < lhs.values.count ? lhs.values[index] : 0.0
+            let right = index < rhs.values.count ? rhs.values[index] : 0.0
+            return left + sign * right
+        }
+        return Self(values: values)
     }
     mutating func scale(by rhs: Double) { values = values.map { $0 * rhs } }
     var magnitudeSquared: Double { values.reduce(0) { $0 + $1 * $1 } }

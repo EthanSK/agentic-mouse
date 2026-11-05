@@ -18,9 +18,9 @@
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>1.0.333</string>
+	<string>1.0.334</string>
 	<key>CFBundleVersion</key>
-	<string>339</string>
+	<string>340</string>
 	<key>LSMinimumSystemVersion</key>
 	<string>13.0</string>
 
@@ -49,5 +49,11 @@
 
 	<key>NSHighResolutionCapable</key>
 	<true/>
+	<key>SUFeedURL</key><string>https://github.com/EthanSK/agentic-mouse/releases/latest/download/appcast.xml</string>
+	<key>SUEnableAutomaticChecks</key><true/>
+	<key>SUAllowsAutomaticUpdates</key><true/>
+	<key>SUAutomaticallyUpdate</key><false/>
+	<key>SUSendProfileInfo</key><false/>
+	<key>SUPublicEDKey</key><string>CnxNG5sMLIklSYKEJ7KDtXoPEs13s676x/0/ROdwYU8=</string>
 </dict>
 </plist>

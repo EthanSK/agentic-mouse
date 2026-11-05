@@ -33,6 +33,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let launchAtLoginController = LaunchAtLoginController()
     private var launchAtLoginState = "unknown"
     private var isQuitInProgress = false
+    private var updater: AppUpdater?
+    private var updatePrepared = false
+    private static let updateLegendsKey = "updateRestoreDefaultLegends"
     private var keypadHUDPresenters: [MouseSource: AppKitHUDPresenter] = [:]
     private var modeHUDPresenters: [MouseSource: AppKitModeHUDPresenter] = [:]
     /// Shared across both source HUDs and app-mode resolution so an installed
@@ -329,6 +332,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         rebuildHUDPresenters()
         statusItem = StatusItemController()
         statusItem?.onQuit = { [weak self] in self?.quit() }
+        updater = AppUpdater(mayInstall: { [weak self] in
+            guard let self, self.updateWorkIsIdle else { return false }
+            let flowReady = await AgentFlowUpdateReadiness.check()
+            return flowReady && self.updateWorkIsIdle
+        }, prepare: { [weak self] in await self?.prepareForUpdate() ?? false },
+            restore: { [weak self] in self?.restoreAfterUpdateAbort() })
+        updater?.onChange = { [weak self] in self?.refreshUpdateMenu() }
+        statusItem?.onCheckForUpdates = { [weak self] in self?.updater?.checkForUpdates() }
+        statusItem?.onToggleAutomaticChecks = { [weak self] in self?.updater?.toggleAutomaticChecks() }
+        statusItem?.onToggleAutomaticDownloads = { [weak self] in self?.updater?.toggleAutomaticDownloads() }
+        refreshUpdateMenu()
         statusItem?.onReloadConfiguration = { [weak self] in self?.reload() }
         statusItem?.onToggleMode = { [weak self] in self?.toggleMode() }
         statusItem?.onSetKeysPassword = { [weak self] in self?.promptToStoreKeysPassword() }
@@ -658,6 +672,50 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         defaultMapHintCoordinators[source]?.cancel()
         modeHUDPresenters[source]?.hide()
         keypadHUDPresenters[source]?.hide()
+    }
+
+    // Only idle native input may release the supervisor for a Sparkle update.
+    // Persistent Default legends are presentation, not an active input mode.
+    private var updateWorkIsIdle: Bool {
+        mouseCommandsAllowed && !isQuitInProgress
+            && !modePickerCoordinators.values.contains(where: { $0.isActive })
+            && !multiTapCoordinators.values.contains(where: { $0.isActive })
+            && colorProofCoordinator?.isActive != true
+            && !MouseSource.allCases.contains(where: { wheelChordMonitor?.activeControl(for: $0) != nil })
+            && !wandHeldKeys.isSwitchAppHeld
+            && selectedAreaScreenshotController.presentationState == .idle
+    }
+
+    private func prepareForUpdate() async -> Bool {
+        guard updateWorkIsIdle else { return false }
+        let saved = defaultMapHintCoordinators.compactMap { source, coordinator in
+            coordinator.isShowingHint ? source.rawValue : nil
+        }
+        let disarmed: Bool = await withCheckedContinuation { continuation in
+            launchAtLoginController.disableForIntentionalQuit(log: log) { result in
+                if case .success = result { continuation.resume(returning: true) }
+                else { continuation.resume(returning: false) }
+            }
+        }
+        guard disarmed else { return false }
+        updatePrepared = true
+        UserDefaults.standard.set(saved, forKey: Self.updateLegendsKey)
+        return true
+    }
+
+    private func restoreAfterUpdateAbort() {
+        guard updatePrepared else { return }
+        updatePrepared = false
+        UserDefaults.standard.removeObject(forKey: Self.updateLegendsKey)
+        launchAtLoginState = launchAtLoginController.ensureRegistered(
+            revision: runtimeSupervisorRevision(), log: log)
+        refreshStatus()
+    }
+
+    private func refreshUpdateMenu() {
+        statusItem?.updateUpdater(canCheck: updater?.canCheck ?? false,
+            automaticChecks: updater?.automaticChecks ?? false,
+            automaticDownloads: updater?.automaticDownloads ?? false)
     }
 
     private func quit() {
@@ -2779,6 +2837,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     self?.log.notice("ignored a mouse command while the macOS session was inactive")
                     return
                 }
+                // Pending updates recheck after the complete command transition,
+                // including a Default held-wheel release. No pending offer is a no-op.
+                defer { self.updater?.resumeIfIdle() }
                 if self.floatingMouseClutch.handle(data, inputTime: inputTime) { return }
                 if let command = try? VSCodeEyesBeginGate.Command.decode(data) {
                     let admitted = self.vsCodeEyesBeginGate.handle(command)
@@ -3257,6 +3318,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     // MARK: - Status
 
     private func refreshStatus() {
+        updater?.resumeIfIdle()
+        if mouseCommandsAllowed, let saved = UserDefaults.standard.stringArray(forKey: Self.updateLegendsKey),
+           !updatePrepared, !defaultMapHintCoordinators.isEmpty {
+            UserDefaults.standard.removeObject(forKey: Self.updateLegendsKey)
+            for value in saved {
+                if let source = MouseSource(rawValue: value) {
+                    defaultMapHintCoordinators[source]?.restoreAfterMode(source: source)
+                }
+            }
+        }
         var warnings = configurationWarnings
         if !mouseCommandsAllowed {
             warnings.insert(
