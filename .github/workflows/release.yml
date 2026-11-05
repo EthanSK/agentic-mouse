@@ -3,7 +3,8 @@ name: Publish signed app
 on:
   push:
     branches: [main]
-    paths: ['Sources/**', 'Tests/**', 'Resources/**', 'Scripts/**', 'Karabiner/**', 'Integrations/**', 'Package.*', '.github/workflows/check.yml', '.github/workflows/release.yml']
+    # The website exporter has its own publication workflow and no app bytes.
+    paths: ['Sources/**', 'Tests/**', 'Resources/**', 'Scripts/**', '!Scripts/build-site.py', 'Karabiner/**', 'Integrations/**', 'Package.*', '.github/workflows/check.yml', '.github/workflows/release.yml']
   workflow_dispatch:
 permissions:
   contents: read
