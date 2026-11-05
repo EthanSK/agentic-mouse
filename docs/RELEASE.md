@@ -42,7 +42,7 @@ These are open gates, not claims of completed validation. Do not describe the cu
 ## Validate each source release
 
 1. Run `make check` from the exact intended source and confirm generated rules are current.
-2. Package an SDK-free development bundle without launching it to catch missing resources or helper packaging.
+2. Package an SDK-free development bundle. Packaging checks the framework search path in every architecture and runs the actual executable with `--check-packaged-launch`; this exits before AppKit, hardware, the instance lock or recovery starts. The signing gate repeats this check on the final extracted release archive. A passing signature or notarisation alone does not prove the executable can load its frameworks.
 3. Verify relevant physical behavior on the intended installed signed build at an attended, safe time. Preserve the previous app and rule backup.
 4. For website changes, manually check desktop/mobile, keyboard input, both hands, rotation and mode transitions. Confirm images keep their aspect ratio.
 5. Review the staged diff for private files, unrelated work and accidental generated changes.

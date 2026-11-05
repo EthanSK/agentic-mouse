@@ -61,7 +61,9 @@ let package = Package(
         .executableTarget(
             name: "AgenticMouseApp",
             dependencies: ["ScimitarKit", "ScimitarUI", .product(name: "Sparkle", package: "Sparkle")],
-            path: "Sources/AgenticMouseApp"
+            path: "Sources/AgenticMouseApp",
+            // The distributed app embeds Sparkle here, outside SwiftPM's build directory.
+            linkerSettings: [.unsafeFlags(["-Xlinker", "-rpath", "-Xlinker", "@executable_path/../Frameworks"])]
         ),
 
         .executableTarget(
