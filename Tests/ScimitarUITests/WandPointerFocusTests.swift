@@ -5,7 +5,7 @@ import SwiftUI
 @testable import ScimitarUI
 import XCTest
 
-final class WandPointerFocusTests: XCTestCase {
+final class WandPointerFocusTests: VisibleHUDTestCase {
     func testViewModelCarriesTheWandOutlineAndClearsItWithTheNextSnapshot() {
         let model = ModeHUDViewModel(source: .wand, appIconProvider: NoIconProvider())
         let legend = AppSpecificTarget.chrome.definition.legend

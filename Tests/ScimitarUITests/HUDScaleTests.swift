@@ -4,7 +4,7 @@ import SwiftUI
 import XCTest
 
 @MainActor
-final class HUDScaleTests: XCTestCase {
+final class HUDScaleTests: VisibleHUDTestCase {
     private var defaults: UserDefaults!
     private var suiteName: String!
 

@@ -83,8 +83,10 @@ public struct AgenticMouseControlView: View {
 
     private var hudSection: some View {
         Section("HUD") {
-            legendRow(source: .corsair, shown: snapshot.corsairLegend, mode: snapshot.corsairMode)
-            legendRow(source: .razer, shown: snapshot.razerLegend, mode: snapshot.razerMode)
+            legendRow(source: .corsair, connected: snapshot.corsairConnected,
+                      shown: snapshot.corsairLegend, mode: snapshot.corsairMode)
+            legendRow(source: .razer, connected: snapshot.razerConnected,
+                      shown: snapshot.razerLegend, mode: snapshot.razerMode)
             HStack(spacing: 12) {
                 Text("Size").frame(width: 95, alignment: .leading)
                 Slider(value: Binding(get: { scale.scale }, set: { scale.setScale($0) }),
@@ -151,7 +153,7 @@ public struct AgenticMouseControlView: View {
         }
     }
 
-    private func legendRow(source: MouseSource, shown: Bool, mode: String?) -> some View {
+    private func legendRow(source: MouseSource, connected: Bool, shown: Bool, mode: String?) -> some View {
         HStack {
             VStack(alignment: .leading, spacing: 3) {
                 Text("\(source.displayName) legend")
@@ -166,7 +168,7 @@ public struct AgenticMouseControlView: View {
                     get: { shown }, set: { _ in state.onLegend(source) }))
                     .labelsHidden().toggleStyle(.switch)
             }
-        }.disabled(!snapshot.sessionReady)
+        }.disabled(!snapshot.sessionReady || !connected)
     }
 
     private func statusRow(_ title: String, value: String, ready: Bool) -> some View {

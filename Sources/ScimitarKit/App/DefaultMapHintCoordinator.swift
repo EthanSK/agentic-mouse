@@ -46,7 +46,8 @@ public final class DefaultMapHintCoordinator {
             return
         }
         guard isAvailable() else {
-            log.debug("default-map toggle ignored while a runtime mode owns the grid")
+            hideHint()
+            log.debug("default-map toggle ignored while its mouse or grid is unavailable")
             return
         }
         if isShowingHint {
@@ -119,6 +120,12 @@ public final class DefaultMapHintCoordinator {
 
     public func restoreAfterMode(source: MouseSource) {
         guard source == ownedSource else { return }
+        // A saved legend is not permission to recreate a HUD after its mouse
+        // disconnects, including restoration across an app update.
+        guard isAvailable() else {
+            hideHint()
+            return
+        }
         guard !isShowingHint else { return }
         showHint(source: source)
         log.info("default mouse map restored after runtime mode")
@@ -136,6 +143,10 @@ public final class DefaultMapHintCoordinator {
     /// open/closed state and panel ownership.
     public func refresh() {
         guard isShowingHint, let source else { return }
+        guard isAvailable() else {
+            hideHint()
+            return
+        }
         hud.update(
             DefaultMapLegend.snapshot(
                 source: source,

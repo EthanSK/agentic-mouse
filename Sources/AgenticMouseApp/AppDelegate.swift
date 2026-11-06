@@ -56,6 +56,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var targetResolvers: [MouseSource: TextTargetResolving] = [:]
     private var focusMonitor: FocusMonitoring?
     private var runtimeHealthMonitor: RuntimeHealthMonitor?
+    private var corsairHardwarePresent = CorsairDevicePresence.isPresent()
     private var wheelChordLastProblem: String?
     private var karabinerReceiverLastProblem: String?
 
@@ -929,6 +930,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             colorProofCoordinator?.handleLightingUnavailable(.corsair)
             floatingMouseClutch.cancel(resetButton: true)
             modePickerCoordinators[.corsair]?.handleDeviceLost(.corsair)
+            defaultMapHintCoordinators[.corsair]?.cancel()
             corsairRecoveryMonitor?.stop()
             corsairRecoveryMonitor = nil
             selectedDevice = nil
@@ -1006,6 +1008,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             colorProofCoordinator?.handleDeviceLost(.corsair)
             floatingMouseClutch.cancel(resetButton: true)
             modePickerCoordinators[.corsair]?.handleDeviceLost(.corsair)
+            defaultMapHintCoordinators[.corsair]?.cancel()
         }
 
         if currentIdentifier != nil {
@@ -1061,6 +1064,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             colorProofCoordinator?.handleDeviceLost(.corsair)
             floatingMouseClutch.cancel(resetButton: true)
             modePickerCoordinators[.corsair]?.handleDeviceLost(.corsair)
+            defaultMapHintCoordinators[.corsair]?.cancel()
             lightingCoordinator?.handleSessionLost()
 
         case .lightingUnavailable:
@@ -1129,6 +1133,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 source: source,
                 isAvailable: { [weak self] in
                     guard let self else { return false }
+                    // Ethan's "HUD with my mice unplugged": require physical
+                    // presence, not a saved legend or lighting session alone.
+                    switch source {
+                    case .corsair: guard self.corsairHardwarePresent else { return false }
+                    case .razer: guard self.razerRecoveryMonitor?.isPresent == true else { return false }
+                    case .wand: break
+                    }
                     let keypadOwnsSource = self.multiTapCoordinators[source]?.isActive == true
                     return self.colorProofCoordinator?.isActive != true
                         && self.modePickerCoordinators[source]?.isActive != true
@@ -1181,6 +1192,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 controller?.handleDeviceLost()
                 self?.colorProofCoordinator?.handleDeviceLost(.razer)
                 self?.modePickerCoordinators[.razer]?.handleDeviceLost(.razer)
+                self?.defaultMapHintCoordinators[.razer]?.cancel()
                 self?.refreshStatus()
             },
             onRecovered: { [weak self] in
@@ -3134,6 +3146,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 self.startWheelChordMonitor()
             }
             self.sessionSecurityController?.ensureUnlockProofMonitoring()
+            // Reuse the existing health heartbeat; lighting SDK availability
+            // must not decide whether the physical mouse's HUD can exist.
+            let corsairPresent = CorsairDevicePresence.isPresent()
+            if corsairPresent != self.corsairHardwarePresent {
+                self.corsairHardwarePresent = corsairPresent
+                if !corsairPresent { self.defaultMapHintCoordinators[.corsair]?.cancel() }
+                self.refreshStatus()
+            }
         }
         runtimeHealthMonitor = monitor
         monitor.start()
@@ -3440,7 +3460,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         snapshot.accessibilityGranted = permission.isTrusted
         snapshot.commandsReady = userCommandReceiver?.isHealthy == true
         snapshot.wheelReady = wheelChordMonitor?.isRunning == true
-        snapshot.corsairConnected = selectedDevice != nil
+        snapshot.corsairConnected = corsairHardwarePresent
         snapshot.razerConnected = razerRecoveryMonitor?.isPresent == true
         snapshot.recovery = launchAtLoginState
         switch ICUESession.shared.state {
