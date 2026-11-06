@@ -70,6 +70,16 @@ final class WindowSnapGeometryTests: XCTestCase {
         XCTAssertEqual(WindowSnapGeometry.plan(.right, window: moved, displays: Layout.all, memory: memory)?.traversedDisplay, false)
     }
 
+    func testCorrectionKeepsAnOversizedWindowFlushAndOnTheTargetDisplay() {
+        guard let plan = WindowSnapGeometry.plan(.left, window: CGRect(x: 0, y: 30, width: 1720, height: 1410),
+                                                 displays: Layout.all, memory: nil) else { return XCTFail() }
+        // The app kept 1,100 pt width at the half's origin, straddling onto the ultrawide.
+        let accepted = CGRect(x: -864, y: 645, width: 1100, height: 900)
+        XCTAssertEqual(WindowSnapGeometry.correction(accepted: accepted, plan: plan),
+                       CGRect(x: -1100, y: 645, width: 1100, height: 900))
+        XCTAssertNil(WindowSnapGeometry.correction(accepted: plan.frame, plan: plan))
+    }
+
     func testHalvesShareAnExactBoundary() {
         let left = WindowSnapGeometry.half(.left, of: Layout.samsung)
         let right = WindowSnapGeometry.half(.right, of: Layout.samsung)

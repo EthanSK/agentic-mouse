@@ -20,14 +20,11 @@ public struct WindowSnapDisplay: Equatable, Sendable {
     public let frame: CGRect
     /// Area excluding menu bar and Dock, where windows are placed.
     public let visibleFrame: CGRect
-    /// Live NSScreen name used only to select its native Move to Display item.
-    public let name: String?
 
-    public init(id: String, frame: CGRect, visibleFrame: CGRect, name: String? = nil) {
+    public init(id: String, frame: CGRect, visibleFrame: CGRect) {
         self.id = id
         self.frame = frame
         self.visibleFrame = visibleFrame
-        self.name = name
     }
 
     /// NSScreen frames are bottom-left based; `primaryHeight` is the height
@@ -42,9 +39,13 @@ public enum WindowSnapDirection: String, Sendable {
     case right
 }
 
-/// The last accepted native half, used solely to recognize monitor hopping.
-/// Native animation, margins and size rounding can differ from an ideal half.
-/// macOS owns the original pre-snap size; it is never cached here.
+/// What Agentic Mouse remembers about the last snap it made to a window, so
+/// a repeated press still counts as "already there" when the app refused the
+/// exact half size (minimum widths, Terminal's character grid). Without this
+/// memory a narrow display's half could be smaller than the app's minimum
+/// width, the frame would never match the half, and the window would get
+/// stuck instead of hopping to the next monitor — one cause of the "dodgy"
+/// cross-monitor behaviour Ethan reported with Magnet.
 public struct WindowSnapMemory: Equatable, Sendable {
     public let direction: WindowSnapDirection
     public let displayID: String
@@ -60,7 +61,8 @@ public struct WindowSnapMemory: Equatable, Sendable {
 public struct WindowSnapPlan: Equatable, Sendable {
     public let frame: CGRect
     public let display: WindowSnapDisplay
-    /// The native desktop half to select on the destination display.
+    /// The side of the display the window belongs on. If the app refuses
+    /// the requested size, the window is re-aligned to this edge.
     public let side: WindowSnapDirection
     /// True when the press moved the window onto a neighbouring display.
     public let traversedDisplay: Bool
@@ -141,6 +143,21 @@ public enum WindowSnapGeometry {
         guard let next = neighbor(of: current, toward: side, in: displays) else { return nil }
         let landing: WindowSnapDirection = side == .left ? .right : .left
         return WindowSnapPlan(frame: half(landing, of: next), display: next, side: landing, traversedDisplay: true)
+    }
+
+    /// After the app answers, keep the window fully on the target display
+    /// and flush with its side, even when the app refused the half size
+    /// (e.g. a 1,000 pt minimum width on an 864 pt MacBook half). Returns
+    /// nil when no correction is needed. This stops a hopped window ending
+    /// up straddling two monitors.
+    public static func correction(accepted: CGRect, plan: WindowSnapPlan) -> CGRect? {
+        let v = plan.display.visibleFrame
+        var frame = accepted
+        frame.origin.x = plan.side == .left ? plan.frame.minX : plan.frame.maxX - accepted.width
+        // Never push the window past either edge of the usable area.
+        frame.origin.x = min(max(frame.minX, v.minX), max(v.minX, v.maxX - frame.width))
+        frame.origin.y = min(max(accepted.minY, v.minY), max(v.minY, v.maxY - frame.height))
+        return approximatelyEqual(frame, accepted, tolerance: 1) ? nil : frame
     }
 
     public static func approximatelyEqual(_ a: CGRect, _ b: CGRect, tolerance: CGFloat) -> Bool {

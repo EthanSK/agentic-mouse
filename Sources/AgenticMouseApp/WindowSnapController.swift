@@ -1,17 +1,27 @@
-// Owns the wand's "Magnet" Left/Right commands through macOS desktop tiling.
-// macOS owns the original size and drag restoration; this worker only composes
-// native menu actions and remembers the last accepted half for monitor hops.
 import AppKit
 import ApplicationServices
 import ScimitarKit
 
+/// Built-in Left/Right window snapping for the Magic Wand's "Magnet wedge"
+/// and the mice's Magnet + Wheel card (Ethan's term "Magnet" = these two
+/// actions). Added 2026-10-31 at Ethan's request to do it "via the inbuilt
+/// thing" inside Agentic Mouse while the third-party Magnet app stays
+/// installed and running for his keyboard shortcuts.
+///
+/// Established pattern: this reuses `AccessibilityWindowResizeTarget` (the
+/// hovered-window resize feature's AX wrapper: frame/size/position writes,
+/// AXEnhancedUserInterface suppression, 150 ms messaging timeout) and, like
+/// `WindowResizeController`, runs Accessibility on one serial worker — never
+/// inside the wheel tap or on the main thread.
+///
+/// Why built-in instead of synthesizing Magnet's ⌃⌥←/→: Magnet animates each
+/// placement and decides the next press from the window's committed frame,
+/// so quick presses across monitors could race and land oddly. Here every
+/// placement is written synchronously, read back, corrected onto the target
+/// display, and remembered, before the next queued press runs.
 protocol WindowSnapAccess {
     /// The frontmost app's focused window and a stable identity for it.
     func focusedWindow(pid: pid_t) -> (target: WindowResizeTarget, key: WindowSnapKey)?
-    func nativeWindowIsTiled(_ window: WindowSnapKey, permitted: () -> Bool) -> Bool
-    func snapNatively(_ side: WindowSnapDirection, window: WindowSnapKey,
-                      target: WindowResizeTarget, plan: WindowSnapPlan,
-                      permitted: @escaping () -> Bool) -> CGRect?
 }
 
 /// Identity of an Accessibility window for the snap memory. CFEqual on the
@@ -63,6 +73,7 @@ final class WindowSnapController {
 
     private let access: WindowSnapAccess
     private let queue: DispatchQueue
+    private let restorer: WindowSnapDragRestorer
     private let lock = NSLock()
     private var generations: [MouseSource?: UUID] = [:]
     private var globalGeneration = UUID()
@@ -75,9 +86,11 @@ final class WindowSnapController {
     static let shared = WindowSnapController()
 
     init(access: WindowSnapAccess = AccessibilityWindowSnapAccess(),
-         queue: DispatchQueue = DispatchQueue(label: "agentic-mouse.window-snap", qos: .userInitiated)) {
+         queue: DispatchQueue? = nil,
+         restorer: WindowSnapDragRestorer = .shared) {
         self.access = access
-        self.queue = queue
+        self.queue = queue ?? restorer.queue
+        self.restorer = restorer
     }
 
     /// Main-thread entry point used by `MagnetWindowActionExecutor`. Reads
@@ -89,8 +102,8 @@ final class WindowSnapController {
                             inputAllowed: @escaping @MainActor () -> Bool = { true }) -> Bool {
         guard inputAllowed(), let pid = NSWorkspace.shared.frontmostApplication?.processIdentifier else { return false }
         let displays = Self.currentDisplays()
-        guard !displays.isEmpty else { return false }
-        enqueue(side, pid: pid, displays: displays, source: source) {
+        guard !displays.isEmpty, let observation = restorer.prepareForSnap() else { return false }
+        enqueue(side, pid: pid, displays: displays, source: source, observation: observation) {
             // AX remains off-main, but permission and AppKit focus are read on
             // their owner. A queued command cannot act after lock or app change.
             DispatchQueue.main.sync {
@@ -103,34 +116,37 @@ final class WindowSnapController {
     }
 
     func enqueue(_ side: WindowSnapDirection, pid: pid_t, displays: [WindowSnapDisplay],
-                 source: MouseSource?, inputAllowed: @escaping () -> Bool) {
+                 source: MouseSource?, observation: UUID? = nil, inputAllowed: @escaping () -> Bool) {
+        restorer.snapRequested()
         lock.lock()
         let generation = generations[source] ?? UUID()
         generations[source] = generation
         let global = globalGeneration
         lock.unlock()
+        let restorer = self.restorer
         queue.async { [weak self] in
+            defer { if let observation { restorer.finishedSnap(observation) } }
             guard let self else { return }
             let permitted = { self.isGloballyCurrent(global) && inputAllowed() }
             guard self.isCurrent(source, generation), permitted() else { return }
-            // Release cancels queued detents, but finishes a started native
-            // transaction. Lock, focus loss and teardown stop each next action.
+            // Match WindowResizeController: release cancels queued detents, but
+            // finishes an already-started frame transaction. Lock, focus change
+            // and global teardown still stop before each subsequent AX write.
             let outcome = self.snap(side, pid: pid, displays: displays, source: source,
-                                    permitted: permitted)
+                                    permitted: permitted, restorationAllowed: inputAllowed)
             if self.isCurrent(source, generation) { self.onOutcome?(side, outcome) }
         }
     }
 
     func cancel(source: MouseSource) {
+        // Mode release cancels queued snaps. The independently grabbed window
+        // owns restoration; a late mode-clear must not cancel its new drag.
         lock.lock(); generations[source] = nil; lock.unlock()
     }
 
     func cancelAll() {
+        restorer.cancelAll()
         lock.lock(); generations.removeAll(); globalGeneration = UUID(); lock.unlock()
-        queue.async { [weak self] in
-            self?.memory.removeAll()
-            self?.memoryOrder.removeAll()
-        }
     }
 
     private func isGloballyCurrent(_ generation: UUID) -> Bool {
@@ -145,37 +161,42 @@ final class WindowSnapController {
 
     /// Synchronous core (worker thread, or directly in tests).
     func snap(_ side: WindowSnapDirection, pid: pid_t, displays: [WindowSnapDisplay],
-              source: MouseSource? = nil, permitted: @escaping () -> Bool = { true }) -> Outcome {
+              source: MouseSource? = nil, permitted: @escaping () -> Bool = { true },
+              restorationAllowed: (() -> Bool)? = nil) -> Outcome {
         guard permitted() else { return .cancelled }
         guard let (target, key) = access.focusedWindow(pid: pid) else { return .noWindow }
         guard let current = target.frame() else { return .failed }
-        var previous = memory[key]
-        // AX can report an animation's near-final frame. Native margins can
-        // also differ from an ideal half. Only repair that hop recognition
-        // while macOS confirms the window is still tiled; a normal manual
-        // move/resize must retain the original strict geometry rules.
-        if let remembered = previous, remembered.direction == side,
-           let display = WindowSnapGeometry.display(for: current, in: displays),
-           remembered.displayID == display.id,
-           !WindowSnapGeometry.approximatelyEqual(current, remembered.acceptedFrame, tolerance: 2),
-           !WindowSnapGeometry.approximatelyEqual(current, WindowSnapGeometry.half(side, of: display),
-               tolerance: WindowSnapGeometry.matchTolerance),
-           WindowSnapGeometry.approximatelyEqual(current, WindowSnapGeometry.half(side, of: display), tolerance: 32),
-           permitted(), access.nativeWindowIsTiled(key, permitted: permitted) {
-            previous = WindowSnapMemory(direction: side, displayID: display.id, acceptedFrame: current)
-        }
-        guard let plan = WindowSnapGeometry.plan(side, window: current, displays: displays, memory: previous) else {
+        guard let plan = WindowSnapGeometry.plan(side, window: current, displays: displays, memory: memory[key]) else {
             return .unchanged
         }
 
         guard permitted() else { return .cancelled }
-        let accepted = access.snapNatively(plan.side, window: key, target: target,
-                                          plan: plan, permitted: permitted)
+        let accepted = target.withoutAnimation { () -> CGRect? in
+            // Size → position → size: apps clamp a window to the display it
+            // is currently on, so resizing first (on the old display) then
+            // moving, then resizing again lands reliably in both directions.
+            guard permitted(), target.setSize(plan.frame.size),
+                  permitted(), target.setPosition(plan.frame.origin),
+                  permitted(), target.setSize(plan.frame.size),
+                  let frame = target.frame() else { return nil }
+            var acceptedFrame = frame
+            // If the app kept a different size (minimum width etc.), slide
+            // the window back flush to its side and fully onto the display.
+            if let fixed = WindowSnapGeometry.correction(accepted: frame, plan: plan) {
+                guard permitted(), target.setPosition(fixed.origin),
+                      let corrected = target.frame(),
+                      WindowSnapGeometry.approximatelyEqual(corrected, fixed, tolerance: 1) else { return nil }
+                acceptedFrame = corrected
+            }
+            return acceptedFrame
+        }
         guard let accepted else { return permitted() ? .failed : .cancelled }
         guard permitted() else { return .cancelled }
         remember(key, WindowSnapMemory(direction: plan.side, displayID: plan.display.id, acceptedFrame: accepted))
-        // "Pre-magnet size" belongs to macOS now. Do not recreate the removed
-        // WindowSnapDragRestorer's original-size cache or global mouse listener.
+        // Restoration belongs to a later physical drag. Keep its live session/
+        // focus gate, not this one snap request's permanently invalidated token.
+        restorer.didSnap(key: key, target: target, preSnap: current, accepted: accepted,
+                         inputAllowed: restorationAllowed ?? permitted)
         return plan.traversedDisplay ? .traversed(accepted) : .moved(accepted)
     }
 
@@ -196,20 +217,12 @@ final class WindowSnapController {
             return WindowSnapDisplay(
                 id: id,
                 frame: WindowSnapDisplay.fromCocoa(screen.frame, primaryHeight: primaryHeight),
-                visibleFrame: WindowSnapDisplay.fromCocoa(screen.visibleFrame, primaryHeight: primaryHeight),
-                name: screen.localizedName)
+                visibleFrame: WindowSnapDisplay.fromCocoa(screen.visibleFrame, primaryHeight: primaryHeight))
         }
     }
 }
 
 struct AccessibilityWindowSnapAccess: WindowSnapAccess {
-    func nativeWindowIsTiled(_ key: WindowSnapKey, permitted: () -> Bool) -> Bool {
-        guard permitted(), focusedWindowMatches(key),
-              let menu = menuItems(pid: key.pid, open: true) else { return false }
-        defer { AXUIElementPerformAction(menu.header, kAXCancelAction as CFString) }
-        return permitted() && NativeWindowSnapMenu.index(of: .restore, in: menu.entries.map(\.item)) != nil
-    }
-
     func focusedWindow(pid: pid_t) -> (target: WindowResizeTarget, key: WindowSnapKey)? {
         guard AXIsProcessTrusted(), pid != ProcessInfo.processInfo.processIdentifier else { return nil }
         let application = AXUIElementCreateApplication(pid)
@@ -224,213 +237,5 @@ struct AccessibilityWindowSnapAccess: WindowSnapAccess {
             }
         }
         return nil
-    }
-
-    func snapNatively(_ side: WindowSnapDirection, window key: WindowSnapKey,
-                      target: WindowResizeTarget, plan: WindowSnapPlan,
-                      permitted: @escaping () -> Bool) -> CGRect? {
-        guard #available(macOS 15, *), let element = key.element,
-              !plan.traversedDisplay || plan.display.name != nil,
-              focusedWindowMatches(key), permitted(),
-              let initial = menuItems(pid: key.pid, open: true)
-        else { return nil }
-        var currentMenu = initial
-        // AXPress on a closed, unvalidated menu can return success without
-        // invoking its disabled item. Validate the native Window menu first;
-        // cancel that exact menu on every exit, including a failed action.
-        defer { AXUIElementPerformAction(currentMenu.header, kAXCancelAction as CFString) }
-        guard let commands = NativeWindowSnapMenu.commands(side: side,
-            movingTo: plan.traversedDisplay ? plan.display.name : nil, items: initial.entries.map(\.item))
-        else { return nil }
-
-        // Native Move to Display clears tiling state. Untile first so its
-        // original size, rather than the old half size, seeds the new tile.
-        // These are public AXPress operations on observed native menu items,
-        // never calls to AppKit's private selector implementation.
-        for (offset, command) in commands.enumerated() {
-            guard permitted(), focusedWindowMatches(key) else { return nil }
-            if offset > 0 {
-                guard let refreshed = menuItems(pid: key.pid, open: true) else { return nil }
-                currentMenu = refreshed
-            }
-            let items = currentMenu.entries
-            guard let index = NativeWindowSnapMenu.index(of: command, in: items.map(\.item)),
-                  let before = target.frame() else { return nil }
-            let deadline = ProcessInfo.processInfo.systemUptime + 0.75
-            let observer = NativeWindowSnapChangeObserver(pid: key.pid, window: element)
-            guard permitted(), focusedWindowMatches(key),
-                  AXUIElementPerformAction(items[index].element, kAXPressAction as CFString) == .success
-            else { return nil }
-            // Wait for actual window change notifications, with no settling
-            // sleep or permanent observer. Most native actions read back at once.
-            while permitted(), focusedWindowMatches(key) {
-                guard let accepted = target.frame() else { return nil }
-                let complete: Bool
-                switch command {
-                case .restore:
-                    complete = accepted != before || !restoreEnabled(pid: key.pid)
-                case .move:
-                    complete = plan.display.frame.contains(CGPoint(x: accepted.midX, y: accepted.midY))
-                case .tile:
-                    // Native margins and one-point AppKit rounding belong to
-                    // macOS. Never "correct" them with AX geometry writes.
-                    let exact = WindowSnapGeometry.approximatelyEqual(accepted, plan.frame, tolerance: 2)
-                    complete = exact || (observer.didChange &&
-                        WindowSnapGeometry.approximatelyEqual(accepted, plan.frame, tolerance: 32))
-                }
-                if complete { break }
-                let remaining = deadline - ProcessInfo.processInfo.systemUptime
-                guard remaining > 0, observer.isObserving else { return nil }
-                CFRunLoopRunInMode(.defaultMode, remaining, true)
-            }
-            guard permitted(), focusedWindowMatches(key) else { return nil }
-        }
-        return permitted() ? target.frame() : nil
-    }
-
-    private func focusedWindowMatches(_ key: WindowSnapKey) -> Bool {
-        guard let expected = key.element,
-              let (_, current) = focusedWindow(pid: key.pid),
-              let actual = current.element, CFEqual(expected, actual) else { return false }
-        return AccessibilityWindowResizeAccess.attribute(expected, "AXFullScreen") as? Bool != true
-    }
-
-    private func restoreEnabled(pid: pid_t) -> Bool {
-        guard let items = menuItems(pid: pid) else { return false }
-        return NativeWindowSnapMenu.index(of: .restore, in: items.entries.map(\.item)) != nil
-    }
-
-    private struct MenuEntry {
-        let item: NativeWindowSnapMenu.Item
-        let element: AXUIElement
-    }
-    private struct MenuSnapshot {
-        let header: AXUIElement
-        let entries: [MenuEntry]
-    }
-
-    private func menuItems(pid: pid_t, open: Bool = false) -> MenuSnapshot? {
-        let application = AXUIElementCreateApplication(pid)
-        AXUIElementSetMessagingTimeout(application, 0.15)
-        guard let raw = AccessibilityWindowResizeAccess.attribute(application, kAXMenuBarAttribute),
-              CFGetTypeID(raw) == AXUIElementGetTypeID() else { return nil }
-        let bar = unsafeBitCast(raw, to: AXUIElement.self)
-        let deadline = ProcessInfo.processInfo.systemUptime + 0.6
-        var remainingNodes = 512
-        func children(_ item: AXUIElement) -> [AXUIElement] {
-            AccessibilityWindowResizeAccess.attribute(item, kAXChildrenAttribute) as? [AXUIElement] ?? []
-        }
-        func walk(_ item: AXUIElement, depth: Int, into entries: inout [MenuEntry]) {
-            guard depth < 7, remainingNodes > 0,
-                  ProcessInfo.processInfo.systemUptime < deadline else { return }
-            remainingNodes -= 1
-            AXUIElementSetMessagingTimeout(item, 0.15)
-            let identifier = AccessibilityWindowResizeAccess.attribute(item, kAXIdentifierAttribute) as? String
-            if let identifier, NativeWindowSnapMenu.identifiers.contains(identifier) {
-                entries.append(MenuEntry(item: .init(
-                    identifier: identifier,
-                    title: AccessibilityWindowResizeAccess.attribute(item, kAXTitleAttribute) as? String ?? "",
-                    enabled: AccessibilityWindowResizeAccess.attribute(item, kAXEnabledAttribute) as? Bool == true),
-                    element: item))
-            }
-            for child in children(item) { walk(child, depth: depth + 1, into: &entries) }
-        }
-        // Window is near the end in standard AppKit menus. Discover by native
-        // action identity, not an English "Window"/"Left" label or key binding.
-        for header in children(bar).reversed() {
-            var entries: [MenuEntry] = []
-            walk(header, depth: 0, into: &entries)
-            if entries.contains(where: { $0.item.identifier == "_zoomLeft:" }) {
-                if open {
-                    guard AXUIElementPerformAction(header, kAXPressAction as CFString) == .success else {
-                        AXUIElementPerformAction(header, kAXCancelAction as CFString)
-                        return nil
-                    }
-                    entries.removeAll()
-                    remainingNodes = 512
-                    walk(header, depth: 0, into: &entries)
-                }
-                return MenuSnapshot(header: header, entries: entries)
-            }
-        }
-        return nil
-    }
-
-}
-
-
-/// Opaque AX identifiers observed in the native desktop menu on macOS 26/27.
-/// Reject changed/unavailable menus rather than guessing a translated label,
-/// synthesizing a shortcut, or using Full-Screen Tile's _tile* actions.
-enum NativeWindowSnapMenu {
-    enum Command: Equatable {
-        case tile(WindowSnapDirection)
-        case restore
-        case move(String)
-
-        var identifier: String {
-            switch self {
-            case .tile(.left): return "_zoomLeft:"
-            case .tile(.right): return "_zoomRight:"
-            case .restore: return "_zoomUntile:"
-            case .move: return "_moveToDisplay:"
-            }
-        }
-    }
-    struct Item {
-        let identifier: String
-        let title: String
-        let enabled: Bool
-    }
-    static let identifiers: Set<String> = ["_zoomLeft:", "_zoomRight:", "_zoomUntile:", "_moveToDisplay:"]
-
-    static func index(of command: Command, in items: [Item]) -> Int? {
-        let matches = items.indices.filter { index in
-            let item = items[index]
-            guard item.identifier == command.identifier, item.enabled else { return false }
-            if case .move(let name) = command { return !name.isEmpty && item.title.hasSuffix(name) }
-            return true
-        }
-        return matches.count == 1 ? matches[0] : nil
-    }
-
-    static func commands(side: WindowSnapDirection, movingTo name: String?, items: [Item]) -> [Command]? {
-        guard index(of: .tile(side), in: items) != nil else { return nil }
-        guard let name else { return [.tile(side)] }
-        guard index(of: .move(name), in: items) != nil else { return nil }
-        var result: [Command] = []
-        if index(of: .restore, in: items) != nil { result.append(.restore) }
-        result += [.move(name), .tile(side)]
-        return result
-    }
-}
-
-/// Scoped only to an in-flight native command. No input tap, drag tracking,
-/// polling timer, original-size cache or idle listener survives the operation.
-private final class NativeWindowSnapChangeObserver {
-    private var observer: AXObserver?
-    private let runLoop = CFRunLoopGetCurrent()
-    private(set) var isObserving = false
-    private(set) var didChange = false
-
-    init(pid: pid_t, window: AXUIElement) {
-        var created: AXObserver?
-        guard AXObserverCreate(pid, { _, _, name, context in
-            guard let context, name as String == kAXMovedNotification || name as String == kAXResizedNotification else { return }
-            Unmanaged<NativeWindowSnapChangeObserver>.fromOpaque(context).takeUnretainedValue().didChange = true
-        }, &created) == .success, let created else { return }
-        observer = created
-        var attached = false
-        for name in [kAXMovedNotification, kAXResizedNotification, kAXUIElementDestroyedNotification] {
-            if AXObserverAddNotification(created, window, name as CFString,
-                Unmanaged.passUnretained(self).toOpaque()) == .success { attached = true }
-        }
-        isObserving = attached
-        if attached { CFRunLoopAddSource(runLoop, AXObserverGetRunLoopSource(created), .defaultMode) }
-    }
-    deinit {
-        if let observer, isObserving {
-            CFRunLoopRemoveSource(runLoop, AXObserverGetRunLoopSource(observer), .defaultMode)
-        }
     }
 }

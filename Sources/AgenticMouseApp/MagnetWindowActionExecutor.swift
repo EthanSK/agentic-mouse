@@ -9,12 +9,12 @@ enum MagnetWindowActionError: Error, Equatable {
 
 /// Runs the wand/mouse "Magnet" Left/Right window commands.
 ///
-/// Ethan's "Magnet wedge" and "Magnet + Wheel" send the installed Magnet
-/// app's configured Control-Option-Left/Right shortcuts. Ethan, 2026-11-06:
-/// "go back to the magnet way where we actually use my app by sending a shortcut".
-/// Magnet owns placement, monitor hopping and the original-size drag restore.
-/// The native desktop experiment is retained only for explicit injection;
-/// production must default to the existing complete keyboard lifecycle.
+/// Ethan's "Magnet wedge" and "Magnet + Wheel" use Agentic Mouse's own
+/// window placement and original-size drag restoration. The 2026-11-06 Fleet
+/// iteration replaces the earlier native-menu experiment and fixes drag
+/// capture, stale AX positions and mode-release cancellation. Magnet stays
+/// installed and running for its normal keyboard shortcuts. The complete
+/// keyboard route remains injectable for integration tests and rollback.
 @MainActor
 struct MagnetWindowActionExecutor {
     typealias KeyEvent = SyntheticKeyboardChordPoster.Event
@@ -39,7 +39,9 @@ struct MagnetWindowActionExecutor {
         postChord: @escaping ChordPoster = SyntheticKeyboardChordPoster.shared.post,
         accessibilityTrusted: @escaping AccessibilityTrustProvider = AXIsProcessTrusted,
         inputAllowed: @escaping InputAllowedProvider = { true },
-        snapWindow: WindowSnapper? = nil
+        snapWindow: WindowSnapper? = { side, source, allowed in
+            WindowSnapController.shared.snapFrontmostWindow(side, source: source, inputAllowed: allowed)
+        }
     ) {
         self.postChord = postChord
         self.accessibilityTrusted = accessibilityTrusted
