@@ -3530,3 +3530,11 @@ Mode exit/wheel release cancels pending snap commands, not the independent windo
 Validation on a single-display Fleet Mac: real default executor in TextEdit and loaded isolated VS Code, left/right sequences, near/far titlebar grabs, quick release on the first visible movement, 200 ms busy-main simulation, and late mode release. Sixteen default-path cases passed; separate content-selection/corner-resize cases made no restore. The full Swift suite executed 1332 checks with four skipped and zero failures. Physical wand and owner multi-display acceptance remain separate.
 
 Test harness lessons: pump AppKit events, wait for the actual disposable document before testing a new Electron window, use size-position-size when preparing a full-height fixture, and let WindowServer finish committing writes after the gesture before asserting final geometry. A successful AX write or stale AX origin alone does not prove visible final placement. Do not turn a fixture-only settling wait into product latency.
+
+## 2026-11-06 — A disconnected mouse cannot restore a Default HUD
+
+Default legends must check physical source availability when toggled, restored after a mode/update, and refreshed. Device-loss teardown must also cancel that source's Default coordinator; clearing only runtime modes leaves a persistent Default HUD visible. Reconnection alone must not reopen the discarded legend. Razer loss observers must see isPresent=false before their callback runs.
+
+Corsair HUD presence must not depend on the optional iCUE lighting SDK. Read the physical Corsair Scimitar HID registry properties without opening its interfaces, using the existing runtime-health heartbeat for disconnect cleanup. Keep Wand independent and preserve normal connected-mouse controls, lighting, gesture timing and settings.
+
+The window-presenting XCTest classes also create real HUDs independently of the installed app. They now skip unless AGENTIC_MOUSE_ALLOW_VISIBLE_UI_TESTS=1 is explicitly supplied on an isolated test desktop; the disposable GitHub check runner supplies it. Never enable that flag on the user's active desktop for routine validation. A local full-suite invocation during this repair revealed this separate source of test windows. The subsequent local run must prove these suites skip without opening panels.

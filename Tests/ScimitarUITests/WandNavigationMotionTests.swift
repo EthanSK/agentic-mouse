@@ -8,7 +8,7 @@ import XCTest
 /// Exercise the actual SwiftUI animation modifier while movement continues.
 /// Static morph frames cannot catch a later input replacing its transaction.
 @MainActor
-final class WandNavigationMotionTests: XCTestCase {
+final class WandNavigationMotionTests: VisibleHUDTestCase {
     func testLivePullUpdatesDoNotShortenTheSelectionSpring() async throws {
         // This is a real WindowServer check, not the headless geometry suite.
         // Never put a test window on an unrelated external work display.

@@ -7,7 +7,7 @@ import XCTest
 /// Opt-in manual visual harness. It creates only two click-through preview
 /// panels on the built-in display and never dispatches an input action.
 @MainActor
-final class WandLivePreviewTests: XCTestCase {
+final class WandLivePreviewTests: VisibleHUDTestCase {
     func testNativeGlassOverBusyDesktop() async throws {
         guard let folder=ProcessInfo.processInfo.environment["WAND_LIVE_PREVIEW_OUTPUT"] else {
             throw XCTSkip("Opt-in native glass visual harness")

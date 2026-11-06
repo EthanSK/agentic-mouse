@@ -60,11 +60,14 @@ final class RazerDeviceRecoveryMonitor {
     private func tick() {
         let presentNow = probePresence()
         guard presentNow else {
-            if isPresent {
-                onLost()
-            }
+            let wasPresent = isPresent
+            // Teardown observers must see the disconnected state before they
+            // decide whether a suspended mouse HUD may be restored.
             isPresent = false
             isRecovered = false
+            if wasPresent {
+                onLost()
+            }
             return
         }
 

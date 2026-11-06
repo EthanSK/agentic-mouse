@@ -4,7 +4,7 @@ import ScimitarKit
 import XCTest
 
 @MainActor
-final class HUDSpaceLifecycleTests: XCTestCase {
+final class HUDSpaceLifecycleTests: VisibleHUDTestCase {
     func testMouseHUDsTouchTheirHandedBottomCornersOnEveryDisplay() async {
         let baselinePanels = visibleHUDPanels()
         let corsairPresenter = AppKitModeHUDPresenter(source: .corsair)

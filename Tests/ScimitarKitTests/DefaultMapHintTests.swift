@@ -449,6 +449,51 @@ final class DefaultMapHintCoordinatorTests: XCTestCase {
         XCTAssertFalse(hud.isVisible)
     }
 
+    func testUnavailableMouseCannotRestoreASavedLegend() {
+        coordinator.handleToggle(source: .corsair)
+        let saved = coordinator.suspendForMode()
+        isAvailable = false
+
+        coordinator.restoreAfterMode(source: saved!)
+
+        XCTAssertFalse(hud.isVisible)
+        XCTAssertFalse(coordinator.isShowingHint)
+        XCTAssertNil(coordinator.source)
+        isAvailable = true
+        coordinator.refresh()
+        XCTAssertFalse(hud.isVisible, "Reconnection alone must not reopen a discarded legend")
+        coordinator.handleToggle(source: .corsair)
+        XCTAssertTrue(hud.isVisible, "A fresh explicit toggle still works after reconnection")
+    }
+
+    func testAvailabilityLossOnRefreshClearsVisibleLegendAndTimer() {
+        coordinator = makeCoordinator(displayDuration: 6)
+        coordinator.handleToggle(source: .corsair)
+        XCTAssertTrue(dismissScheduler.isRunning)
+        isAvailable = false
+
+        coordinator.refresh()
+
+        XCTAssertFalse(hud.isVisible)
+        XCTAssertFalse(coordinator.isShowingHint)
+        XCTAssertNil(coordinator.source)
+        XCTAssertFalse(dismissScheduler.isRunning)
+        isAvailable = true
+        coordinator.refresh()
+        XCTAssertFalse(hud.isVisible)
+    }
+
+    func testUnavailableToggleClearsAnAlreadyVisibleLegend() {
+        coordinator.handleToggle(source: .corsair)
+        isAvailable = false
+
+        coordinator.handleToggle(source: .corsair)
+
+        XCTAssertFalse(hud.isVisible)
+        XCTAssertFalse(coordinator.isShowingHint)
+        XCTAssertNil(coordinator.source)
+    }
+
     func testCancelAndShutdownAreIdempotent() {
         coordinator.handleToggle(source: .corsair)
         coordinator.cancel()

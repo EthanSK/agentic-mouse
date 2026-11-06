@@ -4,6 +4,27 @@ import XCTest
 
 @MainActor
 final class RazerDeviceRecoveryMonitorTests: XCTestCase {
+    func testDisconnectCallbackSeesAbsentDevice() {
+        let scheduler = ManualTickScheduler()
+        weak var observedMonitor: RazerDeviceRecoveryMonitor?
+        var presenceDuringLoss: Bool?
+        let monitor = RazerDeviceRecoveryMonitor(
+            initiallyPresent: true,
+            initiallyRecovered: true,
+            scheduler: scheduler,
+            probePresence: { false },
+            recover: { XCTFail("Absent devices must not recover"); return false },
+            onLost: { presenceDuringLoss = observedMonitor?.isPresent },
+            onRecovered: { XCTFail("Absent devices must not report recovery") }
+        )
+        observedMonitor = monitor
+        monitor.start()
+        scheduler.fire()
+
+        XCTAssertEqual(presenceDuringLoss, false)
+        XCTAssertFalse(monitor.isPresent)
+    }
+
     func testStableConnectedPollsNeverRewriteLighting() {
         let scheduler = ManualTickScheduler()
         var recoveryCount = 0
