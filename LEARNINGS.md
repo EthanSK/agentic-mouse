@@ -3517,3 +3517,16 @@ Evidence: wand-window-snapping outputs/native-desktop-351 and the preceding outp
 ## 2026-11-06 — Restore the accepted Magnet shortcut route
 
 Ethan reported that the native desktop route installed in 1.0.345 (351) did not snap his windows and explicitly requested the third-party Magnet shortcut route again. Prior Mini fixture success did not establish his physical workflow's acceptance. Make the existing complete Control-Option-Arrow sender the default again; do not retune its modifier flags, timing, wheel coalescing, queue or cancellation. Magnet owns the original size and monitor transitions. Test the production default without explicitly supplying a nil snapper so a later constructor change cannot silently restore the failed route. The exact cause of the native failure on Ethan's workflow remains unverified.
+
+
+## 2026-11-06 — Fleet-qualified custom Magnet restoration supersedes the native-menu experiment
+
+The restored custom route remembers the size before the first actual size-changing snap, keeps it across repeated app snaps/resizes, and consumes that cycle only after a verified drag restoration or destruction. A position-only snap of an already half-sized window starts no size memory; dragging a window already at its original size ends the cycle without AX writes. These rules supersede the old frame-change invalidation and unconditional in-place-only notes above.
+
+Capture mouse-down before dispatch on a separate sleeping run loop; deliver drag/up through AppKit local/global monitors and bind them by timestamp to the captured WindowServer ID. AX position can remain stale while an Electron window visibly moves. Use WindowServer bounds for actual movement and accepted-size origin, resize on the existing AX worker, and correct position only when shrinking leaves the latest pointer outside. This introduces no product polling, timer or overlay.
+
+Mode exit/wheel release cancels pending snap commands, not the independent window drag. The old source cancellation path deterministically prevented VS Code restoration after a late mode release: visible movement occurred but restore count stayed zero. The same real-window reproduction restored the first 800 by 460 size after source coupling was removed. Lock, sleep and shutdown still cancel queued restoration globally; live session/focus permission remains checked before writes.
+
+Validation on a single-display Fleet Mac: real default executor in TextEdit and loaded isolated VS Code, left/right sequences, near/far titlebar grabs, quick release on the first visible movement, 200 ms busy-main simulation, and late mode release. Sixteen default-path cases passed; separate content-selection/corner-resize cases made no restore. The full Swift suite executed 1332 checks with four skipped and zero failures. Physical wand and owner multi-display acceptance remain separate.
+
+Test harness lessons: pump AppKit events, wait for the actual disposable document before testing a new Electron window, use size-position-size when preparing a full-height fixture, and let WindowServer finish committing writes after the gesture before asserting final geometry. A successful AX write or stale AX origin alone does not prove visible final placement. Do not turn a fixture-only settling wait into product latency.

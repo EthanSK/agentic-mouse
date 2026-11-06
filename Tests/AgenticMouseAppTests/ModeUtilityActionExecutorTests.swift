@@ -635,19 +635,20 @@ final class ModeUtilityActionExecutorTests: XCTestCase {
         XCTAssertEqual(snapped, [.left, .right])
     }
 
-    func testMagnetWedgeDefaultsToMagnetsShortcuts() {
+    func testMagnetWedgeUsesMagnetsShortcutsWhenExplicitlySelected() {
         var chords: [[MagnetWindowActionExecutor.KeyEvent]] = []
         let executor = ModeUtilityActionExecutor(
             magnet: MagnetWindowActionExecutor(
                 postChord: { chords.append($0); return true },
                 accessibilityTrusted: { true },
-                inputAllowed: { true }
+                inputAllowed: { true },
+                snapWindow: nil
             ),
             accessibilityTrusted: { true }
         )
         guard case .success = executor.perform(.moveWindowLeftWithMagnet),
               case .success = executor.perform(.moveWindowRightWithMagnet)
-        else { return XCTFail("both default Magnet directions should send a shortcut") }
+        else { return XCTFail("both explicitly selected Magnet directions should send a shortcut") }
         XCTAssertEqual(chords, [
             MagnetWindowActionExecutor.keyEvents(for: .moveWindowLeftWithMagnet)!,
             MagnetWindowActionExecutor.keyEvents(for: .moveWindowRightWithMagnet)!,
