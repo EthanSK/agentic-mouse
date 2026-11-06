@@ -635,20 +635,23 @@ final class ModeUtilityActionExecutorTests: XCTestCase {
         XCTAssertEqual(snapped, [.left, .right])
     }
 
-    func testMagnetWedgeUsesMagnetsShortcutWhenNoBuiltInSnapperIsInjected() {
+    func testMagnetWedgeDefaultsToMagnetsShortcuts() {
         var chords: [[MagnetWindowActionExecutor.KeyEvent]] = []
         let executor = ModeUtilityActionExecutor(
             magnet: MagnetWindowActionExecutor(
                 postChord: { chords.append($0); return true },
                 accessibilityTrusted: { true },
-                inputAllowed: { true },
-                snapWindow: nil
+                inputAllowed: { true }
             ),
             accessibilityTrusted: { true }
         )
-        guard case .success = executor.perform(.moveWindowRightWithMagnet)
-        else { return XCTFail("Magnet route should run") }
-        XCTAssertEqual(chords, [MagnetWindowActionExecutor.keyEvents(for: .moveWindowRightWithMagnet)!])
+        guard case .success = executor.perform(.moveWindowLeftWithMagnet),
+              case .success = executor.perform(.moveWindowRightWithMagnet)
+        else { return XCTFail("both default Magnet directions should send a shortcut") }
+        XCTAssertEqual(chords, [
+            MagnetWindowActionExecutor.keyEvents(for: .moveWindowLeftWithMagnet)!,
+            MagnetWindowActionExecutor.keyEvents(for: .moveWindowRightWithMagnet)!,
+        ])
     }
 
     func testBuiltInSnappingKeepsTheLockAndAccessibilityGates() {

@@ -9,21 +9,12 @@ enum MagnetWindowActionError: Error, Equatable {
 
 /// Runs the wand/mouse "Magnet" Left/Right window commands.
 ///
-/// Ethan's terminology: the Magic Wand's "Magnet wedge" (and the mice's
-/// Magnet + Wheel card) means these two actions. Since 2026-10-31 they use
-/// Agentic Mouse's BUILT-IN snapping (`WindowSnapController`): Ethan asked for
-/// it to be "part of the Agentic Mouse app instead of its own standalone
-/// app" and to work "via the inbuilt thing" while the third-party Magnet app
-/// stays installed and running for his keyboard shortcuts.
-///
-///  1. Native desktop route (default): invoke macOS Move & Resize and native
-///     Move to Display commands. macOS owns the original size and restores it
-///     when the window is dragged away. Never select Full-Screen Tile.
-///  2. Magnet route (kept, not the default): Magnet's configured global
-///     Control-Option-Arrow accelerator, sent as the complete modifier/arrow
-///     lifecycle a physical keyboard produces. Used only when no built-in
-///     snapper is injected (tests, or if the built-in route is ever switched
-///     off).
+/// Ethan's "Magnet wedge" and "Magnet + Wheel" send the installed Magnet
+/// app's configured Control-Option-Left/Right shortcuts. Ethan, 2026-11-06:
+/// "go back to the magnet way where we actually use my app by sending a shortcut".
+/// Magnet owns placement, monitor hopping and the original-size drag restore.
+/// The native desktop experiment is retained only for explicit injection;
+/// production must default to the existing complete keyboard lifecycle.
 @MainActor
 struct MagnetWindowActionExecutor {
     typealias KeyEvent = SyntheticKeyboardChordPoster.Event
@@ -48,9 +39,7 @@ struct MagnetWindowActionExecutor {
         postChord: @escaping ChordPoster = SyntheticKeyboardChordPoster.shared.post,
         accessibilityTrusted: @escaping AccessibilityTrustProvider = AXIsProcessTrusted,
         inputAllowed: @escaping InputAllowedProvider = { true },
-        snapWindow: WindowSnapper? = { side, source, allowed in
-            WindowSnapController.shared.snapFrontmostWindow(side, source: source, inputAllowed: allowed)
-        }
+        snapWindow: WindowSnapper? = nil
     ) {
         self.postChord = postChord
         self.accessibilityTrusted = accessibilityTrusted

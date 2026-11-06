@@ -28,15 +28,14 @@ older iCUE exclusive-key interception experiment. The remaining gates are:
 
 ## Known behavioural limits
 
-**Native window snapping needs macOS 15 or newer and a supporting window.**
-Magnet Left / Right uses the target app's native desktop tiling commands.
-Its Window menu may appear briefly while the command is validated and selected;
-the app closes that exact menu on every exit. No separate snap-preview overlay,
-global drag listener or app-owned original-size cache is used. Native margins,
-minimum window sizes and platform rounding remain macOS behavior. Unavailable
-or ambiguous native actions fail closed, without entering full-screen Split
-View or falling back to custom frame writes. Physical multi-monitor acceptance
-is separate from synthetic GUI tests.
+**Window snapping requires the third-party Magnet app and its configured shortcuts.**
+The Magnet wedge and Magnet + Wheel send Control-Option-Left/Right through the
+existing hardware-shaped keyboard sender. Magnet must be running with those
+shortcuts configured; it owns placement and drag-away restoration. The built-in
+native desktop experiment is retained for explicit source injection only and is
+not used by the installed default. A posted shortcut is dispatch evidence,
+not confirmation that a window moved; physical multi-monitor acceptance remains
+separate from automated routing tests.
 
 **Locked-session protection depends on Agentic Mouse and the installed generated
 Karabiner rules agreeing on the same lease variable.** A process crash or stale
