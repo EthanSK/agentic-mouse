@@ -2158,10 +2158,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
             if action == .moveWindowLeftWithMagnet
                 || action == .moveWindowRightWithMagnet {
-                // Return from the Quartz wheel callback before opening
-                // Magnet's global Control-Option-Arrow accelerator. This
-                // prevents synthetic keyboard input from re-entering the tap
-                // that is still consuming the source wheel event.
+                // Leave the Quartz wheel callback before reading AppKit
+                // focus/display state. The built-in snap worker owns actual
+                // serialization; no third-party animation pause is needed.
                 self.scheduleMagnetAction(
                     action,
                     source: step.source,

@@ -1,15 +1,11 @@
 import Foundation
 import ScimitarKit
 
-/// Serializes reconstructed Magnet wheel detents without racing Magnet's
-/// animated placement state.
-///
-/// Magnet animates each placement and derives the next repeated Left/Right
-/// result from the window's newly committed screen position. Back-to-back
-/// synthetic accelerators can therefore race that commit even though each
-/// individual Control-Option-Arrow lifecycle is valid. Keep one bounded pause
-/// between posted commands while preserving FIFO order. A small depth cap
-/// prevents a noisy input source from moving windows long after the gesture.
+/// Routes reconstructed "Magnet" wheel detents without artificial pacing.
+/// The built-in WindowSnapController already serializes actual AX work.
+/// Ethan accepted restoration on 2026-11-07 and asked to remove obsolete
+/// measures: the old 400 ms pause was for third-party Magnet's animations.
+/// Explicit timing remains injectable for the legacy shortcut route's tests.
 @MainActor
 final class MagnetWheelActionSequencer {
     struct Request: Equatable {
@@ -25,7 +21,7 @@ final class MagnetWheelActionSequencer {
         _ action: @escaping @Sendable @MainActor () -> Void
     ) -> Void
 
-    nonisolated static let defaultMinimumInterval: TimeInterval = 0.4
+    nonisolated static let defaultMinimumInterval: TimeInterval = 0
     nonisolated static let defaultMaximumPendingCount = 3
 
     private let minimumInterval: TimeInterval
@@ -88,6 +84,8 @@ final class MagnetWheelActionSequencer {
 
         let request = pending.removeFirst()
         perform(request)
+        // No timer, extra main-queue turn or backlog for the custom backend.
+        guard minimumInterval > 0 else { return }
         isCoolingDown = true
         let currentGeneration = generation
         schedule(minimumInterval) { [weak self] in

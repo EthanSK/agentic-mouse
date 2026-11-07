@@ -172,13 +172,25 @@ final class WindowSnapController {
 
         guard permitted() else { return .cancelled }
         let accepted = target.withoutAnimation { () -> CGRect? in
-            // Size → position → size: apps clamp a window to the display it
-            // is currently on, so resizing first (on the old display) then
-            // moving, then resizing again lands reliably in both directions.
-            guard permitted(), target.setSize(plan.frame.size),
-                  permitted(), target.setPosition(plan.frame.origin),
-                  permitted(), target.setSize(plan.frame.size),
-                  let frame = target.frame() else { return nil }
+            func needsResize(_ frame: CGRect) -> Bool {
+                abs(frame.width - plan.frame.width) > 1 || abs(frame.height - plan.frame.height) > 1
+            }
+            // Move between equal-sized halves without resizing. Retry size
+            // after moving ONLY when the app actually clamped the first write
+            // at its old display/position. Accepted sizes need no repeat.
+            if needsResize(current) {
+                guard permitted(), target.setSize(plan.frame.size) else { return nil }
+            }
+            guard permitted(), target.setPosition(plan.frame.origin),
+                  let placed = target.frame() else { return nil }
+            let frame: CGRect
+            if needsResize(placed) {
+                guard permitted(), target.setSize(plan.frame.size),
+                      let resized = target.frame() else { return nil }
+                frame = resized
+            } else {
+                frame = placed
+            }
             var acceptedFrame = frame
             // If the app kept a different size (minimum width etc.), slide
             // the window back flush to its side and fully onto the display.
