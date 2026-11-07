@@ -8,6 +8,7 @@ import ScimitarKit
 private final class FakeWindow: WindowResizeTarget {
     var current: CGRect
     var minimumWidth: CGFloat
+    var maximumWidthBeforeMove: CGFloat?
     var writes: [String] = []
     var allowSize = true
     var ignoreSecondPosition = false
@@ -23,6 +24,9 @@ private final class FakeWindow: WindowResizeTarget {
         onWrite?()
         guard allowSize else { return false }
         current.size = CGSize(width: max(size.width, minimumWidth), height: size.height)
+        if positionWrites == 0, let maximumWidthBeforeMove {
+            current.size.width = min(current.width, maximumWidthBeforeMove)
+        }
         return true
     }
     func setPosition(_ point: CGPoint) -> Bool {
@@ -48,17 +52,34 @@ final class WindowSnapControllerTests: XCTestCase {
     private let ultrawide = WindowSnapDisplay(id: "ultrawide", frame: CGRect(x: 0, y: 0, width: 3440, height: 1440),
                                               visibleFrame: CGRect(x: 0, y: 30, width: 3440, height: 1410))
 
-    func testSizeThenPositionThenSizeAndTraversal() {
+    func testOrdinarySnapResizesOnlyOnceAndStillTraverses() {
         let window = FakeWindow(CGRect(x: 100, y: 100, width: 800, height: 600))
         let controller = WindowSnapController(access: FakeAccess(window: window))
         XCTAssertEqual(controller.snap(.left, pid: 1, displays: [ultrawide, macbook]),
                        .moved(CGRect(x: 0, y: 30, width: 1720, height: 1410)))
-        XCTAssertEqual(Array(window.writes.prefix(3)), ["size", "position", "size"])
+        XCTAssertEqual(window.writes, ["size", "position"])
         guard case .traversed(let frame) = controller.snap(.left, pid: 1, displays: [ultrawide, macbook])
         else { return XCTFail("second Left should hop to the MacBook") }
         XCTAssertEqual(frame, CGRect(x: -864, y: 644, width: 864, height: 1085))
         XCTAssertEqual(controller.snap(.right, pid: 1, displays: [ultrawide, macbook]),
                        .traversed(CGRect(x: 0, y: 30, width: 1720, height: 1410)))
+    }
+
+    func testEqualSizedHalfChangeOnlyMovesTheWindow() {
+        let window = FakeWindow(CGRect(x: 0, y: 30, width: 1720, height: 1410))
+        let controller = WindowSnapController(access: FakeAccess(window: window))
+        XCTAssertEqual(controller.snap(.right, pid: 1, displays: [ultrawide]),
+                       .moved(CGRect(x: 1720, y: 30, width: 1720, height: 1410)))
+        XCTAssertEqual(window.writes, ["position"])
+    }
+
+    func testSizeClampedOnTheOldDisplayIsRetriedAfterMoving() {
+        let window = FakeWindow(CGRect(x: -864, y: 644, width: 864, height: 1085))
+        window.maximumWidthBeforeMove = 1100
+        let controller = WindowSnapController(access: FakeAccess(window: window))
+        XCTAssertEqual(controller.snap(.right, pid: 1, displays: [ultrawide, macbook]),
+                       .traversed(CGRect(x: 0, y: 30, width: 1720, height: 1410)))
+        XCTAssertEqual(window.writes, ["size", "position", "size"])
     }
 
     func testMinimumWidthAppStaysOnTheDisplayAndStillHops() {
@@ -133,8 +154,9 @@ final class WindowSnapControllerTests: XCTestCase {
         window.onWrite = { controller.cancel(source: .corsair) }
         controller.enqueue(.left, pid: 1, displays: [ultrawide], source: .corsair, inputAllowed: { true })
         queue.sync {}
-        XCTAssertEqual(window.writes, ["size", "position", "size"], "release does not leave half a frame transaction")
+        XCTAssertEqual(window.writes, ["size", "position"], "release does not leave half a frame transaction")
         window.writes.removeAll()
+        window.current = CGRect(x: 100, y: 100, width: 800, height: 600)
         window.onWrite = { controller.cancelAll() }
         controller.enqueue(.right, pid: 1, displays: [ultrawide], source: .corsair, inputAllowed: { true })
         queue.sync {}
@@ -172,7 +194,7 @@ final class WindowSnapControllerTests: XCTestCase {
         restorer.changed(WindowSnapKey(testID: 1))
         controller.enqueue(.right, pid: 1, displays: [ultrawide], source: .corsair, inputAllowed: { true })
         queue.resume(); queue.sync {}
-        XCTAssertEqual(window.writes, ["size", "position", "size"], "stale restore must not run before the newer requested snap")
+        XCTAssertEqual(window.writes, ["position"], "stale restore must not run before the newer requested snap")
         XCTAssertEqual(window.current.minX, 1720)
     }
 

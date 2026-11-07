@@ -4,6 +4,22 @@ import XCTest
 
 @MainActor
 final class MagnetWheelActionSequencerTests: XCTestCase {
+    func testCustomDefaultForwardsEveryRatchetImmediatelyWithoutATimer() {
+        var performed: [MagnetWheelActionSequencer.Request] = []
+        let sequencer = MagnetWheelActionSequencer(
+            perform: { performed.append($0) },
+            schedule: { _, _ in XCTFail("custom snapping must not retain the old animation pause") }
+        )
+        let requests = [
+            MagnetWheelActionSequencer.Request(action: .moveWindowRightWithMagnet, source: .wand, detentCount: 1),
+            .init(action: .moveWindowRightWithMagnet, source: .wand, detentCount: 2),
+            .init(action: .moveWindowLeftWithMagnet, source: .wand, detentCount: 3),
+        ]
+        for request in requests { XCTAssertTrue(sequencer.enqueue(request)) }
+        XCTAssertEqual(performed, requests)
+        XCTAssertEqual(sequencer.pendingCount, 0)
+    }
+
     func testRepeatedRatchetsArePostedInOrderWithOneIntervalBetweenCommands() {
         var performed: [MagnetWheelActionSequencer.Request] = []
         var delays: [TimeInterval] = []
@@ -59,6 +75,7 @@ final class MagnetWheelActionSequencerTests: XCTestCase {
         var performed: [MagnetWheelActionSequencer.Request] = []
         var scheduled: [@Sendable @MainActor () -> Void] = []
         let sequencer = MagnetWheelActionSequencer(
+            minimumInterval: 0.4,
             perform: { performed.append($0) },
             inputAllowed: { allowed },
             schedule: { _, action in scheduled.append(action) }
@@ -88,6 +105,7 @@ final class MagnetWheelActionSequencerTests: XCTestCase {
         var performed: [MagnetWheelActionSequencer.Request] = []
         var scheduled: [@Sendable @MainActor () -> Void] = []
         let sequencer = MagnetWheelActionSequencer(
+            minimumInterval: 0.4,
             perform: { performed.append($0) },
             schedule: { _, action in scheduled.append(action) }
         )
@@ -136,6 +154,7 @@ final class MagnetWheelActionSequencerTests: XCTestCase {
         var performed: [MagnetWheelActionSequencer.Request] = []
         var scheduled: [@Sendable @MainActor () -> Void] = []
         let sequencer = MagnetWheelActionSequencer(
+            minimumInterval: 0.4,
             maximumPendingCount: 2,
             perform: { performed.append($0) },
             schedule: { _, action in scheduled.append(action) }
