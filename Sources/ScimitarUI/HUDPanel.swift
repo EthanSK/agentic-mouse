@@ -81,18 +81,21 @@ public final class AppKitHUDPresenter: NSObject, HUDPresenting {
     private var wandPlacementAnchor: WandHUDPlacement.Anchor?
     private var problemDismissWorkItem: DispatchWorkItem?
     private var delayedSpaceReattachWorkItem: DispatchWorkItem?
+    private let panelIsOnActiveSpace: (NSPanel) -> Bool
 
     public init(
         source: MouseSource,
         configuration: AppConfiguration.HUDConfiguration = .init(),
         scaleStore: HUDScaleStore = .shared,
-        workspaceNotificationCenter: NotificationCenter = NSWorkspace.shared.notificationCenter
+        workspaceNotificationCenter: NotificationCenter = NSWorkspace.shared.notificationCenter,
+        panelIsOnActiveSpace: @escaping (NSPanel) -> Bool = { $0.isOnActiveSpace }
     ) {
         self.source = source
         self.model = HUDViewModel(source: source)
         self.configuration = configuration
         self.scaleStore = scaleStore
         self.workspaceNotificationCenter = workspaceNotificationCenter
+        self.panelIsOnActiveSpace = panelIsOnActiveSpace
         super.init()
         NotificationCenter.default.addObserver(
             self,
@@ -173,18 +176,24 @@ public final class AppKitHUDPresenter: NSObject, HUDPresenting {
     @objc private func activeSpaceDidChange(_ notification: Notification) {
         DispatchQueue.main.async { [weak self] in
             guard let self, self.model.isActive else { return }
-            self.reattachPanelsToCurrentSpaces()
+            // Ethan's Space-switch "flash": healthy join-all-Spaces panels
+            // must keep their window and SwiftUI state, not fade out and reopen.
+            self.reconcilePanels(show: true)
             self.scheduleSettledSpaceReattachment()
         }
     }
 
     /// Cached panels can remain attached to a stale Space even while AppKit
-    /// reports them visible. Recreate them on a later main-queue turn so each
-    /// connected display receives a fresh non-activating panel in its current
-    /// Space. Hidden models remain hidden. (Codex task: 01a03a49-d2a9-7d63-85c0-f74ef52aeeab)
-    private func reattachPanelsToCurrentSpaces() {
+    /// reports them visible. After a Space transition repair only stale panels;
+    /// healthy displays retain their windows. Hidden models remain hidden.
+    /// (Original recovery: 01a03a49-d2a9-7d63-85c0-f74ef52aeeab.)
+    private func reattachPanelsToCurrentSpaces(onlyStalePanels: Bool = false) {
         guard model.isActive else { return }
-        discardPanels()
+        if onlyStalePanels {
+            guard discardPanels(onlyStalePanels: true) else { return }
+        } else {
+            discardPanels()
+        }
         DispatchQueue.main.async { [weak self] in
             guard let self, self.model.isActive else { return }
             self.reconcilePanels(show: true)
@@ -195,20 +204,26 @@ public final class AppKitHUDPresenter: NSObject, HUDPresenting {
         delayedSpaceReattachWorkItem?.cancel()
         let work = DispatchWorkItem { [weak self] in
             guard let self, self.model.isActive else { return }
-            self.reattachPanelsToCurrentSpaces()
+            self.reattachPanelsToCurrentSpaces(onlyStalePanels: true)
         }
         delayedSpaceReattachWorkItem = work
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5, execute: work)
     }
 
-    private func discardPanels() {
-        wandPlacementAnchor = nil
-        panels.values.forEach {
-            HUDScaleHoverCoordinator.shared.unregister(hudPanel: $0.panel)
-            $0.scaleControlPanel.orderOut(nil)
-            $0.panel.orderOut(nil)
+    @discardableResult
+    private func discardPanels(onlyStalePanels: Bool = false) -> Bool {
+        let keys = panels.compactMap { key, instance in
+            !onlyStalePanels || !instance.panel.isVisible || !panelIsOnActiveSpace(instance.panel)
+                ? key : nil
         }
-        panels.removeAll()
+        if !onlyStalePanels || keys.count == panels.count { wandPlacementAnchor = nil }
+        for key in keys {
+            guard let instance = panels.removeValue(forKey: key) else { continue }
+            HUDScaleHoverCoordinator.shared.unregister(hudPanel: instance.panel)
+            instance.scaleControlPanel.orderOut(nil)
+            instance.panel.orderOut(nil)
+        }
+        return !keys.isEmpty
     }
 
     private func ensurePanel(for screen: NSScreen) -> PanelInstance {
