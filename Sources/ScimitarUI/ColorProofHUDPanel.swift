@@ -182,17 +182,25 @@ public final class AppKitModeHUDPresenter: NSObject, ModeHUDPresenting {
     @objc private func activeSpaceDidChange(_ notification: Notification) {
         DispatchQueue.main.async { [weak self] in
             guard let self, self.model.isActive else { return }
-            self.reattachToCurrentSpaces()
+            // Preserve healthy panels during the native Space transition.
+            // Rebuilding them here and again after 500 ms caused a visible flash.
+            self.reconcilePanels(show: true)
+            self.scheduleSettledSpaceReattachment()
         }
     }
 
     /// Cached panels can remain fully rendered on a stale Space while AppKit
-    /// still reports them visible. Recreate them on a later main-queue turn so
-    /// every connected display gets a new click-through panel in its current
-    /// Space without changing the model's explicit open state. (Codex task: 01a03a49-d2a9-7d63-85c0-f74ef52aeeab)
-    private func reattachPanelsToCurrentSpaces() {
+    /// still reports them visible. Explicit recovery can recreate all panels;
+    /// normal Space changes repair only stale ones and retain healthy windows.
+    /// The model's explicit open state is unchanged.
+    /// (Original recovery: 01a03a49-d2a9-7d63-85c0-f74ef52aeeab.)
+    private func reattachPanelsToCurrentSpaces(onlyStalePanels: Bool = false) {
         guard model.isActive else { return }
-        discardPanels()
+        if onlyStalePanels {
+            guard discardPanels(onlyStalePanels: true) else { return }
+        } else {
+            discardPanels()
+        }
         DispatchQueue.main.async { [weak self] in
             guard let self, self.model.isActive else { return }
             self.reconcilePanels(show: true)
@@ -203,7 +211,7 @@ public final class AppKitModeHUDPresenter: NSObject, ModeHUDPresenting {
         delayedSpaceReattachWorkItem?.cancel()
         let work = DispatchWorkItem { [weak self] in
             guard let self, self.model.isActive else { return }
-            self.reattachPanelsToCurrentSpaces()
+            self.reattachPanelsToCurrentSpaces(onlyStalePanels: true)
         }
         delayedSpaceReattachWorkItem = work
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5, execute: work)
@@ -243,14 +251,20 @@ public final class AppKitModeHUDPresenter: NSObject, ModeHUDPresenting {
         }
     }
 
-    private func discardPanels() {
-        wandPlacementAnchor = nil
-        panels.values.forEach {
-            HUDScaleHoverCoordinator.shared.unregister(hudPanel: $0.panel)
-            $0.scaleControlPanel.orderOut(nil)
-            $0.panel.orderOut(nil)
+    @discardableResult
+    private func discardPanels(onlyStalePanels: Bool = false) -> Bool {
+        let keys = panels.compactMap { key, instance in
+            !onlyStalePanels || !instance.panel.isVisible || !panelIsOnActiveSpace(instance.panel)
+                ? key : nil
         }
-        panels.removeAll()
+        if !onlyStalePanels || keys.count == panels.count { wandPlacementAnchor = nil }
+        for key in keys {
+            guard let instance = panels.removeValue(forKey: key) else { continue }
+            HUDScaleHoverCoordinator.shared.unregister(hudPanel: instance.panel)
+            instance.scaleControlPanel.orderOut(nil)
+            instance.panel.orderOut(nil)
+        }
+        return !keys.isEmpty
     }
 
     private func ensurePanel(for screen: NSScreen) -> PanelInstance {

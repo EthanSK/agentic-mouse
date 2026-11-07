@@ -1,5 +1,11 @@
 # Learnings
 
+## 2026-11-07 — Keep healthy HUD windows across Space changes
+
+The old active-Space notification handler discarded every HUD immediately and again after 500 ms. That recovery workaround reset the native panel and SwiftUI state on every normal Space switch, producing Ethan's reported fade-out/reappearance. Keep healthy join-all-Spaces panels; after the existing settled interval, replace only panels that are hidden or no longer on the active Space. Preserve explicit force-recovery, hidden-model guards, per-display ownership and scale controls.
+
+Thirteen isolated window-lifecycle tests covered retained identities, selective stale-panel repair, Keypad, hidden HUDs, screenshot recovery and the non-activating contract. A separate opt-in native Space round trip on a reserved Mac received both workspace notifications and sampled 165 times with zero window-identity or on-screen visibility losses. The test driver must pump AppKit events and wait for the actual transition before sending the return shortcut; a posted key alone does not prove a Space change. Never run this visible desktop fixture on Ethan's active Mac. These tests do not replace his multi-display physical acceptance. (Codex task: 01a078f7-3df8-77e0-853d-208189f8f418)
+
 ## 2026-11-05 — Configuration migration must retain one authoritative file
 
 The macOS configuration now lives at `~/Library/Application Support/Agentic Mouse/config.json`. On first default load, validate and publish the legacy file's exact bytes atomically with mode 0600; never replace a destination that already exists, even when its timestamp is older. Retain the legacy copy and its backups for recovery and old-app rollbacks, but never merge later legacy edits into the new file. A failed publication keeps loading the legacy source; diagnostics and Show in Finder must report that actual selected path. Explicit configuration paths bypass migration. The optional password remains in Keychain.
