@@ -1,5 +1,11 @@
 # Learnings
 
+## 2026-11-08 — Background reopen is not a Settings request
+
+AppKit delivers `applicationShouldHandleReopen` for an already-running app even when `open -g` requests a background reopen. The old handler unconditionally opened Settings and called `activate(ignoringOtherApps:)`, defeating the caller's background request. On the reserved native desktop, that event arrived inactive; a genuine Dock-tile AX press and an ordinary foreground reopen arrived active. Guard the reopen handler before constructing the lazy settings window. Preserve the existing foreground-launch and explicit menu paths, and return false for ignored reopens so AppKit cannot create a default window.
+
+The corrected native fixture kept zero windows and the previous frontmost app for a background reopen, while a real Dock press still opened its window. A gated regression calls the actual AppDelegate entrypoint repeatedly while inactive and checks window identities and foreground ownership; never run the pre-fix variant on Ethan's active desktop. Only the sender PID is logged, never raw AppleEvent contents. The precise sender of earlier reported popups was not recorded, so do not present the reproduced path as proof of a particular earlier caller. The existing updater chat was idle and the old YouTube heartbeat was paused. (Codex task: 01a078f7-3df8-77e0-853d-208189f8f418)
+
 ## 2026-11-07 — Wireless Scimitar HID presence uses its receiver identity
 
 The connection guard introduced in build 354 matched only HID product names containing Scimitar. Ethan's actual wireless setup exposes the physical mouse transport as `CORSAIR SLIPSTREAM WIRELESS USB Receiver`, with the same vendor/product pair already accepted by its pointing-device Karabiner binding. The live read-only registry probe returned false before the correction and true afterward. Accept that exact receiver identity as well as named Scimitar devices; continue rejecting persistent iCUE virtual devices, unrelated products, wrong vendors and incomplete receiver identities. No lighting SDK is required. This detects the attached transport, not whether a wireless mouse left paired to an attached receiver is powered on. Keep those two claims distinct. (Codex task: 01a078f7-3df8-77e0-853d-208189f8f418)

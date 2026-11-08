@@ -1,4 +1,5 @@
 import AppKit
+import Carbon
 import ScimitarKit
 import ScimitarUI
 import ServiceManagement
@@ -379,10 +380,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if NSApp.isActive { controlWindow.openWindow() }
     }
 
-    // Ethan: the app "keeps coming to front". Becoming active is not an Open
-    // request: presenting Settings there also reactivates us and raises it.
-    // Keep window presentation on explicit Dock/Finder reopen and menu actions.
+    // Ethan: the app "keeps coming to front". AppKit also sends reopen events
+    // for background `open -g` requests. Unlike a native Dock/Finder selection,
+    // those arrive while inactive; never promote them into Settings activation.
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        let senderPID = NSAppleEventManager.shared().currentAppleEvent?
+            .attributeDescriptor(forKeyword: AEKeyword(keySenderPIDAttr))?.int32Value ?? 0
+        guard sender.isActive else {
+            log.info("ignored background settings reopen (sender PID \(senderPID))")
+            return false
+        }
+        log.info("settings opened by foreground reopen (sender PID \(senderPID))")
         controlWindow.openWindow()
         return false
     }
