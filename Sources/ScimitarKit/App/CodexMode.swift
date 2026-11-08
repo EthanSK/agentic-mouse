@@ -101,12 +101,15 @@ public enum CodexMode {
                         controlStatus: control.hudControlStatus
                     ).withHeldModifier(pinModifierCell).withWandTitle("Pin/Unpin")
                 }
-                return ModeHUDLegendItem(
+                let item = ModeHUDLegendItem(
                     cell: cell,
                     gesture: control.hudGesture,
                     accent: control.hudAccent,
                     controlStatus: control.hudControlStatus
                 )
+                // The new wheel-free click belongs to the physical mice only.
+                return control == .codexResponseSpeed
+                    ? item.withWandTitle("\(control.hudHoldTitle) \(control.wandHUDMotion.glyph)") : item
             }
             if let action = CodexModeAction.action(for: cell) {
                 let item = ModeHUDLegendItem(

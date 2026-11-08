@@ -254,6 +254,15 @@ final class CodexModeActionExecutor {
         voiceSessionVerifier.cancelPendingVerification()
     }
 
+    /// Ethan: "just click the speed button". Use the existing completed-hold
+    /// record: any wheel input suppresses the click, including consumed input.
+    /// Teardown never produces a release, and the wand keeps its existing path.
+    func performResponseSpeedClick(_ release: WheelChordStateMachine.Release) -> Result<Void, ActionError>? {
+        guard release.control == .codexResponseSpeed, release.source != .wand,
+              !release.didObserveWheelInput else { return nil }
+        return performResponseSpeed(.increase) // Both directions already mean one native forward cycle.
+    }
+
     func performResponseSpeed(_ action: CodexResponseSpeedAction) -> Result<Void, ActionError> {
         guard inputAllowed() else {
             return .failure(ActionError(description: "Mouse commands are disabled while macOS is locked"))
