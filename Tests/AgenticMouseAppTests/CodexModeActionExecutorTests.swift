@@ -7,6 +7,43 @@ import XCTest
 
 @MainActor
 final class CodexModeActionExecutorTests: XCTestCase {
+    func testSpeedClickCyclesOnceOnEachMouseAndNeverAfterWheelOrTeardown() {
+        var commands: [CodexShortcuts.Command] = []
+        let executor = CodexModeActionExecutor(accessibilityTrusted: { true },
+            requestNativeCommand: { commands.append($0); return true })
+        let state = WheelChordStateMachine()
+        for source in [MouseSource.corsair, .razer] {
+            state.setActive(.codexResponseSpeed, for: source)
+            let before = commands.count
+            guard let release = state.release(.codexResponseSpeed, for: source),
+                  case .success? = executor.performResponseSpeedClick(release)
+            else { return XCTFail("A wheel-free release must cycle once") }
+            XCTAssertEqual(commands.count, before + 1)
+            XCTAssertNil(state.release(.codexResponseSpeed, for: source), "Duplicate releases are inert")
+            for delta: Int64 in [-1, 1] {
+                state.setActive(.codexResponseSpeed, for: source)
+                _ = state.route(verticalDelta: delta, isContinuous: false)
+                _ = state.route(verticalDelta: delta, isContinuous: false)
+                XCTAssertNil(executor.performResponseSpeedClick(state.release(for: source)!))
+            }
+            state.setActive(.codexResponseSpeed, for: source)
+            state.clear(source: source)
+            XCTAssertNil(state.release(for: source), "Mode exit/lock clears without a click")
+            XCTAssertEqual(commands.count, before + 1)
+        }
+        XCTAssertEqual(commands, [.cycleSpeed, .cycleSpeed])
+        XCTAssertNil(executor.performResponseSpeedClick(.init(source: .wand, control: .codexResponseSpeed, didObserveWheelInput: false)))
+    }
+
+    func testSpeedClickRetainsInputAndAccessibilityGates() {
+        for (allowed, trusted) in [(false, true), (true, false)] {
+            let executor = CodexModeActionExecutor(accessibilityTrusted: { trusted }, inputAllowed: { allowed },
+                requestNativeCommand: { _ in XCTFail("Blocked click must not reach native engine"); return true })
+            guard case .failure? = executor.performResponseSpeedClick(.init(source: .corsair, control: .codexResponseSpeed, didObserveWheelInput: false))
+            else { return XCTFail("Click must retain the native executor gates") }
+        }
+    }
+
     func testSpeedAndReasoningCallNativeCommandsWithoutAnyCompanion() {
         var commands: [CodexShortcuts.Command] = []
         let executor = CodexModeActionExecutor(accessibilityTrusted: { true },

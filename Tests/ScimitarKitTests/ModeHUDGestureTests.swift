@@ -22,6 +22,7 @@ final class ModeHUDGestureTests: XCTestCase {
             .mediaTracks: "Next Track",
             .screenshotPaste: "Screenshot",
             .youtubeScrub: "YouTube −5 sec",
+            .codexResponseSpeed: "Cycle speed",
         ])
     }
 
@@ -54,6 +55,15 @@ final class ModeHUDGestureTests: XCTestCase {
     }
 
     // MARK: Default and wand home
+
+    func testCodexSpeedNamesItsMouseClickWithoutChangingTheWand() {
+        let card = CodexMode.definition.legend.first { $0.cell == CodexMode.responseSpeedWheelCell }!
+        for source in [MouseSource.corsair, .razer] {
+            XCTAssertEqual(card.displayTitle(on: source), "Cycle speed · Speed ↕")
+            XCTAssertEqual(card.accessibilityDescription(on: source), "Cycle speed. Hold and turn the wheel up or down for Speed")
+        }
+        XCTAssertEqual(card.displayTitle(on: .wand), "Speed ↕")
+    }
 
     func testCopyPasteSaysSpaceForTheClickOnEverySource() {
         for source in MouseSource.allCases {

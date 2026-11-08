@@ -2247,6 +2247,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             switch release.control {
             case .codexResponseSpeed:
                 self?.codexModeActionExecutor.cancelResponseSpeed()
+                guard let self, let coordinator = self.modePickerCoordinators[release.source],
+                      coordinator.isActive, coordinator.page == .appSpecific,
+                      coordinator.appSpecificTarget == .codex,
+                      coordinator.activeWheelControl == .codexResponseSpeed,
+                      let result = self.codexModeActionExecutor.performResponseSpeedClick(release)
+                else { return }
+                if case .failure(let error) = result {
+                    self.modeHUDPresenters[release.source]?.flashProblem(error.description)
+                }
             case .codexReasoningEffort:
                 self?.codexModeActionExecutor.cancelReasoningEffort()
             case .windowWidth, .windowHeight:

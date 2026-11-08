@@ -219,7 +219,7 @@ final class ModePickerTests: XCTestCase {
             $0.cell == CodexMode.responseSpeedWheelCell
         }!
         XCTAssertEqual(speed.controlStatus, .normal)
-        XCTAssertEqual(speed.actionTitle, "Speed")
+        XCTAssertEqual(speed.actionTitle, "Cycle speed · Speed")
 
         XCTAssertEqual(VSCodeModeAction.toggleTerminal.hudControlStatus, .normal)
         XCTAssertEqual(VSCodeModeAction.stageAndNext.hudControlStatus, .normal)
@@ -2685,7 +2685,7 @@ final class ModePickerTests: XCTestCase {
         XCTAssertEqual(CodexMode.definition.legend[1].actionTitle, "Exit · Hold for Pin/Unpin")
         XCTAssertEqual(CodexMode.definition.legend[4].actionTitle, "New chat")
         XCTAssertEqual(CodexMode.definition.legend[0].actionTitle, "Pin/Unpin")
-        XCTAssertEqual(CodexMode.definition.legend[2].actionTitle, "Speed")
+        XCTAssertEqual(CodexMode.definition.legend[2].actionTitle, "Cycle speed · Speed")
         XCTAssertEqual(CodexMode.definition.legend[10].actionTitle, "Mute / unmute voice mic")
         XCTAssertEqual(CodexMode.definition.legend[3].actionTitle, "Open side chat")
         XCTAssertEqual(CodexMode.definition.legend[9].actionTitle, "Exit Codex mode")
@@ -2733,7 +2733,7 @@ final class ModePickerTests: XCTestCase {
 
             let expectedCellThreeTitle: String
             switch page {
-            case .appSpecific: expectedCellThreeTitle = "Speed"
+            case .appSpecific: expectedCellThreeTitle = "Cycle speed · Speed"
             case .appSelector: expectedCellThreeTitle = "Claude"
             case .keys: expectedCellThreeTitle = "⌘Z Undo"
             case .chromeWebsites: expectedCellThreeTitle = "X"
@@ -3166,7 +3166,7 @@ final class ModePickerTests: XCTestCase {
                 coordinator.handle(.init(action: .select, source: source, physicalCell: cell, phase: .release))
                 XCTAssertNil(coordinator.activeWheelControl)
                 XCTAssertEqual(controls.suffix(2), [.codexResponseSpeed, nil])
-                XCTAssertEqual(clicks, 0, "press/release must never invoke the old Astra action or cycle speeds")
+                XCTAssertEqual(clicks, 0, "The completed wheel-hold path owns speed clicks; never dispatch the old Astra action")
             }
         }
     }

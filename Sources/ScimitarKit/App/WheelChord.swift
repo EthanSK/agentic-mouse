@@ -492,17 +492,18 @@ public enum WheelChordControl: String, Codable, CaseIterable, Sendable {
     /// What a wheel-free click does on release, or nil when release is inert.
     /// Mirrors the app shell's wheel-chord release handling: Copy / Paste
     /// inserts a space, Tracks plays the next track, Screenshot captures and
-    /// YouTube rewinds five seconds. Every other family only acts while held.
+    /// YouTube rewinds five seconds and Codex Speed cycles once. Other families only act while held.
     public var hudClickTitle: String? {
         switch self {
         case .clipboard: return "Space"
         case .mediaTracks: return MediaTrackAction.next.actionTitle
         case .screenshotPaste: return "Screenshot"
         case .youtubeScrub: return "YouTube −5 sec"
+        case .codexResponseSpeed: return "Cycle speed"
         case .horizontalScroll, .youtubeVolume, .brightness, .zoom, .systemOverview,
              .applicationWindows, .magnetWindow, .windowWidth, .windowHeight, .chromeVSCodeLayout,
              .spaces, .chromeTabs, .spotifyVolume, .vsCodeCursorHistory, .vsCodeStageRange,
-             .codexReasoningEffort, .codexResponseSpeed, .codexChatHistory, .codexPin, .claudePin,
+             .codexReasoningEffort, .codexChatHistory, .codexPin, .claudePin,
              .claudeTabs:
             return nil
         }
