@@ -1,35 +1,34 @@
 import AppKit
 import CoreGraphics
+import CodexNativeControls
 @testable import AgenticMouseApp
 import ScimitarKit
 import XCTest
 
 @MainActor
 final class CodexModeActionExecutorTests: XCTestCase {
-    func testSpeedRelayDoesNotActivateItsURLHandlerAndOpensEachRequestOnce() {
-        let handler = URL(fileURLWithPath: "/test/Codex Model Bar.app")
-        var dispatched: [URL] = []
-        for action in [CodexResponseSpeedAction.increase, .decrease, .cancel] {
-            XCTAssertTrue(CodexModeActionExecutor.sendResponseSpeedRequest(action,
-                resolveHandler: { url in
-                    XCTAssertEqual(url, action.modelBarURL)
-                    return handler
-                },
-                open: { urls, application, configuration in
-                    XCTAssertEqual(application, handler)
-                    XCTAssertFalse(configuration.activates)
-                    XCTAssertFalse(configuration.promptsUserIfNeeded)
-                    XCTAssertFalse(configuration.addsToRecentItems)
-                    XCTAssertEqual(urls.count, 1)
-                    dispatched += urls
-                }))
+    func testSpeedAndReasoningCallNativeCommandsWithoutAnyCompanion() {
+        var commands: [CodexShortcuts.Command] = []
+        let executor = CodexModeActionExecutor(accessibilityTrusted: { true },
+            requestNativeCommand: { commands.append($0); return true }, recentHardwareTyping: { false })
+        for speed in [CodexResponseSpeedAction.increase, .decrease] {
+            guard case .success = executor.performResponseSpeed(speed) else { return XCTFail("Native cycle rejected") }
         }
-        XCTAssertEqual(dispatched, [CodexResponseSpeedAction.increase.modelBarURL,
-                                    CodexResponseSpeedAction.decrease.modelBarURL,
-                                    CodexResponseSpeedAction.cancel.modelBarURL])
-        XCTAssertFalse(CodexModeActionExecutor.sendResponseSpeedRequest(.increase,
-            resolveHandler: { _ in nil },
-            open: { _, _, _ in XCTFail("A missing handler must not launch another app") }))
+        for reasoning in [CodexReasoningEffortAction.increase, .decrease] {
+            guard case .success = executor.performReasoningEffort(reasoning) else { return XCTFail("Native effort rejected") }
+        }
+        executor.cancelPendingActions()
+        XCTAssertEqual(commands, [.cycleSpeed, .cycleSpeed, .increaseReasoning, .decreaseReasoning])
+    }
+
+    func testNativeReasoningRetainsRecentTypingProtectionWhileSpeedKeepsItsOwnPolicy() {
+        var commands: [CodexShortcuts.Command] = []
+        let executor = CodexModeActionExecutor(accessibilityTrusted: { true },
+            requestNativeCommand: { commands.append($0); return true }, recentHardwareTyping: { true })
+        guard case .failure = executor.performReasoningEffort(.increase),
+              case .success = executor.performResponseSpeed(.increase)
+        else { return XCTFail("Keep the existing command-specific typing policies") }
+        XCTAssertEqual(commands, [.cycleSpeed])
     }
 
     func testSpeedCancellationClearsOnlyAnAdmittedRequestEvenAfterInputIsBlocked() {
@@ -39,7 +38,7 @@ final class CodexModeActionExecutorTests: XCTestCase {
             accessibilityTrusted: { true }, inputAllowed: { allowed },
             requestResponseSpeed: { requests.append($0); return true })
         executor.cancelResponseSpeed()
-        XCTAssertTrue(requests.isEmpty, "An unused click must not launch Model Bar")
+        XCTAssertTrue(requests.isEmpty, "An unused click must not request a native command")
         guard case .success = executor.performResponseSpeed(.increase) else {
             return XCTFail("Request should be admitted")
         }
@@ -47,11 +46,9 @@ final class CodexModeActionExecutorTests: XCTestCase {
         executor.cancelPendingActions()
         executor.cancelResponseSpeed()
         XCTAssertEqual(requests, [.increase, .cancel])
-        XCTAssertEqual(CodexResponseSpeedAction.cancel.modelBarURL.absoluteString,
-                       "codex-model-bar://speed-cancel")
     }
 
-    func testSpeedWheelDelegatesWithoutTypingIntoCodexAndHonoursInputGates() {
+    func testSpeedWheelUsesTheNativeEngineAndHonoursInputGates() {
         for (allowed, trusted) in [(true, true), (false, true), (true, false)] {
             var requests = 0
             var events = 0
@@ -64,14 +61,14 @@ final class CodexModeActionExecutorTests: XCTestCase {
             XCTAssertEqual(requests, allowed && trusted ? 1 : 0)
             XCTAssertEqual(events, 0)
             if allowed && trusted {
-                guard case .success = result else { return XCTFail("Request should reach Model Bar") }
+                guard case .success = result else { return XCTFail("Request should reach the native engine") }
             } else {
                 guard case .failure = result else { return XCTFail("Input gate must block the request") }
             }
         }
     }
 
-    func testSpeedWheelPreservesOrderAndReportsRejectedModelBarLaunch() {
+    func testSpeedWheelPreservesOrderAndReportsRejectedNativeRequest() {
         var requests: [CodexResponseSpeedAction] = []
         let executor = CodexModeActionExecutor(
             accessibilityTrusted: { true },
@@ -80,7 +77,7 @@ final class CodexModeActionExecutorTests: XCTestCase {
         guard case .success = executor.performResponseSpeed(.increase),
               case .success = executor.performResponseSpeed(.increase),
               case .failure = executor.performResponseSpeed(.decrease)
-        else { return XCTFail("each request must retain its direction and report launch rejection") }
+        else { return XCTFail("each request must retain its direction and report admission rejection") }
         XCTAssertEqual(requests, [.increase, .increase, .decrease])
     }
 
@@ -111,7 +108,7 @@ final class CodexModeActionExecutorTests: XCTestCase {
         }
     }
 
-    func testReasoningWheelUsesModelBarWithoutPostingUnfocusedShortcuts() {
+    func testReasoningWheelUsesTheNativeFocusEngineBeforePostingKeys() {
         for (allowed, trusted) in [(true, true), (false, true), (true, false)] {
             var requests: [CodexReasoningEffortAction] = []
             var events = 0
@@ -123,39 +120,21 @@ final class CodexModeActionExecutorTests: XCTestCase {
             for action in [CodexReasoningEffortAction.increase, .decrease] {
                 let result = executor.performReasoningEffort(action)
                 if allowed && trusted {
-                    guard case .success = result else { return XCTFail("Expected Model Bar relay") }
+                    guard case .success = result else { return XCTFail("Expected native engine request") }
                 } else {
                     guard case .failure = result else { return XCTFail("Input gate must reject reasoning") }
                 }
             }
             XCTAssertEqual(requests, allowed && trusted ? [.increase, .decrease] : [])
-            XCTAssertEqual(events, 0, "Reasoning must let Model Bar focus before sending any key")
+            XCTAssertEqual(events, 0, "The native engine owns intended-chat focus before sending any key")
         }
     }
 
-    func testReasoningRelayUsesTheSharedNonactivatingTransportAndReportsMissingHandler() {
-        let handler = URL(fileURLWithPath: "/test/Codex Model Bar.app")
-        var dispatched: [String] = []
-        for action in [CodexReasoningEffortAction.increase, .decrease] {
-            XCTAssertTrue(CodexModeActionExecutor.sendModelBarRequest(action.modelBarURL,
-                resolveHandler: { _ in handler },
-                open: { urls, application, configuration in
-                    XCTAssertEqual(application, handler)
-                    XCTAssertFalse(configuration.activates)
-                    XCTAssertFalse(configuration.promptsUserIfNeeded)
-                    XCTAssertFalse(configuration.addsToRecentItems)
-                    XCTAssertEqual(urls.count, 1)
-                    dispatched += urls.map(\.absoluteString)
-                }))
-        }
-        XCTAssertEqual(dispatched, ["codex-model-bar://reasoning-up", "codex-model-bar://reasoning-down"])
-        XCTAssertFalse(CodexModeActionExecutor.sendModelBarRequest(CodexReasoningEffortAction.increase.modelBarURL,
-            resolveHandler: { _ in nil },
-            open: { _, _, _ in XCTFail("Do not guess a different handler") }))
-        let executor = CodexModeActionExecutor(accessibilityTrusted: { true }, requestReasoningEffort: { _ in false })
-        guard case .failure = executor.performReasoningEffort(.increase) else {
-            return XCTFail("A rejected relay must not be reported as sent")
-        }
+    func testMissingNativeBindingOrCodexRejectsBothWheelActions() {
+        let executor = CodexModeActionExecutor(accessibilityTrusted: { true }, requestNativeCommand: { _ in false })
+        guard case .failure = executor.performResponseSpeed(.increase),
+              case .failure = executor.performReasoningEffort(.increase)
+        else { return XCTFail("A rejected native command must not be reported as sent") }
     }
 
     func testReasoningReleaseCancelsOnlyAdmittedWorkEvenAfterLock() {

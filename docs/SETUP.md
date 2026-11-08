@@ -47,6 +47,7 @@ Do not add hardware-write flags for an initial inspection. Launching the GUI app
 | VS Code cursor history and terminal toggle | Agentic Mouse VS Code Bridge | Yes; package below |
 | VS Code review navigation and staging | Compatible Better Git extension and its captured-origin commands | **No.** The included bridge does not provide these commands |
 | Window placement and saved layout | Agentic Mouse handles left/right snapping and drag restore; Stay restores your saved layout. Magnet remains optional for its own shortcuts. | No |
+| Codex speed and reasoning | Codex with configured Cycle speed and Increase/Decrease reasoning effort shortcuts | Native control code is embedded; no running Model Bar is needed |
 | App-specific shortcuts | Matching apps, keyboard layout and shortcut settings | Definitions only; configure for your Mac |
 
 Missing external receivers leave their controls without a working destination. They do not prevent building or using independent controls. Review or replace those actions in source before relying on them. The [generated map](https://ethansk.github.io/agentic-mouse/mouse-map.html) shows the layout and reported repairs; it does not test your installed apps.

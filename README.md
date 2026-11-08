@@ -25,6 +25,12 @@ The [personal setup walkthrough](https://ethansk.github.io/agentic-mouse/#engine
 
 [AgentFlow](https://ethansk.github.io/AgentFlow/) handles dictation and transcript delivery so I can keep working. [Agent Bridge](https://github.com/EthanSK/agent-bridge) connects my agents across machines.
 
+## Codex native controls
+
+Speed and reasoning use the embedded CodexNativeControls library. **Codex Model Bar does not need to be installed or running.** Both apps share the configured shortcut reader, intended-chat focus handoff, private key pairs and cancellation code at build time; Mouse sends its own commands directly to Codex.
+
+Assign Codex's Cycle speed and Increase/Decrease reasoning effort shortcuts in its keyboard shortcut settings. Mouse reads the current bindings on every request. One speed wheel notch cycles forward in either direction; reasoning moves up/down and stops at Codex's limits. The existing physical cells, draft selection, session/Accessibility gates and ordinary mouse behavior are unchanged. Other Codex mouse commands retain their existing native transports.
+
 ## Try the website
 
 The website is a working browser demo of the mouse controls, with a [skills directory](https://ethansk.github.io/agentic-mouse/#skills) covering other tools and workflows behind the setup:

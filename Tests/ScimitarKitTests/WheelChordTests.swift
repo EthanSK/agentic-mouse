@@ -645,8 +645,8 @@ final class WheelChordTests: XCTestCase {
     func testCodexSpeedWheelKeepsPhysicalPolarityAndLaterRatchetsOnBothMice() {
         XCTAssertEqual(WheelChordControl.codexResponseSpeed.codexResponseSpeedAction(for: .down), .increase)
         XCTAssertEqual(WheelChordControl.codexResponseSpeed.codexResponseSpeedAction(for: .up), .decrease)
-        XCTAssertEqual(CodexResponseSpeedAction.increase.modelBarURL.absoluteString, "codex-model-bar://speed-up")
-        XCTAssertEqual(CodexResponseSpeedAction.decrease.modelBarURL.absoluteString, "codex-model-bar://speed-down")
+        XCTAssertEqual(WheelChordControl.codexResponseSpeed.feedbackActionTitle(for: .up), WheelChordControl.codexResponseSpeed.actionTitle)
+        XCTAssertEqual(WheelChordControl.codexResponseSpeed.feedbackActionTitle(for: .down), WheelChordControl.codexResponseSpeed.actionTitle)
         XCTAssertNil(WheelChordControl.codexReasoningEffort.codexResponseSpeedAction(for: .up))
         for source in MouseSource.allCases {
             let clock = ManualClock(now: 10)
