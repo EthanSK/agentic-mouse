@@ -1,4 +1,5 @@
 import AppKit
+import CodexNativeControls
 import Darwin
 import ScimitarKit
 
@@ -32,8 +33,6 @@ final class CodexModeActionExecutor {
     static let previousChatShortcut = Shortcut(keyCode: 105, flags: hyper) // F13
     static let nextChatShortcut = Shortcut(keyCode: 107, flags: hyper) // F14
     static let microphoneShortcut = Shortcut(keyCode: 90, flags: hyper) // F20
-    static let increaseReasoningEffortShortcut = Shortcut(keyCode: 79, flags: hyper) // F18
-    static let decreaseReasoningEffortShortcut = Shortcut(keyCode: 80, flags: hyper) // F19
     static let newTaskShortcut = Shortcut(keyCode: 45, flags: .maskCommand)
     static let togglePinShortcut = Shortcut(
         keyCode: 35,
@@ -80,14 +79,12 @@ final class CodexModeActionExecutor {
         inputAllowed: @escaping InputAllowedProvider = { true },
         pinChangeVerifier: CodexPinChangeVerifier? = nil,
         voiceSessionVerifier: CodexVoiceSessionVerifier? = nil,
-        requestResponseSpeed: @escaping @MainActor (CodexResponseSpeedAction) -> Bool = { action in
-            CodexModeActionExecutor.sendResponseSpeedRequest(action)
-        },
-        requestReasoningEffort: @escaping @MainActor (CodexReasoningEffortAction) -> Bool = { action in
-            CodexModeActionExecutor.sendModelBarRequest(action.modelBarURL)
-        },
-        cancelReasoningRequest: @escaping @MainActor () -> Bool = {
-            CodexModeActionExecutor.sendModelBarRequest(URL(string: "codex-model-bar://reasoning-cancel")!)
+        requestResponseSpeed: (@MainActor (CodexResponseSpeedAction) -> Bool)? = nil,
+        requestReasoningEffort: (@MainActor (CodexReasoningEffortAction) -> Bool)? = nil,
+        cancelReasoningRequest: (@MainActor () -> Bool)? = nil,
+        requestNativeCommand: (@MainActor (CodexShortcuts.Command) -> Bool)? = nil,
+        recentHardwareTyping: @escaping @MainActor () -> Bool = {
+            CGEventSource.secondsSinceLastEventType(.hidSystemState, eventType: .keyDown) < 1.0
         }
     ) {
         self.shortcutDispatcher = ApplicationShortcutDispatcher(
@@ -121,9 +118,37 @@ final class CodexModeActionExecutor {
         )
         self.accessibilityTrusted = accessibilityTrusted
         self.inputAllowed = inputAllowed
-        self.requestResponseSpeed = requestResponseSpeed
-        self.requestReasoningEffort = requestReasoningEffort
-        self.cancelReasoningRequest = cancelReasoningRequest
+        // Ethan: Mouse "shouldn't have a dependency on the bar". Both apps
+        // embed this one shared focus/shortcut engine; no URL handler or other
+        // running companion participates. Keep the live lock/trust gates active
+        // after admission, including while background focus work is queued.
+        let native = CodexShortcutController(inputAllowed: {
+            MainActor.assumeIsolated { inputAllowed() && accessibilityTrusted() }
+        })
+        let postNative: @MainActor (CodexShortcuts.Command) -> Bool = requestNativeCommand ?? { command in
+            guard let pid = targetProcessResolver(),
+                  let codex = NSRunningApplication(processIdentifier: pid),
+                  CodexShortcuts.load(command) != nil else { return false }
+            native.change(command, source: .mouse, codex: codex) { _ in }
+            return true // Request admitted, not confirmation that Codex changed.
+        }
+        let sendNative: @MainActor (CodexShortcuts.Command) -> Bool = { command in
+            // Retain the existing reasoning path's one-second recent-typing
+            // protection. New hardware input after admission is also checked
+            // by the shared controller before any native key is posted.
+            guard command == .cycleSpeed || !recentHardwareTyping() else { return false }
+            return postNative(command)
+        }
+        self.requestResponseSpeed = requestResponseSpeed ?? { action in
+            if action == .cancel { native.cancelMouse(.speed); return true }
+            return sendNative(.cycleSpeed) // One native forward cycle in either wheel direction.
+        }
+        self.requestReasoningEffort = requestReasoningEffort ?? { action in
+            sendNative(action == .increase ? .increaseReasoning : .decreaseReasoning)
+        }
+        self.cancelReasoningRequest = cancelReasoningRequest ?? {
+            native.cancelMouse(.reasoning); return true
+        }
     }
 
     func perform(
@@ -237,42 +262,10 @@ final class CodexModeActionExecutor {
             return .failure(ActionError(description: "Accessibility permission is required for Codex shortcuts"))
         }
         guard requestResponseSpeed(action) else {
-            return .failure(ActionError(description: "Could not open Codex Model Bar"))
+            return .failure(ActionError(description: "Could not deliver the Codex shortcut"))
         }
         responseSpeedPending = true
         return .success(())
-    }
-
-    /// Opening a custom URL with `open(URL)` activates its handler and steals
-    /// the composer's focus. Keep this relay in the background; Model Bar owns
-    /// the one whole-command insertion and the guarded Enter, without retries.
-    static func sendResponseSpeedRequest(
-        _ action: CodexResponseSpeedAction,
-        resolveHandler: (URL) -> URL? = { NSWorkspace.shared.urlForApplication(toOpen: $0) },
-        open: ([URL], URL, NSWorkspace.OpenConfiguration) -> Void = { urls, application, configuration in
-            NSWorkspace.shared.open(urls, withApplicationAt: application, configuration: configuration)
-        }
-    ) -> Bool {
-        sendModelBarRequest(action.modelBarURL, resolveHandler: resolveHandler, open: open)
-    }
-
-    /// Extraction of the existing sendResponseSpeedRequest background relay.
-    /// Ethan's speed and reasoning controls now both use Model Bar's own focus
-    /// code; Agentic Mouse never copies its composer lookup or sends reasoning keys.
-    static func sendModelBarRequest(
-        _ url: URL,
-        resolveHandler: (URL) -> URL? = { NSWorkspace.shared.urlForApplication(toOpen: $0) },
-        open: ([URL], URL, NSWorkspace.OpenConfiguration) -> Void = { urls, application, configuration in
-            NSWorkspace.shared.open(urls, withApplicationAt: application, configuration: configuration)
-        }
-    ) -> Bool {
-        guard let application = resolveHandler(url) else { return false }
-        let configuration = NSWorkspace.OpenConfiguration()
-        configuration.activates = false
-        configuration.promptsUserIfNeeded = false
-        configuration.addsToRecentItems = false
-        open([url], application, configuration)
-        return true
     }
 
     func performReasoningEffort(
@@ -285,7 +278,7 @@ final class CodexModeActionExecutor {
             return .failure(ActionError(description: "Accessibility permission is required for Codex shortcuts"))
         }
         guard requestReasoningEffort(action) else {
-            return .failure(ActionError(description: "Could not open Codex Model Bar"))
+            return .failure(ActionError(description: "Could not deliver the Codex shortcut"))
         }
         reasoningEffortPending = true
         return .success(())

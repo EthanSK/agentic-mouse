@@ -2105,7 +2105,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                       coordinator.activeWheelControl == .codexResponseSpeed
                 else { return false }
                 // Admit each ratchet before a fast release clears its hold.
-                // Model Bar inserts one whole slash command per request.
+                // Both wheel directions send one native Cycle speed through the embedded engine.
                 switch self.codexModeActionExecutor.performResponseSpeed(action) {
                 case .success:
                     self.log.info("Codex response speed \(action == .increase ? "up" : "down") ratchet \(step.detentCount) requested from \(step.source.displayName)")

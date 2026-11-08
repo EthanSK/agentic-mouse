@@ -343,7 +343,7 @@ public enum WheelChordControl: String, Codable, CaseIterable, Sendable {
     public func codexResponseSpeedAction(for direction: WheelChordDirection) -> CodexResponseSpeedAction? {
         guard self == .codexResponseSpeed else { return nil }
         // Both accepted mice deliver physical wheel up as Quartz `.down`.
-        // Model Bar owns available tiers, bounds and draft-safe selection.
+        // The embedded native engine sends one forward cycle in either direction.
         return direction == .down ? .increase : .decrease
     }
 
@@ -419,8 +419,7 @@ public enum WheelChordControl: String, Codable, CaseIterable, Sendable {
                 ? "Reasoning Effort Up"
                 : "Reasoning Effort Down"
         case .codexResponseSpeed:
-            return codexResponseSpeedAction(for: direction) == .increase
-                ? "Speed Up request" : "Speed Down request"
+            return actionTitle // One native cycle for either physical direction; do not promise an increase/decrease.
         case .codexPin:
             return accepts(direction) ? "Pin/Unpin" : nil
         case .claudePin:
@@ -607,12 +606,6 @@ public enum CodexReasoningEffortAction: Equatable, Sendable {
     case increase
     case decrease
 
-    public var modelBarURL: URL {
-        switch self {
-        case .increase: return URL(string: "codex-model-bar://reasoning-up")!
-        case .decrease: return URL(string: "codex-model-bar://reasoning-down")!
-        }
-    }
 }
 
 public enum CodexResponseSpeedAction: Equatable, Sendable {
@@ -620,13 +613,6 @@ public enum CodexResponseSpeedAction: Equatable, Sendable {
     case decrease
     case cancel
 
-    public var modelBarURL: URL {
-        switch self {
-        case .increase: return URL(string: "codex-model-bar://speed-up")!
-        case .decrease: return URL(string: "codex-model-bar://speed-down")!
-        case .cancel: return URL(string: "codex-model-bar://speed-cancel")!
-        }
-    }
 }
 
 public enum CodexChatHistoryAction: Equatable, Sendable {
