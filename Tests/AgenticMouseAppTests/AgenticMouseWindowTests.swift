@@ -5,6 +5,28 @@ import ScimitarUI
 @testable import AgenticMouseApp
 
 final class AgenticMouseWindowTests: XCTestCase {
+    @MainActor
+    func testBackgroundReopenDoesNotCreateOrActivateSettings() throws {
+        guard ProcessInfo.processInfo.environment["AGENTIC_MOUSE_ALLOW_VISIBLE_UI_TESTS"] == "1" else {
+            throw XCTSkip("Reopen regression checks require an isolated desktop")
+        }
+        let app = NSApplication.shared
+        guard !app.isActive else { throw XCTSkip("The test host must start in the background") }
+        let originalWindows = Set(app.windows.map(ObjectIdentifier.init))
+        let frontmostPID = NSWorkspace.shared.frontmostApplication?.processIdentifier
+        let delegate = AppDelegate()
+        defer {
+            // Also clean up the deliberately broken pre-fix variant.
+            app.windows.filter { !originalWindows.contains(ObjectIdentifier($0)) }.forEach { $0.close() }
+        }
+        for hasVisibleWindows in [false, true, false] {
+            XCTAssertFalse(delegate.applicationShouldHandleReopen(app, hasVisibleWindows: hasVisibleWindows))
+        }
+        XCTAssertEqual(Set(app.windows.map(ObjectIdentifier.init)), originalWindows)
+        XCTAssertFalse(app.isActive)
+        XCTAssertEqual(NSWorkspace.shared.frontmostApplication?.processIdentifier, frontmostPID)
+    }
+
     func testOnlySystemQuitKeepsRecoveryRegistered() {
         XCTAssertFalse(AgenticMouseTerminationPolicy.isSystemQuit(reason: nil))
         XCTAssertFalse(AgenticMouseTerminationPolicy.isSystemQuit(reason: UInt32(kAEQuitApplication)))
