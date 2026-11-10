@@ -25,9 +25,9 @@ final class WandUtilityOuterAndSensitivityTests: XCTestCase {
         XCTAssertEqual(utility.ring, WandRingOrder.utility, "every inner ring position is preserved")
         let backspace = utility.outer.first { $0.cell == .wandBackspace }
         let copy = utility.outer.first { $0.cell == .wandCopy }
-        XCTAssertEqual(backspace?.parent, .selectAll)
+        XCTAssertEqual(backspace?.parent, .wandSelectAll)
         XCTAssertEqual(backspace?.layer, 1)
-        XCTAssertEqual(copy?.parent, .selectAll)
+        XCTAssertEqual(copy?.parent, .wandSelectAll)
         XCTAssertEqual(copy?.layer, 2)
         XCTAssertEqual(utility.outer.count, 2)
         let home = coordinator().wandRadialLayout
@@ -67,8 +67,8 @@ final class WandUtilityOuterAndSensitivityTests: XCTestCase {
     func testTheNavigatorReachesBackspaceThenCopyFromSelectAll() {
         let layout = coordinator(open: [12]).wandRadialLayout
         let tuning = WandRadialTuning()
-        var navigator = WandRadialNavigator(layout: layout, start: .selectAll)!
-        let theta = layout.angle(at: layout.ringIndex(of: .selectAll)!)
+        var navigator = WandRadialNavigator(layout: layout, start: .wandSelectAll)!
+        let theta = layout.angle(at: layout.ringIndex(of: .wandSelectAll)!)
         func push(_ degrees: Double) { navigator.apply(deltaX: sin(theta) * degrees, deltaY: -cos(theta) * degrees) }
         push(tuning.outerReachDegrees - tuning.restingDegrees + 0.5)
         XCTAssertEqual(navigator.focusedCell, .wandBackspace)
@@ -77,7 +77,7 @@ final class WandUtilityOuterAndSensitivityTests: XCTestCase {
         push(-(tuning.thirdMaximumDegrees - tuning.thirdReturnDegrees) - 0.5)
         XCTAssertEqual(navigator.focusedCell, .wandBackspace)
         push(-(tuning.thirdReturnDegrees - tuning.outerReturnDegrees) - 0.5)
-        XCTAssertEqual(navigator.focusedCell, .selectAll)
+        XCTAssertEqual(navigator.focusedCell, .wandSelectAll)
     }
 
     func testSpacesUsesDragDirectionButPhysicalWheelActionsStayTheSame() {

@@ -176,11 +176,14 @@ public struct PhysicalCell: RawRepresentable, Hashable, Codable, Sendable, Compa
     public static let zoomWheelControl = PhysicalCell(rawValue: 11)!
     public static let spacesWheelControl = PhysicalCell(rawValue: 3)!
     public static let systemOverviewWheelControl = PhysicalCell(rawValue: 4)!
-    // Extra Utilities; the Utility cell it vacated now sends Select All.
+    // Extra Utilities keeps the existing wheel route.
     public static let applicationWindowsWheelControl = PhysicalCell(rawValue: 1)!
 
-    /// Utility sends Command-A; Extra Utilities keeps Save separately.
-    public static let selectAll = PhysicalCell(rawValue: 5)!
+    /// Ethan's "four-finger swipe down" is native App Exposé on mouse Utility 5.
+    public static let applicationWindowsButton = PhysicalCell(rawValue: 5)!
+    public static let selectAll = PhysicalCell(rawValue: 2)!
+    /// The wand's Select all wedge owns the Backspace and Copy outer layers.
+    public static let wandSelectAll = PhysicalCell(rawValue: 5)!
     /// Sends one unmodified Tab keystroke from Extra Utilities. This is
     /// printed 2 on both supported mice.
     public static let extraUtilitiesTab = PhysicalCell(rawValue: 2)!

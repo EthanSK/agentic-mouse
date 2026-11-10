@@ -1267,7 +1267,7 @@ final class WandHoldToShowTests: XCTestCase {
         openUtilities()
         // Use an ordinary Utility action: any non-wheel, non-navigation card.
         let action = PhysicalCell.all.first { cell in
-            target.wandRadialLayout.contains(cell) && (ModeUtilityAction.directAction(for: cell).map { $0 != .selectAll } ?? false)
+            target.wandRadialLayout.contains(cell) && (ModeUtilityAction.directAction(for: cell, source: .wand).map { $0 != .selectAll } ?? false)
         }!
         hoverAim(at: action)
         tap(hold())

@@ -192,8 +192,8 @@ public enum WandOuterLayer {
     /// Select all stays in its existing Utility slot. Reach outward for
     /// Backspace, then Copy; Keys keeps its separate ordinary Backspace key.
     public static let utility: [WandOuterCard] = [
-        WandOuterCard(cell: .wandBackspace, parent: .selectAll, height: .thin),
-        WandOuterCard(cell: .wandCopy, parent: .selectAll, height: .thin, layer: 2),
+        WandOuterCard(cell: .wandBackspace, parent: .wandSelectAll, height: .thin),
+        WandOuterCard(cell: .wandCopy, parent: .wandSelectAll, height: .thin, layer: 2),
     ]
 
     /// The outer layer a wand page carries; only cards in its legend are drawn.
@@ -310,7 +310,7 @@ public enum WandRingOrder {
     public static let utility: [PhysicalCell] = [
         .extraUtilitiesSelector, .zoomWheelControl, .brightnessWheelControl,
         .systemOverviewWheelControl, .spacesWheelControl, .magnetWheelControl,
-        .selectAll, PhysicalCell(rawValue: 7)!, PhysicalCell(rawValue: 8)!,
+        .wandSelectAll, PhysicalCell(rawValue: 7)!, PhysicalCell(rawValue: 8)!,
         .keysModeSelector, .appSpecificModeSelector,
     ]
 

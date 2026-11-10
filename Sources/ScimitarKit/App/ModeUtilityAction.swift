@@ -87,9 +87,10 @@ public enum ModeUtilityAction: Equatable, Sendable {
         }
     }
 
-    public static func directAction(for cell: PhysicalCell) -> ModeUtilityAction? {
+    public static func directAction(for cell: PhysicalCell, source: MouseSource = .corsair) -> ModeUtilityAction? {
+        if cell == (source == .wand ? .wandSelectAll : .selectAll) { return .selectAll }
+        if source.isPhysicalAdapter, cell == .applicationWindowsButton { return .showApplicationWindows }
         switch cell {
-        case .selectAll: return .selectAll
         case .storedPassword:
             return .pasteStoredPassword
         case .intelligenceOnDemand:
@@ -115,15 +116,15 @@ public enum ModeUtilityAction: Equatable, Sendable {
 
     /// True for one-shot actions routed through the shared native executor.
     /// `directAction(for:)` separately decides which of them appear as Utility
-    /// cards; held-wheel families never enter this path.
+    /// cards. App Exposé shares its native output with the Extra Utilities wheel.
     public var isDirectAction: Bool {
         switch self {
         case .selectAll, .tab, .save, .rewindYouTubeFiveSeconds, .openIntelligenceOnDemand,
-             .organizeWindows, .spotifySongRadio, .quitApp, .pasteStoredPassword:
+             .showApplicationWindows, .organizeWindows, .spotifySongRadio, .quitApp, .pasteStoredPassword:
             return true
         case .increaseDisplayBrightness, .decreaseDisplayBrightness,
              .zoomIn, .zoomOut, .moveToSpaceLeft, .moveToSpaceRight,
-             .showDesktop, .missionControl, .showApplicationWindows:
+             .showDesktop, .missionControl:
             return false
         case .copy, .paste, .moveWindowLeftWithMagnet, .moveWindowRightWithMagnet:
             return false

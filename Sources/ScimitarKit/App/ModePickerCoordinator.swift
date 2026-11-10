@@ -318,8 +318,8 @@ public final class ModePickerCoordinator {
         log.info("Following frontmost app: \(context.displayName)")
     }
 
-    /// Opens the less-common configured-app selector from Utility cell 2. A
-    /// selected target stays locked without activation until universal exit.
+    /// Opens the configured-app selector. The wand exposes it from Utility;
+    /// a selected target stays locked without activation until universal exit.
     public func enterAppSelector(source: MouseSource) {
         guard !isActive else { return }
         activate(
@@ -514,7 +514,8 @@ public final class ModePickerCoordinator {
         let isExitCell = cell == .modeExit
             || ((page == .appSpecific || page == .chromeWebsites)
                 && cell == .frontmostAppModeSelector)
-        if phase == .press, cell != .selectAll, !isExitCell {
+        let utilityAction = page == .modes ? ModeUtilityAction.directAction(for: cell, source: source) : nil
+        if phase == .press, utilityAction != .selectAll, !isExitCell {
             selectAllGesture.commitPendingSinglePress()
         }
         if isExitCell {
@@ -550,14 +551,14 @@ public final class ModePickerCoordinator {
             } else if cell == .extraUtilitiesSelector {
                 navigate(to: .extraUtilities, openingCell: cell)
                 log.info("Extra Utilities opened from Utility on \(source.displayName)")
-            } else if let action = ModeUtilityAction.directAction(for: cell) {
+            } else if let action = utilityAction {
                 guard !nativeOutputHandled else {
                     hud.flashProblem("Unexpected native route for \(action.actionTitle)")
                     return
                 }
                 if action == .selectAll {
                     selectAllGesture.handlePress(source: source) { [weak self] in
-                        self?.performSelectAll(source: source)
+                        self?.performSelectAll(source: source, cell: cell)
                     } doublePress: { [weak self] in
                         guard let self else { return }
                         guard self.onKeysInput?(source, .insertSpace) == true else { return }
@@ -576,12 +577,9 @@ public final class ModePickerCoordinator {
                     }
                     return
                 }
-                if action == .selectAll {
-                    hud.flashFeedback(ModeHUDFeedback(message: "Select all sent", tone: .informational))
-                }
                 recordSelection(cell: cell)
                 log.info("\(action.actionTitle) from \(source.displayName)")
-            } else if cell == .appSpecificModeSelector {
+            } else if source == .wand, cell == .appSpecificModeSelector {
                 navigate(to: .appSelector, openingCell: cell)
                 log.info("App selector opened from \(source.displayName)")
             }
@@ -866,7 +864,7 @@ public final class ModePickerCoordinator {
         codexPinPressed = false
     }
 
-    private func performSelectAll(source: MouseSource) {
+    private func performSelectAll(source: MouseSource, cell: PhysicalCell) {
         guard isActive, self.source == source, page == .modes else { return }
         let outcome = onUtilityAction?(source, .selectAll) ?? .failed(message: nil)
         guard case .performed = outcome else {
@@ -876,7 +874,7 @@ public final class ModePickerCoordinator {
             return
         }
         hud.flashFeedback(ModeHUDFeedback(message: "Select all sent", tone: .informational))
-        recordSelection(cell: .selectAll)
+        recordSelection(cell: cell)
         log.info("Select all from \(source.displayName)")
     }
 
@@ -1350,7 +1348,7 @@ public final class ModePickerCoordinator {
                 controlStatus: control.hudControlStatus
             )
         }
-        if let action = ModeUtilityAction.directAction(for: cell) {
+        if let action = ModeUtilityAction.directAction(for: cell, source: source) {
             return ModeHUDLegendItem(
                 cell: cell,
                 actionTitle: action.actionTitle,
@@ -1358,7 +1356,7 @@ public final class ModePickerCoordinator {
             )
         }
         switch cell {
-        case .appSpecificModeSelector:
+        case .appSpecificModeSelector where source == .wand:
             return ModeHUDLegendItem(
                 cell: cell,
                 actionTitle: "Choose App Specific",
