@@ -343,12 +343,13 @@ and never synthesizes Command-V. Backspace and Return remain process-targeted
 native key events. Secure editable fields accept the same direct input; unknown
 focus and app changes still fail closed.
 The coordinator keeps a cycle-free navigation path per mouse, reusing an
-existing ancestor rather than stacking duplicate pages. Utility assigns cell 3
-to the Spaces wheel chord, cell 4 to the Mission Control / Show Desktop
-wheel chord, cell 5 to a down-only, one-action-per-hold native App Exposé chord, cell 6
-to the Magnet Left / Right wheel chord, cell 7 to Paste Password, and uses cell
-12 to enter the nested Extra Utilities page. Extra Utilities maps cell 1 to one
-manual hardware-like Control-Option-Command-A lifecycle, which invokes Stay's verified global restore
+existing ancestor rather than stacking duplicate pages. On both mice, Utility
+cell 2 sends Select All (Command-A), and cell 5 opens native App Exposé with one
+press. Cells 3, 4 and 6 control Spaces, Mission Control / Show Desktop and
+Magnet with the wheel. Cell 7 handles the Utility password and cell 12 opens
+Extra Utilities. Extra Utilities cell 1 also opens App Exposé with a held
+wheel-down gesture. Cell 12 sends one Control-Option-Command-A cycle to
+invoke Stay's verified global restore
 hotkey for `Agentic Mouse Layout v1`; no automatic restore, AppleScript, or Stay
 UI automation exists in Agentic Mouse. Extra Utilities cell 9 sends one
 hardware-like Command-Q lifecycle to the frontmost external process. It

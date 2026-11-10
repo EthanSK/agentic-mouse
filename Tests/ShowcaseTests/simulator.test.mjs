@@ -53,7 +53,7 @@ test("buttons enter Utility, Keys, Keypad and exit to the real Default map", () 
   }
 });
 
-test("automatic app mode follows changes but a manual selection and its Chrome child stay locked", () => {
+test("automatic app mode and its Chrome child follow the frontmost app", () => {
   const simulator = new MouseSimulator(map);
   enter(simulator, "codex");
   assert.equal(simulator.state.followsApp, true);
@@ -62,16 +62,25 @@ test("automatic app mode follows changes but a manual selection and its Chrome c
   enter(simulator, "websites");
   enter(simulator, "chrome");
   assert.equal(simulator.state.followsApp, true);
-  enter(simulator, "default");
-  enter(simulator, "utility");
-  enter(simulator, "apps");
-  enter(simulator, "chrome");
-  assert.equal(simulator.state.followsApp, false);
-  enter(simulator, "websites");
-  enter(simulator, "chrome");
   simulator.chooseApp("codex");
-  assert.equal(simulator.state.mode, "chrome");
-  assert.equal(simulator.state.followsApp, false);
+  assert.equal(simulator.state.mode, "codex");
+});
+
+test("mouse Utilities expose Select all and App Exposé as direct actions", () => {
+  for (const hand of Object.keys(map.sources)) {
+    const simulator = new MouseSimulator(map);
+    simulator.chooseHand(hand);
+    enter(simulator, "utility");
+    for (const [printed, title] of [[2, "⌘A Select all"], [5, "App Exposé"]]) {
+      const control = simulator.mode.controls.find(item => item.printed === printed);
+      assert.equal(control.title, title);
+      assert.equal(control.next, undefined);
+      assert.equal(control.wheel, undefined);
+      simulator.press(control.cell);
+      assert.equal(simulator.state.mode, "utility");
+      assert.equal(simulator.state.output, title);
+    }
+  }
 });
 
 test("left/right modes and Default legend toggles remain independent", () => {

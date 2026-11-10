@@ -74,12 +74,12 @@ class KarabinerGeneratorTests(unittest.TestCase):
             check=False,
         )
 
-    def test_utility_zoom_retains_release_and_only_choose_app_changes_page(self):
+    def test_utility_select_all_app_expose_and_zoom_keep_the_current_page(self):
         generated = json.loads((ROOT / "Karabiner/generated/agentic-mouse-runtime.json").read_text())
         modes = next(r for r in generated["rules"] if r["description"] == "Agentic Mouse — Modes (expiring, exact-device)")
         for source in ("corsair", "razer"):
             page = f"agentic_mouse_mode_picker_{source}_page"
-            for cell in (2, 11):
+            for cell in (2, 5, 11):
                 routes = []
                 for item in modes["manipulators"]:
                     commands = [e["send_user_command"]["payload"] for e in item.get("to", []) if "send_user_command" in e]
@@ -91,17 +91,14 @@ class KarabinerGeneratorTests(unittest.TestCase):
                 self.assertEqual(len(routes), 1, (source, cell))
                 route = routes[0]
                 mutations = [e["set_variable"] for e in route["to"] if "set_variable" in e]
-                if cell == 11:
-                    self.assertEqual(mutations, [], "Zoom must not silently switch Karabiner to Choose App")
-                    release = route["to_after_key_up"][0]
-                    self.assertEqual(release["send_user_command"]["payload"], {
-                        "command": "agentic_mouse_mode_picker", "action": "select",
-                        "source": source, "physical_cell": 11, "phase": "release",
-                    })
-                    self.assertIs(release["repeat"], False)
-                    self.assertTrue(release["conditions"], "key-up must retain the unlocked-session guard")
-                else:
-                    self.assertIn({"name": page, "value": 3}, mutations)
+                self.assertEqual(mutations, [], "Utility actions must leave the transport on Utility")
+                release = route["to_after_key_up"][0]
+                self.assertEqual(release["send_user_command"]["payload"], {
+                    "command": "agentic_mouse_mode_picker", "action": "select",
+                    "source": source, "physical_cell": cell, "phase": "release",
+                })
+                self.assertIs(release["repeat"], False)
+                self.assertTrue(release["conditions"], "key-up must retain the unlocked-session guard")
 
     def test_committed_generated_files_match_sources(self):
         result = self.run_generator("--check")
@@ -155,7 +152,7 @@ class KarabinerGeneratorTests(unittest.TestCase):
             item for item in generated["rules"]
             if item["description"] == "Agentic Mouse — Modes (expiring, exact-device)"
         )
-        self.assertEqual(len(rule["manipulators"]), 92)
+        self.assertEqual(len(rule["manipulators"]), 90)
         actions = []
         legend_toggles = []
         for manipulator in rule["manipulators"]:
@@ -225,7 +222,7 @@ class KarabinerGeneratorTests(unittest.TestCase):
                     self.assertEqual(release["physical_cell"], payload["physical_cell"])
 
         self.assertEqual(actions[:2], ["close", "close"])
-        self.assertEqual(actions.count("select"), 66)
+        self.assertEqual(actions.count("select"), 64)
         self.assertEqual(actions.count("selectNative"), 18)
         self.assertEqual(actions[-2:], ["open", "open"])
         self.assertEqual(

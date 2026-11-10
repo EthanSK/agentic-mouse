@@ -29,7 +29,6 @@ MODE_PAGE_UTILITY = 1
 MODE_PAGE_KEYS = 2
 MODE_PAGE_APP_SELECTOR = 3
 MODE_PAGE_APP_SPECIFIC = 4
-UTILITY_APP_SELECTOR_PHYSICAL_CELL = 2
 MODE_PAGE_KEYPAD = 5
 MODE_PAGE_EXTRA_UTILITIES = 6
 MODE_PAGE_CHROME_WEBSITES = 7
@@ -1129,13 +1128,6 @@ def build_mode_picker_rule(
                         "expression": f"{page_variable} == {MODE_PAGE_KEYS}",
                     }
                 )
-            if physical_cell == UTILITY_APP_SELECTOR_PHYSICAL_CELL:
-                ordinary_conditions.append(
-                    {
-                        "type": "expression_unless",
-                        "expression": f"{page_variable} == {MODE_PAGE_UTILITY}",
-                    }
-                )
             if physical_cell == 9:
                 ordinary_conditions.append(
                     {
@@ -1309,39 +1301,6 @@ def build_mode_picker_rule(
                             command_event("select", source, index + 1, "press"),
                         ],
                         "conditions": keypad_conditions,
-                    }
-                )
-
-            # Keep the transport page aligned with PhysicalCell's Utility
-            # selector. Cell 11 is a held Zoom control and must retain key-up.
-            if physical_cell == UTILITY_APP_SELECTOR_PHYSICAL_CELL:
-                selector_conditions = device_conditions(binding, source=source, active=True)
-                selector_conditions.append(
-                    {
-                        "type": "expression_if",
-                        "expression": f"{page_variable} == {MODE_PAGE_UTILITY}",
-                    }
-                )
-                manipulators.append(
-                    {
-                        "type": "basic",
-                        "from": copy.deepcopy(binding["from"]),
-                        "to": [
-                            {
-                                "set_variable": {
-                                    "name": page_variable,
-                                    "value": MODE_PAGE_APP_SELECTOR,
-                                }
-                            },
-                            {
-                                "set_variable": {
-                                    "name": app_selection_variable,
-                                    "value": APP_SELECTION_OTHER,
-                                }
-                            },
-                            command_event("select", source, index + 1, "press"),
-                        ],
-                        "conditions": selector_conditions,
                     }
                 )
 

@@ -2,7 +2,7 @@ import XCTest
 @testable import ScimitarKit
 
 final class ModePickerTests: XCTestCase {
-    func testSelectAllTabAndSaveArePressOnlyAndExposeLivesInExtraUtilities() {
+    func testUtilityButtonsAndExtraUtilitiesWheelKeepTheirPageAndDispatchOnce() {
         for source in MouseSource.allCases {
             let clickScheduler = ManualTickScheduler()
             let coordinator = makeCoordinator(reservedHUDScheduler: clickScheduler)
@@ -16,6 +16,13 @@ final class ModePickerTests: XCTestCase {
             clickScheduler.fire()
             XCTAssertEqual(actions, [.selectAll])
             XCTAssertNil(coordinator.activeWheelControl)
+            XCTAssertEqual(coordinator.page, .modes)
+            for phase in [ModePickerCommand.Phase.press, .release] {
+                coordinator.handle(.init(action: .select, source: source, physicalCell: .applicationWindowsButton, phase: phase))
+            }
+            XCTAssertEqual(actions, [.selectAll, .showApplicationWindows])
+            XCTAssertNil(coordinator.activeWheelControl)
+            XCTAssertEqual(coordinator.page, .modes)
             coordinator.handle(.init(action: .select, source: source, physicalCell: .extraUtilitiesSelector, phase: .press))
             coordinator.handle(.init(action: .select, source: source, physicalCell: .extraUtilitiesTab, phase: .press))
             coordinator.handle(.init(action: .select, source: source, physicalCell: .extraUtilitiesTab, phase: .release))
@@ -25,8 +32,9 @@ final class ModePickerTests: XCTestCase {
             XCTAssertNil(coordinator.activeWheelControl)
             coordinator.handle(.init(action: .select, source: source, physicalCell: .extraUtilitiesSave, phase: .press))
             coordinator.handle(.init(action: .select, source: source, physicalCell: .extraUtilitiesSave, phase: .release))
-            XCTAssertEqual(actions, [.selectAll, .tab, .save])
-            XCTAssertEqual(ModePickerCoordinator.modesLegend(for: source)[4].actionTitle, "⌘A Select all")
+            XCTAssertEqual(actions, [.selectAll, .showApplicationWindows, .tab, .save])
+            XCTAssertEqual(ModePickerCoordinator.modesLegend(for: source)[1].actionTitle, "⌘A Select all")
+            XCTAssertEqual(ModePickerCoordinator.modesLegend(for: source)[4].actionTitle, "App Exposé")
             XCTAssertEqual(ModePickerCoordinator.extraUtilitiesLegend(for: source)[0].actionTitle, "App Exposé")
             XCTAssertEqual(ModePickerCoordinator.extraUtilitiesLegend(for: source)[1].actionTitle, "⇥ Tab")
             XCTAssertEqual(ModePickerCoordinator.extraUtilitiesLegend(for: source)[6].actionTitle, "Save")
@@ -156,10 +164,10 @@ final class ModePickerTests: XCTestCase {
         XCTAssertEqual(hud.snapshots.last?.modeTitle, "Utility modes")
         XCTAssertEqual(ModePickerCoordinator.modesLegend.count, 12)
         XCTAssertEqual(ModePickerCoordinator.modesLegend[0].actionTitle, "Brightness")
-        XCTAssertEqual(ModePickerCoordinator.modesLegend[1].actionTitle, "Choose App Specific")
+        XCTAssertEqual(ModePickerCoordinator.modesLegend[1].actionTitle, "⌘A Select all")
         XCTAssertEqual(ModePickerCoordinator.modesLegend[2].actionTitle, "Spaces")
         XCTAssertEqual(ModePickerCoordinator.modesLegend[3].actionTitle, "Mission / Desktop")
-        XCTAssertEqual(ModePickerCoordinator.modesLegend[4].actionTitle, "⌘A Select all")
+        XCTAssertEqual(ModePickerCoordinator.modesLegend[4].actionTitle, "App Exposé")
         XCTAssertEqual(ModePickerCoordinator.modesLegend[5].actionTitle, "Magnet")
         XCTAssertEqual(ModePickerCoordinator.modesLegend[6].actionTitle, "PP")
         XCTAssertEqual(ModePickerCoordinator.modesLegend[7].actionTitle, "Intelligence on demand")
@@ -251,7 +259,7 @@ final class ModePickerTests: XCTestCase {
             .systemOverview
         )
         XCTAssertNil(ModeUtilityAction.directAction(for: PhysicalCell(rawValue: 4)!))
-        XCTAssertEqual(ModeUtilityAction.directAction(for: PhysicalCell(rawValue: 5)!), .selectAll)
+        XCTAssertEqual(ModeUtilityAction.directAction(for: PhysicalCell(rawValue: 5)!), .showApplicationWindows)
         XCTAssertEqual(PhysicalCell.systemOverviewWheelControl.printedSide(on: .corsair), 4)
         XCTAssertEqual(PhysicalCell.systemOverviewWheelControl.printedSide(on: .razer), 6)
     }
@@ -259,7 +267,7 @@ final class ModePickerTests: XCTestCase {
     func testOnlyOnePressUtilityCardsUseTheDirectActionRoute() {
         XCTAssertFalse(ModeUtilityAction.showDesktop.isDirectAction)
         XCTAssertFalse(ModeUtilityAction.missionControl.isDirectAction)
-        XCTAssertFalse(ModeUtilityAction.showApplicationWindows.isDirectAction)
+        XCTAssertTrue(ModeUtilityAction.showApplicationWindows.isDirectAction)
         XCTAssertTrue(ModeUtilityAction.organizeWindows.isDirectAction)
         XCTAssertTrue(ModeUtilityAction.tab.isDirectAction)
         XCTAssertTrue(ModeUtilityAction.quitApp.isDirectAction)
@@ -790,8 +798,7 @@ final class ModePickerTests: XCTestCase {
             return true
         }
 
-        coordinator.enter(source: .razer)
-        coordinator.handle(.init(action: .select, source: .razer, physicalCell: .appSpecificModeSelector))
+        coordinator.enterAppSelector(source: .razer)
 
         XCTAssertEqual(coordinator.page, .appSelector)
         XCTAssertEqual(hud.snapshots.last?.modeTitle, "Choose app")
@@ -1287,12 +1294,7 @@ final class ModePickerTests: XCTestCase {
 
         let manualHUD = RecordingModeHUDPresenter()
         let manual = makeCoordinator(hud: manualHUD)
-        manual.enter(source: .razer)
-        manual.handle(.init(
-            action: .select,
-            source: .razer,
-            physicalCell: .appSpecificModeSelector
-        ))
+        manual.enterAppSelector(source: .razer)
         manual.handle(.init(
             action: .select,
             source: .razer,
@@ -1672,7 +1674,7 @@ final class ModePickerTests: XCTestCase {
             ModePickerCoordinator.keysAccent
         )
         XCTAssertEqual(
-            ModePickerCoordinator.modesLegend[PhysicalCell.appSpecificModeSelector.rawValue - 1]
+            ModePickerCoordinator.modesLegend(for: .wand)[PhysicalCell.appSpecificModeSelector.rawValue - 1]
                 .destinationModeAccent,
             ModePickerCoordinator.appSpecificAccent
         )
@@ -1808,14 +1810,14 @@ final class ModePickerTests: XCTestCase {
         XCTAssertEqual(hud.snapshots.last?.selection?.title, "Voice mode")
     }
 
-    func testUtilityCellTwoOpensTheManualConfiguredAppSelector() {
+    func testWandUtilityCellTwoStillOpensTheManualConfiguredAppSelector() {
         let hud = RecordingModeHUDPresenter()
         let coordinator = makeCoordinator(hud: hud)
 
-        coordinator.enter(source: .corsair)
+        coordinator.enter(source: .wand)
         coordinator.handle(.init(
             action: .select,
-            source: .corsair,
+            source: .wand,
             physicalCell: .appSpecificModeSelector
         ))
 

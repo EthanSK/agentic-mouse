@@ -48,19 +48,20 @@ iCUE database or profile file behind the app's back.
    selected mouse, macro keys and LED LUIDs. This is read-only.
 6. Hold top-level physical cell 1 and ratchet the wheel once each way to prove
    Space left/right without entering a mode. Enter Utility with cell 12, then
-   hold cells 1/2 and ratchet once each way to prove Brightness up/down and Zoom
-   in/out. Hold cell 3 and verify one wheel-up ratchet copies while one
-   wheel-down ratchet pastes. Hold cell 6 and verify one wheel-up ratchet sends
+   hold cells 1 and 11 and ratchet once each way to prove Brightness and Zoom.
+   Press cell 2 to select all in a disposable text field. Press cell 5 to
+   open App Exposé for the frontmost app. Both buttons stay on Utility.
+   Hold cell 6 and verify one wheel-up ratchet sends
    Magnet Left while one wheel-down ratchet sends Magnet Right. Hold cell 4 and
    verify one wheel-up ratchet enters Mission Control while one wheel-down
-   ratchet shows the desktop. Hold cell 5 and verify wheel-up is consumed with
-   no action, then one wheel-down ratchet opens native App Exposé. Extra
-   ratchets during that hold must not close it; release before another action.
+   ratchet shows the desktop.
    Verify cell 7 types the
    configured device-local Keychain password without using the clipboard,
    and every wheel action stays one step per ratchet. Press Utility cell 12 to
    open Extra Utilities, confirm its source-aware label is Corsair 12 / Razer
-   10, then press Extra Utilities cell 1 (Corsair 1 / Razer 3) and confirm Stay
+   10. Hold Extra Utilities cell 1 (Corsair 1 / Razer 3) and confirm only the
+   first wheel-down ratchet opens App Exposé. Press Extra Utilities cell 12
+   and confirm Stay
    performs exactly one manual `Agentic Mouse Layout v1` restore through the
    reserved Control-Option-Command-A shortcut.
    With a harmless disposable app frontmost, press Extra Utilities cell 9 and

@@ -1,5 +1,9 @@
 # Learnings
 
+## 2026-11-10 — Mouse Utility buttons 2 and 5 stay on Utility
+
+Ethan's “four-finger swipe down” is native App Exposé. On Corsair and Razer, Utility 5 now sends the existing Application Windows action on press and Utility 2 sends Command-A, retaining its double-press Space action. Remove the old Utility 2 page transition from the Karabiner generator as well as the Swift mouse HUD. Otherwise Karabiner enters Choose App before Swift can handle Select All, misrouting the next press. Extra Utilities keeps its existing App Exposé wheel shortcut, and the Wand retains its separate Choose App and Select All wedges.
+
 ## 2026-11-08 — Background reopen is not a Settings request
 
 AppKit delivers `applicationShouldHandleReopen` for an already-running app even when `open -g` requests a background reopen. The old handler unconditionally opened Settings and called `activate(ignoringOtherApps:)`, defeating the caller's background request. On the reserved native desktop, that event arrived inactive; a genuine Dock-tile AX press and an ordinary foreground reopen arrived active. Guard the reopen handler before constructing the lazy settings window. Preserve the existing foreground-launch and explicit menu paths, and return false for ignored reopens so AppKit cannot create a default window.
