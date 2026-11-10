@@ -5,13 +5,21 @@ public enum ClaudeModeAction: String, CaseIterable, Equatable, Sendable {
     case newChat
     case toggleMicrophoneMute
     case pressEnter
+    case toggleFastMode
+    case chooseEffort
+    case openSideChat
+    case closePane
 
     public var cell: PhysicalCell {
         switch self {
-        case .toggleVoiceMode: return PhysicalCell(rawValue: 12)!
-        case .newChat: return PhysicalCell(rawValue: 5)!
-        case .toggleMicrophoneMute: return PhysicalCell(rawValue: 11)!
-        case .pressEnter: return PhysicalCell(rawValue: 7)!
+        case .toggleVoiceMode: return CodexModeAction.toggleVoiceMode.cell
+        case .newChat: return CodexModeAction.newTask.cell
+        case .toggleMicrophoneMute: return CodexModeAction.toggleMicrophoneMute.cell
+        case .pressEnter: return CodexModeAction.pressEnter.cell
+        case .toggleFastMode: return CodexMode.responseSpeedWheelCell
+        case .chooseEffort: return CodexMode.reasoningEffortWheelCell
+        case .openSideChat: return CodexModeAction.openSideChat.cell
+        case .closePane: return CodexModeAction.closeTab.cell
         }
     }
 
@@ -20,7 +28,11 @@ public enum ClaudeModeAction: String, CaseIterable, Equatable, Sendable {
         case .toggleVoiceMode: return "Voice mode"
         case .newChat: return "New chat"
         case .toggleMicrophoneMute: return "Mute / unmute voice mic"
-        case .pressEnter: return "Enter"
+        case .pressEnter: return CodexModeAction.pressEnter.title
+        case .toggleFastMode: return "Fast mode"
+        case .chooseEffort: return "Choose effort"
+        case .openSideChat: return CodexModeAction.openSideChat.title
+        case .closePane: return "Close pane"
         }
     }
 
@@ -29,7 +41,11 @@ public enum ClaudeModeAction: String, CaseIterable, Equatable, Sendable {
         case .toggleVoiceMode: return RGBColor(red: 29, green: 211, blue: 211)
         case .newChat: return RGBColor(red: 52, green: 150, blue: 255)
         case .toggleMicrophoneMute: return RGBColor(red: 255, green: 72, blue: 137)
-        case .pressEnter: return ModeHUDActionFamilyPalette.enter
+        case .pressEnter: return CodexModeAction.pressEnter.hudAccent
+        case .toggleFastMode: return WheelChordControl.codexResponseSpeed.hudAccent
+        case .chooseEffort: return WheelChordControl.codexReasoningEffort.hudAccent
+        case .openSideChat: return CodexModeAction.openSideChat.hudAccent
+        case .closePane: return CodexModeAction.closeTab.hudAccent
         }
     }
 
@@ -41,17 +57,9 @@ public enum ClaudeModeAction: String, CaseIterable, Equatable, Sendable {
 public enum ClaudeMode {
     public static let bundleIdentifier = "com.anthropic.claudefordesktop"
     public static let accent = RGBColor(red: 222, green: 121, blue: 82)
-    public static let pinToggleCell = PhysicalCell(rawValue: 3)!
-    public static let tabsWheelCell = PhysicalCell(rawValue: 6)!
-
-    private static let unavailableTitles: [Int: String] = [
-        8: "Toggle side panel",
-        9: "Open side chat",
-    ]
-    /// Mirrors Codex's held-wheel card; Claude exposes no equivalent.
-    private static let unavailableGestures: [Int: ModeHUDGesture] = [
-        4: WheelChordControl.codexReasoningEffort.hudGesture,
-    ]
+    // Match Codex muscle memory while using Claude's own native commands.
+    public static let pinToggleCell = CodexMode.pinToggleCell
+    public static let tabsWheelCell = CodexMode.chatHistoryWheelCell
 
     public static let definition = AppSpecificModeDefinition(
         title: "Claude mode",
@@ -62,17 +70,26 @@ public enum ClaudeMode {
             if cell.isAppSpecificModeExit {
                 return ModeHUDLegendItem(
                     cell: cell,
-                    actionTitle: "Exit Claude mode",
+                    actionTitle: cell == CodexMode.pinModifierCell ? "Exit · Hold for Pin/Unpin" : "Exit Claude mode",
                     accent: accent,
                     appBackdrop: ModeHUDAppBackdrop(bundleIdentifier: bundleIdentifier)
-                )
+                ).withWandTitle("Exit Claude mode")
+            }
+            if cell == pinToggleCell {
+                let pin = WheelChordControl.claudePin
+                return ModeHUDLegendItem(
+                    cell: cell,
+                    actionTitle: CodexModeAction.togglePin.title,
+                    accent: pin.hudAccent,
+                    controlStatus: .reportedBroken
+                ).withHeldModifier(CodexMode.pinModifierCell)
+                    .withWandTitle("\(pin.hudHoldTitle) \(pin.wandHUDMotion.glyph)")
             }
             if let control = WheelChordControl.appSpecificControl(for: .claude, cell: cell) {
                 return ModeHUDLegendItem(
                     cell: cell,
                     gesture: control.hudGesture,
-                    accent: control.hudAccent,
-                    controlStatus: control == .claudePin ? .reportedBroken : .normal
+                    accent: control.hudAccent
                 )
             }
             if let action = ClaudeModeAction.action(for: cell) {
@@ -80,22 +97,6 @@ public enum ClaudeMode {
                     cell: cell,
                     actionTitle: action.title,
                     accent: action.hudAccent
-                )
-            }
-            if let gesture = unavailableGestures[cell.rawValue] {
-                return ModeHUDLegendItem(
-                    cell: cell,
-                    gesture: gesture,
-                    accent: RGBColor(red: 118, green: 126, blue: 142),
-                    controlStatus: .unavailable
-                )
-            }
-            if let title = unavailableTitles[cell.rawValue] {
-                return ModeHUDLegendItem(
-                    cell: cell,
-                    actionTitle: title,
-                    accent: RGBColor(red: 118, green: 126, blue: 142),
-                    controlStatus: .unavailable
                 )
             }
             return ModeHUDLegendItem(

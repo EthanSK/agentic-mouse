@@ -199,9 +199,9 @@ func exportSource(_ source: MouseSource) -> SiteSource {
             let press = ModePickerCommand(action: .select, source: source, physicalCell: item.cell, phase: .press)
             let cellProbe = SiteProbe(source: source, commands: route.commands, app: route.app)
             cellProbe.coordinator.handle(press)
-            // Codex's pin modifier decides its unused Exit on release.
+            // A pin modifier decides its unused Exit on release.
             // Export a complete solo click, without simulating a pin chord.
-            if probe.coordinator.appSpecificTarget == .codex, item.cell == CodexMode.pinModifierCell {
+            if snapshot.legend.contains(where: { $0.heldModifierCell == item.cell }) {
                 cellProbe.coordinator.handle(.init(action: .select, source: source,
                     physicalCell: item.cell, phase: .release))
             }

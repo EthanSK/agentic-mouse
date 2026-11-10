@@ -9,20 +9,22 @@ final class ClaudeModeActionExecutorTests: XCTestCase {
         let expected: [(ClaudeModeAction, ApplicationShortcutDispatcher.Shortcut)] = [
             (.newChat, .init(keyCode: 45, flags: .maskCommand)),
             (.pressEnter, .init(keyCode: 36, flags: [])),
+            (.toggleFastMode, .init(keyCode: 3, flags: [.maskCommand, .maskAlternate])),
+            (.chooseEffort, .init(keyCode: 14, flags: [.maskCommand, .maskShift])),
         ]
 
         for (action, shortcut) in expected {
             XCTAssertEqual(ClaudeModeActionExecutor.shortcut(for: action), shortcut)
         }
         XCTAssertEqual(ClaudeModeActionExecutor.tabShortcut(for: .up),
-                       .init(keyCode: 124, flags: [.maskCommand, .maskAlternate]))
+                       .init(keyCode: 30, flags: [.maskCommand, .maskShift]))
         XCTAssertEqual(ClaudeModeActionExecutor.tabShortcut(for: .down),
-                       .init(keyCode: 123, flags: [.maskCommand, .maskAlternate]))
+                       .init(keyCode: 33, flags: [.maskCommand, .maskShift]))
     }
 
     func testClaudeAccessibilityActionsStayExactAndSeparateFromKeyboardShortcuts() {
         let actions: [ClaudeModeAction] = [
-            .toggleVoiceMode, .toggleMicrophoneMute,
+            .toggleVoiceMode, .toggleMicrophoneMute, .openSideChat, .closePane,
         ]
         var performed: [ClaudeModeAction] = []
         let executor = ClaudeModeActionExecutor(

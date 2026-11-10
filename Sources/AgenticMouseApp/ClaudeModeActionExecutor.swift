@@ -37,7 +37,7 @@ final class ClaudeModeActionExecutor {
             accessibilityTrusted: accessibilityTrusted,
             inputAllowed: inputAllowed
         )
-        self.performAccessibilityAction = performAccessibilityAction ?? Self.pressExactClaudeButton
+        self.performAccessibilityAction = performAccessibilityAction ?? Self.pressClaudeControl
         self.accessibilityTrusted = accessibilityTrusted
         self.inputAllowed = inputAllowed
     }
@@ -79,17 +79,56 @@ final class ClaudeModeActionExecutor {
 
     static func tabShortcut(for direction: WheelChordDirection) -> ApplicationShortcutDispatcher.Shortcut {
         // Match Codex's held-wheel navigation: up advances, down goes back.
-        .init(keyCode: direction == .up ? 124 : 123,
-              flags: [.maskCommand, .maskAlternate])
+        .init(keyCode: direction == .up ? 30 : 33,
+              flags: [.maskCommand, .maskShift])
     }
 
     static func shortcut(for action: ClaudeModeAction) -> ApplicationShortcutDispatcher.Shortcut? {
         switch action {
         case .newChat: return .init(keyCode: 45, flags: .maskCommand)
         case .pressEnter: return .init(keyCode: 36, flags: [])
-        case .toggleVoiceMode, .toggleMicrophoneMute:
+        case .toggleFastMode: return .init(keyCode: 3, flags: [.maskCommand, .maskAlternate])
+        case .chooseEffort: return .init(keyCode: 14, flags: [.maskCommand, .maskShift])
+        case .toggleVoiceMode, .toggleMicrophoneMute, .openSideChat, .closePane:
             return nil
         }
+    }
+
+    private static func pressClaudeControl(_ action: ClaudeModeAction) -> Bool {
+        switch action {
+        case .openSideChat:
+            return pressMenuItem("New Side Chat", in: "File")
+        case .closePane:
+            return pressMenuItem("Close Pane", in: "View")
+        default:
+            return pressExactClaudeButton(action)
+        }
+    }
+
+    private static func pressMenuItem(_ title: String, in menuTitle: String) -> Bool {
+        guard let application = NSRunningApplication.runningApplications(
+            withBundleIdentifier: ClaudeMode.bundleIdentifier
+        ).first(where: { $0.isActive }) else { return false }
+        let root = AXUIElementCreateApplication(application.processIdentifier)
+        AXUIElementSetMessagingTimeout(root, 0.08)
+        guard let window = focusedWindow(of: root),
+              let menuBar = elementAttribute(kAXMenuBarAttribute as CFString, of: root)
+        else { return false }
+
+        // Claude's Close Window is always available. Only use the exact
+        // session/pane command, and only when Claude has enabled it.
+        let menus = children(of: menuBar).filter {
+            stringAttribute(kAXTitleAttribute as CFString, of: $0) == menuTitle
+        }
+        guard menus.count == 1 else { return false }
+        let matching = children(of: menus[0]).flatMap { children(of: $0) }.filter {
+            role(of: $0) == kAXMenuItemRole as String
+                && stringAttribute(kAXTitleAttribute as CFString, of: $0) == title
+        }
+        guard matching.count == 1, isEnabled(matching[0]), supportsPress(matching[0]),
+              application.isActive, let current = focusedWindow(of: root), CFEqual(window, current)
+        else { return false }
+        return AXUIElementPerformAction(matching[0], kAXPressAction as CFString) == .success
     }
 
     private static func pressExactClaudeButton(_ action: ClaudeModeAction) -> Bool {
@@ -159,13 +198,14 @@ final class ClaudeModeActionExecutor {
     }
 
     private static func focusedWindow(of application: AXUIElement) -> AXUIElement? {
+        elementAttribute(kAXFocusedWindowAttribute as CFString, of: application)
+    }
+
+    private static func elementAttribute(_ name: CFString, of element: AXUIElement) -> AXUIElement? {
         var value: CFTypeRef?
-        guard AXUIElementCopyAttributeValue(
-            application,
-            kAXFocusedWindowAttribute as CFString,
-            &value
-        ) == .success,
-        let value else { return nil }
+        guard AXUIElementCopyAttributeValue(element, name, &value) == .success,
+              let value, CFGetTypeID(value) == AXUIElementGetTypeID()
+        else { return nil }
         return unsafeBitCast(value, to: AXUIElement.self)
     }
 

@@ -1,5 +1,13 @@
 # Learnings
 
+## 2026-11-10 — Match Claude mouse positions with Claude's own controls
+
+**Trigger:** Ethan wanted to move between Claude and Codex without relearning the mouse grid.
+
+**Decision:** Share Codex's canonical cells and protected Pin chord. Claude Code provides its own Fast mode toggle, effort picker, and previous/next session shortcuts. Opening the effort picker is a click so the user can choose a level from Claude's current options.
+
+**Guard:** Use exact enabled New Side Chat and Close Pane commands. Never fall back to Close Window. A detached Claude Code test session disabled both pane commands and its title menu omitted Pin. A control's presence elsewhere does not establish availability in that window. Preserve the Pin repair marker pending physical acceptance.
+
 ## 2026-11-10 — Mouse Utility buttons 2 and 5 stay on Utility
 
 Ethan's “four-finger swipe down” is native App Exposé. On Corsair and Razer, Utility 5 now sends the existing Application Windows action on press and Utility 2 sends Command-A, retaining its double-press Space action. Remove the old Utility 2 page transition from the Karabiner generator as well as the Swift mouse HUD. Otherwise Karabiner enters Choose App before Swift can handle Select All, misrouting the next press. Extra Utilities keeps its existing App Exposé wheel shortcut, and the Wand retains its separate Choose App and Select All wedges.
