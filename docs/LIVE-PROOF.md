@@ -100,7 +100,7 @@ iCUE database or profile file behind the app's back.
     that icon without changing the semantic action-family fills. Repeat with a
     strongly different app icon and one neutral icon. The outer panel artwork
     and every other card must remain unchanged. Enter
-    Utility → Choose app and confirm each named app slot shows its own icon,
+    the Wand's Utility → Choose App Specific page and confirm each named app slot shows its own icon,
     while selector spares and the selected child app page use no app artwork.
 11. Open automatic app mode with Spotify, Notion, OBS, Claude, and one ordinary
     browser frontmost. Confirm each shows its named starter grid and exercise
@@ -109,11 +109,11 @@ iCUE database or profile file behind the app's back.
     dedicated Settings, Voice Mode, New Chat, Mute/Unmute Voice Mic, Enter,
     Reload, Sidebar, Previous Tab, and Next Tab cards; exact UI controls must
     fail closed rather than press an ambiguous match. Open two of those same targets
-    through Utility → Choose app and confirm the card titles and actions are
+    through the Wand's Utility → Choose App Specific page and confirm the actions are
     byte-for-byte identical to the automatic journey. Verify both matching
     entry cell 2 and universal cell 10 exit each app child, while cell 2 still
     chooses Terminal on the parent selector, and that no action fires while the
-    session is locked. In both Spotify journeys, hold physical cell 7 (Corsair
+    session is locked. In automatic Spotify mode, hold physical cell 7 (Corsair
     7 / Razer 9): one wheel-up ratchet must raise Spotify volume and one
     wheel-down ratchet must lower it without bringing Spotify frontmost. Release
     the button and confirm ordinary scrolling resumes; cell 8 must remain Spare.
