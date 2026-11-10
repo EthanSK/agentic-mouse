@@ -195,7 +195,12 @@ final class ModeHUDGestureTests: XCTestCase {
         for target in AppSpecificTarget.allCases {
             for item in target.definition.legend {
                 guard let control = WheelChordControl.appSpecificControl(for: target, cell: item.cell) else { continue }
-                XCTAssertEqual(item.gesture, control.hudGesture, "\(target.displayName) \(item.cell)")
+                if control == .claudePin {
+                    XCTAssertEqual(item.heldModifierCell, CodexMode.pinModifierCell)
+                    XCTAssertEqual(item.displayTitle(on: .wand), "Pin/Unpin ↕")
+                } else {
+                    XCTAssertEqual(item.gesture, control.hudGesture, "\(target.displayName) \(item.cell)")
+                }
             }
         }
         let tracks = ModePickerCoordinator.keysLegend(for: .corsair).first { $0.cell == .mediaTracksWheelControl }!
@@ -220,12 +225,14 @@ final class ModeHUDGestureTests: XCTestCase {
     }
 
     func testRepairAndUnavailableMarkersKeepTheirMeaning() {
-        let pin = ClaudeMode.definition.legend[2]
-        XCTAssertEqual(pin.displayTitle(on: .corsair), "Pin/Unpin ↕")
-        XCTAssertEqual(pin.printedControlLabel(on: .corsair), "Corsair 3 ❌")
-        let effort = ClaudeMode.definition.legend[3]
-        XCTAssertEqual(effort.displayTitle(on: .corsair), "Reasoning Effort ↕", "mirrors Codex's card")
-        XCTAssertEqual(effort.printedControlLabel(on: .razer), "Razer 6 ×")
+        let pin = ClaudeMode.definition.legend[0]
+        XCTAssertEqual(pin.displayTitle(on: .corsair), "Pin/Unpin + Hold Corsair 2")
+        XCTAssertEqual(pin.printedControlLabel(on: .corsair), "Corsair 1 ❌")
+        XCTAssertEqual(pin.displayTitle(on: .razer), "Pin/Unpin + Hold Razer 2")
+        XCTAssertEqual(pin.printedControlLabel(on: .razer), "Razer 3 ❌")
+        let effort = ClaudeMode.definition.legend[5]
+        XCTAssertEqual(effort.displayTitle(on: .corsair), "Choose effort")
+        XCTAssertNil(effort.gesture)
         let codexPin = CodexMode.definition.legend.first { $0.cell == CodexMode.pinToggleCell }!
         XCTAssertNil(codexPin.gesture, "Codex pins with a hold-2 chord, not the wheel")
         XCTAssertEqual(codexPin.heldModifierCell, CodexMode.pinModifierCell)

@@ -58,7 +58,7 @@ public enum WheelChordControl: String, Codable, CaseIterable, Sendable {
         case .codexChatHistory: return "Chats Selection"
         case .codexPin: return "Pin/Unpin"
         case .claudePin: return "Pin/Unpin"
-        case .claudeTabs: return "Tabs"
+        case .claudeTabs: return WheelChordControl.codexChatHistory.actionTitle
         }
     }
 
@@ -429,7 +429,7 @@ public enum WheelChordControl: String, Codable, CaseIterable, Sendable {
                 ? "Chat Forward"
                 : "Chat Back"
         case .claudeTabs:
-            return direction == .up ? "Tab Forward" : "Tab Back"
+            return direction == .up ? "Chat Forward" : "Chat Back"
         case .applicationWindows:
             // Wheel-up is intentionally consumed without an action.
             return nil

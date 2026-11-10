@@ -2041,14 +2041,14 @@ final class ModePickerTests: XCTestCase {
         }
     }
 
-    func testEveryAppSpecificChildReservesBothExitsAndCodexNamesItsPinModifier() {
+    func testEveryAppSpecificChildReservesBothExitsAndNamesItsPinModifier() {
         for target in AppSpecificTarget.allCases {
             let definition = target.definition
             let expectedTitle = "Exit \(target.displayName) mode"
             let exitItems = definition.legend.filter { $0.cell.isAppSpecificModeExit }
 
             XCTAssertEqual(exitItems.count, 2, "\(target.displayName) exit count")
-            let expectedTitles: Set<String> = target == .codex
+            let expectedTitles: Set<String> = target == .codex || target == .claude
                 ? [expectedTitle, "Exit · Hold for Pin/Unpin"] : [expectedTitle]
             XCTAssertEqual(Set(exitItems.map(\.actionTitle)), expectedTitles)
         }
@@ -3034,21 +3034,16 @@ final class ModePickerTests: XCTestCase {
         }
     }
 
-    func testClaudeMirrorsCodexCellsAndUnavailableActionsStayInertOnBothMice() {
+    func testClaudeUsesCodexCellsWithClaudeActions() {
         let expected = [
-            "Spare", "Exit Claude mode", "Pin/Unpin", "Reasoning Effort",
-            "New chat", "Tabs", "Enter", "Toggle side panel", "Open side chat",
+            "Pin/Unpin", "Exit · Hold for Pin/Unpin", "Fast mode", "Open side chat",
+            "New chat", "Choose effort", "Enter", "Close pane", "Chats Selection",
             "Exit Claude mode", "Mute / unmute voice mic", "Voice mode",
         ]
         XCTAssertEqual(ClaudeMode.definition.legend.map(\.actionTitle), expected)
-        for cell in [4, 8, 9] {
-            XCTAssertEqual(ClaudeMode.definition.legend[cell - 1].controlStatus, .unavailable)
-            XCTAssertNil(ClaudeModeAction.action(for: PhysicalCell(rawValue: cell)!))
-        }
-        XCTAssertEqual(ClaudeMode.definition.legend[2].printedControlLabel(on: .corsair), "Corsair 3 ❌")
-        XCTAssertEqual(ClaudeMode.definition.legend[2].printedControlLabel(on: .razer), "Razer 1 ❌")
-        XCTAssertEqual(ClaudeMode.definition.legend[3].printedControlLabel(on: .corsair), "Corsair 4 ×")
-        XCTAssertEqual(ClaudeMode.definition.legend[3].printedControlLabel(on: .razer), "Razer 6 ×")
+        XCTAssertEqual(ClaudeMode.definition.legend[0].controlStatus, .reportedBroken)
+        XCTAssertEqual(ClaudeMode.pinToggleCell, CodexMode.pinToggleCell)
+        XCTAssertEqual(ClaudeMode.tabsWheelCell, CodexMode.chatHistoryWheelCell)
         XCTAssertEqual(WheelChordControl.appSpecificControl(for: .claude, cell: ClaudeMode.pinToggleCell), .claudePin)
         XCTAssertEqual(WheelChordControl.appSpecificControl(for: .claude, cell: ClaudeMode.tabsWheelCell), .claudeTabs)
 
@@ -3065,12 +3060,12 @@ final class ModePickerTests: XCTestCase {
                 return true
             }
             coordinator.enterAppSpecific(source: source)
-            for cell in [4, 8, 9] {
+            for cell in [3, 4, 6, 8] {
                 let physicalCell = PhysicalCell(rawValue: cell)!
                 coordinator.handle(.init(action: .select, source: source, physicalCell: physicalCell, phase: .press))
                 coordinator.handle(.init(action: .select, source: source, physicalCell: physicalCell, phase: .release))
             }
-            XCTAssertTrue(actions.isEmpty)
+            XCTAssertEqual(actions, [.toggleFastMode, .openSideChat, .chooseEffort, .closePane])
             coordinator.handle(.init(action: .select, source: source, physicalCell: ClaudeMode.tabsWheelCell, phase: .press))
             XCTAssertEqual(coordinator.activeWheelControl, .claudeTabs)
             coordinator.handle(.init(action: .select, source: source, physicalCell: ClaudeMode.tabsWheelCell, phase: .release))
@@ -3078,8 +3073,42 @@ final class ModePickerTests: XCTestCase {
         }
     }
 
-    func testClaudePinUsesEitherDirectionOncePerSameSourceHold() {
-        for source in MouseSource.allCases {
+    func testClaudePinUsesTheOpeningModifierOnBothMice() {
+        for source in MouseSource.allCases where source.isPhysicalAdapter {
+            let coordinator = makeCoordinator()
+            coordinator.resolveFrontmostApp = {
+                .init(target: .claude, displayName: "Claude", bundleIdentifier: ClaudeMode.bundleIdentifier)
+            }
+            var toggles = 0
+            coordinator.onAppSpecificInput = { _, target, cell, phase, _ in
+                guard target == .claude, cell == ClaudeMode.pinToggleCell, phase == .press else { return false }
+                toggles += 1
+                return true
+            }
+            func send(_ cell: PhysicalCell, _ phase: ModePickerCommand.Phase,
+                      action: ModePickerCommand.Action = .select, from mouse: MouseSource? = nil) {
+                coordinator.handle(.init(action: action, source: mouse ?? source, physicalCell: cell, phase: phase))
+            }
+            send(CodexMode.pinModifierCell, .press, action: .openAppSpecific)
+            send(ClaudeMode.pinToggleCell, .press, from: source == .corsair ? .razer : .corsair)
+            XCTAssertEqual(toggles, 0)
+            send(ClaudeMode.pinToggleCell, .press)
+            send(ClaudeMode.pinToggleCell, .press)
+            send(ClaudeMode.pinToggleCell, .release)
+            send(CodexMode.pinModifierCell, .release, action: .openAppSpecific)
+            XCTAssertEqual(toggles, 1)
+            XCTAssertTrue(coordinator.isActive)
+            send(ClaudeMode.pinToggleCell, .press)
+            send(ClaudeMode.pinToggleCell, .release)
+            XCTAssertEqual(toggles, 1)
+            send(CodexMode.pinModifierCell, .press)
+            send(CodexMode.pinModifierCell, .release)
+            XCTAssertFalse(coordinator.isActive)
+        }
+    }
+
+    func testClaudeWandPinUsesEitherDirectionOncePerHold() {
+        for source in [MouseSource.wand] {
             let coordinator = makeCoordinator()
             coordinator.resolveFrontmostApp = {
                 FrontmostAppModeContext(target: .claude, displayName: "Claude",
