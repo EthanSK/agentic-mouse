@@ -83,6 +83,7 @@ final class CodexModeActionExecutor {
         requestReasoningEffort: (@MainActor (CodexReasoningEffortAction) -> Bool)? = nil,
         cancelReasoningRequest: (@MainActor () -> Bool)? = nil,
         requestNativeCommand: (@MainActor (CodexShortcuts.Command) -> Bool)? = nil,
+        adjustmentFeedback: @escaping CodexMouseAdjustment.Feedback = { _, _ in },
         recentHardwareTyping: @escaping @MainActor () -> Bool = {
             CGEventSource.secondsSinceLastEventType(.hidSystemState, eventType: .keyDown) < 1.0
         }
@@ -122,15 +123,26 @@ final class CodexModeActionExecutor {
         // embed this one shared focus/shortcut engine; no URL handler or other
         // running companion participates. Keep the live lock/trust gates active
         // after admission, including while background focus work is queued.
-        let native = CodexShortcutController(inputAllowed: {
-            MainActor.assumeIsolated { inputAllowed() && accessibilityTrusted() }
-        })
+        let adjustment = CodexMouseAdjustment { family, feedback in
+            guard inputAllowed(), accessibilityTrusted() else { return }
+            adjustmentFeedback(family, feedback)
+        }
+        let native = CodexShortcutController(
+            inputAllowed: { MainActor.assumeIsolated { inputAllowed() && accessibilityTrusted() } },
+            performer: { command, _, codex, started, isCurrent in
+                adjustment.perform(command, codex: codex, started: started, isCurrent: isCurrent)
+            }
+        )
         let postNative: @MainActor (CodexShortcuts.Command) -> Bool = requestNativeCommand ?? { command in
             guard let pid = targetProcessResolver(),
                   let codex = NSRunningApplication(processIdentifier: pid),
                   CodexShortcuts.load(command) != nil else { return false }
-            native.change(command, source: .mouse, codex: codex) { _ in }
-            return true // Request admitted, not confirmation that Codex changed.
+            native.change(command, source: .mouse, codex: codex) { result in
+                guard inputAllowed(), accessibilityTrusted(), case .failed(let message) = result else { return }
+                let family: CodexShortcutController.Family = command == .cycleSpeed ? .speed : .reasoning
+                adjustmentFeedback(family, .notConfirmed(message))
+            }
+            return true // Completion is reported after a Codex-owned setting read.
         }
         let sendNative: @MainActor (CodexShortcuts.Command) -> Bool = { command in
             // Retain the existing reasoning path's one-second recent-typing

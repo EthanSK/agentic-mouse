@@ -1,5 +1,13 @@
 # Learnings
 
+## 2026-11-11 — Focus Codex once per burst of mouse adjustments
+
+**Trigger:** Ethan wants Speed and Reasoning Effort to work when Codex is in the background, and does not want to refocus the input on every ratchet.
+
+**Fix:** On the first adjustment or after five seconds without another step, bind to the intended window and composer, activate and verify keyboard focus, and preserve the draft selection. On later steps, recheck that exact focus without trying to reclaim it. Admit reasoning steps before release through the same native request controller as Speed. Keep verification off the shortcut's wait path.
+
+**Guard:** Confirm a changed effort from the intended composer's model button. Codex's default speed is only a saved-tier observation, so show that exact scope and never infer a chat-only change from the key or the absence of a Fast icon. Keep PID-targeted Voice, chat navigation and other existing action routes independent.
+
 ## 2026-11-11 — Send Claude’s character-matched shortcuts to its process
 
 **Trigger:** The installed raw key-code Pin and Effort routes failed on Dvorak–QWERTY Command. Claude’s Code renderer matches these shortcuts by character.
