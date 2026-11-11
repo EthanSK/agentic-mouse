@@ -16,6 +16,8 @@ final class ClaudeModeActionExecutorTests: XCTestCase {
         for (action, shortcut) in expected {
             XCTAssertEqual(ClaudeModeActionExecutor.shortcut(for: action), shortcut)
         }
+        XCTAssertEqual(ClaudeModeActionExecutor.togglePinShortcut,
+                       .init(keyCode: 35, flags: [.maskCommand, .maskAlternate]))
         XCTAssertEqual(ClaudeModeActionExecutor.tabShortcut(for: .up),
                        .init(keyCode: 30, flags: [.maskCommand, .maskShift]))
         XCTAssertEqual(ClaudeModeActionExecutor.tabShortcut(for: .down),

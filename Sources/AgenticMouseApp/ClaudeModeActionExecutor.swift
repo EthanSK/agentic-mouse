@@ -77,6 +77,22 @@ final class ClaudeModeActionExecutor {
         )
     }
 
+    /// Toggles the current Claude Code session's pin with Claude's native
+    /// shortcut, sent once like Codex mode's Pin.
+    func performTogglePin() -> Result<Void, ActionError> {
+        shortcutDispatcher.perform(
+            Self.togglePinShortcut,
+            targetBundleIdentifier: ClaudeMode.bundleIdentifier,
+            targetDisplayName: "Claude"
+        )
+    }
+
+    // Claude's "Pin session" / "Unpin session" binding (⌘⌥P), the same keys as Codex's Pin; replaces the title-menu reader, whose Pin item was missing in some windows (Claude session local_492eda89-c626-4959-8be3-35574b8af9d1).
+    static let togglePinShortcut = ApplicationShortcutDispatcher.Shortcut(
+        keyCode: 35, // QWERTY P: Command switches Ethan's Dvorak - QWERTY Cmd layout to QWERTY, matching Codex's proven Pin key.
+        flags: [.maskCommand, .maskAlternate]
+    )
+
     static func tabShortcut(for direction: WheelChordDirection) -> ApplicationShortcutDispatcher.Shortcut {
         // Match Codex's held-wheel navigation: up advances, down goes back.
         .init(keyCode: direction == .up ? 30 : 33,
