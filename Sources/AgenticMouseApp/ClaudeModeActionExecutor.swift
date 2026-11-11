@@ -3,24 +3,11 @@ import ApplicationServices
 import ScimitarKit
 
 /// Routes Claude's verified menu accelerators and exact Accessibility buttons.
-/// AX matching is deliberately exact so a Claude UI change fails closed rather
-/// than pressing a similarly named control.
+/// Use exact enabled menu items for pane commands to avoid closing the window.
 @MainActor
 final class ClaudeModeActionExecutor {
     typealias ActionError = ApplicationShortcutDispatcher.DispatchError
     typealias AccessibilityActionPerformer = @MainActor (_ action: ClaudeModeAction) -> Bool
-
-    private struct AXElementIdentity: Hashable {
-        let element: AXUIElement
-
-        static func == (lhs: AXElementIdentity, rhs: AXElementIdentity) -> Bool {
-            CFEqual(lhs.element, rhs.element)
-        }
-
-        func hash(into hasher: inout Hasher) {
-            hasher.combine(CFHash(element))
-        }
-    }
 
     private let shortcutDispatcher: ApplicationShortcutDispatcher
     private let performAccessibilityAction: AccessibilityActionPerformer
@@ -77,8 +64,6 @@ final class ClaudeModeActionExecutor {
         )
     }
 
-    /// Toggles the current Claude Code session's pin with Claude's native
-    /// shortcut, sent once like Codex mode's Pin.
     func performTogglePin() -> Result<Void, ActionError> {
         shortcutDispatcher.perform(
             Self.togglePinShortcut,
@@ -87,10 +72,10 @@ final class ClaudeModeActionExecutor {
         )
     }
 
-    // Claude's "Pin session" / "Unpin session" binding (⌘⌥P), the same keys as Codex's Pin; replaces the title-menu reader, whose Pin item was missing in some windows (Claude session local_492eda89-c626-4959-8be3-35574b8af9d1).
+    // Claude matches these commands by character. A bare ANSI key code sent
+    // to its renderer can carry the Dvorak letter instead.
     static let togglePinShortcut = ApplicationShortcutDispatcher.Shortcut(
-        keyCode: 35, // QWERTY P: Command switches Ethan's Dvorak - QWERTY Cmd layout to QWERTY, matching Codex's proven Pin key.
-        flags: [.maskCommand, .maskAlternate]
+        keyCode: 35, flags: [.maskCommand, .maskAlternate], character: "p"
     )
 
     static func tabShortcut(for direction: WheelChordDirection) -> ApplicationShortcutDispatcher.Shortcut {
@@ -104,8 +89,9 @@ final class ClaudeModeActionExecutor {
         case .newChat: return .init(keyCode: 45, flags: .maskCommand)
         case .pressEnter: return .init(keyCode: 36, flags: [])
         case .toggleFastMode: return .init(keyCode: 3, flags: [.maskCommand, .maskAlternate])
-        case .chooseEffort: return .init(keyCode: 14, flags: [.maskCommand, .maskShift])
-        case .toggleVoiceMode, .toggleMicrophoneMute, .openSideChat, .closePane:
+        case .chooseEffort: return .init(keyCode: 14, flags: [.maskCommand, .maskShift], character: "e")
+        case .toggleDictation: return .init(keyCode: 2, flags: .maskCommand, character: "d")
+        case .openSideChat, .closePane:
             return nil
         }
     }
@@ -117,7 +103,7 @@ final class ClaudeModeActionExecutor {
         case .closePane:
             return pressMenuItem("Close Pane", in: "View")
         default:
-            return pressExactClaudeButton(action)
+            return false
         }
     }
 
@@ -147,72 +133,6 @@ final class ClaudeModeActionExecutor {
         return AXUIElementPerformAction(matching[0], kAXPressAction as CFString) == .success
     }
 
-    private static func pressExactClaudeButton(_ action: ClaudeModeAction) -> Bool {
-        let acceptedLabels = acceptedLabels(for: action)
-        guard !acceptedLabels.isEmpty else { return false }
-
-        let applications = NSRunningApplication.runningApplications(
-            withBundleIdentifier: ClaudeMode.bundleIdentifier
-        )
-        guard let application = applications.first(where: { $0.isActive })
-                ?? applications.first(where: { !$0.isTerminated })
-        else { return false }
-
-        let applicationElement = AXUIElementCreateApplication(application.processIdentifier)
-        AXUIElementSetMessagingTimeout(applicationElement, 0.08)
-        guard let root = focusedWindow(of: applicationElement) else { return false }
-        let deadline = ProcessInfo.processInfo.systemUptime + 0.75
-
-        let elements = CodexQueuedMessageSteerer.boundedBreadthFirstTraversal(
-            roots: [root],
-            limit: 5_000,
-            identity: { AXElementIdentity(element: $0) },
-            children: children,
-            shouldContinue: { ProcessInfo.processInfo.systemUptime < deadline }
-        )
-        var matches: [AXUIElement] = []
-        for element in elements {
-            guard ProcessInfo.processInfo.systemUptime < deadline else { return false }
-            if isExactPressableControl(
-                action,
-                role: role(of: element),
-                labels: labels(of: element),
-                isEnabled: isEnabled(element),
-                supportsPress: supportsPress(element)
-            ) {
-                matches.append(element)
-            }
-        }
-        guard matches.count == 1 else { return false }
-        return AXUIElementPerformAction(matches[0], kAXPressAction as CFString) == .success
-    }
-
-    static func acceptedLabels(for action: ClaudeModeAction) -> Set<String> {
-        switch action {
-        case .toggleVoiceMode:
-            return ["voice mode", "use voice mode", "start voice mode",
-                    "end voice mode", "exit voice mode"]
-        case .toggleMicrophoneMute:
-            return ["mute", "unmute", "mute microphone", "unmute microphone",
-                    "turn off microphone", "turn on microphone"]
-        default:
-            return []
-        }
-    }
-
-    static func isExactPressableControl(
-        _ action: ClaudeModeAction,
-        role: String?,
-        labels: Set<String>,
-        isEnabled: Bool,
-        supportsPress: Bool
-    ) -> Bool {
-        role == kAXButtonRole as String
-            && isEnabled
-            && supportsPress
-            && !acceptedLabels(for: action).isDisjoint(with: labels)
-    }
-
     private static func focusedWindow(of application: AXUIElement) -> AXUIElement? {
         elementAttribute(kAXFocusedWindowAttribute as CFString, of: application)
     }
@@ -223,14 +143,6 @@ final class ClaudeModeActionExecutor {
               let value, CFGetTypeID(value) == AXUIElementGetTypeID()
         else { return nil }
         return unsafeBitCast(value, to: AXUIElement.self)
-    }
-
-    private static func labels(of element: AXUIElement) -> Set<String> {
-        [kAXTitleAttribute, kAXDescriptionAttribute, kAXHelpAttribute]
-            .compactMap { stringAttribute($0 as CFString, of: element) }
-            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() }
-            .filter { !$0.isEmpty }
-            .reduce(into: Set<String>()) { $0.insert($1) }
     }
 
     private static func role(of element: AXUIElement) -> String? {

@@ -1,5 +1,13 @@
 # Learnings
 
+## 2026-11-11 — Send Claude’s character-matched shortcuts to its process
+
+**Trigger:** The installed raw key-code Pin and Effort routes failed on Dvorak–QWERTY Command. Claude’s Code renderer matches these shortcuts by character.
+
+**Fix:** Send a complete keyboard lifecycle to Claude’s PID and attach the intended character to each action-key event. Use it for Pin/Unpin, Choose effort, and Dictation. Keep Fast mode, pane commands, and chat navigation on their existing routes. Claude’s mic-mute cell is spare because its Code composer uses dictation; Codex’s live Voice mic action is separate.
+
+**Verification:** The production executor opened Claude’s Effort submenu and started native dictation in a disposable detached session. The main-window test moved that session into Pinned and back out while another app stayed in front. In Claude 5.1231.2 the detached session did not pin through the same native command. Keep the physical chord acceptance separate from the executor test. Installed Developer ID build 1.0.359 (365), verified the installed executable and socket owner, and ran the full Swift suite (1,350 selected, 34 skipped, zero failures) plus packaging, Karabiner, bridge, and site checks.
+
 ## 2026-11-11 — Claude Pin uses Claude's native ⌘⌥P shortcut
 
 **Trigger:** Claude Pin still opened the session title menu to find Pin or Unpin, and a detached Claude Code window's title menu has no Pin item.
