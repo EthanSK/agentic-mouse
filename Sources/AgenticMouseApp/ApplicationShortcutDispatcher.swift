@@ -157,6 +157,13 @@ final class ApplicationShortcutDispatcher {
     struct Shortcut: Equatable {
         let keyCode: CGKeyCode
         let flags: CGEventFlags
+        let character: Character?
+
+        init(keyCode: CGKeyCode, flags: CGEventFlags, character: Character? = nil) {
+            self.keyCode = keyCode
+            self.flags = flags
+            self.character = character
+        }
     }
 
     typealias TargetProcessResolver = @MainActor (_ bundleIdentifier: String) -> pid_t?
@@ -169,6 +176,7 @@ final class ApplicationShortcutDispatcher {
     typealias TargetProcessIsActive = @MainActor (_ pid: pid_t) -> Bool
     typealias SystemShortcutPoster = @MainActor (_ shortcut: Shortcut) -> Bool
     typealias HardwareSystemShortcutPoster = @MainActor (_ shortcut: Shortcut) -> Bool
+    typealias CharacterShortcutPoster = @MainActor (_ pid: pid_t, _ shortcut: Shortcut) -> Bool
     typealias AccessibilityTrustProvider = @MainActor () -> Bool
     typealias InputAllowedProvider = @MainActor () -> Bool
 
@@ -177,6 +185,7 @@ final class ApplicationShortcutDispatcher {
     private let targetProcessIsActive: TargetProcessIsActive
     private let postSystemShortcut: SystemShortcutPoster
     private let postHardwareSystemShortcut: HardwareSystemShortcutPoster
+    private let postCharacterShortcut: CharacterShortcutPoster
     private let accessibilityTrusted: AccessibilityTrustProvider
     private let inputAllowed: InputAllowedProvider
 
@@ -194,6 +203,7 @@ final class ApplicationShortcutDispatcher {
         },
         postSystemShortcut: SystemShortcutPoster? = nil,
         postHardwareSystemShortcut: HardwareSystemShortcutPoster? = nil,
+        postCharacterShortcut: CharacterShortcutPoster? = nil,
         accessibilityTrusted: @escaping AccessibilityTrustProvider = AXIsProcessTrusted,
         inputAllowed: @escaping InputAllowedProvider = { true }
     ) {
@@ -203,6 +213,7 @@ final class ApplicationShortcutDispatcher {
         self.postSystemShortcut = postSystemShortcut ?? Self.postSystemKeyboardShortcut
         self.postHardwareSystemShortcut = postHardwareSystemShortcut
             ?? Self.postHardwareSystemKeyboardShortcut
+        self.postCharacterShortcut = postCharacterShortcut ?? Self.postCharacterKeyboardShortcut
         self.accessibilityTrusted = accessibilityTrusted
         self.inputAllowed = inputAllowed
     }
@@ -226,6 +237,11 @@ final class ApplicationShortcutDispatcher {
             return .failure(DispatchError(description: "\(targetDisplayName) is not running"))
         }
 
+        if shortcut.character != nil {
+            return postCharacterShortcut(pid, shortcut)
+                ? .success(())
+                : .failure(DispatchError(description: "Could not deliver the \(targetDisplayName) shortcut"))
+        }
         let downSucceeded = postEvent(pid, shortcut.keyCode, shortcut.flags, true)
         let upSucceeded = postEvent(pid, shortcut.keyCode, shortcut.flags, false)
         guard downSucceeded, upSucceeded else {
@@ -339,6 +355,13 @@ final class ApplicationShortcutDispatcher {
         return SyntheticKeyboardChordPoster.shared.post(events)
     }
 
+    private static func postCharacterKeyboardShortcut(pid: pid_t, shortcut: Shortcut) -> Bool {
+        guard let events = hardwareSystemKeyboardEvents(for: shortcut) else { return false }
+        // Keep the event inside the selected app even if the user changes focus
+        // between the modifier transitions and the action key.
+        return SyntheticKeyboardChordPoster.shared.post(events, to: pid)
+    }
+
     /// Global shortcuts are most reliable when the event stream contains the
     /// modifiers' real `flagsChanged` lifecycle. Merely attaching flags to the
     /// action key can create a valid Quartz event that a Carbon/Electron global
@@ -378,6 +401,7 @@ final class ApplicationShortcutDispatcher {
         events.append(.key(
             keyCode: shortcut.keyCode,
             flags: shortcut.flags,
+            character: shortcut.character,
             isDown: true,
             at: offset
         ))
@@ -385,6 +409,7 @@ final class ApplicationShortcutDispatcher {
         events.append(.key(
             keyCode: shortcut.keyCode,
             flags: shortcut.flags,
+            character: shortcut.character,
             isDown: false,
             at: offset
         ))

@@ -10,14 +10,15 @@ final class ClaudeModeActionExecutorTests: XCTestCase {
             (.newChat, .init(keyCode: 45, flags: .maskCommand)),
             (.pressEnter, .init(keyCode: 36, flags: [])),
             (.toggleFastMode, .init(keyCode: 3, flags: [.maskCommand, .maskAlternate])),
-            (.chooseEffort, .init(keyCode: 14, flags: [.maskCommand, .maskShift])),
+            (.chooseEffort, .init(keyCode: 14, flags: [.maskCommand, .maskShift], character: "e")),
+            (.toggleDictation, .init(keyCode: 2, flags: .maskCommand, character: "d")),
         ]
 
         for (action, shortcut) in expected {
             XCTAssertEqual(ClaudeModeActionExecutor.shortcut(for: action), shortcut)
         }
         XCTAssertEqual(ClaudeModeActionExecutor.togglePinShortcut,
-                       .init(keyCode: 35, flags: [.maskCommand, .maskAlternate]))
+                       .init(keyCode: 35, flags: [.maskCommand, .maskAlternate], character: "p"))
         XCTAssertEqual(ClaudeModeActionExecutor.tabShortcut(for: .up),
                        .init(keyCode: 30, flags: [.maskCommand, .maskShift]))
         XCTAssertEqual(ClaudeModeActionExecutor.tabShortcut(for: .down),
@@ -26,7 +27,7 @@ final class ClaudeModeActionExecutorTests: XCTestCase {
 
     func testClaudeAccessibilityActionsStayExactAndSeparateFromKeyboardShortcuts() {
         let actions: [ClaudeModeAction] = [
-            .toggleVoiceMode, .toggleMicrophoneMute, .openSideChat, .closePane,
+            .openSideChat, .closePane,
         ]
         var performed: [ClaudeModeAction] = []
         let executor = ClaudeModeActionExecutor(
@@ -51,7 +52,7 @@ final class ClaudeModeActionExecutorTests: XCTestCase {
             inputAllowed: { false },
             performAccessibilityAction: { _ in actionCount += 1; return true }
         )
-        guard case .failure(let lockedError) = locked.perform(.toggleVoiceMode) else {
+        guard case .failure(let lockedError) = locked.perform(.openSideChat) else {
             return XCTFail("locked Claude control must fail")
         }
         XCTAssertEqual(
@@ -64,7 +65,7 @@ final class ClaudeModeActionExecutorTests: XCTestCase {
             inputAllowed: { true },
             performAccessibilityAction: { _ in actionCount += 1; return true }
         )
-        guard case .failure(let permissionError) = untrusted.perform(.toggleMicrophoneMute) else {
+        guard case .failure(let permissionError) = untrusted.perform(.closePane) else {
             return XCTFail("untrusted Claude control must fail")
         }
         XCTAssertEqual(
@@ -81,64 +82,50 @@ final class ClaudeModeActionExecutorTests: XCTestCase {
             performAccessibilityAction: { _ in false }
         )
 
-        guard case .failure(let error) = executor.perform(.toggleVoiceMode) else {
+        guard case .failure(let error) = executor.perform(.openSideChat) else {
             return XCTFail("a missing exact Claude control must fail")
         }
         XCTAssertEqual(
             error.description,
-            "Claude does not currently expose the Voice mode control"
+            "Claude does not currently expose the Open side chat control"
         )
     }
 
-    func testClaudeMatcherAcceptsOnlyExactEnabledPressableButtons() {
-        XCTAssertTrue(ClaudeModeActionExecutor.isExactPressableControl(
-            .toggleVoiceMode,
-            role: kAXButtonRole as String,
-            labels: ["start voice mode"],
-            isEnabled: true,
-            supportsPress: true
-        ))
-        XCTAssertTrue(ClaudeModeActionExecutor.isExactPressableControl(
-            .toggleVoiceMode,
-            role: kAXButtonRole as String,
-            labels: ["use voice mode"],
-            isEnabled: true,
-            supportsPress: true
-        ))
-        XCTAssertTrue(ClaudeModeActionExecutor.isExactPressableControl(
-            .toggleMicrophoneMute,
-            role: kAXButtonRole as String,
-            labels: ["turn off microphone"],
-            isEnabled: true,
-            supportsPress: true
-        ))
-        XCTAssertTrue(ClaudeModeActionExecutor.isExactPressableControl(
-            .toggleMicrophoneMute,
-            role: kAXButtonRole as String,
-            labels: ["turn on microphone"],
-            isEnabled: true,
-            supportsPress: true
-        ))
-        XCTAssertFalse(ClaudeModeActionExecutor.isExactPressableControl(
-            .toggleVoiceMode,
-            role: kAXButtonRole as String,
-            labels: ["start voice mode later"],
-            isEnabled: true,
-            supportsPress: true
-        ))
-        XCTAssertFalse(ClaudeModeActionExecutor.isExactPressableControl(
-            .toggleVoiceMode,
-            role: kAXStaticTextRole as String,
-            labels: ["start voice mode"],
-            isEnabled: true,
-            supportsPress: true
-        ))
-        XCTAssertFalse(ClaudeModeActionExecutor.isExactPressableControl(
-            .toggleMicrophoneMute,
-            role: kAXButtonRole as String,
-            labels: ["mute microphone"],
-            isEnabled: false,
-            supportsPress: true
-        ))
+    func testCharacterShortcutsStayTargetedToClaude() {
+        var posted: [ApplicationShortcutDispatcher.Shortcut] = []
+        var inputAllowed = false
+        let dispatcher = ApplicationShortcutDispatcher(
+            targetProcessResolver: { bundle in
+                XCTAssertEqual(bundle, ClaudeMode.bundleIdentifier)
+                return 42
+            },
+            postEvent: { _, _, _, _ in
+                XCTFail("Claude character shortcuts need a complete modifier and key sequence")
+                return false
+            },
+            postCharacterShortcut: { pid, shortcut in
+                XCTAssertEqual(pid, 42)
+                posted.append(shortcut)
+                return true
+            },
+            accessibilityTrusted: { true },
+            inputAllowed: { inputAllowed }
+        )
+        let executor = ClaudeModeActionExecutor(shortcutDispatcher: dispatcher)
+        guard case .failure = executor.performTogglePin() else {
+            return XCTFail("Pin must not post while input is disabled")
+        }
+        XCTAssertTrue(posted.isEmpty)
+
+        inputAllowed = true
+        XCTAssertNoThrow(try executor.performTogglePin().get())
+        XCTAssertNoThrow(try executor.perform(.chooseEffort).get())
+        XCTAssertNoThrow(try executor.perform(.toggleDictation).get())
+        XCTAssertEqual(posted.compactMap(\.character), ["p", "e", "d"])
+        for shortcut in posted {
+            let events = ApplicationShortcutDispatcher.hardwareSystemKeyboardEvents(for: shortcut) ?? []
+            XCTAssertEqual(events.filter { $0.type != .flagsChanged }.map(\.character),
+                           [shortcut.character, shortcut.character])
+        }
     }
 }

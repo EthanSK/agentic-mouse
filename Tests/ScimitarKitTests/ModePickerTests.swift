@@ -3038,7 +3038,7 @@ final class ModePickerTests: XCTestCase {
         let expected = [
             "Pin/Unpin", "Exit · Hold for Pin/Unpin", "Fast mode", "Open side chat",
             "New chat", "Choose effort", "Enter", "Close pane", "Chats Selection",
-            "Exit Claude mode", "Mute / unmute voice mic", "Voice mode",
+            "Exit Claude mode", "Spare", "Dictation",
         ]
         XCTAssertEqual(ClaudeMode.definition.legend.map(\.actionTitle), expected)
         XCTAssertEqual(ClaudeMode.definition.legend[0].controlStatus, .reportedBroken)

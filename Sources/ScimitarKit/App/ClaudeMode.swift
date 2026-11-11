@@ -1,9 +1,8 @@
 import Foundation
 
 public enum ClaudeModeAction: String, CaseIterable, Equatable, Sendable {
-    case toggleVoiceMode
+    case toggleDictation
     case newChat
-    case toggleMicrophoneMute
     case pressEnter
     case toggleFastMode
     case chooseEffort
@@ -12,9 +11,8 @@ public enum ClaudeModeAction: String, CaseIterable, Equatable, Sendable {
 
     public var cell: PhysicalCell {
         switch self {
-        case .toggleVoiceMode: return CodexModeAction.toggleVoiceMode.cell
+        case .toggleDictation: return CodexModeAction.toggleVoiceMode.cell
         case .newChat: return CodexModeAction.newTask.cell
-        case .toggleMicrophoneMute: return CodexModeAction.toggleMicrophoneMute.cell
         case .pressEnter: return CodexModeAction.pressEnter.cell
         case .toggleFastMode: return CodexMode.responseSpeedWheelCell
         case .chooseEffort: return CodexMode.reasoningEffortWheelCell
@@ -25,9 +23,8 @@ public enum ClaudeModeAction: String, CaseIterable, Equatable, Sendable {
 
     public var title: String {
         switch self {
-        case .toggleVoiceMode: return "Voice mode"
+        case .toggleDictation: return "Dictation"
         case .newChat: return "New chat"
-        case .toggleMicrophoneMute: return "Mute / unmute voice mic"
         case .pressEnter: return CodexModeAction.pressEnter.title
         case .toggleFastMode: return "Fast mode"
         case .chooseEffort: return "Choose effort"
@@ -38,9 +35,8 @@ public enum ClaudeModeAction: String, CaseIterable, Equatable, Sendable {
 
     public var hudAccent: RGBColor {
         switch self {
-        case .toggleVoiceMode: return RGBColor(red: 29, green: 211, blue: 211)
+        case .toggleDictation: return RGBColor(red: 29, green: 211, blue: 211)
         case .newChat: return RGBColor(red: 52, green: 150, blue: 255)
-        case .toggleMicrophoneMute: return RGBColor(red: 255, green: 72, blue: 137)
         case .pressEnter: return CodexModeAction.pressEnter.hudAccent
         case .toggleFastMode: return WheelChordControl.codexResponseSpeed.hudAccent
         case .chooseEffort: return WheelChordControl.codexReasoningEffort.hudAccent

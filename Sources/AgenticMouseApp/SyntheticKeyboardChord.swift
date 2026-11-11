@@ -10,6 +10,7 @@ final class SyntheticKeyboardChordPoster: @unchecked Sendable {
         let type: CGEventType
         let keyCode: CGKeyCode
         let flags: CGEventFlags
+        let character: Character?
         let timestampOffset: TimeInterval
 
         static func modifier(
@@ -21,6 +22,7 @@ final class SyntheticKeyboardChordPoster: @unchecked Sendable {
                 type: .flagsChanged,
                 keyCode: keyCode,
                 flags: flags,
+                character: nil,
                 timestampOffset: timestampOffset
             )
         }
@@ -28,6 +30,7 @@ final class SyntheticKeyboardChordPoster: @unchecked Sendable {
         static func key(
             keyCode: CGKeyCode,
             flags: CGEventFlags,
+            character: Character? = nil,
             isDown: Bool,
             at timestampOffset: TimeInterval
         ) -> Event {
@@ -35,6 +38,7 @@ final class SyntheticKeyboardChordPoster: @unchecked Sendable {
                 type: isDown ? .keyDown : .keyUp,
                 keyCode: keyCode,
                 flags: flags,
+                character: character,
                 timestampOffset: timestampOffset
             )
         }
@@ -91,6 +95,10 @@ final class SyntheticKeyboardChordPoster: @unchecked Sendable {
 
             event.type = description.type
             event.flags = description.flags
+            if let character = description.character {
+                let units = Array(String(character).utf16)
+                event.keyboardSetUnicodeString(stringLength: units.count, unicodeString: units)
+            }
             event.timestamp = startTimestamp + UInt64(
                 description.timestampOffset * 1_000_000_000
             )
