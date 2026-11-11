@@ -1,5 +1,13 @@
 # Learnings
 
+## 2026-11-11 — Claude Pin uses Claude's native ⌘⌥P shortcut
+
+**Trigger:** Claude Pin still opened the session title menu to find Pin or Unpin, and a detached Claude Code window's title menu has no Pin item.
+
+**Decision:** Claude's renderer binds "Pin session" and "Unpin session" to ⌘⌥P. Send that once, exactly like Codex mode's Pin, through the same protected hold-2 chord. The title-menu reader and its tests are removed.
+
+**Guard:** Do not restore menu-state discovery or a confirmation read for Pin. Keep the ❌ repair mark until Ethan physically accepts the button.
+
 ## 2026-11-10 — Match Claude mouse positions with Claude's own controls
 
 **Trigger:** Ethan wanted to move between Claude and Codex without relearning the mouse grid.

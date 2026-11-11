@@ -287,10 +287,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         shortcutDispatcher: applicationShortcutDispatcher,
         inputAllowed: { [weak self] in self?.mouseCommandsAllowed == true }
     )
-    private lazy var claudePinActionExecutor = ClaudePinActionExecutor(
-        inputAllowed: { [weak self] in self?.mouseCommandsAllowed == true }
-    )
-    private var claudePinOwner: MouseSource?
     private lazy var keysModeActionExecutor = KeysModeActionExecutor(
         inputAllowed: { [weak self] in self?.mouseCommandsAllowed == true }
     )
@@ -1326,10 +1322,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             coordinator.onModeChange = { [weak self] active in
                 guard let self else { return }
                 if source == .wand, !active { self.wandHeldKeys.release() }
-                if self.claudePinOwner == source {
-                    self.claudePinActionExecutor.cancel()
-                    self.claudePinOwner = nil
-                }
                 self.wheelChordMonitor?.clear(source: source)
                 self.magnetWheelActionSequencer.cancel(source: source)
                 WindowSnapController.shared.cancel(source: source)
@@ -1554,33 +1546,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 case .claude:
                     guard phase == .press else { return true }
                     if cell == ClaudeMode.pinToggleCell {
-                        let accepted = self.claudePinActionExecutor.toggle(
-                            requestAllowed: { [weak self] in
-                                guard let self, self.mouseCommandsAllowed,
-                                      let coordinator = self.modePickerCoordinators[source]
-                                else { return false }
-                                return coordinator.isActive && coordinator.page == .appSpecific
-                                    && coordinator.appSpecificTarget == .claude
-                            },
-                            feedback: { [weak self] message, failed in
-                                guard let self else { return }
-                                if self.claudePinOwner == source { self.claudePinOwner = nil }
-                                guard let coordinator = self.modePickerCoordinators[source],
-                                      coordinator.isActive, coordinator.page == .appSpecific,
-                                      coordinator.appSpecificTarget == .claude else { return }
-                                self.modeHUDPresenters[source]?.flashFeedback(ModeHUDFeedback(
-                                    message: message,
-                                    tone: failed ? .notConfirmed : .confirmed
-                                ))
-                            }
-                        )
-                        if accepted { self.claudePinOwner = source }
-                        return accepted
+                        result = self.claudeModeActionExecutor.performTogglePin()
+                    } else {
+                        guard let action = ClaudeModeAction.action(for: cell) else {
+                            return false
+                        }
+                        result = self.claudeModeActionExecutor.perform(action)
                     }
-                    guard let action = ClaudeModeAction.action(for: cell) else {
-                        return false
-                    }
-                    result = self.claudeModeActionExecutor.perform(action)
                 case .spotify, .obs, .notion, .telegram, .safari,
                      .firefox, .opera, .restreamChat, .preview, .mail, .iCue,
                      .karabinerSettings, .systemSettings, .finder,
