@@ -130,8 +130,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         },
         inputAllowed: { [weak self] in self?.mouseCommandsAllowed == true }
     )
+    private var codexAdjustmentSources: [WheelChordControl: MouseSource] = [:]
     private lazy var codexModeActionExecutor = CodexModeActionExecutor(
-        inputAllowed: { [weak self] in self?.mouseCommandsAllowed == true }
+        inputAllowed: { [weak self] in self?.mouseCommandsAllowed == true },
+        adjustmentFeedback: { [weak self] family, feedback in
+            self?.showCodexAdjustmentFeedback(
+                family == .speed ? .codexResponseSpeed : .codexReasoningEffort, feedback
+            )
+        }
     )
     private lazy var codexPinNotifications = CodexPinNotificationController(
         inputAllowed: { [weak self] in self?.mouseCommandsAllowed == true }
@@ -2080,8 +2086,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 // Both wheel directions send one native Cycle speed through the embedded engine.
                 switch self.codexModeActionExecutor.performResponseSpeed(action) {
                 case .success:
-                    self.log.info("Codex response speed \(action == .increase ? "up" : "down") ratchet \(step.detentCount) requested from \(step.source.displayName)")
-                    self.flashWheelActionFeedback(step)
+                    self.codexAdjustmentSources[.codexResponseSpeed] = step.source
                     return true
                 case .failure(let error):
                     self.modeHUDPresenters[step.source]?.flashProblem(error.description)
@@ -2095,8 +2100,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                       coordinator.appSpecificTarget == .codex,
                       coordinator.activeWheelControl == .codexReasoningEffort
                 else { return false }
-                self.scheduleCodexReasoningEffortAction(action, step: step)
-                return true
+                switch self.codexModeActionExecutor.performReasoningEffort(action) {
+                case .success:
+                    self.codexAdjustmentSources[.codexReasoningEffort] = step.source
+                    return true
+                case .failure(let error):
+                    self.modeHUDPresenters[step.source]?.flashProblem(error.description)
+                    return false
+                }
             }
             if let action = step.control.codexChatHistoryAction(for: step.direction) {
                 guard let coordinator = self.modePickerCoordinators[step.source],
@@ -2225,7 +2236,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                       coordinator.activeWheelControl == .codexResponseSpeed,
                       let result = self.codexModeActionExecutor.performResponseSpeedClick(release)
                 else { return }
-                if case .failure(let error) = result {
+                switch result {
+                case .success:
+                    self.codexAdjustmentSources[.codexResponseSpeed] = release.source
+                case .failure(let error):
                     self.modeHUDPresenters[release.source]?.flashProblem(error.description)
                 }
             case .codexReasoningEffort:
@@ -2616,29 +2630,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    private func scheduleCodexReasoningEffortAction(
-        _ action: CodexReasoningEffortAction,
-        step: WheelChordStateMachine.Step
+    private func showCodexAdjustmentFeedback(
+        _ control: WheelChordControl, _ feedback: CodexActionFeedback
     ) {
-        DispatchQueue.main.async { [weak self] in
-            guard let self,
-                  self.mouseCommandsAllowed,
-                  self.activeWheelControl(for: step.source)
-                    == .codexReasoningEffort
-            else { return }
-            switch self.codexModeActionExecutor.performReasoningEffort(action) {
-            case .success:
-                self.log.info(
-                    "Codex reasoning effort \(action == .increase ? "up" : "down") "
-                        + "ratchet \(step.detentCount) posted from "
-                        + "\(step.source.displayName) wheel chord"
-                )
-                self.flashWheelActionFeedback(step)
-            case .failure(let error):
-                self.modeHUDPresenters[step.source]?.flashProblem(error.description)
-                self.flashWheelActionFeedback(step, outcome: .couldNotBeSent)
-            }
+        guard let source = codexAdjustmentSources[control],
+              let coordinator = modePickerCoordinators[source],
+              coordinator.isActive, coordinator.page == .appSpecific,
+              coordinator.appSpecificTarget == .codex
+        else { return }
+        let hudFeedback: ModeHUDFeedback
+        switch feedback {
+        case .checking(let message), .sentUnverified(let message):
+            hudFeedback = ModeHUDFeedback(message: message, tone: .informational)
+        case .confirmed(let message):
+            hudFeedback = ModeHUDFeedback(message: message, tone: .confirmed)
+        case .notConfirmed(let message):
+            hudFeedback = ModeHUDFeedback(message: message, tone: .notConfirmed)
         }
+        modeHUDPresenters[source]?.flashFeedback(hudFeedback)
     }
 
     private func scheduleCodexChatHistoryAction(

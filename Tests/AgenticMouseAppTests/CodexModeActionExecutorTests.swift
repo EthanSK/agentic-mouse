@@ -7,6 +7,15 @@ import XCTest
 
 @MainActor
 final class CodexModeActionExecutorTests: XCTestCase {
+    func testCodexAdjustmentBurstMeasuresInactivityFromTheMostRecentStep() {
+        var burst = CodexMouseAdjustment.Burst()
+        XCTAssertTrue(burst.begins(at: 10))
+        XCTAssertFalse(burst.begins(at: 14))
+        XCTAssertFalse(burst.begins(at: 18.9))
+        XCTAssertTrue(burst.begins(at: 24))
+        XCTAssertFalse(burst.begins(at: 24.1))
+    }
+
     func testSpeedClickCyclesOnceOnEachMouseAndNeverAfterWheelOrTeardown() {
         var commands: [CodexShortcuts.Command] = []
         let executor = CodexModeActionExecutor(accessibilityTrusted: { true },
