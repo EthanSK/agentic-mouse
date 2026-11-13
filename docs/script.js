@@ -139,9 +139,9 @@ const LAYERS = {
   codex: {
     label: "Codex",
     actions: [
-      SPARE,
+      ["Pin/Unpin", "Send Option–Command–P once."],
       ["Exit Codex mode", "Return directly to Default."],
-      ["Double-click Pin/Unpin", "Double-click to pin or unpin. A single click does nothing."],
+      ["Cycle speed", "Cycle Codex’s speed."],
       ["Reasoning Effort + Wheel", "Hold and ratchet: up increases effort, down decreases it."],
       ["New chat", "Send the configured Codex New Chat action."],
       ["Chats Selection + Wheel", "Hold and ratchet: up moves to the next chat, down to the previous chat."],
@@ -156,7 +156,7 @@ const LAYERS = {
   claude: {
     label: "Claude",
     actions: [
-      ["Settings", "Open Claude settings."],
+      ["Pin/Unpin", "Send Option–Command–P once."],
       ["Exit Claude mode", "Return directly to Default."],
       ["Search", "Press Claude's exact Search control."],
       ["Voice mode", "Press Claude's exact Voice Mode control."],

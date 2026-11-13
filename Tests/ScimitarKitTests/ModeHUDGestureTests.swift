@@ -196,7 +196,7 @@ final class ModeHUDGestureTests: XCTestCase {
             for item in target.definition.legend {
                 guard let control = WheelChordControl.appSpecificControl(for: target, cell: item.cell) else { continue }
                 if control == .claudePin {
-                    XCTAssertEqual(item.heldModifierCell, CodexMode.pinModifierCell)
+                    XCTAssertNil(item.heldModifierCell)
                     XCTAssertEqual(item.displayTitle(on: .wand), "Pin/Unpin ↕")
                 } else {
                     XCTAssertEqual(item.gesture, control.hudGesture, "\(target.displayName) \(item.cell)")
@@ -226,19 +226,19 @@ final class ModeHUDGestureTests: XCTestCase {
 
     func testRepairAndUnavailableMarkersKeepTheirMeaning() {
         let pin = ClaudeMode.definition.legend[0]
-        XCTAssertEqual(pin.displayTitle(on: .corsair), "Pin/Unpin + Hold Corsair 2")
-        XCTAssertEqual(pin.printedControlLabel(on: .corsair), "Corsair 1 ❌")
-        XCTAssertEqual(pin.displayTitle(on: .razer), "Pin/Unpin + Hold Razer 2")
-        XCTAssertEqual(pin.printedControlLabel(on: .razer), "Razer 3 ❌")
+        XCTAssertEqual(pin.displayTitle(on: .corsair), "Pin/Unpin")
+        XCTAssertEqual(pin.printedControlLabel(on: .corsair), "Corsair 1")
+        XCTAssertEqual(pin.displayTitle(on: .razer), "Pin/Unpin")
+        XCTAssertEqual(pin.printedControlLabel(on: .razer), "Razer 3")
         let effort = ClaudeMode.definition.legend[5]
         XCTAssertEqual(effort.displayTitle(on: .corsair), "Choose effort")
         XCTAssertNil(effort.gesture)
         let codexPin = CodexMode.definition.legend.first { $0.cell == CodexMode.pinToggleCell }!
-        XCTAssertNil(codexPin.gesture, "Codex pins with a hold-2 chord, not the wheel")
-        XCTAssertEqual(codexPin.heldModifierCell, CodexMode.pinModifierCell)
-        XCTAssertEqual(codexPin.displayTitle(on: .corsair), "Pin/Unpin + Hold Corsair 2")
-        XCTAssertEqual(codexPin.displayTitle(on: .razer), "Pin/Unpin + Hold Razer 2")
-        XCTAssertEqual(codexPin.accessibilityDescription(on: .razer), "Pin/Unpin + Hold Razer 2")
+        XCTAssertNil(codexPin.gesture, "Codex Pin is a single click")
+        XCTAssertNil(codexPin.heldModifierCell)
+        XCTAssertEqual(codexPin.displayTitle(on: .corsair), "Pin/Unpin")
+        XCTAssertEqual(codexPin.displayTitle(on: .razer), "Pin/Unpin")
+        XCTAssertEqual(codexPin.accessibilityDescription(on: .razer), "Pin/Unpin")
         XCTAssertEqual(codexPin.displayTitle(on: .wand), "Pin/Unpin")
         XCTAssertEqual(codexPin.withHeldModifier(PhysicalCell(rawValue: 9)!).displayTitle(on: .razer),
                        "Pin/Unpin + Hold Razer 7", "derive the printed number from the actual crosswalk")

@@ -2041,16 +2041,14 @@ final class ModePickerTests: XCTestCase {
         }
     }
 
-    func testEveryAppSpecificChildReservesBothExitsAndNamesItsPinModifier() {
+    func testEveryAppSpecificChildReservesBothExits() {
         for target in AppSpecificTarget.allCases {
             let definition = target.definition
             let expectedTitle = "Exit \(target.displayName) mode"
             let exitItems = definition.legend.filter { $0.cell.isAppSpecificModeExit }
 
             XCTAssertEqual(exitItems.count, 2, "\(target.displayName) exit count")
-            let expectedTitles: Set<String> = target == .codex || target == .claude
-                ? [expectedTitle, "Exit · Hold for Pin/Unpin"] : [expectedTitle]
-            XCTAssertEqual(Set(exitItems.map(\.actionTitle)), expectedTitles)
+            XCTAssertEqual(Set(exitItems.map(\.actionTitle)), [expectedTitle])
         }
 
         let unsupported = AppSpecificMode.unsupportedDefinition(
@@ -2684,7 +2682,7 @@ final class ModePickerTests: XCTestCase {
             ),
             .codexChatHistory
         )
-        XCTAssertEqual(CodexMode.definition.legend[1].actionTitle, "Exit · Hold for Pin/Unpin")
+        XCTAssertEqual(CodexMode.definition.legend[1].actionTitle, "Exit Codex mode")
         XCTAssertEqual(CodexMode.definition.legend[4].actionTitle, "New chat")
         XCTAssertEqual(CodexMode.definition.legend[0].actionTitle, "Pin/Unpin")
         XCTAssertEqual(CodexMode.definition.legend[2].actionTitle, "Cycle speed · Speed")
@@ -2842,206 +2840,66 @@ final class ModePickerTests: XCTestCase {
         XCTAssertEqual(keypadInputs.map(\.1), [.press, .release])
     }
 
-    func testCodexInitialEntryHoldCanPinImmediatelyOnBothMice() {
-        for source in MouseSource.allCases {
-            for modifierReleasedFirst in [false, true] {
-                let coordinator = makeCoordinator()
-                coordinator.resolveFrontmostApp = {
-                    .init(target: .codex, displayName: "Codex", bundleIdentifier: CodexMode.bundleIdentifier)
+    func testBothChatModesPinOncePerMousePressWithoutAModifier() {
+        for target in [AppSpecificTarget.codex, .claude] {
+            for source in MouseSource.allCases {
+                for manual in [false, true] {
+                    let coordinator = makeCoordinator()
+                    coordinator.resolveFrontmostApp = {
+                        .init(target: target, displayName: target.displayName,
+                              bundleIdentifier: target.bundleIdentifier)
+                    }
+                    var presses = 0
+                    coordinator.onAppSpecificInput = { actualSource, actualTarget, cell, phase, _ in
+                        XCTAssertEqual(actualSource, source)
+                        XCTAssertEqual(actualTarget, target)
+                        XCTAssertEqual(cell, CodexMode.pinToggleCell)
+                        XCTAssertEqual(phase, .press)
+                        presses += 1
+                        return presses > 1
+                    }
+                    func send(_ action: ModePickerCommand.Action, _ cell: PhysicalCell,
+                              _ phase: ModePickerCommand.Phase, from mouse: MouseSource = source) {
+                        coordinator.handle(.init(action: action, source: mouse, physicalCell: cell, phase: phase))
+                    }
+                    if manual {
+                        coordinator.enterAppSelector(source: source)
+                        send(.select, target.selectorCell!, .press)
+                    } else {
+                        send(.openAppSpecific, .frontmostAppModeSelector, .press)
+                        send(.openAppSpecific, .frontmostAppModeSelector, .release)
+                    }
+                    XCTAssertTrue(coordinator.isActive)
+                    let pin = CodexMode.pinToggleCell
+                    let other: MouseSource = source == .corsair ? .razer : .corsair
+                    send(.select, pin, .press, from: other)
+                    send(.selectNative, pin, .press)
+                    send(.select, pin, .release)
+                    XCTAssertEqual(presses, 0)
+                    send(.select, pin, .press)
+                    send(.select, pin, .release, from: other)
+                    send(.select, pin, .press)
+                    XCTAssertEqual(presses, 1)
+                    send(.select, pin, .release)
+                    send(.select, pin, .press)
+                    send(.select, pin, .release)
+                    XCTAssertEqual(presses, 2)
+                    XCTAssertNil(coordinator.activeWheelControl)
+                    XCTAssertTrue(coordinator.isActive)
+                    send(.select, .frontmostAppModeSelector, .press)
+                    XCTAssertFalse(coordinator.isActive)
                 }
-                var count = 0
-                coordinator.onAppSpecificInput = { actualSource, target, cell, phase, _ in
-                    XCTAssertEqual(actualSource, source)
-                    XCTAssertEqual(target, .codex)
-                    XCTAssertEqual(cell, CodexMode.pinToggleCell)
-                    XCTAssertEqual(phase, .press)
-                    count += 1
-                    return true
-                }
-                let opener = ModePickerCommand(action: .openAppSpecific, source: source,
-                    physicalCell: CodexMode.pinModifierCell, phase: .press)
-                let entryRelease = ModePickerCommand(action: .openAppSpecific, source: source,
-                    physicalCell: CodexMode.pinModifierCell, phase: .release)
-                func pin(_ phase: ModePickerCommand.Phase) {
-                    coordinator.handle(.init(action: .select, source: source,
-                        physicalCell: CodexMode.pinToggleCell, phase: phase), inputTime: 1.001)
-                }
-                coordinator.handle(opener, inputTime: 1)
-                let other: MouseSource = source == .corsair ? .razer : .corsair
-                coordinator.handle(.init(action: .openAppSpecific, source: other,
-                    physicalCell: CodexMode.pinModifierCell, phase: .release))
-                coordinator.handle(.init(action: .select, source: other,
-                    physicalCell: CodexMode.pinToggleCell, phase: .press))
-                XCTAssertEqual(count, 0)
-                pin(.press); pin(.press)
-                XCTAssertEqual(count, 1) // No timer or second modifier press is needed.
-                coordinator.handle(opener) // Duplicate opener must not erase the used hold.
-                if modifierReleasedFirst { coordinator.handle(entryRelease); pin(.release) }
-                else { pin(.release); coordinator.handle(entryRelease) }
-                XCTAssertTrue(coordinator.isActive)
-                pin(.press); pin(.release)
-                XCTAssertEqual(count, 1) // Entry release disarmed the modifier.
-                coordinator.handle(.init(action: .select, source: source,
-                    physicalCell: CodexMode.pinModifierCell, phase: .press))
-                coordinator.handle(entryRelease) // A stale opener release cannot end a later hold.
-                XCTAssertTrue(coordinator.isActive)
-                coordinator.handle(.init(action: .select, source: source,
-                    physicalCell: CodexMode.pinModifierCell, phase: .release))
-                XCTAssertFalse(coordinator.isActive) // A subsequent solo click still exits.
-            }
-        }
-    }
-
-    func testUnusedEntryReleaseKeepsAppModeOpenAndDoesNotBorrowPinAcrossFocusChanges() {
-        for source in MouseSource.allCases {
-            let coordinator = makeCoordinator()
-            coordinator.resolveFrontmostApp = {
-                .init(target: .codex, displayName: "Codex", bundleIdentifier: CodexMode.bundleIdentifier)
-            }
-            var count = 0
-            coordinator.onAppSpecificInput = { _, _, _, _, _ in count += 1; return true }
-            let opener = ModePickerCommand(action: .openAppSpecific, source: source,
-                physicalCell: CodexMode.pinModifierCell, phase: .press)
-            let release = ModePickerCommand(action: .openAppSpecific, source: source,
-                physicalCell: CodexMode.pinModifierCell, phase: .release)
-            coordinator.handle(opener); coordinator.handle(release)
-            XCTAssertTrue(coordinator.isActive)
-            coordinator.handle(.init(action: .select, source: source,
-                physicalCell: CodexMode.pinToggleCell, phase: .press))
-            XCTAssertEqual(count, 0)
-            coordinator.exit()
-            coordinator.handle(opener)
-            coordinator.updateFrontmostApp(.init(target: .chrome, displayName: "Chrome", bundleIdentifier: AppSpecificTarget.chrome.bundleIdentifier))
-            coordinator.updateFrontmostApp(.init(target: .codex, displayName: "Codex", bundleIdentifier: CodexMode.bundleIdentifier))
-            coordinator.handle(.init(action: .select, source: source,
-                physicalCell: CodexMode.pinToggleCell, phase: .press))
-            coordinator.handle(release)
-            XCTAssertEqual(count, 0)
-            XCTAssertTrue(coordinator.isActive)
-            coordinator.exit()
-            coordinator.handle(opener)
-            coordinator.handleSystemSleep()
-            coordinator.enterAppSpecific(source: source)
-            coordinator.handle(.init(action: .select, source: source,
-                physicalCell: CodexMode.pinToggleCell, phase: .press))
-            coordinator.handle(release)
-            XCTAssertEqual(count, 0)
-            XCTAssertTrue(coordinator.isActive)
-        }
-    }
-
-    func testCodexPinRequiresSameMouseModifierAndFreshClicksInBothJourneys() {
-        for source in MouseSource.allCases {
-            for manual in [false, true] {
-                let coordinator = makeCoordinator()
-                coordinator.resolveFrontmostApp = {
-                    FrontmostAppModeContext(target: .codex, displayName: "Codex", bundleIdentifier: CodexMode.bundleIdentifier)
-                }
-                var pinCount = 0
-                coordinator.onAppSpecificInput = { actualSource, target, cell, phase, _ in
-                    XCTAssertEqual(actualSource, source)
-                    if target == .codex, cell == CodexMode.pinToggleCell, phase == .press { pinCount += 1 }
-                    return true
-                }
-                if manual {
-                    coordinator.enterAppSelector(source: source)
-                    coordinator.handle(.init(action: .select, source: source, physicalCell: PhysicalCell(rawValue: 1)!, phase: .press))
-                } else { coordinator.enterAppSpecific(source: source) }
-                func input(_ cell: PhysicalCell, _ phase: ModePickerCommand.Phase, from inputSource: MouseSource? = nil) {
-                    coordinator.handle(.init(action: .select, source: inputSource ?? source, physicalCell: cell, phase: phase))
-                }
-                let modifier = CodexMode.pinModifierCell, pin = CodexMode.pinToggleCell
-                let other: MouseSource = source == .corsair ? .razer : .corsair
-                input(pin, .press); input(pin, .release)
-                XCTAssertEqual(pinCount, 0)
-                input(modifier, .press, from: other)
-                input(pin, .press); input(pin, .release)
-                XCTAssertEqual(pinCount, 0)
-                input(modifier, .press)
-                XCTAssertTrue(coordinator.isActive)
-                input(pin, .press, from: other)
-                XCTAssertEqual(pinCount, 0)
-                input(pin, .press); input(pin, .press)
-                XCTAssertEqual(pinCount, 1) // A repeated transport down is not another click.
-                input(modifier, .press) // Must not forget that the chord consumed Exit.
-                input(pin, .release)
-                input(pin, .press); input(pin, .release)
-                XCTAssertEqual(pinCount, 2)
-                input(modifier, .release)
-                XCTAssertTrue(coordinator.isActive)
-                XCTAssertNil(coordinator.activeWheelControl)
-                input(pin, .press); input(pin, .release)
-                XCTAssertEqual(pinCount, 2)
-                XCTAssertFalse(coordinator.toggleCodexPinFromWheel(.init(source: source, control: .codexPin, direction: .up), inputTime: 3))
-                XCTAssertFalse(coordinator.toggleCodexPinFromWheel(.init(source: source, control: .codexPin, direction: .down), inputTime: 4))
-                input(modifier, .press)
-                XCTAssertTrue(coordinator.isActive)
-                input(modifier, .release)
-                XCTAssertFalse(coordinator.isActive) // A wheel-free, unused click still exits.
-            }
-        }
-    }
-
-    func testCodexPinChordConsumesFailedDispatchAndEitherReleaseOrder() {
-        for source in MouseSource.allCases {
-            let coordinator = makeCoordinator()
-            coordinator.resolveFrontmostApp = {
-                .init(target: .codex, displayName: "Codex", bundleIdentifier: CodexMode.bundleIdentifier)
-            }
-            var attempts = 0
-            coordinator.onAppSpecificInput = { _, _, _, _, _ in attempts += 1; return false }
-            coordinator.enterAppSpecific(source: source)
-            func input(_ cell: PhysicalCell, _ phase: ModePickerCommand.Phase) {
-                coordinator.handle(.init(action: .select, source: source, physicalCell: cell, phase: phase))
-            }
-            input(CodexMode.pinModifierCell, .press)
-            input(CodexMode.pinToggleCell, .press)
-            input(CodexMode.pinModifierCell, .release)
-            input(CodexMode.pinToggleCell, .release)
-            XCTAssertEqual(attempts, 1)
-            XCTAssertTrue(coordinator.isActive)
-            // Holding Pin first must not retroactively fire when 2 arrives.
-            input(CodexMode.pinToggleCell, .press)
-            input(CodexMode.pinModifierCell, .press)
-            input(CodexMode.pinToggleCell, .release)
-            XCTAssertEqual(attempts, 1)
-            coordinator.exit()
-        }
-    }
-
-    func testCodexPinModifierDoesNotSurviveExitFocusChangeOrSleep() {
-        for source in MouseSource.allCases {
-            for cancel in 0..<3 {
-                let coordinator = makeCoordinator()
-                coordinator.resolveFrontmostApp = {
-                    .init(target: .codex, displayName: "Codex", bundleIdentifier: CodexMode.bundleIdentifier)
-                }
-                var count = 0
-                coordinator.onAppSpecificInput = { _, _, _, _, _ in count += 1; return true }
-                coordinator.enterAppSpecific(source: source)
-                coordinator.handle(.init(action: .select, source: source, physicalCell: CodexMode.pinModifierCell, phase: .press))
-                if cancel == 0 { coordinator.exit(); coordinator.enterAppSpecific(source: source) }
-                else if cancel == 1 {
-                    coordinator.updateFrontmostApp(.init(target: .chrome, displayName: "Chrome", bundleIdentifier: AppSpecificTarget.chrome.bundleIdentifier))
-                    coordinator.updateFrontmostApp(.init(target: .codex, displayName: "Codex", bundleIdentifier: CodexMode.bundleIdentifier))
-                } else { coordinator.handleSystemSleep(); coordinator.enterAppSpecific(source: source) }
-                coordinator.handle(.init(action: .select, source: source, physicalCell: CodexMode.pinToggleCell, phase: .press))
-                coordinator.handle(.init(action: .select, source: source, physicalCell: CodexMode.pinToggleCell, phase: .release))
-                coordinator.handle(.init(action: .select, source: source, physicalCell: CodexMode.pinModifierCell, phase: .release))
-                XCTAssertEqual(count, 0)
-                XCTAssertTrue(coordinator.isActive) // Old modifier release cannot exit a new journey.
             }
         }
     }
 
     func testClaudeUsesCodexCellsWithClaudeActions() {
         let expected = [
-            "Pin/Unpin", "Exit · Hold for Pin/Unpin", "Fast mode", "Open side chat",
+            "Pin/Unpin", "Exit Claude mode", "Fast mode", "Open side chat",
             "New chat", "Choose effort", "Enter", "Close pane", "Chats Selection",
             "Exit Claude mode", "Spare", "Dictation",
         ]
         XCTAssertEqual(ClaudeMode.definition.legend.map(\.actionTitle), expected)
-        XCTAssertEqual(ClaudeMode.definition.legend[0].controlStatus, .reportedBroken)
         XCTAssertEqual(ClaudeMode.pinToggleCell, CodexMode.pinToggleCell)
         XCTAssertEqual(ClaudeMode.tabsWheelCell, CodexMode.chatHistoryWheelCell)
         XCTAssertEqual(WheelChordControl.appSpecificControl(for: .claude, cell: ClaudeMode.pinToggleCell), .claudePin)
@@ -3070,40 +2928,6 @@ final class ModePickerTests: XCTestCase {
             XCTAssertEqual(coordinator.activeWheelControl, .claudeTabs)
             coordinator.handle(.init(action: .select, source: source, physicalCell: ClaudeMode.tabsWheelCell, phase: .release))
             XCTAssertNil(coordinator.activeWheelControl)
-        }
-    }
-
-    func testClaudePinUsesTheOpeningModifierOnBothMice() {
-        for source in MouseSource.allCases where source.isPhysicalAdapter {
-            let coordinator = makeCoordinator()
-            coordinator.resolveFrontmostApp = {
-                .init(target: .claude, displayName: "Claude", bundleIdentifier: ClaudeMode.bundleIdentifier)
-            }
-            var toggles = 0
-            coordinator.onAppSpecificInput = { _, target, cell, phase, _ in
-                guard target == .claude, cell == ClaudeMode.pinToggleCell, phase == .press else { return false }
-                toggles += 1
-                return true
-            }
-            func send(_ cell: PhysicalCell, _ phase: ModePickerCommand.Phase,
-                      action: ModePickerCommand.Action = .select, from mouse: MouseSource? = nil) {
-                coordinator.handle(.init(action: action, source: mouse ?? source, physicalCell: cell, phase: phase))
-            }
-            send(CodexMode.pinModifierCell, .press, action: .openAppSpecific)
-            send(ClaudeMode.pinToggleCell, .press, from: source == .corsair ? .razer : .corsair)
-            XCTAssertEqual(toggles, 0)
-            send(ClaudeMode.pinToggleCell, .press)
-            send(ClaudeMode.pinToggleCell, .press)
-            send(ClaudeMode.pinToggleCell, .release)
-            send(CodexMode.pinModifierCell, .release, action: .openAppSpecific)
-            XCTAssertEqual(toggles, 1)
-            XCTAssertTrue(coordinator.isActive)
-            send(ClaudeMode.pinToggleCell, .press)
-            send(ClaudeMode.pinToggleCell, .release)
-            XCTAssertEqual(toggles, 1)
-            send(CodexMode.pinModifierCell, .press)
-            send(CodexMode.pinModifierCell, .release)
-            XCTAssertFalse(coordinator.isActive)
         }
     }
 

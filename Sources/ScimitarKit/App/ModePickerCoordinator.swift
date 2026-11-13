@@ -187,9 +187,6 @@ public final class ModePickerCoordinator {
     /// Utilities before another graceful Quit request can be dispatched.
     private var quitAppRequested = false
     private var didTogglePinDuringHold = false
-    private var appPinModifierHeld = false
-    private var appPinModifierUsed = false
-    private var appPinModifierOpenedMode = false
     private var appPinPressed = false
 
     public init(
@@ -218,24 +215,8 @@ public final class ModePickerCoordinator {
             guard command.phase == .press else { return }
             enter(source: command.source)
         case .openAppSpecific:
-            switch command.phase {
-            case .press:
-                guard !isActive else { return }
-                enterAppSpecific(source: command.source)
-                // The physical entry down is already the held modifier. Do
-                // not require a second press after the app page appears.
-                if isActive, command.source.isPhysicalAdapter, supportsPinChord,
-                   command.physicalCell == CodexMode.pinModifierCell {
-                    appPinModifierHeld = true
-                    appPinModifierOpenedMode = true
-                }
-            case .release:
-                // An opener's late release must never become a later Exit.
-                guard isActive, appPinModifierOpenedMode,
-                      command.physicalCell == CodexMode.pinModifierCell else { return }
-                route(source: command.source, cell: command.physicalCell,
-                      phase: .release, nativeOutputHandled: false, inputTime: inputTime)
-            }
+            guard command.phase == .press, !isActive else { return }
+            enterAppSpecific(source: command.source)
         case .openKeys:
             guard command.phase == .press else { return }
             enterKeys(source: command.source)
@@ -370,7 +351,7 @@ public final class ModePickerCoordinator {
         chromeWebsitesParentDefinition = nil
         organizeWindowsRequested = false
         quitAppRequested = false
-        resetAppPinChord()
+        appPinPressed = false
         selectAllGesture.cancel()
         let appearance: RGBColor
         if let definition {
@@ -410,7 +391,7 @@ public final class ModePickerCoordinator {
     public func exit(reason: ModePickerExitReason = .userRequested) {
         scheduler.stop()
         selectAllGesture.cancel()
-        resetAppPinChord()
+        appPinPressed = false
         lease.deactivate()
         guard isActive else { return }
         clearWheelControl()
@@ -467,7 +448,7 @@ public final class ModePickerCoordinator {
         // event cannot run the prior app's command and a release cannot be
         // stranded on a target that no longer owns the control.
         clearWheelControl()
-        resetAppPinChord()
+        appPinPressed = false
         appSpecificTarget = context.target
         appSpecificDefinition = definition
         lastSelection = nil
@@ -505,11 +486,20 @@ public final class ModePickerCoordinator {
             }
             return
         }
-        if source.isPhysicalAdapter, page == .appSpecific, supportsPinChord,
-           let target = appSpecificTarget,
-           cell == CodexMode.pinModifierCell || cell == CodexMode.pinToggleCell {
+        if source.isPhysicalAdapter, page == .appSpecific,
+           let target = appSpecificTarget, target == .codex || target == .claude,
+           cell == CodexMode.pinToggleCell {
             guard !nativeOutputHandled else { return }
-            routeAppPinChord(source: source, target: target, cell: cell, phase: phase, inputTime: inputTime)
+            // Pin/Unpin is one side-button click. Deduplicate presses until
+            // that same mouse releases the button, even if dispatch fails.
+            if phase == .release {
+                appPinPressed = false
+            } else if !appPinPressed {
+                appPinPressed = true
+                if onAppSpecificInput?(source, target, cell, .press, inputTime) == true {
+                    recordSelection(cell: cell)
+                }
+            }
             return
         }
         let isExitCell = cell == .modeExit
@@ -818,57 +808,6 @@ public final class ModePickerCoordinator {
         }
     }
 
-    private var supportsPinChord: Bool {
-        appSpecificTarget == .codex || appSpecificTarget == .claude
-    }
-
-    /// The first cell-2 hold opens the page and can immediately protect Pin.
-    /// Its release leaves the page open; a later unused click exits on release.
-    private func routeAppPinChord(
-        source: MouseSource, target: AppSpecificTarget, cell: PhysicalCell,
-        phase: ModePickerCommand.Phase, inputTime: TimeInterval
-    ) {
-        if cell == CodexMode.pinModifierCell {
-            switch phase {
-            case .press:
-                guard !appPinModifierHeld else { return }
-                appPinModifierHeld = true
-                appPinModifierUsed = false
-                appPinModifierOpenedMode = false
-            case .release:
-                guard appPinModifierHeld else { return }
-                let used = appPinModifierUsed
-                let openedMode = appPinModifierOpenedMode
-                appPinModifierHeld = false
-                appPinModifierUsed = false
-                appPinModifierOpenedMode = false
-                if !used, !openedMode { exit(reason: .userRequested) }
-            }
-            return
-        }
-        switch phase {
-        case .press:
-            guard !appPinPressed else { return }
-            appPinPressed = true
-            guard appPinModifierHeld else { return }
-            // Even a failed dispatch consumed this chord; never fall through
-            // to Exit when the modifier is released.
-            appPinModifierUsed = true
-            if onAppSpecificInput?(source, target, cell, .press, inputTime) == true {
-                recordSelection(cell: cell)
-            }
-        case .release:
-            appPinPressed = false
-        }
-    }
-
-    private func resetAppPinChord() {
-        appPinModifierHeld = false
-        appPinModifierUsed = false
-        appPinModifierOpenedMode = false
-        appPinPressed = false
-    }
-
     private func performSelectAll(source: MouseSource, cell: PhysicalCell) {
         guard isActive, self.source == source, page == .modes else { return }
         let outcome = onUtilityAction?(source, .selectAll) ?? .failed(message: nil)
@@ -913,7 +852,7 @@ public final class ModePickerCoordinator {
         }
         pageGeneration &+= 1
         isWandHome = false
-        resetAppPinChord()
+        appPinPressed = false
         if let existingIndex = navigationPath.lastIndex(of: destination) {
             navigationPath = Array(navigationPath.prefix(through: existingIndex))
         } else {
@@ -988,7 +927,7 @@ public final class ModePickerCoordinator {
         guard isActive, source == .wand, isWandHome, wandParents.isEmpty,
               !mark.current.isWandHome, mark.current.page != .keypad else { return false }
         clearWheelControl()
-        resetAppPinChord()
+        appPinPressed = false
         pageGeneration &+= 1
         wandParents = mark.parents
         isWandHome = false
@@ -1080,8 +1019,7 @@ public final class ModePickerCoordinator {
     /// Reject queued events from the retired Codex pin wheel gesture.
     @discardableResult
     public func toggleCodexPinFromWheel(_ step: WheelChordStateMachine.Step, inputTime: TimeInterval) -> Bool {
-        // Reject a stale event from the retired gesture; pinning now requires
-        // a fresh same-source cell-2 hold and click on the Pin card.
+        // Reject a stale event from the retired Codex wheel gesture.
         false
     }
 

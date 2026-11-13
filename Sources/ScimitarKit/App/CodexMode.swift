@@ -69,7 +69,6 @@ public enum CodexMode {
     public static let responseSpeedWheelCell = PhysicalCell(rawValue: 3)!
     public static let pinToggleCell = PhysicalCell(rawValue: 1)!
     public static let reasoningEffortWheelCell = PhysicalCell(rawValue: 6)!
-    public static let pinModifierCell = PhysicalCell.frontmostAppModeSelector
     public static let screenshotPinWheelCell = pinToggleCell // Compatibility with the retired Codex wheel route.
     public static let bundleIdentifier = "com.openai.codex"
     public static let accent = RGBColor(red: 32, green: 128, blue: 255)
@@ -83,24 +82,14 @@ public enum CodexMode {
         outlineWidth: 4.5,
         legend: PhysicalCell.all.map { cell in
             if cell.isAppSpecificModeExit {
-                // The wand's centre only exits: holding the wand aims, so
-                // "Hold for Pin/Unpin" is the physical mice's cell-2 chord.
                 return ModeHUDLegendItem(
                     cell: cell,
-                    actionTitle: cell == pinModifierCell ? "Exit · Hold for Pin/Unpin" : "Exit Codex mode",
+                    actionTitle: "Exit Codex mode",
                     accent: accent,
                     appBackdrop: ModeHUDAppBackdrop(bundleIdentifier: bundleIdentifier)
                 ).withWandTitle("Exit Codex mode")
             }
             if let control = WheelChordControl.appSpecificControl(for: .codex, cell: cell) {
-                if control == .codexPin {
-                    return ModeHUDLegendItem(
-                        cell: cell,
-                        actionTitle: CodexModeAction.togglePin.title,
-                        accent: control.hudAccent,
-                        controlStatus: control.hudControlStatus
-                    ).withHeldModifier(pinModifierCell).withWandTitle("Pin/Unpin")
-                }
                 let item = ModeHUDLegendItem(
                     cell: cell,
                     gesture: control.hudGesture,
@@ -112,17 +101,12 @@ public enum CodexMode {
                     ? item.withWandTitle("\(control.hudHoldTitle) \(control.wandHUDMotion.glyph)") : item
             }
             if let action = CodexModeAction.action(for: cell) {
-                let item = ModeHUDLegendItem(
+                return ModeHUDLegendItem(
                     cell: cell,
                     actionTitle: action.title,
                     accent: action.hudAccent,
                     controlStatus: action.hudControlStatus
                 )
-                // Ethan (2026-10-30): "we don't need to do that hold 2x thing"
-                // on the wand. A wand click sends the Pin shortcut directly;
-                // The physical mice name their actual source-specific modifier.
-                return action == .togglePin
-                    ? item.withHeldModifier(pinModifierCell).withWandTitle("Pin/Unpin") : item
             }
             return ModeHUDLegendItem(
                 cell: cell,

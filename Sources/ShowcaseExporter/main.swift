@@ -136,7 +136,8 @@ final class SiteProbe {
         }
         coordinator.onAppSpecificInput = { [unowned self] _, target, cell, phase, _ in
             guard phase == .press else { return true }
-            guard target != .claude || ClaudeModeAction.action(for: cell) != nil else { return false }
+            if target == .claude, cell != ClaudeMode.pinToggleCell,
+               ClaudeModeAction.action(for: cell) == nil { return false }
             effect = target.definition.legend.first { $0.cell == cell }?.actionTitle
             return effect != "Spare"
         }
@@ -146,12 +147,6 @@ final class SiteProbe {
         }
         for command in commands {
             coordinator.handle(command)
-            // Routes describe completed entry clicks, not a still-held
-            // physical modifier carried into every subsequent cell probe.
-            if command.action == .openAppSpecific, command.phase == .press {
-                coordinator.handle(.init(action: .openAppSpecific, source: command.source,
-                    physicalCell: command.physicalCell, phase: .release))
-            }
         }
         effect = nil
     }
@@ -199,12 +194,6 @@ func exportSource(_ source: MouseSource) -> SiteSource {
             let press = ModePickerCommand(action: .select, source: source, physicalCell: item.cell, phase: .press)
             let cellProbe = SiteProbe(source: source, commands: route.commands, app: route.app)
             cellProbe.coordinator.handle(press)
-            // A pin modifier decides its unused Exit on release.
-            // Export a complete solo click, without simulating a pin chord.
-            if snapshot.legend.contains(where: { $0.heldModifierCell == item.cell }) {
-                cellProbe.coordinator.handle(.init(action: .select, source: source,
-                    physicalCell: item.cell, phase: .release))
-            }
             if cellProbe.modeID != modeID {
                 control.next = cellProbe.modeID
                 if cellProbe.coordinator.followsFrontmostApp != probe.coordinator.followsFrontmostApp {
