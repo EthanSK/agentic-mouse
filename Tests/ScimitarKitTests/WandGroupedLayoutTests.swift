@@ -171,11 +171,11 @@ final class WandGroupedLayoutTests: XCTestCase {
     func testCodexPinNamesWhatTheWandDoes() {
         let legend = CodexMode.definition.legend
         let pin = legend.first { $0.cell == CodexMode.pinToggleCell }!
-        XCTAssertEqual(pin.displayTitle(on: .wand), "Pin/Unpin", "no physical cell-2 chord cue on the wand")
-        XCTAssertEqual(pin.displayTitle(on: .corsair), "Pin/Unpin + Hold Corsair 2", "the mice name their actual modifier")
-        let centre = legend.first { $0.cell == CodexMode.pinModifierCell }!
+        XCTAssertEqual(pin.displayTitle(on: .wand), "Pin/Unpin")
+        XCTAssertEqual(pin.displayTitle(on: .corsair), "Pin/Unpin")
+        let centre = legend.first { $0.cell == .frontmostAppModeSelector }!
         XCTAssertEqual(centre.displayTitle(on: .wand), "Exit Codex mode")
-        XCTAssertEqual(centre.displayTitle(on: .razer), "Exit · Hold for Pin/Unpin")
+        XCTAssertEqual(centre.displayTitle(on: .razer), "Exit Codex mode")
         let vsCode = DefaultMapLegend.snapshot(source: .wand, frontmostAppContext:
             FrontmostAppModeContext(target: .vsCode, displayName: "VS Code", bundleIdentifier: AppSpecificTarget.vsCode.bundleIdentifier)).legend
         XCTAssertFalse(vsCode.contains { $0.displayTitle(on: .wand).contains("Hold stage") }, "the wand home only moves to a change")

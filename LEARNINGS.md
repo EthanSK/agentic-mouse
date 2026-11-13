@@ -1,5 +1,9 @@
 # Learnings
 
+## 2026-11-13 — Pin/Unpin takes one mouse press in Claude and Codex
+
+Ethan confirmed Claude Pin already worked when he held side button 2 and clicked Pin. He asked to remove that prerequisite from both modes because the existing notifications are enough. Dispatch once per press on Corsair 1 or Razer 3 in the active app mode. Keep button 2 as a mode entry or exit, and keep the existing shortcut senders. The wand retains its separate gestures.
+
 ## 2026-11-11 — Focus Codex once per burst of mouse adjustments
 
 **Trigger:** Ethan wants Speed and Reasoning Effort to work when Codex is in the background, and does not want to refocus the input on every ratchet.

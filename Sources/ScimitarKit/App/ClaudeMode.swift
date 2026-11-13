@@ -66,7 +66,7 @@ public enum ClaudeMode {
             if cell.isAppSpecificModeExit {
                 return ModeHUDLegendItem(
                     cell: cell,
-                    actionTitle: cell == CodexMode.pinModifierCell ? "Exit · Hold for Pin/Unpin" : "Exit Claude mode",
+                    actionTitle: "Exit Claude mode",
                     accent: accent,
                     appBackdrop: ModeHUDAppBackdrop(bundleIdentifier: bundleIdentifier)
                 ).withWandTitle("Exit Claude mode")
@@ -76,10 +76,8 @@ public enum ClaudeMode {
                 return ModeHUDLegendItem(
                     cell: cell,
                     actionTitle: CodexModeAction.togglePin.title,
-                    accent: pin.hudAccent,
-                    controlStatus: .reportedBroken
-                ).withHeldModifier(CodexMode.pinModifierCell)
-                    .withWandTitle("\(pin.hudHoldTitle) \(pin.wandHUDMotion.glyph)")
+                    accent: pin.hudAccent
+                ).withWandTitle("\(pin.hudHoldTitle) \(pin.wandHUDMotion.glyph)")
             }
             if let control = WheelChordControl.appSpecificControl(for: .claude, cell: cell) {
                 return ModeHUDLegendItem(
