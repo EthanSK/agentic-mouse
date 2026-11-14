@@ -90,7 +90,7 @@ public enum WheelChordControl: String, Codable, CaseIterable, Sendable {
     /// added or otherwise untested control remains normal; only an explicit
     /// unresolved failure report earns a repair marker.
     public var hudControlStatus: ModeHUDControlStatus {
-        .normal
+        self == .codexResponseSpeed ? .reportedBroken : .normal
     }
 
     /// Utility deliberately spends one cell per two-way family. The opposite

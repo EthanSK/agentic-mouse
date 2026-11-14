@@ -8,6 +8,28 @@ The patch passed 141 focused Swift checks, 37 generator tests, 1,776 native rout
 
 # Learnings
 
+## 2026-11-14 — A failed first Codex focus must not reserve an empty burst
+
+The mouse acquires one composer per five-second burst, then protects that exact
+target. Previously a failed initial lookup or focus left `target` nil, but every
+retry extended the burst timer and skipped acquisition. Retrying quickly could
+therefore keep failing indefinitely. A burst without an acquired target must
+begin acquisition again. Once a target exists, retain the existing inactivity
+rule and refuse to reclaim focus from a different chat during the hold.
+
+The installed Mouse and Model Bar used byte-identical native-key senders. A
+non-posting probe resolved live Ctrl-Shift-S to key 41 with Control/Shift flags
+and constructed one non-repeating down/up pair. The bar's two logged requests
+finished in 23–43 ms; its speed reading was briefly unavailable for 539 ms. These
+records do not identify the exact failed physical mouse request. Route bounded
+native request metadata through `LogRedaction` and the shared `DiagnosticLog` so
+future cancellation, expiry and focus failures are distinguishable without
+recording drafts, selections, credentials or keyboard text.
+
+Keep the unactivated Peek repair gated off while shipping an independent mouse
+fix. Companion source and its private chord remain present, but ordinary native
+Option-F12 must keep working until the companion activation is completed.
+
 ## 2026-11-14 — Restore source scroll before replacing an offscreen Peek
 
 Ethan reported that a second Peek jumps after scrolling the unchanged source

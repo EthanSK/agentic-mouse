@@ -353,6 +353,10 @@ public final class VSCodeModeGestureClassifier {
 }
 
 public enum VSCodeModeFeatureFlags {
+    /// Companion 0.1.2 still needs an attended extension restart. Keep ordinary
+    /// Option-F12 working until that separate activation is authorized and done.
+    public static let peekSourcePreservation = false
+
     /// An adjacent press toggles wheel review until the navigation owner releases.
     public static let stageRangePreviewNavigation = true
 }
