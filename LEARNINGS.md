@@ -8,6 +8,14 @@ The patch passed 141 focused Swift checks, 37 generator tests, 1,776 native rout
 
 # Learnings
 
+## 2026-11-14 — Open Claude Session from Razer 9 in Codex mode
+
+Ethan selected the standalone Claude Session plugin tab for Razer 9. The action is separate from Codex's built-in side chat and the Claude model bridge. Resolve the source-specific action through `CodexModeAction.action(for:source:)`, and compose the same Razer override into the active HUD snapshot. The other source legends retain their existing Enter action.
+
+Automatic app entry previously assigned its target after `activate` drew the first HUD. Pass that target and follow-frontmost state into activation so the initial source-specific legend and entry callbacks use the correct identity. The automatic/manual journey and outline tests reproduced the missing initial Razer override.
+
+The running Codex bundle on this Mac is `/Applications/ChatGPT.app`, version 26.1106.51428, with bundle ID `com.openai.codex`. `/Applications/Codex.app` is an older installed build. Inspect the running bundle when verifying command labels. In build 26605, New tab is a native menu command, More tools… is the picker button, Plugins and MCPs is a section heading, and Open Claude session is a plugin menu item. The opener watches Accessibility notifications and presses each menu control once. Runtime placement and the physical shortcut remain live acceptance checks.
+
 ## 2026-11-14 — Peek at definitions inline from VS Code mode
 
 Button 11 on both mice sends VS Code's native Option-F12 (`editor.action.peekDefinition`). Ethan asked to replace “Go to Definition” with Peek Definition so he can see the definition in the current editor. Keep the process-targeted shortcut and shared VS Code mode definition.

@@ -60,6 +60,7 @@ final class CodexModeActionExecutor {
     private let cancelReasoningRequest: @MainActor () -> Bool
     private var responseSpeedPending = false
     private var reasoningEffortPending = false
+    private let claudeSessionOpener = CodexClaudeSessionOpener()
 
     init(
         targetProcessResolver: @escaping TargetProcessResolver = {
@@ -165,6 +166,7 @@ final class CodexModeActionExecutor {
 
     func perform(
         _ action: CodexModeAction,
+        requestAllowed: @escaping InputAllowedProvider = { true },
         feedback: FeedbackHandler? = nil
     ) -> Result<Void, ActionError> {
         guard inputAllowed() else {
@@ -177,6 +179,7 @@ final class CodexModeActionExecutor {
                 description: "Accessibility permission is required for Codex shortcuts"
             ))
         }
+        if action != .openClaudeSession { claudeSessionOpener.cancel() }
         let rapidPinRetoggle = action == .togglePin && pinChangeVerifier.isVerificationPending
         if rapidPinRetoggle {
             pinChangeVerifier.cancelPendingVerification()
@@ -207,6 +210,13 @@ final class CodexModeActionExecutor {
             result = postForegroundShortcut(Self.closeTabShortcut)
         case .pressEnter:
             result = postShortcut(Self.submitShortcut)
+        case .openClaudeSession:
+            return claudeSessionOpener.open(
+                requestAllowed: { [inputAllowed, accessibilityTrusted] in
+                    inputAllowed() && accessibilityTrusted() && requestAllowed()
+                },
+                feedback: feedback ?? { _ in }
+            )
         }
 
         guard case .success = result, let feedback else { return result }
@@ -262,8 +272,13 @@ final class CodexModeActionExecutor {
     }
 
     func cancelPendingVerifications() {
+        claudeSessionOpener.cancel()
         pinChangeVerifier.cancelPendingVerification()
         voiceSessionVerifier.cancelPendingVerification()
+    }
+
+    func cancelClaudeSession() {
+        claudeSessionOpener.cancel()
     }
 
     /// Ethan: "just click the speed button". Use the existing completed-hold

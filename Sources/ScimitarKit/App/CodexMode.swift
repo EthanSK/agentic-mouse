@@ -8,6 +8,7 @@ public enum CodexModeAction: String, CaseIterable, Equatable, Sendable {
     case openSideChat
     case closeTab
     case pressEnter
+    case openClaudeSession
 
     public var cell: PhysicalCell {
         switch self {
@@ -17,7 +18,7 @@ public enum CodexModeAction: String, CaseIterable, Equatable, Sendable {
         case .toggleVoiceMode: return PhysicalCell(rawValue: 12)!
         case .openSideChat: return PhysicalCell(rawValue: 4)!
         case .closeTab: return PhysicalCell(rawValue: 8)!
-        case .pressEnter: return PhysicalCell(rawValue: 7)!
+        case .pressEnter, .openClaudeSession: return PhysicalCell(rawValue: 7)!
         }
     }
 
@@ -30,6 +31,7 @@ public enum CodexModeAction: String, CaseIterable, Equatable, Sendable {
         case .openSideChat: return "Open side chat"
         case .closeTab: return "⌘W Close tab"
         case .pressEnter: return "Enter"
+        case .openClaudeSession: return "Claude session"
         }
     }
 
@@ -42,6 +44,7 @@ public enum CodexModeAction: String, CaseIterable, Equatable, Sendable {
         case .openSideChat: return RGBColor(red: 72, green: 189, blue: 255)
         case .closeTab: return RGBColor(red: 72, green: 189, blue: 255)
         case .pressEnter: return ModeHUDActionFamilyPalette.enter
+        case .openClaudeSession: return RGBColor(red: 207, green: 128, blue: 96)
         }
     }
 
@@ -52,17 +55,32 @@ public enum CodexModeAction: String, CaseIterable, Equatable, Sendable {
         switch self {
         // Ethan confirmed Voice mode works; retain the shared toggle route.
         case .toggleVoiceMode, .newTask, .togglePin, .toggleMicrophoneMute, .openSideChat,
-             .closeTab, .pressEnter:
+             .closeTab, .pressEnter, .openClaudeSession:
             return .normal
         }
     }
 
-    public static func action(for cell: PhysicalCell) -> CodexModeAction? {
-        allCases.first { $0.cell == cell }
+    public static func action(for cell: PhysicalCell, source: MouseSource = .corsair) -> CodexModeAction? {
+        // Ethan explicitly chose Razer 9 for the Claude Session plugin tab.
+        // Keep Enter on the other mouse and on the wand.
+        if source == .razer, cell == openClaudeSession.cell { return .openClaudeSession }
+        return allCases.first { $0 != .openClaudeSession && $0.cell == cell }
     }
 }
 
 public enum CodexMode {
+    public static func legend(for source: MouseSource, from legend: [ModeHUDLegendItem]) -> [ModeHUDLegendItem] {
+        guard source == .razer else { return legend }
+        return legend.map { item in
+            guard item.cell == CodexModeAction.openClaudeSession.cell else { return item }
+            return ModeHUDLegendItem(
+                cell: item.cell,
+                actionTitle: CodexModeAction.openClaudeSession.title,
+                accent: CodexModeAction.openClaudeSession.hudAccent
+            )
+        }
+    }
+
     // Ethan's Codex layout: "flip pin unpin and speed", put Reasoning on
     // Corsair 6, Open side chat on 4, and Chats Selection on 9. These canonical
     // cells also drive the mirrored Razer HUD and both app-entry journeys.
