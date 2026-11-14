@@ -1938,7 +1938,8 @@ final class ModePickerTests: XCTestCase {
                     if item.cell.isAppSpecificModeExit {
                         XCTAssertEqual(item.appBackdrop?.bundleIdentifier, CodexMode.bundleIdentifier)
                     } else {
-                        XCTAssertEqual(item, CodexMode.definition.legend.first { $0.cell == item.cell })
+                        let expected = CodexMode.legend(for: source, from: CodexMode.definition.legend)
+                        XCTAssertEqual(item, expected.first { $0.cell == item.cell })
                     }
                 }
             }
@@ -2022,7 +2023,7 @@ final class ModePickerTests: XCTestCase {
                     bundleIdentifier: target.bundleIdentifier
                 )
             }
-            automatic.enterAppSpecific(source: .corsair)
+            automatic.enterAppSpecific(source: .razer)
 
             let manualHUD = RecordingModeHUDPresenter()
             let manual = makeCoordinator(hud: manualHUD)
@@ -2701,6 +2702,24 @@ final class ModePickerTests: XCTestCase {
             ModeHUDActionFamilyPalette.historyNavigation
         )
         XCTAssertNotEqual(CodexMode.definition.legend[11].actionTitle, "Choose another app")
+    }
+
+    func testRazerClaudeSessionReplacesOnlyCodexEnterAndItsLegend() {
+        let cell = CodexModeAction.pressEnter.cell
+        XCTAssertEqual(cell.printedSide(on: .razer), 9)
+        XCTAssertEqual(CodexModeAction.action(for: cell, source: .razer), .openClaudeSession)
+        for source in [MouseSource.corsair, .wand] {
+            XCTAssertEqual(CodexModeAction.action(for: cell, source: source), .pressEnter)
+        }
+        let baseline = CodexMode.definition.legend
+        let razer = CodexMode.legend(for: .razer, from: baseline)
+        XCTAssertEqual(razer.first { $0.cell == cell }?.actionTitle, "Claude session")
+        XCTAssertEqual(razer.filter { $0.cell != cell }, baseline.filter { $0.cell != cell })
+        XCTAssertEqual(CodexMode.legend(for: .corsair, from: baseline), baseline)
+        XCTAssertEqual(CodexMode.legend(for: .wand, from: baseline), baseline)
+        XCTAssertEqual(ClaudeModeAction.action(for: cell), .pressEnter)
+        XCTAssertEqual(CodexModeAction.action(for: PhysicalCell(rawValue: 9)!, source: .razer), nil)
+        XCTAssertEqual(CodexModeAction.action(for: PhysicalCell(rawValue: 11)!, source: .razer), .toggleMicrophoneMute)
     }
 
     func testCellThreeNeverHidesAnActiveModeLegend() {

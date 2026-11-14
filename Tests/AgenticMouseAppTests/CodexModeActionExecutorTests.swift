@@ -7,6 +7,31 @@ import XCTest
 
 @MainActor
 final class CodexModeActionExecutorTests: XCTestCase {
+    func testClaudeSessionCannotOpenAfterModeExitOrWithoutInputPermission() {
+        var eventCount = 0
+        var inputAllowed = true
+        var trusted = true
+        let executor = CodexModeActionExecutor(
+            targetProcessResolver: { 42 },
+            postEvent: { _, _, _, _ in eventCount += 1; return true },
+            accessibilityTrusted: { trusted },
+            inputAllowed: { inputAllowed }
+        )
+        guard case .failure = executor.perform(.openClaudeSession, requestAllowed: { false }) else {
+            return XCTFail("Leaving the source mode must cancel the picker request")
+        }
+        inputAllowed = false
+        guard case .failure = executor.perform(.openClaudeSession) else {
+            return XCTFail("Locked input must never open a tab")
+        }
+        inputAllowed = true
+        trusted = false
+        guard case .failure = executor.perform(.openClaudeSession) else {
+            return XCTFail("Untrusted input must never open a tab")
+        }
+        XCTAssertEqual(eventCount, 0)
+    }
+
     func testCodexAdjustmentBurstMeasuresInactivityFromTheMostRecentStep() {
         var burst = CodexMouseAdjustment.Burst()
         XCTAssertTrue(burst.begins(at: 10))

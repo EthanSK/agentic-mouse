@@ -293,9 +293,8 @@ public final class ModePickerCoordinator {
             displayName: "No frontmost app",
             bundleIdentifier: nil
         )
-        activate(source: source, page: .appSpecific, definition: context.definition)
-        appSpecificTarget = context.target
-        followsFrontmostApp = true
+        activate(source: source, page: .appSpecific, definition: context.definition,
+                 target: context.target, followsFrontmost: true)
         log.info("Following frontmost app: \(context.displayName)")
     }
 
@@ -326,6 +325,8 @@ public final class ModePickerCoordinator {
         source: MouseSource,
         page: ModePickerPage,
         definition: AppSpecificModeDefinition?,
+        target: AppSpecificTarget? = nil,
+        followsFrontmost: Bool = false,
         wandHome: Bool = false,
         pointerFocus initialPointerFocus: ModeHUDPointerFocus? = nil
     ) {
@@ -344,8 +345,10 @@ public final class ModePickerCoordinator {
         wandParents = []
         pageGeneration &+= 1
         appSpecificDefinition = definition
-        appSpecificTarget = nil
-        followsFrontmostApp = false
+        // The first snapshot and entry callbacks need the same app/source
+        // identity as later snapshots, including Razer's Claude Session card.
+        appSpecificTarget = target
+        followsFrontmostApp = followsFrontmost
         lastSelection = nil
         pointerFocus = source == .wand && page != .keypad ? initialPointerFocus : nil
         chromeWebsitesParentDefinition = nil
@@ -1153,7 +1156,9 @@ public final class ModePickerCoordinator {
                 modeTitle: definition.title,
                 source: source ?? .corsair,
                 selection: lastSelection,
-                legend: definition.legend,
+                legend: appSpecificTarget == .codex
+                    ? CodexMode.legend(for: source ?? .corsair, from: definition.legend)
+                    : definition.legend,
                 accent: definition.accent,
                 outlineWidth: definition.outlineWidth,
                 lightingTargets: lightingTargets,

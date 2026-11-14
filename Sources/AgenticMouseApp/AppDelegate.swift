@@ -1327,6 +1327,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
             coordinator.onModeChange = { [weak self] active in
                 guard let self else { return }
+                if source == .razer { self.codexModeActionExecutor.cancelClaudeSession() }
                 if source == .wand, !active { self.wandHeldKeys.release() }
                 self.wheelChordMonitor?.clear(source: source)
                 self.magnetWheelActionSequencer.cancel(source: source)
@@ -1400,9 +1401,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 switch target {
                 case .codex:
                     guard phase == .press else { return true }
-                    guard let action = CodexModeAction.action(for: cell) else { return false }
+                    guard let action = CodexModeAction.action(for: cell, source: source) else { return false }
                     Log(category: "codex-actions", sink: self.logSink).notice("Codex mouse action \(action.rawValue), source \(source.rawValue), cell \(cell.rawValue)")
-                    result = self.codexModeActionExecutor.perform(action) { [weak self] feedback in
+                    result = self.codexModeActionExecutor.perform(action, requestAllowed: { [weak self] in
+                        guard let coordinator = self?.modePickerCoordinators[source] else { return false }
+                        return coordinator.isActive && coordinator.page == .appSpecific
+                            && coordinator.appSpecificTarget == .codex
+                    }) { [weak self] feedback in
                         guard let self,
                               self.modePickerCoordinators[source]?.isActive == true,
                               self.modePickerCoordinators[source]?.page == .appSpecific,
