@@ -152,7 +152,7 @@ class KarabinerGeneratorTests(unittest.TestCase):
             item for item in generated["rules"]
             if item["description"] == "Agentic Mouse — Modes (expiring, exact-device)"
         )
-        self.assertEqual(len(rule["manipulators"]), 90)
+        self.assertEqual(len(rule["manipulators"]), 118)
         actions = []
         legend_toggles = []
         for manipulator in rule["manipulators"]:
@@ -162,7 +162,17 @@ class KarabinerGeneratorTests(unittest.TestCase):
             frontmost_conditions = {
                 "frontmost_application_if", "frontmost_application_unless"
             } & condition_types
-            if frontmost_conditions:
+            shared_vscode = any(
+                e.get("send_user_command", {}).get("payload", {}).get("action") == "selectNative"
+                for e in manipulator.get("to", [])
+            ) and any(
+                c.get("expression", "").endswith("_page == 4")
+                for c in manipulator["conditions"]
+            )
+            if shared_vscode:
+                self.assertEqual(frontmost_conditions, {"frontmost_application_if"})
+                self.assertTrue(any(c == vscode_if_condition() for c in manipulator["conditions"]))
+            if frontmost_conditions and not shared_vscode:
                 self.assertEqual(
                     manipulator["from"]["key_code"],
                     ("keypad_8" if any(e.get("set_variable", {}).get("value") == 7 for e in manipulator["to"]) else "keypad_plus") if any(
@@ -223,7 +233,7 @@ class KarabinerGeneratorTests(unittest.TestCase):
 
         self.assertEqual(actions[:2], ["close", "close"])
         self.assertEqual(actions.count("select"), 64)
-        self.assertEqual(actions.count("selectNative"), 18)
+        self.assertEqual(actions.count("selectNative"), 46)
         self.assertEqual(actions[-2:], ["open", "open"])
         self.assertEqual(
             {(item["source"], item["physical_cell"]) for item in legend_toggles},

@@ -78,7 +78,7 @@ class NativeModeRouteTests(unittest.TestCase):
             definitions += [("default", definition, self.bundles[app]) for app, definition in native["defaults"].items()]
             for mode, definition, default_bundle in definitions:
                 page = self.pages.get(mode, self.pages["appSpecific"])
-                manual_selection = 1 if mode == "codex" else 3 if mode in ("chrome", "websites") else 2
+                manual_selection = 1 if mode == "codex" else 3 if mode in ("chrome", "websites") else 4 if mode == "vsCode" else 2
                 contexts = [(manual_selection, "test.foreground", "manual")]
                 if default_bundle:
                     contexts = [(0, default_bundle, "default-app-context")]
@@ -109,7 +109,7 @@ class NativeModeRouteTests(unittest.TestCase):
                                 self.assertEqual(after[page_var], self.pages.get(destination, self.pages["appSpecific"]),
                                                  f"Native {mode} → {destination} leaves transport on the wrong page")
                                 if mode == "apps":
-                                    self.assertEqual(after[selection_var], 1 if destination == "codex" else 3 if destination == "chrome" else 2)
+                                    self.assertEqual(after[selection_var], 1 if destination == "codex" else 3 if destination == "chrome" else 4 if destination == "vsCode" else 2)
                             press = [e["send_user_command"]["payload"] for e in route["to"]
                                      if "send_user_command" in e and admitted(e.get("conditions", []), after, device, bundle)]
                             release = [e["send_user_command"]["payload"] for e in route.get("to_after_key_up", [])

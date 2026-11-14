@@ -120,8 +120,8 @@ public enum VSCodeModeCommand: String, Equatable, Sendable {
 }
 
 /// Owns runtime-page holds and the separate Stage button's existing double click.
-/// Default navigation uses native Karabiner holds; runtime pages dispatch to their
-/// selected app, so they use this source-owned classifier instead. Both share the
+/// Physical mice compose the top-level Karabiner holds in the VS Code page.
+/// The wand and source-only callers use this classifier. Both share the
 /// 200 ms release-based hold contract. Better Git owns all undo data.
 public final class VSCodeModeGestureClassifier {
     private struct PendingPress {
@@ -406,8 +406,8 @@ public final class VSCodeStagePreviewModifierState {
         return activeSources.remove(source) != nil
     }
 
-    /// Enables default Eyes only for the top-level layer; the entered VS Code
-    /// page keeps its independent momentary adjacent-button interaction.
+    /// Enables Eyes for the shared physical-mouse hold, including the VS Code
+    /// page that composes it. Other active app pages keep their own controls.
     @discardableResult
     public func activateDefaultForReadyStage(
         source: MouseSource,

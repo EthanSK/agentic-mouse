@@ -37,8 +37,10 @@ APP_SELECTION_AUTOMATIC = 0
 APP_SELECTION_CODEX = 1
 APP_SELECTION_OTHER = 2
 APP_SELECTION_CHROME = 3
+APP_SELECTION_VSCODE = 4
 CODEX_SELECTOR_PHYSICAL_CELL = 1
 CHROME_SELECTOR_PHYSICAL_CELL = 4
+VSCODE_SELECTOR_PHYSICAL_CELL = 7
 CODEX_VOICE_PHYSICAL_CELL = 12
 CODEX_BUNDLE_IDENTIFIERS = [r"^com\.openai\.codex$"]
 KEYS_MODE_OUTPUT_BY_PHYSICAL_CELL = {
@@ -80,14 +82,18 @@ VSCODE_LEGACY_STAGE_FLAG = "agentic_mouse_vscode_legacy_stage_chords_enabled"
 VSCODE_EYES_BEGIN_EXPIRY = "agentic_mouse_vscode_eyes_begin_expires_at"
 
 
-def vscode_hold_templates(binding: dict[str, Any]) -> list[dict[str, Any]]:
+def vscode_hold_templates(
+    binding: dict[str, Any], output_context: list[dict[str, Any]] | None = None
+) -> list[dict[str, Any]]:
     """Capture on press, choose navigation or staging on release, and keep Undo atomic."""
     source = binding["id"].split("-", 1)[0]
     cell = 8 if "next" in binding["action"] else 5
     pending = f"agentic_mouse_{source}_vscode_hold_{cell}"
     wheel_armed = f"{pending}_wheel_armed"
     frontmost = {"type": "frontmost_application_if", "bundle_identifiers": [r"^com\.microsoft\.VSCode(?:Insiders)?$"]}
-    output_conditions = [frontmost, {"type": "expression_unless", "expression": _active_expression(f"agentic_mouse_mode_picker_{source}_expires_at")}]
+    output_conditions = [frontmost] + (copy.deepcopy(output_context) if output_context is not None else [
+        {"type": "expression_unless", "expression": _active_expression(f"agentic_mouse_mode_picker_{source}_expires_at")}
+    ])
     enabled = [frontmost, {"type": "variable_unless", "name": VSCODE_LEGACY_STAGE_FLAG, "value": 1}]
     feedback_modifiers = ["left_command", "left_shift"] if source == "razer" else ["left_control", "left_option", "left_command"]
     navigation_modifiers = ["left_command", "left_shift"] if source == "razer" else ["left_control", "left_command"]
@@ -659,6 +665,26 @@ def _direct_mode_entry(manipulator: dict[str, Any]) -> tuple[str, str] | None:
     return None
 
 
+def binding_templates(
+    binding: dict[str, Any], actions: dict[str, dict[str, Any]],
+    output_context: list[dict[str, Any]] | None = None,
+) -> list[dict[str, Any]]:
+    # Moved from build_documents: the top-level actions own the complete
+    # click/hold/Undo lifecycle. VS Code mode composes this same source.
+    action_id = binding["action"]
+    templates = copy.deepcopy(actions[action_id]["_manipulator_templates"])
+    if action_id == "press-enter":
+        templates = enter_templates(binding)
+    preview_partner = vscode_preview_partner_template(binding)
+    if preview_partner is not None:
+        templates.insert(0, preview_partner)
+    if binding["id"].startswith(("corsair-vscode-", "razer-vscode-")):  # Ethan replaced the two-button/late-stage gesture with a hold; retain the exact old path only behind an opt-in flag. (Codex task: 01a039f7-873c-7c30-b3dc-af8a6724ace5)
+        for template in templates:
+            template.setdefault("conditions", []).append({"type": "variable_if", "name": VSCODE_LEGACY_STAGE_FLAG, "value": 1})
+        templates = vscode_hold_templates(binding, output_context) + templates
+    return templates
+
+
 def build_documents(
     actions: dict[str, dict[str, Any]],
     bindings: list[dict[str, Any]],
@@ -686,16 +712,7 @@ def build_documents(
                 f"binding {binding['id']} references unknown action {action_id}"
             )
 
-        templates = copy.deepcopy(action["_manipulator_templates"])
-        if action_id == "press-enter":
-            templates = enter_templates(binding)
-        preview_partner = vscode_preview_partner_template(binding)
-        if preview_partner is not None:
-            templates.insert(0, preview_partner)
-        if binding["id"].startswith(("corsair-vscode-", "razer-vscode-")):  # Ethan replaced the two-button/late-stage gesture with a hold; retain the exact old path only behind an opt-in flag. (Codex task: 01a039f7-873c-7c30-b3dc-af8a6724ace5)
-            for template in templates:
-                template.setdefault("conditions", []).append({"type": "variable_if", "name": VSCODE_LEGACY_STAGE_FLAG, "value": 1})
-            templates = vscode_hold_templates(binding) + templates
+        templates = binding_templates(binding, actions)
         for index, source_template in enumerate(templates):
             template = _expand_binding_placeholders(copy.deepcopy(source_template), binding["id"], binding.get("outputModifiers"))
             action_conditions = template.pop("conditions", [])
@@ -806,7 +823,7 @@ def build_documents(
         ],
     }
     runtime_rules = (
-        ([build_mode_picker_rule(bindings, mode_picker, color_proof)] if mode_picker else [])
+        ([build_mode_picker_rule(bindings, mode_picker, color_proof, actions)] if mode_picker else [])
         + ([build_color_proof_rule(bindings, color_proof, mode_picker)] if color_proof else [])
         + [
             {
@@ -986,7 +1003,8 @@ def build_color_proof_rule(
 def build_mode_picker_rule(
     bindings: list[dict[str, Any]],
     mode_picker: dict[str, Any],
-    color_proof: dict[str, Any] | None = None,
+    color_proof: dict[str, Any] | None,
+    actions: dict[str, dict[str, Any]],
 ) -> dict[str, Any]:
     by_id = {binding["id"]: binding for binding in bindings}
     variables_by_source = _lease_variables(mode_picker)
@@ -1166,6 +1184,29 @@ def build_mode_picker_rule(
                     "conditions": conditions,
                 })
 
+            # Ethan's mode Next/Previous must be the exact top-level VS Code
+            # actions, including Eyes, release timing and adjacent cancel.
+            # Only the admitted page context and HUD feedback differ.
+            vscode_binding = next((candidate for candidate in bindings
+                if candidate["id"].startswith(f"{source}-vscode-")
+                and candidate["from"] == binding["from"]), None)
+            preview_template = vscode_preview_partner_template(binding)
+            if vscode_binding is not None or preview_template is not None:
+                context = device_conditions(binding, source=source, active=True) + [
+                    {"type": "expression_if", "expression": f"{page_variable} == {MODE_PAGE_APP_SPECIFIC}"},
+                    {"type": "expression_if", "expression": f"{app_selection_variable} == {APP_SELECTION_AUTOMATIC} or {app_selection_variable} == {APP_SELECTION_VSCODE}"},
+                ]
+                templates = binding_templates(vscode_binding, actions, context) if vscode_binding else [preview_template]
+                for template in templates:
+                    native = _expand_binding_placeholders(copy.deepcopy(template),
+                        (vscode_binding or binding)["id"], (vscode_binding or binding).get("outputModifiers"))
+                    conditions = native.pop("conditions", []) + copy.deepcopy(context)
+                    parameters = native.pop("parameters", None)
+                    native.setdefault("to", []).insert(0, command_event("selectNative", source, physical_cell, "press"))
+                    native.setdefault("to_after_key_up", []).append(command_event("selectNative", source, physical_cell, "release"))
+                    manipulators.append({"type": "basic", "from": copy.deepcopy(binding["from"]),
+                        **native, "conditions": conditions, **({"parameters": parameters} if parameters else {})})
+
             if physical_cell == 12:
                 append_navigation(MODE_PAGE_UTILITY, MODE_PAGE_EXTRA_UTILITIES)
             if physical_cell == 8:
@@ -1217,7 +1258,8 @@ def build_mode_picker_rule(
                     physical_cell=physical_cell,
                     selection_expression=(
                         f"{app_selection_variable} == {APP_SELECTION_OTHER} or "
-                        f"{app_selection_variable} == {APP_SELECTION_CHROME}"
+                        f"{app_selection_variable} == {APP_SELECTION_CHROME} or "
+                        f"{app_selection_variable} == {APP_SELECTION_VSCODE}"
                     ),
                 )
                 append_app_specific_input(
@@ -1331,6 +1373,8 @@ def build_mode_picker_rule(
                                         if physical_cell == CODEX_SELECTOR_PHYSICAL_CELL
                                         else APP_SELECTION_CHROME
                                         if physical_cell == CHROME_SELECTOR_PHYSICAL_CELL
+                                        else APP_SELECTION_VSCODE
+                                        if physical_cell == VSCODE_SELECTOR_PHYSICAL_CELL
                                         else APP_SELECTION_OTHER
                                     ),
                                 }

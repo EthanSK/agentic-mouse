@@ -10,6 +10,58 @@ spec.loader.exec_module(generator)
 
 
 class VSCodeHoldTests(unittest.TestCase):
+    def test_entered_mode_reuses_the_top_level_actions_for_both_mice(self):
+        import copy
+        from test_native_mode_routes import admitted, NOW
+        actions = generator.load_actions(generator.DEFAULT_ACTIONS)
+        bindings, proof, picker, security = generator.load_bindings(generator.DEFAULT_BINDINGS)
+        _, _, runtime = generator.build_documents(actions, bindings, proof, picker, security)
+        rules = [m for r in runtime["rules"] for m in r["manipulators"]]
+        for source in ("corsair", "razer"):
+            for cell in (4, 5, 6, 7, 8, 9):
+                base_id = picker["bindingsBySource"][source][cell - 1]
+                base = next(b for b in bindings if b["id"] == base_id)
+                device = next(c["identifiers"][0] for c in base["conditions"] if c["type"] == "device_if")
+                for modern in (False, True):
+                    variables = {security["unlockedLeaseVariable"]: NOW + 3000,
+                                 generator.VSCODE_EYES_BEGIN_EXPIRY: NOW + 3000 if modern else 0}
+                    # Adjacent controls use the same source's active hold.
+                    if cell in (4, 6): variables[f"agentic_mouse_{source}_vscode_hold_5"] = 2
+                    if cell in (7, 9): variables[f"agentic_mouse_{source}_vscode_hold_8"] = 2
+                    def route(state, bundle="com.microsoft.VSCode"):
+                        return next(m for m in rules if m["from"] == base["from"]
+                                    and admitted(m.get("conditions", []), state, device, bundle))
+                    ordinary = route(variables)
+                    def outputs(manipulator, state):
+                        # HUD-only messages and admission conditions vary by context.
+                        # The action, phases, modifiers and release order must be identical.
+                        value = copy.deepcopy(manipulator)
+                        value.pop("conditions", None)
+                        def strip(item):
+                            if isinstance(item, list):
+                                return [strip(e) for e in item if not isinstance(e, dict) or
+                                        e.get("send_user_command", {}).get("payload", {}).get("command") != "agentic_mouse_mode_picker"]
+                            if isinstance(item, dict):
+                                return {k: strip(v) for k, v in item.items() if k != "conditions" and strip(v) != []}
+                            return item
+                        return strip(value)
+                    for selection in (generator.APP_SELECTION_AUTOMATIC, generator.APP_SELECTION_VSCODE):
+                        mode = {**variables, picker["leaseVariablesBySource"][source]: NOW + 3000,
+                                picker["pageVariablesBySource"][source]: generator.MODE_PAGE_APP_SPECIFIC,
+                                picker["appSelectionVariablesBySource"][source]: selection}
+                        with self.subTest(source=source, cell=cell, modern=modern, selection=selection):
+                            selected = route(mode)
+                            self.assertEqual(outputs(ordinary, variables), outputs(selected, mode))
+                            if cell in (5, 8):
+                                begin = next(e for e in selected["to"] if e.get("key_code") in ("f13", "f17"))
+                                self.assertEqual(begin["key_code"], "f17" if cell == 5 else "f13")
+                                self.assertTrue(admitted(begin["conditions"], mode, device, "com.microsoft.VSCode"))
+                                wrong_page = {**mode, picker["pageVariablesBySource"][source]: generator.MODE_PAGE_UTILITY}
+                                self.assertFalse(admitted(begin["conditions"], wrong_page, device, "com.microsoft.VSCode"))
+                                self.assertFalse(admitted(begin["conditions"], mode, device, "com.apple.TextEdit"))
+                                locked = {**mode, security["unlockedLeaseVariable"]: 0}
+                                self.assertFalse(admitted(begin["conditions"], locked, device, "com.microsoft.VSCode"))
+
     def test_atomic_begin_is_gated_and_keeps_the_selected_release_lifecycle(self):
         for source in ("corsair", "razer"):
             for cell, action in ((5, "previous"), (8, "next")):
