@@ -226,7 +226,7 @@ final class ModePickerTests: XCTestCase {
         let speed = CodexMode.definition.legend.first {
             $0.cell == CodexMode.responseSpeedWheelCell
         }!
-        XCTAssertEqual(speed.controlStatus, .normal)
+        XCTAssertEqual(speed.controlStatus, .reportedBroken)
         XCTAssertEqual(speed.actionTitle, "Cycle speed · Speed")
 
         XCTAssertEqual(VSCodeModeAction.toggleTerminal.hudControlStatus, .normal)
