@@ -217,7 +217,7 @@ const LAYERS = {
       ["Next / Hold Stage", "Release a short click for Next Change immediately. Release a 300 ms hold to stage and go next. Every hold stages independently."],
       ["Stage + Next / Undo Stage ×2", "Single stages and advances; rapid double undoes the exact last stage."],
       ["Exit VS Code mode", "Return directly to Default."],
-      ["Go to Definition", "Send F12 to VS Code."],
+      ["Peek Definition", "Show the definition inline with Option-F12."],
       ["Interrupt terminal", "Send one app-targeted Control-C cycle."],
     ],
   },

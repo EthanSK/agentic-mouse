@@ -278,11 +278,13 @@ final class ApplicationShortcutDispatcherTests: XCTestCase {
         }
     }
 
-    func testVSCodeGoToDefinitionUsesF12() {
-        XCTAssertEqual(
-            VSCodeModeShortcutResolver.shortcut(for: .goToDefinition),
-            .init(keyCode: 111, flags: [])
-        )
+    func testVSCodePeekDefinitionUsesOptionF12ForBothMice() {
+        for source in [MouseSource.corsair, .razer] {
+            XCTAssertEqual(
+                VSCodeModeShortcutResolver.shortcut(for: .peekDefinition, source: source),
+                .init(keyCode: 111, flags: .maskAlternate)
+            )
+        }
     }
 
     func testVSCodeCursorHistoryHasNoSyntheticKeyboardFallback() {

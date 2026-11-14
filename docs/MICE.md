@@ -61,7 +61,7 @@ cell 6 and ratchet down for cursor-history Back or up for Forward; delivery uses
 the current VS Code keybindings without changing them. Cells 5 and 8 retain
 the same 200 ms navigation gestures. Cell 1 closes
 the current editor tab with Command-W, cell 7 opens the Command Palette with
-Command-Shift-P, and cell 11 sends F12 for Go to Definition. The child does not duplicate the
+Command-Shift-P, and cell 11 sends Option-F12 for inline Peek Definition. The child does not duplicate the
 Default Back/Forward pair. Matching base
 exclusions preserve Forward and Back everywhere else, while Copy / Paste remains available whenever its Stage + Previous window is inactive; every
 untouched control continues to inherit the exact-device base.

@@ -2356,7 +2356,7 @@ final class ModePickerTests: XCTestCase {
         }
     }
 
-    func testVSCodeModeUsesCloseTabCommandPaletteAndGoToDefinitionCells() {
+    func testVSCodeModeUsesCloseTabCommandPaletteAndPeekDefinitionCells() {
         XCTAssertEqual(VSCodeModeAction.closeTab.cell, PhysicalCell(rawValue: 1))
         XCTAssertEqual(VSCodeModeAction.closeTab.singlePressCommand, .closeTab)
         XCTAssertNil(VSCodeModeAction.closeTab.doublePressCommand)
@@ -2369,16 +2369,16 @@ final class ModePickerTests: XCTestCase {
             VSCodeModeAction.action(for: PhysicalCell(rawValue: 7)!),
             .commandPalette
         )
-        XCTAssertEqual(VSCodeModeAction.goToDefinition.cell, PhysicalCell(rawValue: 11))
+        XCTAssertEqual(VSCodeModeAction.peekDefinition.cell, PhysicalCell(rawValue: 11))
         XCTAssertEqual(
-            VSCodeModeAction.goToDefinition.singlePressCommand,
-            .goToDefinition
+            VSCodeModeAction.peekDefinition.singlePressCommand,
+            .peekDefinition
         )
-        XCTAssertNil(VSCodeModeAction.goToDefinition.doublePressCommand)
-        XCTAssertEqual(VSCodeMode.definition.legend[10].actionTitle, "Go to Definition")
+        XCTAssertNil(VSCodeModeAction.peekDefinition.doublePressCommand)
+        XCTAssertEqual(VSCodeMode.definition.legend[10].actionTitle, "Peek Definition")
         XCTAssertEqual(
             VSCodeModeAction.action(for: PhysicalCell(rawValue: 11)!),
-            .goToDefinition
+            .peekDefinition
         )
 
         XCTAssertEqual(VSCodeModeAction.previousChange.cell, PhysicalCell(rawValue: 5))
