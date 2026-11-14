@@ -130,6 +130,7 @@ final class CodexModeActionExecutor {
         }
         let native = CodexShortcutController(
             inputAllowed: { MainActor.assumeIsolated { inputAllowed() && accessibilityTrusted() } },
+            log: { adjustment.record($0) },
             performer: { command, _, codex, started, isCurrent in
                 adjustment.perform(command, codex: codex, started: started, isCurrent: isCurrent)
             }

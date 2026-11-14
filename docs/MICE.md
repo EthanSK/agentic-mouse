@@ -61,9 +61,9 @@ cell 6 and ratchet down for cursor-history Back or up for Forward; delivery uses
 the current VS Code keybindings without changing them. Cells 5 and 8 retain
 the exact top-level 200 ms navigation gestures, including Eyes review and the adjacent cancel/toggle buttons. Cell 1 closes
 the current editor tab with Command-W, cell 7 opens the Command Palette with
-Command-Shift-P, and cell 11 requests inline Peek Definition through the bundled
-VS Code companion's private Control-Option-Command-F12 chord. It preserves the
-scrolled source when replacing an older Peek; keyboard Option-F12 is unchanged.
+Command-Shift-P, and cell 11 sends native Option-F12 for inline Peek Definition.
+The companion's source-preserving private chord is implemented but remains behind
+`VSCodeModeFeatureFlags.peekSourcePreservation` until its separate activation.
 The child does not duplicate the
 Default Back/Forward pair. Matching base
 exclusions preserve Forward and Back everywhere else, while Copy / Paste remains available whenever its Stage + Previous window is inactive; every

@@ -41,6 +41,36 @@ final class CodexModeActionExecutorTests: XCTestCase {
         XCTAssertFalse(burst.begins(at: 24.1))
     }
 
+    func testFailedInitialFocusCanRetryWithoutWaitingForBurstExpiry() {
+        var burst = CodexMouseAdjustment.Burst()
+        XCTAssertTrue(burst.begins(at: 10, hasTarget: false))
+        for time in [10.1, 10.4, 11, 12, 14] {
+            XCTAssertTrue(burst.begins(at: time, hasTarget: false),
+                          "A failed start must not postpone the next focus attempt")
+        }
+        XCTAssertFalse(burst.begins(at: 14.1, hasTarget: true),
+                       "Once acquired, keep the same composer during the burst")
+        XCTAssertFalse(burst.begins(at: 18.9, hasTarget: true))
+        XCTAssertTrue(burst.begins(at: 24, hasTarget: true))
+    }
+
+    func testExistingTargetDoesNotRefocusOnRapidSpeedOrReasoningSteps() {
+        var burst = CodexMouseAdjustment.Burst()
+        XCTAssertTrue(burst.begins(at: 1, hasTarget: false))
+        for time in [1.01, 1.02, 1.2, 2, 4, 8] {
+            XCTAssertFalse(burst.begins(at: time, hasTarget: true),
+                           "An established target stays protected even if its focus changes")
+        }
+    }
+
+    func testSpeedLegendRetainsTheReportedFailureMarker() throws {
+        let speed = try XCTUnwrap(CodexMode.definition.legend.first {
+            $0.cell == CodexMode.responseSpeedWheelCell
+        })
+        XCTAssertEqual(speed.controlStatus, .reportedBroken)
+        XCTAssertEqual(WheelChordControl.codexReasoningEffort.hudControlStatus, .normal)
+    }
+
     func testSpeedClickCyclesOnceOnEachMouseAndNeverAfterWheelOrTeardown() {
         var commands: [CodexShortcuts.Command] = []
         let executor = CodexModeActionExecutor(accessibilityTrusted: { true },

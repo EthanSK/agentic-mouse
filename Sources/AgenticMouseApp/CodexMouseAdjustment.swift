@@ -2,6 +2,7 @@ import AppKit
 import ApplicationServices
 import CodexModelBarCore
 import CodexNativeControls
+import ScimitarKit
 
 /// The mouse borrows focus once per burst. The shared shortcut controller owns
 /// request admission and cancellation. All mutable state below lives on its AX queue.
@@ -9,8 +10,10 @@ final class CodexMouseAdjustment {
     struct Burst {
         private var lastStep: TimeInterval?
 
-        mutating func begins(at time: TimeInterval) -> Bool {
-            let begins = lastStep.map { time - $0 >= 5 } ?? true
+        mutating func begins(at time: TimeInterval, hasTarget: Bool = true) -> Bool {
+            // A failed first focus never established a protected chat. Retry it
+            // on the next gesture instead of extending an empty five-second burst.
+            let begins = !hasTarget || (lastStep.map { time - $0 >= 5 } ?? true)
             lastStep = time
             return begins
         }
@@ -45,6 +48,8 @@ final class CodexMouseAdjustment {
 
     typealias Feedback = @MainActor (CodexShortcutController.Family, CodexActionFeedback) -> Void
     private let feedback: Feedback
+    private let diagnostics = DiagnosticLog(url: FileManager.default.homeDirectoryForCurrentUser
+        .appendingPathComponent("Library/Logs/Agentic Mouse/codex-shortcuts.log"))
     private var burst = Burst()
     private var target: Target?
     private var verificationGeneration: [CodexShortcutController.Family: Int] = [:]
@@ -53,12 +58,17 @@ final class CodexMouseAdjustment {
         self.feedback = feedback
     }
 
+    func record(_ message: String) {
+        diagnostics.append(LogRedaction.redact(message))
+    }
+
     func perform(
         _ command: CodexShortcuts.Command, codex: NSRunningApplication,
         started: TimeInterval, isCurrent: () -> Bool
     ) -> CodexShortcutController.Result {
-        let startsBurst = burst.begins(at: started)
+        let startsBurst = burst.begins(at: started, hasTarget: target != nil)
         if startsBurst { target = nil }
+        record("mouse-focus phase=begin new-burst=\(startsBurst) cached-target=\(target != nil)")
         guard isCurrent(), !Self.userInteracted(since: started) else { return .cancelledForTyping }
         guard let shortcut = CodexShortcuts.load(command) else {
             return .failed("Codex shortcut is unassigned")

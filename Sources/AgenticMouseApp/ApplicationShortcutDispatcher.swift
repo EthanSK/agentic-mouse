@@ -455,6 +455,7 @@ enum VSCodeModeShortcutResolver {
     static func shortcut(
         for command: VSCodeModeCommand,
         source: MouseSource = .corsair,
+        preservePeekSource: Bool = VSCodeModeFeatureFlags.peekSourcePreservation,
         keyCodeForSemanticCharacter: TerminalModeShortcutResolver.SemanticKeyCodeResolver =
             CurrentKeyboardLayoutKeyCodeResolver.keyCode
     ) -> ApplicationShortcutDispatcher.Shortcut? {
@@ -494,9 +495,10 @@ enum VSCodeModeShortcutResolver {
         case .commandPalette:
             return .init(keyCode: 35, flags: [.maskCommand, .maskShift]) // Command-Shift-P
         case .peekDefinition:
-            // The bundled bridge preserves the scrolled source before replacing
-            // an existing Peek. Its private chord leaves keyboard Option-F12 alone.
-            return .init(keyCode: CGKeyCode(kVK_F12), flags: [.maskControl, .maskAlternate, .maskCommand])
+            // Activate the private bridge chord only after its companion is live.
+            let flags: CGEventFlags = preservePeekSource
+                ? [.maskControl, .maskAlternate, .maskCommand] : .maskAlternate
+            return .init(keyCode: CGKeyCode(kVK_F12), flags: flags)
         case .interruptTerminal:
             return TerminalModeShortcutResolver.shortcut(
                 for: .interruptTerminal,

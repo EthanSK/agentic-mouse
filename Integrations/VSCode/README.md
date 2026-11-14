@@ -6,7 +6,9 @@ built-in VS Code Cursor History commands, and the Hide-first Terminal
 alternator. It never accepts an arbitrary command id. Commands also require the
 receiving VS Code window to be focused for URI commands.
 
-The mouse's Peek Definition uses a private Control-Option-Command-F12 chord.
+The pending source-preserving Peek uses a private Control-Option-Command-F12 chord.
+`VSCodeModeFeatureFlags.peekSourcePreservation` stays disabled until companion
+activation is completed. The installed mouse keeps ordinary Option-F12 meanwhile.
 The first Peek runs VS Code's native command. When another Peek is already open,
 the companion closes it, restores the source's logical top line, then requests
 the next native Peek. It does not wait for the language lookup and restore later.
