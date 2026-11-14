@@ -1,5 +1,9 @@
 # Learnings
 
+## 2026-11-14 — Peek at definitions inline from VS Code mode
+
+Button 11 on both mice sends VS Code's native Option-F12 (`editor.action.peekDefinition`). Ethan asked to replace “Go to Definition” with Peek Definition so he can see the definition in the current editor. Keep the process-targeted shortcut and shared VS Code mode definition.
+
 ## 2026-11-13 — Pin/Unpin takes one mouse press in Claude and Codex
 
 Ethan confirmed Claude Pin already worked when he held side button 2 and clicked Pin. He asked to remove that prerequisite from both modes because the existing notifications are enough. Dispatch once per press on Corsair 1 or Razer 3 in the active app mode. Keep button 2 as a mode entry or exit, and keep the existing shortcut senders. The wand retains its separate gestures.

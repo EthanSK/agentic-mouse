@@ -493,8 +493,8 @@ enum VSCodeModeShortcutResolver {
             return nil // The VS Code bridge owns the Hide-first Terminal alternator.
         case .commandPalette:
             return .init(keyCode: 35, flags: [.maskCommand, .maskShift]) // Command-Shift-P
-        case .goToDefinition:
-            return .init(keyCode: 111, flags: []) // F12
+        case .peekDefinition:
+            return .init(keyCode: CGKeyCode(kVK_F12), flags: .maskAlternate) // Option-F12
         case .interruptTerminal:
             return TerminalModeShortcutResolver.shortcut(
                 for: .interruptTerminal,

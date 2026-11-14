@@ -8,7 +8,7 @@ public enum VSCodeModeAction: String, CaseIterable, Equatable, Sendable {
     case stageAndNext
     case toggleTerminal
     case commandPalette
-    case goToDefinition
+    case peekDefinition
     case interruptTerminal
 
     public var cell: PhysicalCell {
@@ -20,7 +20,7 @@ public enum VSCodeModeAction: String, CaseIterable, Equatable, Sendable {
         case .stageAndNext: return PhysicalCell(rawValue: 9)!
         case .toggleTerminal: return PhysicalCell(rawValue: 4)!
         case .commandPalette: return PhysicalCell(rawValue: 7)!
-        case .goToDefinition: return PhysicalCell(rawValue: 11)!
+        case .peekDefinition: return PhysicalCell(rawValue: 11)!
         case .interruptTerminal: return .interruptTerminal
         }
     }
@@ -34,7 +34,7 @@ public enum VSCodeModeAction: String, CaseIterable, Equatable, Sendable {
         case .stageAndNext: return "Stage + Next / Undo Stage ×2"
         case .toggleTerminal: return "Toggle Terminal"
         case .commandPalette: return "Command Palette"
-        case .goToDefinition: return "Go to Definition"
+        case .peekDefinition: return "Peek Definition"
         case .interruptTerminal: return "Interrupt terminal"
         }
     }
@@ -51,7 +51,7 @@ public enum VSCodeModeAction: String, CaseIterable, Equatable, Sendable {
         case .stageAndNext: return .stageAndNext
         case .toggleTerminal: return .toggleTerminal
         case .commandPalette: return .commandPalette
-        case .goToDefinition: return .goToDefinition
+        case .peekDefinition: return .peekDefinition
         case .interruptTerminal: return .interruptTerminal
         }
     }
@@ -62,7 +62,7 @@ public enum VSCodeModeAction: String, CaseIterable, Equatable, Sendable {
         case .nextChange: return .stageAndNext
         case .stageAndNext: return .undoLastStageAndAdvance
         case .closeTab, .find,
-             .toggleTerminal, .commandPalette, .goToDefinition,
+             .toggleTerminal, .commandPalette, .peekDefinition,
              .interruptTerminal:
             return nil
         }
@@ -72,7 +72,7 @@ public enum VSCodeModeAction: String, CaseIterable, Equatable, Sendable {
         switch self {
         case .closeTab:
             return RGBColor(red: 86, green: 156, blue: 255)
-        case .find, .commandPalette, .goToDefinition:
+        case .find, .commandPalette, .peekDefinition:
             return RGBColor(red: 255, green: 190, blue: 62)
         case .previousChange, .nextChange:
             return RGBColor(red: 0, green: 168, blue: 255)
@@ -113,7 +113,7 @@ public enum VSCodeModeCommand: String, Equatable, Sendable {
     case undoLastStageAndAdvance
     case toggleTerminal
     case commandPalette
-    case goToDefinition
+    case peekDefinition
     case interruptTerminal
     case navigateBack
     case navigateForward
