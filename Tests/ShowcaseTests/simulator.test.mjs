@@ -16,6 +16,14 @@ const enter = (simulator, destination) => {
   simulator.press(control.cell, 0);
 };
 
+test("Codex Enter cell shows and simulates the source-specific action", () => {
+  for (const [source, title] of [["corsair", "Enter"], ["razer", "Claude session"]]) {
+    const control = map.sources[source].modes.codex.controls.find((item) => item.cell === 7);
+    assert.equal(control.title, title);
+    assert.equal(control.effect, title);
+  }
+});
+
 test("native graph has complete physical grids and resolvable destinations for both hands", () => {
   for (const source of Object.values(map.sources)) {
     assert.deepEqual(
