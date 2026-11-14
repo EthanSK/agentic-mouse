@@ -59,7 +59,7 @@ Physical cell 6 remains YouTube Scrub + Wheel. Inside the VS Code child page, ce
 F18 Stage + Next on a single press or F16 exact Undo on a rapid double. Hold
 cell 6 and ratchet down for cursor-history Back or up for Forward; delivery uses
 the current VS Code keybindings without changing them. Cells 5 and 8 retain
-the same 200 ms navigation gestures. Cell 1 closes
+the exact top-level 200 ms navigation gestures, including Eyes review and the adjacent cancel/toggle buttons. Cell 1 closes
 the current editor tab with Command-W, cell 7 opens the Command Palette with
 Command-Shift-P, and cell 11 sends Option-F12 for inline Peek Definition. The child does not duplicate the
 Default Back/Forward pair. Matching base

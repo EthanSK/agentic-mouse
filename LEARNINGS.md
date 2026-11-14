@@ -1,3 +1,11 @@
+## 2026-11-14 — Reuse the Default VS Code review actions inside its mode
+
+Ethan required Razer 8 and 5 in VS Code mode to use the exact same actions as the top-level Back/Forward controls while VS Code is frontmost. Read the app override before choosing a direction: those physical cells are Next Change (8) and Previous Change (5) in VS Code, on both mice. Their general mouse-history fallback applies outside that override.
+
+The entered page previously duplicated the hold lifecycle in Swift, omitting the current native Eyes bootstrap and retaining a different preview-toggle policy. Compose `binding_templates` and `vscode_hold_templates` for the entered page instead. Only page admission and HUD feedback vary. Reuse the adjacent cancel/toggle templates too, because they own the same source hold. Native HUD feedback must never dispatch the action again. The wand retains its separate classifier. A distinct manual VS Code selection value keeps these routes out of other manually chosen app pages. Preserve the matching cell-12 interrupt route when adding that selection value. Recheck page, foreground app and unlocked-session conditions on deferred outputs.
+
+The patch passed 141 focused Swift checks, 37 generator tests, 1,776 native route-audit cases and Karabiner lint. The parity regression fails in 48 cases on the prior generated mode, and passes for both sources, both navigation directions, the adjacent controls, automatic/manual mode and legacy/modern Eyes admission. Existing Default documents and every other runtime rule remain JSON-equivalent. No physical mouse acceptance or installed completion is implied by these source checks. The uninstalled general mouse-history interpretation was discarded before this patch. Canonical integration and the single signed install are coordinated with Agentic Mouse to preserve Peek Definition and pending YouTube work.
+
 # Learnings
 
 ## 2026-11-14 — Peek at definitions inline from VS Code mode

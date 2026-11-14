@@ -1464,6 +1464,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                         self.performVSCodeModeCommand(command, source: source)
                     }) { return true }
                     if action == .nextChange || action == .previousChange {
+                        // Physical mice use the top-level Karabiner action
+                        // even in this page. Only the wand needs a classifier.
+                        guard !source.isPhysicalAdapter else { return true }
                         classifier.handleNavigation(action: action, phase: phase, inputTime: inputTime) { [weak self] command in
                             guard let self, self.mouseCommandsAllowed else { return }
                             self.performVSCodeModeCommand(command, source: source)
@@ -1593,7 +1596,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 }
             }
             coordinator.onNativeAppSpecificInput = { [weak self] requestedSource, target, cell, phase, _ in
-                guard let self, requestedSource == source, phase == .press,
+                guard let self, requestedSource == source else { return false }
+                if target == .vsCode {
+                    // Karabiner already ran the shared top-level lifecycle.
+                    // This route only marks the HUD; never classify it again.
+                    return true
+                }
+                guard phase == .press,
                       target == .codex,
                       CodexModeAction.action(for: cell) == .toggleVoiceMode
                 else { return false }
@@ -2175,11 +2184,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 // A ready stage hold starts in Eyes mode. The mode-on request
                 // follows the same source-owned range admission, with no preview
                 // navigation until the user turns the wheel. The entered VS Code
-                // page keeps its existing momentary adjacent-button interaction.
+                // page uses this same native lifecycle for physical mice.
                 if let self,
                    self.vsCodeStagePreviewModifier.activateDefaultForReadyStage(
                     source: source,
                     appSpecificModeActive: self.modePickerCoordinators[source]?.isActive == true
+                        && self.modePickerCoordinators[source]?.appSpecificTarget != .vsCode
                    ) {
                     self.performVSCodeStagePreviewMode(true, source: source,
                         initial: self.vsCodeInitialPreviewSources.contains(source))
