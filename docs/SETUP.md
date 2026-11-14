@@ -151,10 +151,15 @@ Optional VS Code bridge:
 
 ```sh
 make vscode-bridge
-code --install-extension build.noindex/agentic-mouse-vscode-bridge-0.1.1.vsix --force
+code --install-extension build.noindex/agentic-mouse-vscode-bridge-0.1.2.vsix --force
 ```
 
-The same VSIX is included at `Contents/Resources/AgenticMouseVSCodeBridge.vsix`. Reload your editor at a safe time if needed. It accepts only its narrow commands in a focused VS Code window, adds no user keybindings, and does not replace Better Git.
+The same VSIX is included at `Contents/Resources/AgenticMouseVSCodeBridge.vsix`.
+Install and activate companion 0.1.2 before the paired mouse update: older versions
+do not recognize the private Peek Definition chord. Restart extensions when your
+debugger can be interrupted. URI commands require a focused VS Code window. The
+companion contributes only its private mouse Peek keybinding, preserves ordinary
+keyboard Option-F12 and existing user keybindings, and does not replace Better Git.
 
 ## 8. Verify before relying on it
 

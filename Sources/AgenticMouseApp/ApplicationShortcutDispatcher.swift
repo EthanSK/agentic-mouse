@@ -494,7 +494,9 @@ enum VSCodeModeShortcutResolver {
         case .commandPalette:
             return .init(keyCode: 35, flags: [.maskCommand, .maskShift]) // Command-Shift-P
         case .peekDefinition:
-            return .init(keyCode: CGKeyCode(kVK_F12), flags: .maskAlternate) // Option-F12
+            // The bundled bridge preserves the scrolled source before replacing
+            // an existing Peek. Its private chord leaves keyboard Option-F12 alone.
+            return .init(keyCode: CGKeyCode(kVK_F12), flags: [.maskControl, .maskAlternate, .maskCommand])
         case .interruptTerminal:
             return TerminalModeShortcutResolver.shortcut(
                 for: .interruptTerminal,

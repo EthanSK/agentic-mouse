@@ -278,11 +278,11 @@ final class ApplicationShortcutDispatcherTests: XCTestCase {
         }
     }
 
-    func testVSCodePeekDefinitionUsesOptionF12ForBothMice() {
+    func testVSCodePeekDefinitionUsesBridgeChordForBothMice() {
         for source in [MouseSource.corsair, .razer] {
             XCTAssertEqual(
                 VSCodeModeShortcutResolver.shortcut(for: .peekDefinition, source: source),
-                .init(keyCode: 111, flags: .maskAlternate)
+                .init(keyCode: 111, flags: [.maskControl, .maskAlternate, .maskCommand])
             )
         }
     }

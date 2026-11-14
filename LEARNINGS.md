@@ -8,6 +8,32 @@ The patch passed 141 focused Swift checks, 37 generator tests, 1,776 native rout
 
 # Learnings
 
+## 2026-11-14 — Restore source scroll before replacing an offscreen Peek
+
+Ethan reported that a second Peek jumps after scrolling the unchanged source
+while an old Peek remains open. An isolated VS Code 1.145 host reproduced the
+native zone-removal jump, including without Agentic Mouse. Closing the old panel
+alone still jumps. Capture the exact source editor and its logical top, close
+`closeReferenceSearch`, restore that top, then invoke the native Peek command.
+Do not restore after the language lookup: that can undo newer user movement.
+Do not send blind Escape or Shift-Escape; those keys have unrelated bindings.
+
+Use the native diff-side context supplied with the private mouse chord. Both
+diff sides can have undefined `viewColumn`, and `activeTextEditor` can report
+the modified side while native Peek targets the original. A same-URI ambiguity
+keeps native behavior rather than restoring a guessed editor. Read configuration
+with both URI and language ID, and account for sticky scroll being disabled when
+the diff hides unchanged regions. Preserve selections, document version, current
+tab and window focus, and supersede old requests on every mouse Peek, including
+the first invocation. Ordinary keyboard Option-F12 remains native.
+
+The packaged companion reproduced the original-side transition from source line
+5 to line 70 with the top line staying at 60, the same diff tab and selection,
+and the correct definition at line 80. The first native Peek was unchanged.
+Companion 0.1.2 must be activated before the paired native update. An already
+active companion needs extension restart; do not terminate a live debugger to
+activate it without Ethan's current permission for that debugger.
+
 ## 2026-11-14 — Open Claude Session from Razer 9 in Codex mode
 
 Ethan selected the standalone Claude Session plugin tab for Razer 9. The action is separate from Codex's built-in side chat and the Claude model bridge. Resolve the source-specific action through `CodexModeAction.action(for:source:)`, and compose the same Razer override into the active HUD snapshot. The other source legends retain their existing Enter action.
