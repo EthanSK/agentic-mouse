@@ -138,7 +138,10 @@ final class SiteProbe {
             guard phase == .press else { return true }
             if target == .claude, cell != ClaudeMode.pinToggleCell,
                ClaudeModeAction.action(for: cell) == nil { return false }
-            effect = target.definition.legend.first { $0.cell == cell }?.actionTitle
+            let legend = target == .codex
+                ? CodexMode.legend(for: source, from: target.definition.legend)
+                : target.definition.legend
+            effect = legend.first { $0.cell == cell }?.actionTitle
             return effect != "Spare"
         }
         coordinator.onChromeWebsiteInput = { [unowned self] _, action in
