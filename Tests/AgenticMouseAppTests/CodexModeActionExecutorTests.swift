@@ -63,11 +63,11 @@ final class CodexModeActionExecutorTests: XCTestCase {
         }
     }
 
-    func testSpeedLegendRetainsTheReportedFailureMarker() throws {
+    func testSpeedLegendClearsTheMarkerAfterExplicitSuccess() throws {
         let speed = try XCTUnwrap(CodexMode.definition.legend.first {
             $0.cell == CodexMode.responseSpeedWheelCell
         })
-        XCTAssertEqual(speed.controlStatus, .reportedBroken)
+        XCTAssertEqual(speed.controlStatus, .normal)
         XCTAssertEqual(WheelChordControl.codexReasoningEffort.hudControlStatus, .normal)
     }
 
