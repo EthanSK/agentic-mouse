@@ -8,6 +8,16 @@ The patch passed 141 focused Swift checks, 37 generator tests, 1,776 native rout
 
 # Learnings
 
+## Cycle Speed acceptance and marker attribution (2026-11-15)
+
+Ethan explicitly confirmed “It works. I never said it didn't” for Cycle Speed.
+The cross introduced in 96fd987 was the agent's interpretation of a transient
+miss, not a user declaration that the control remained broken. Clear that marker
+and its pending acceptance item; keep the working speed behavior. A request to
+investigate a temporary miss must not become an indefinite reported-failure
+status attributed to Ethan, especially after an explicit success statement.
+
+
 ## 2026-11-14 — A failed first Codex focus must not reserve an empty burst
 
 The mouse acquires one composer per five-second burst, then protects that exact
