@@ -1395,6 +1395,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             coordinator.resolveAppSelectorDefinition = { [weak self] in
                 self?.appSelectorDefinition() ?? AppSpecificMode.selectorDefinition
             }
+            coordinator.onCodexReopenClosedTab = { [weak self] requestedSource in
+                guard let self, requestedSource == source,
+                      let coordinator = self.modePickerCoordinators[source],
+                      coordinator.isActive, coordinator.page == .appSpecific,
+                      coordinator.appSpecificTarget == .codex else { return false }
+                switch self.codexModeActionExecutor.reopenClosedTab() {
+                case .success: return true
+                case .failure(let error):
+                    self.modeHUDPresenters[source]?.flashProblem(error.description)
+                    return false
+                }
+            }
             coordinator.onAppSpecificInput = { [weak self] requestedSource, target, cell, phase, inputTime in
                 guard let self, requestedSource == source else { return false }
                 let result: Result<Void, ApplicationShortcutDispatcher.DispatchError>

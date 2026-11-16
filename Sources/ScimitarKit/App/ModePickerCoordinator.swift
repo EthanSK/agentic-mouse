@@ -155,6 +155,8 @@ public final class ModePickerCoordinator {
     private let hud: ModeHUDPresenting
     private let scheduler: TickScheduler
     private let selectAllGesture: ReservedModeHUDGesture
+    private var codexClosePressed = false
+    private var lastCodexCloseAt: TimeInterval?
     private let log: Log
     private let heartbeatInterval: TimeInterval
 
@@ -163,6 +165,7 @@ public final class ModePickerCoordinator {
     public var onKeypadModeRequested: ((MouseSource) -> Bool)?
     public var onKeypadInput: ((MouseSource, PhysicalCell, ModePickerCommand.Phase) -> Void)?
     public var onAppSpecificInput: ((MouseSource, AppSpecificTarget, PhysicalCell, ModePickerCommand.Phase, TimeInterval) -> Bool)?
+    public var onCodexReopenClosedTab: ((MouseSource) -> Bool)?
     public var onNativeAppSpecificInput: ((MouseSource, AppSpecificTarget, PhysicalCell, ModePickerCommand.Phase, TimeInterval) -> Bool)?
     public var shouldRouteVSCodeCursorHistoryAsButton: ((MouseSource) -> Bool)?
     public var onChromeWebsiteInput: ((MouseSource, ChromeWebsiteAction) -> Bool)?
@@ -356,6 +359,7 @@ public final class ModePickerCoordinator {
         quitAppRequested = false
         appPinPressed = false
         selectAllGesture.cancel()
+        resetCodexCloseGesture()
         let appearance: RGBColor
         if let definition {
             appearance = definition.accent
@@ -394,6 +398,7 @@ public final class ModePickerCoordinator {
     public func exit(reason: ModePickerExitReason = .userRequested) {
         scheduler.stop()
         selectAllGesture.cancel()
+        resetCodexCloseGesture()
         appPinPressed = false
         lease.deactivate()
         guard isActive else { return }
@@ -452,12 +457,18 @@ public final class ModePickerCoordinator {
         // stranded on a target that no longer owns the control.
         clearWheelControl()
         appPinPressed = false
+        resetCodexCloseGesture()
         appSpecificTarget = context.target
         appSpecificDefinition = definition
         lastSelection = nil
         lightingTargets = onAppearanceChange?(definition.accent, nil) ?? []
         if isLegendVisible { hud.update(snapshot()) }
         log.info("Frontmost app mode changed to \(context.displayName)")
+    }
+
+    private func resetCodexCloseGesture() {
+        codexClosePressed = false
+        lastCodexCloseAt = nil
     }
 
     private func route(
@@ -471,6 +482,28 @@ public final class ModePickerCoordinator {
             log.debug("ignored a mode event from the other exact-device coordinator")
             return
         }
+        // Ethan's "double click the close button" undoes the first close.
+        // Keep the first press immediate; never dispatch a second Command-W.
+        // Match the existing 340 ms mouse double-click window without adding
+        // a timer or delaying single clicks. The wand retains its own layers.
+        if source != .wand, page == .appSpecific, appSpecificTarget == .codex,
+           cell == CodexModeAction.closeTab.cell, !nativeOutputHandled {
+            if phase == .release {
+                codexClosePressed = false
+            } else if !codexClosePressed {
+                codexClosePressed = true
+                let elapsed = lastCodexCloseAt.map { inputTime - $0 }
+                lastCodexCloseAt = nil
+                if let elapsed, elapsed >= 0, elapsed <= 0.34 {
+                    _ = onCodexReopenClosedTab?(source)
+                } else if onAppSpecificInput?(source, .codex, cell, phase, inputTime) == true {
+                    lastCodexCloseAt = inputTime
+                }
+                recordSelection(cell: cell)
+            }
+            return
+        }
+        if phase == .press { resetCodexCloseGesture() }
         if source == .wand, onWandButtonPhase?(page, isWandHome, cell, phase) == true {
             if phase == .press { recordSelection(cell: cell) }
             return
@@ -835,6 +868,7 @@ public final class ModePickerCoordinator {
         followsFrontmostApp: Bool = false,
         openingCell: PhysicalCell? = nil
     ) {
+        resetCodexCloseGesture()
         clearWheelControl()
         var wandFocus: ModeHUDPointerFocus?
         if source == .wand, destination != .keypad {
