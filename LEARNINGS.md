@@ -3692,3 +3692,8 @@ Ethan confirmed native speed began working after restarting Codex once the Cycle
 ## 2026-11-08 — Codex Speed click uses the completed wheel hold
 
 Ethan requested a normal Speed click on the existing cell3 (Corsair3 / Razer1), alongside held-wheel cycling. Dispatch only on the source-owned completed release, before the mode coordinator clears its active control; reuse didObserveWheelInput so accepted, debounced, ambiguous and gesture wheel input suppress the click. Teardown clears without a release. The native executor retains its input/Accessibility gates and embedded focus path; never also dispatch the cell through CodexModeAction. The wand retains its existing held adjustment and title.
+
+
+## 2026-11-16 — Codex double-close uses native reopen history
+
+Ethan's “double click the close button” means close immediately on the first physical down, then undo that close on the second distinct click within the existing 340 ms mouse window. Never send a second Command-W. Current Codex pairs Command-W with Command-Shift-T: its global-tabs feature moves the panel-only reopen to Command-Option-Shift-T, so selecting that panel command by name would be wrong for the existing close transport. Keep the same foreground-only shortcut dispatcher and unlocked-session/Accessibility gates. State belongs to each mouse coordinator and is cleared by other input, app retargeting, mode exit, lock and shutdown; a failed close cannot arm undo. The wand retains its existing gesture layers. Coordinator and dispatcher tests cover both mice, automatic/manual entry, rapid/slow/repeated presses and teardown. This is source and automated evidence, not a claim of physical acceptance. (Codex task: 01a078f7-3df8-77e0-853d-208189f8f418)

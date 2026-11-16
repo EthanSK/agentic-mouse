@@ -404,6 +404,27 @@ final class CodexModeActionExecutorTests: XCTestCase {
         XCTAssertEqual(targetPids, [4242, 4242])
     }
 
+    func testReopenClosedTabUsesNativeInverseOfCommandWAndPreservesGates() {
+        for gate in ["allowed", "locked", "untrusted", "background"] {
+            var shortcuts: [CodexModeActionExecutor.Shortcut] = []
+            let executor = CodexModeActionExecutor(
+                targetProcessResolver: { 4242 },
+                targetProcessIsActive: { _ in gate != "background" },
+                postSystemShortcut: { shortcuts.append($0); return true },
+                accessibilityTrusted: { gate != "untrusted" },
+                inputAllowed: { gate != "locked" }
+            )
+            let result = executor.reopenClosedTab()
+            if gate == "allowed" {
+                guard case .success = result else { return XCTFail("Reopen should dispatch") }
+                XCTAssertEqual(shortcuts, [.init(keyCode: 17, flags: [.maskCommand, .maskShift])])
+            } else {
+                guard case .failure = result else { return XCTFail("Gate must reject \(gate)") }
+                XCTAssertTrue(shortcuts.isEmpty)
+            }
+        }
+    }
+
     func testCloseTabUsesCodexCommandWAccelerator() {
         var keyboardEventCount = 0
         var systemShortcuts: [CodexModeActionExecutor.Shortcut] = []

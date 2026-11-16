@@ -46,6 +46,9 @@ final class CodexModeActionExecutor {
         flags: [.maskCommand, .maskAlternate]
     )
     static let closeTabShortcut = Shortcut(keyCode: 13, flags: .maskCommand) // Command-W
+    // Codex pairs Command-W with Command-Shift-T, including when global tabs
+    // are enabled. The Option variants are the separate side-panel commands.
+    static let reopenClosedTabShortcut = Shortcut(keyCode: 17, flags: [.maskCommand, .maskShift])
     static let voiceModeShortcut = Shortcut(keyCode: 64, flags: hyper) // Codex's configured "Toggle voice chat", delivered privately like Ethan's HeyChat.
     static let submitShortcut = Shortcut(keyCode: 36, flags: [])
 
@@ -249,6 +252,10 @@ final class CodexModeActionExecutor {
             feedback(.sentUnverified("\(action.title) sent — result not exposed by Codex"))
         }
         return result
+    }
+
+    func reopenClosedTab() -> Result<Void, ActionError> {
+        postForegroundShortcut(Self.reopenClosedTabShortcut)
     }
 
     func cancelPendingActions() {
