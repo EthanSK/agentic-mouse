@@ -1395,12 +1395,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             coordinator.resolveAppSelectorDefinition = { [weak self] in
                 self?.appSelectorDefinition() ?? AppSpecificMode.selectorDefinition
             }
-            coordinator.onCodexReopenClosedTab = { [weak self] requestedSource in
+            coordinator.onReopenClosedTab = { [weak self] requestedSource, target in
                 guard let self, requestedSource == source,
                       let coordinator = self.modePickerCoordinators[source],
                       coordinator.isActive, coordinator.page == .appSpecific,
-                      coordinator.appSpecificTarget == .codex else { return false }
-                switch self.codexModeActionExecutor.reopenClosedTab() {
+                      coordinator.appSpecificTarget == target else { return false }
+                let result: Result<Void, ApplicationShortcutDispatcher.DispatchError>
+                switch target {
+                case .codex:
+                    result = self.codexModeActionExecutor.reopenClosedTab()
+                case .chrome:
+                    guard let shortcut = ChromeModeShortcutResolver.shortcut(for: .reopenClosedTab) else { return false }
+                    result = self.applicationShortcutDispatcher.perform(
+                        shortcut, targetBundleIdentifier: target.bundleIdentifier,
+                        targetDisplayName: target.displayName
+                    )
+                default: return false
+                }
+                switch result {
                 case .success: return true
                 case .failure(let error):
                     self.modeHUDPresenters[source]?.flashProblem(error.description)

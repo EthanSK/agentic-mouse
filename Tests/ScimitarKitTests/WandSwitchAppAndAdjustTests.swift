@@ -191,7 +191,7 @@ final class WandSwitchAppAndAdjustTests: XCTestCase {
         let wandCard = hud.snapshots.last?.legend.first { $0.cell == .switchApp }
         for source in [MouseSource.corsair, .razer] {
             let mouseCard = DefaultMapLegend.snapshot(source: source).legend.first { $0.cell == .switchApp }
-            XCTAssertEqual(wandCard?.gesture?.click, mouseCard?.actionTitle)
+            XCTAssertEqual(wandCard?.gesture?.click, mouseCard?.actionTitle.components(separatedBy: " · ").first)
             XCTAssertEqual(wandCard?.gesture?.motion, .leftRight)
             XCTAssertEqual(wandCard?.accent, mouseCard?.accent)
         }
