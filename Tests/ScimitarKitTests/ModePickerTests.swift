@@ -2,73 +2,79 @@ import XCTest
 @testable import ScimitarKit
 
 final class ModePickerTests: XCTestCase {
-    func testCodexDoubleCloseReopensWithoutDelayingOrClosingAnotherTab() {
-        for source in [MouseSource.corsair, .razer] {
-            for manual in [false, true] {
-                let coordinator = makeCoordinator()
-                var commands: [String] = []
-                coordinator.resolveFrontmostApp = {
-                    .init(target: .codex, displayName: "Codex", bundleIdentifier: CodexMode.bundleIdentifier)
+    func testCodexAndChromeDoubleCloseReopensWithoutDelayingOrClosingAnotherTab() {
+        for target in [AppSpecificTarget.codex, .chrome] {
+            for source in [MouseSource.corsair, .razer] {
+                for manual in [false, true] {
+                    let coordinator = makeCoordinator()
+                    var commands: [String] = []
+                    coordinator.resolveFrontmostApp = {
+                        .init(target: target, displayName: target.displayName, bundleIdentifier: target.bundleIdentifier)
+                    }
+                    coordinator.onAppSpecificInput = { _, _, _, _, _ in commands.append("close"); return true }
+                    coordinator.onReopenClosedTab = { actualSource, actualTarget in
+                        XCTAssertEqual(actualSource, source)
+                        XCTAssertEqual(actualTarget, target)
+                        commands.append("reopen"); return true
+                    }
+                    if manual {
+                        coordinator.enterAppSelector(source: source)
+                        coordinator.handle(.init(action: .select, source: source, physicalCell: target.selectorCell!, phase: .press))
+                    } else {
+                        coordinator.enterAppSpecific(source: source)
+                    }
+                    let cell = target == .codex ? CodexModeAction.closeTab.cell : ChromeModeAction.closeCurrentTab.cell
+                    func send(_ phase: ModePickerCommand.Phase, _ time: TimeInterval) {
+                        coordinator.handle(.init(action: .select, source: source, physicalCell: cell, phase: phase), inputTime: time)
+                    }
+                    send(.press, 10)
+                    XCTAssertEqual(commands, ["close"], "First press must close immediately")
+                    send(.press, 10.01) // A duplicate down is not a second click.
+                    XCTAssertEqual(commands, ["close"])
+                    send(.release, 10.05)
+                    send(.press, 10.2)
+                    send(.release, 10.25)
+                    XCTAssertEqual(commands, ["close", "reopen"])
+                    send(.press, 10.3) // A third click starts a fresh pair.
+                    send(.release, 10.35)
+                    send(.press, 11)
+                    XCTAssertEqual(commands, ["close", "reopen", "close", "close"])
                 }
-                coordinator.onAppSpecificInput = { _, _, _, _, _ in commands.append("close"); return true }
-                coordinator.onCodexReopenClosedTab = { actualSource in
-                    XCTAssertEqual(actualSource, source)
-                    commands.append("reopen"); return true
-                }
-                if manual {
-                    coordinator.enterAppSelector(source: source)
-                    coordinator.handle(.init(action: .select, source: source, physicalCell: AppSpecificTarget.codex.selectorCell!, phase: .press))
-                } else {
-                    coordinator.enterAppSpecific(source: source)
-                }
-                let cell = CodexModeAction.closeTab.cell
-                func send(_ phase: ModePickerCommand.Phase, _ time: TimeInterval) {
-                    coordinator.handle(.init(action: .select, source: source, physicalCell: cell, phase: phase), inputTime: time)
-                }
-                send(.press, 10)
-                XCTAssertEqual(commands, ["close"], "First press must close immediately")
-                send(.press, 10.01) // A duplicate down is not a second click.
-                XCTAssertEqual(commands, ["close"])
-                send(.release, 10.05)
-                send(.press, 10.2)
-                send(.release, 10.25)
-                XCTAssertEqual(commands, ["close", "reopen"])
-                send(.press, 10.3) // A third click starts a fresh pair.
-                send(.release, 10.35)
-                send(.press, 11)
-                XCTAssertEqual(commands, ["close", "reopen", "close", "close"])
             }
         }
     }
 
-    func testCodexCloseUndoCancelsOnFailureOtherInputRetargetAndModeExit() {
-        for boundary in ["failure", "other", "retarget", "exit", "otherMouse"] {
-            let coordinator = makeCoordinator()
-            var closes = 0
-            var reopens = 0
-            coordinator.resolveFrontmostApp = {
-                .init(target: .codex, displayName: "Codex", bundleIdentifier: CodexMode.bundleIdentifier)
-            }
-            coordinator.onAppSpecificInput = { _, _, _, _, _ in closes += 1; return boundary != "failure" }
-            coordinator.onCodexReopenClosedTab = { _ in reopens += 1; return true }
-            coordinator.enterAppSpecific(source: .corsair)
-            let cell = CodexModeAction.closeTab.cell
-            coordinator.handle(.init(action: .select, source: .corsair, physicalCell: cell, phase: .press), inputTime: 10)
-            coordinator.handle(.init(action: .select, source: .corsair, physicalCell: cell, phase: .release), inputTime: 10.05)
-            switch boundary {
-            case "other":
-                coordinator.handle(.init(action: .select, source: .corsair, physicalCell: CodexMode.responseSpeedWheelCell, phase: .press), inputTime: 10.1)
-            case "retarget":
-                coordinator.updateFrontmostApp(.init(target: .chrome, displayName: "Chrome", bundleIdentifier: AppSpecificTarget.chrome.bundleIdentifier))
-                coordinator.updateFrontmostApp(.init(target: .codex, displayName: "Codex", bundleIdentifier: CodexMode.bundleIdentifier))
-            case "exit":
-                coordinator.shutdown()
+    func testCodexAndChromeCloseUndoCancelsOnFailureOtherInputRetargetAndModeExit() {
+        for target in [AppSpecificTarget.codex, .chrome] {
+            for boundary in ["failure", "other", "retarget", "exit", "otherMouse"] {
+                let coordinator = makeCoordinator()
+                var closes = 0
+                var reopens = 0
+                coordinator.resolveFrontmostApp = {
+                    .init(target: target, displayName: target.displayName, bundleIdentifier: target.bundleIdentifier)
+                }
+                coordinator.onAppSpecificInput = { _, _, _, _, _ in closes += 1; return boundary != "failure" }
+                coordinator.onReopenClosedTab = { _, _ in reopens += 1; return true }
                 coordinator.enterAppSpecific(source: .corsair)
-            default: break
+                let cell = target == .codex ? CodexModeAction.closeTab.cell : ChromeModeAction.closeCurrentTab.cell
+                coordinator.handle(.init(action: .select, source: .corsair, physicalCell: cell, phase: .press), inputTime: 10)
+                coordinator.handle(.init(action: .select, source: .corsair, physicalCell: cell, phase: .release), inputTime: 10.05)
+                switch boundary {
+                case "other":
+                    let wheelCell = target == .codex ? CodexMode.responseSpeedWheelCell : ChromeModeAction.cycleTabsWithWheel.cell
+                    coordinator.handle(.init(action: .select, source: .corsair, physicalCell: wheelCell, phase: .press), inputTime: 10.1)
+                case "retarget":
+                    coordinator.updateFrontmostApp(.init(target: .vsCode, displayName: "VS Code", bundleIdentifier: AppSpecificTarget.vsCode.bundleIdentifier))
+                    coordinator.updateFrontmostApp(.init(target: target, displayName: target.displayName, bundleIdentifier: target.bundleIdentifier))
+                case "exit":
+                    coordinator.shutdown()
+                    coordinator.enterAppSpecific(source: .corsair)
+                default: break
+                }
+                coordinator.handle(.init(action: .select, source: boundary == "otherMouse" ? .razer : .corsair, physicalCell: cell, phase: .press), inputTime: 10.2)
+                XCTAssertEqual(reopens, 0, "\(target): \(boundary)")
+                XCTAssertEqual(closes, boundary == "otherMouse" ? 1 : 2, "\(target): \(boundary)")
             }
-            coordinator.handle(.init(action: .select, source: boundary == "otherMouse" ? .razer : .corsair, physicalCell: cell, phase: .press), inputTime: 10.2)
-            XCTAssertEqual(reopens, 0, boundary)
-            XCTAssertEqual(closes, boundary == "otherMouse" ? 1 : 2, boundary)
         }
     }
 

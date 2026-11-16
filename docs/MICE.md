@@ -40,6 +40,8 @@ Normal behavior
 stays normal unless a mode is deliberately entered or the two approved VS Code
 overrides apply to physical cells 5 and 8.
 
+Inside Chrome mode, click cell 3 (Corsair 3 / Razer 1) to close the current tab immediately. A second click within 340 ms reopens it instead of closing another tab. Cell 11 remains the separate Reopen tab action.
+
 Inside Chrome mode, cell 8 opens a website submenu for YouTube, X, Facebook, Ethan's GitHub, LinkedIn, Gemini, and Grok; the chosen site opens directly beside the active Chrome tab.
 
 Switch App uses Karabiner's native output lifecycle. The action sends one

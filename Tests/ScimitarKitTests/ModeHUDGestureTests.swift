@@ -87,7 +87,7 @@ final class ModeHUDGestureTests: XCTestCase {
             XCTAssertNil(legend[0].gesture?.click, "a plain click on Horizontal Scroll does nothing")
             XCTAssertEqual(legend[2].displayTitle(on: source), "Screenshot · Paste ↓")
             XCTAssertEqual(legend[5].displayTitle(on: source), "YouTube −5 sec · Hold 2× / Scrub ↕")
-            XCTAssertEqual(legend[10].displayTitle(on: source), "Switch App", "the mice keep a plain Switch App")
+            XCTAssertEqual(legend[10].displayTitle(on: source), "Switch App · Hold", "the mice show that Switch App must be held")
             XCTAssertNil(legend[10].gesture)
             XCTAssertEqual(legend[9].displayTitle(on: source), "Legend toggle · Hold ⌘", "a hold without motion keeps its words")
         }

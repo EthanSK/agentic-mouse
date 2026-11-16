@@ -286,6 +286,8 @@ public enum DefaultMapLegend {
                 gesture = ModeHUDGesture(click: assignment?.action ?? "Switch App", hold: "Choose",
                                          motion: .leftRight, isAvailableOnWand: true)
                 title = gesture!.words
+            } else if cell == .switchApp {
+                title = "\(assignment?.action ?? "Switch App") · Hold"
             } else {
                 title = assignment?.action ?? "Spare"
             }
