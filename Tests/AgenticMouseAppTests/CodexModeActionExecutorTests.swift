@@ -59,7 +59,26 @@ final class CodexModeActionExecutorTests: XCTestCase {
         XCTAssertTrue(burst.begins(at: 1, hasTarget: false))
         for time in [1.01, 1.02, 1.2, 2, 4, 8] {
             XCTAssertFalse(burst.begins(at: time, hasTarget: true),
-                           "An established target stays protected even if its focus changes")
+                           "An unchanged focused target stays protected during rapid steps")
+        }
+    }
+
+    func testSwitchingMainAndSideChatFocusReacquiresWithinTheSameBurst() {
+        var burst = CodexMouseAdjustment.Burst()
+        XCTAssertTrue(burst.begins(at: 10, hasTarget: false))
+        XCTAssertFalse(burst.begins(at: 10.1, hasTarget: true, targetHasFocus: true))
+
+        // Speed on a newly selected side chat must not wait for five seconds
+        // of inactivity; Reasoning on that same focused pane reuses it.
+        XCTAssertTrue(burst.begins(at: 10.2, hasTarget: true, targetHasFocus: false))
+        XCTAssertFalse(burst.begins(at: 10.3, hasTarget: true, targetHasFocus: true))
+        XCTAssertTrue(burst.begins(at: 10.4, hasTarget: true, targetHasFocus: false))
+        XCTAssertFalse(burst.begins(at: 10.5, hasTarget: true, targetHasFocus: true))
+
+        // A replaced or unreadable composer also must not strand every later
+        // request behind the mere presence of the old AX object.
+        for time in [10.6, 10.8, 11, 12] {
+            XCTAssertTrue(burst.begins(at: time, hasTarget: true, targetHasFocus: false))
         }
     }
 

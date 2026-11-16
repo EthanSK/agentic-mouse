@@ -10,10 +10,15 @@ final class CodexMouseAdjustment {
     struct Burst {
         private var lastStep: TimeInterval?
 
-        mutating func begins(at time: TimeInterval, hasTarget: Bool = true) -> Bool {
+        mutating func begins(
+            at time: TimeInterval, hasTarget: Bool = true, targetHasFocus: Bool = true
+        ) -> Bool {
             // A failed first focus never established a protected chat. Retry it
             // on the next gesture instead of extending an empty five-second burst.
-            let begins = !hasTarget || (lastStep.map { time - $0 >= 5 } ?? true)
+            // Ethan’s “sidechats”: a cached composer that lost focus no longer
+            // owns this burst. Reacquire the newly focused pane immediately;
+            // repeated ratchets must not extend the stale target forever.
+            let begins = !hasTarget || !targetHasFocus || (lastStep.map { time - $0 >= 5 } ?? true)
             lastStep = time
             return begins
         }
@@ -66,7 +71,9 @@ final class CodexMouseAdjustment {
         _ command: CodexShortcuts.Command, codex: NSRunningApplication,
         started: TimeInterval, isCurrent: () -> Bool
     ) -> CodexShortcutController.Result {
-        let startsBurst = burst.begins(at: started, hasTarget: target != nil)
+        let startsBurst = burst.begins(
+            at: started, hasTarget: target != nil, targetHasFocus: target?.hasFocus == true
+        )
         if startsBurst { target = nil }
         record("mouse-focus phase=begin new-burst=\(startsBurst) cached-target=\(target != nil)")
         guard isCurrent(), !Self.userInteracted(since: started) else { return .cancelledForTyping }
