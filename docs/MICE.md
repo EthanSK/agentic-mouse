@@ -24,7 +24,7 @@ temporary lighting, but it does not write iCUE settings.
 | Button 6 | Click for YouTube −5 sec; hold 350 ms for temporary 2× speed; hold + wheel for up +5 sec, down −5 sec |
 | Button 9 | Open Keys mode |
 | Button 10 | Tap to toggle this mouse's Default legend; hold as Command with another control; universal Exit inside modes |
-| Button 11 | Hold-open Switch App |
+| Button 11 | Switch App · Hold + wheel click for App Exposé |
 | Button 12 | Open Utility immediately |
 | Every DPI stage | 2,750 DPI |
 
@@ -48,8 +48,9 @@ Switch App uses Karabiner's native output lifecycle. The action sends one
 self-contained Command-Tab first, then places a repeat-enabled bare left Command
 last so its key-up follows the physical source release. Ethan physically
 accepted this hold-open behavior on the exact Corsair and Razer rules on
-10 August 2026. It needs no Agentic Mouse command receiver or Accessibility
-permission.
+10 August 2026. While holding button 11, click the same mouse's wheel to cancel
+the switcher and open App Exposé for the current app. A quick button 11 tap
+switches apps on release, and a wheel click on its own plays or pauses media.
 
 In VS Code only, top-level physical cell 5 begins Better Git Previous Change on button-down,
 and physical cell 8 begins Next Change on button-down. Holding either for 200 ms emits readiness and
