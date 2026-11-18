@@ -303,9 +303,13 @@ def _load_action(path: Path, actions_root: Path) -> dict[str, Any]:
     return action
 
 
+def _binding_variable(binding_id: str) -> str:
+    return f"agentic_mouse_{binding_id.replace('-', '_')}_pending"
+
+
 def _expand_binding_placeholders(value: Any, binding_id: str, output_modifiers: list[str] | None = None) -> Any:
     """Give multi-manipulator actions isolated Karabiner state per physical binding."""
-    variable = f"agentic_mouse_{binding_id.replace('-', '_')}_pending"
+    variable = _binding_variable(binding_id)
     if isinstance(value, str):
         if value == "$binding_output_modifiers":
             if output_modifiers is None:
@@ -685,6 +689,51 @@ def binding_templates(
     return templates
 
 
+def switch_app_wheel_routes(
+    wheel: dict[str, Any], switch_app: dict[str, Any], other_switch_apps: list[dict[str, Any]]
+) -> list[dict[str, Any]]:
+    """Open the current app's windows on a same-mouse button 11 + wheel click."""
+    held = _binding_variable(switch_app["id"])
+    source_conditions = wheel["conditions"]
+    other_holds = [
+        {"type": "expression_if", "expression": f"{_binding_variable(binding['id'])} == 0"}
+        for binding in other_switch_apps
+    ]
+    # Karabiner strips the mandatory Command until a shortcut reinstates it.
+    # Send Escape with Command still down to cancel rather than commit the
+    # switcher. Then send the configured App Exposé chord (symbolic hotkey 33).
+    return [
+        {
+            "type": "basic",
+            "from": {
+                **wheel["from"],
+                "modifiers": {"mandatory": ["left_command"], "optional": ["caps_lock"]},
+            },
+            "conditions": source_conditions + other_holds + [
+                {"type": "variable_if", "name": held, "value": 1},
+            ],
+            "to": [
+                {"key_code": "escape", "modifiers": ["left_command"], "repeat": False},
+                {"key_code": "down_arrow", "modifiers": ["left_control", "fn"], "repeat": False},
+                {"set_variable": {"name": held, "value": 2}},
+            ],
+        },
+        {
+            "type": "basic",
+            "from": {
+                **wheel["from"],
+                "modifiers": {"mandatory": ["left_command"], "optional": ["any"]},
+            },
+            # Repeated wheel clicks and ambiguous modifiers in the same hold
+            # must neither toggle Exposé again nor fall through to Play/Pause.
+            "conditions": source_conditions + [
+                {"type": "expression_if", "expression": f"{held} != 0"},
+            ],
+            "to": [],
+        },
+    ]
+
+
 def build_documents(
     actions: dict[str, dict[str, Any]],
     bindings: list[dict[str, Any]],
@@ -695,6 +744,11 @@ def build_documents(
     grouped: dict[str, list[tuple[str, dict[str, Any]]]] = defaultdict(list)
     proof_grouped: dict[str, list[tuple[str, dict[str, Any]]]] = defaultdict(list)
     lease_exclusions_by_binding: dict[str, list[str]] = defaultdict(list)
+    switch_app_by_rule = {
+        binding["rule"]: binding
+        for binding in bindings
+        if binding["action"] == "hold-open-app-switcher" and "rule" in binding
+    }
     for metadata in (color_proof, mode_picker):
         if not metadata:
             continue
@@ -711,6 +765,19 @@ def build_documents(
             raise GenerationError(
                 f"binding {binding['id']} references unknown action {action_id}"
             )
+
+        switch_app = switch_app_by_rule.get(binding.get("rule"))
+        if action_id == "play-pause-current-media" and "pointing_button" in binding["from"] and switch_app:
+            other_switch_apps = [other for other in switch_app_by_rule.values() if other != switch_app]
+            for index, route in enumerate(switch_app_wheel_routes(binding, switch_app, other_switch_apps)):
+                # The held wheel click takes priority over ordinary Play/Pause.
+                sort_id = f"{binding['id']}:!{index}"
+                grouped[binding["rule"]].append((sort_id, route))
+                runtime_route = copy.deepcopy(route)
+                if index == 0:
+                    for expression in lease_exclusions_by_binding.get(switch_app["id"], []):
+                        runtime_route["conditions"].append({"type": "expression_unless", "expression": expression})
+                proof_grouped[binding["rule"]].append((sort_id, runtime_route))
 
         templates = binding_templates(binding, actions)
         for index, source_template in enumerate(templates):

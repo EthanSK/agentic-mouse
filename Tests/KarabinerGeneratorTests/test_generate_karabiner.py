@@ -585,7 +585,7 @@ class KarabinerGeneratorTests(unittest.TestCase):
                 if {"type": "expression_unless", "expression": picker_expression}
                 in manipulator.get("conditions", [])
             ]
-            self.assertEqual(len(gated), 14)
+            self.assertEqual(sum("pointing_button" not in m["from"] for m in gated), 14)
             other_source = "razer" if source_name == "corsair" else "corsair"
             other_variable = picker["leaseVariablesBySource"][other_source]
             self.assertFalse(
@@ -736,6 +736,7 @@ class KarabinerGeneratorTests(unittest.TestCase):
                 [
                     {key: value for key, value in event.items() if key != "conditions"}
                     for event in switch_app["to"]
+                    if "key_code" in event
                 ],
                 [
                     {"key_code": "tab", "modifiers": ["left_command"], "repeat": False},

@@ -171,6 +171,13 @@
       "manipulator": {
         "to": [
           {
+            "set_variable": {
+              "name": "$binding_variable",
+              "value": 1,
+              "key_up_value": 0
+            }
+          },
+          {
             "key_code": "tab",
             "modifiers": [
               "left_command"
