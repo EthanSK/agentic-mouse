@@ -1,3 +1,7 @@
+## 2026-11-19 — Fast scrolling while holding Stage
+
+Only a physical wheel detent carries its event timestamp into Better Git. LaunchServices can complete long before the editor finishes showing the next change. Keep at most one wheel send outstanding per mouse and hold, then let the extension decide when it can accept another. Adjacent Next/Previous buttons keep their individual commands. In the Mini's identical 24-detent burst, the old extension staged 24 files and finished in 631 ms. The updated extension staged one and finished in 119 ms. One Undo restored the original index.
+
 ## 2026-11-14 — Reuse the Default VS Code review actions inside its mode
 
 Ethan required Razer 8 and 5 in VS Code mode to use the exact same actions as the top-level Back/Forward controls while VS Code is frontmost. Read the app override before choosing a direction: those physical cells are Next Change (8) and Previous Change (5) in VS Code, on both mice. Their general mouse-history fallback applies outside that override.

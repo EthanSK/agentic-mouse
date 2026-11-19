@@ -95,6 +95,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let wandVirtualWheel = WandVirtualWheel()
     private var wandRejectedPayloadCount = 0
     private var vsCodeModeGestureClassifiers: [MouseSource: VSCodeModeGestureClassifier] = [:]
+    private var stageWheelInFlight: [MouseSource: UUID] = [:]
     private let vsCodeStagePreviewModifier = VSCodeStagePreviewModifierState()
     private var vsCodeInitialPreviewSources = Set<MouseSource>()
     private lazy var vsCodeEyesBeginGate: VSCodeEyesBeginGate = {
@@ -1918,7 +1919,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @discardableResult
     private func performWandAdjustStep(_ direction: WheelChordDirection) -> Bool {
         guard mouseCommandsAllowed, let step = wandVirtualWheel.step(direction) else { return false }
-        guard wheelChordMonitor?.onStep?(step) == true else {
+        guard wheelChordMonitor?.onStep?(step, nil) == true else {
             if let feedback = step.control.hudFeedback(
                 for: step.direction,
                 detentCount: step.detentCount,
@@ -2008,17 +2009,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         monitor.isStagePreviewNavigationActive = { [weak self] source in
             self?.isVSCodeStagePreviewNavigationActive(for: source) == true
         }
-        monitor.onStep = { [weak self] step in
+        monitor.onStep = { [weak self] step, eventTime in
             guard let self else { return false }
             if let direction = step.control.vsCodeStageSelectionDirection(for: step.direction) {
-                if self.isVSCodeStagePreviewNavigationActive(for: step.source),
-                   let previewDirection = step.control.vsCodeStagePreviewDirection(
-                    for: step.direction
-                   ) {
-                    self.scheduleVSCodeStagePreviewNavigation(previewDirection, step: step)
-                    return true
-                }
-                self.scheduleVSCodeStageSelectionAction(direction, step: step)
+                let preview = self.isVSCodeStagePreviewNavigationActive(for: step.source)
+                    ? step.control.vsCodeStagePreviewDirection(for: step.direction) : nil
+                self.scheduleStageWheel(step, eventTime: eventTime, selection: direction, preview: preview)
                 return true
             }
             if step.control == .chromeVSCodeLayout {
@@ -2567,62 +2563,45 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    private func scheduleVSCodeStageSelectionAction(
-        _ direction: VSCodeStageSelectionDirection,
-        step: WheelChordStateMachine.Step
+    private func scheduleStageWheel(
+        _ step: WheelChordStateMachine.Step, eventTime: CGEventTimestamp?,
+        selection: VSCodeStageSelectionDirection, preview: VSCodeStagePreviewDirection?
     ) {
+        let source = step.source
+        guard stageWheelInFlight[source] == nil else { return }
+        let delivery = eventTime.map { _ in UUID() }
+        stageWheelInFlight[source] = delivery
+
+        // Preserve the physical wheel time through both the main queue and LaunchServices.
+        // Use wall milliseconds on the wire since Swift and Node have different uptime origins.
+        let uptime = DispatchTime.now().uptimeNanoseconds
+        let wheelAtMs = eventTime.map { timestamp in
+            let age = timestamp > 0 && timestamp <= uptime ? (uptime - timestamp) / 1_000_000 : 0
+            return Int64(Date().timeIntervalSince1970 * 1000) - Int64(age)
+        }
         DispatchQueue.main.async { [weak self] in
-            guard let self,
-                  self.mouseCommandsAllowed,
-                  self.activeWheelControl(for: step.source)
-                    == .vsCodeStageRange
-            else { return }
-            self.vsCodeCommandBridge.performStageSelection(
-                direction,
-                source: step.source
-            ) { [weak self] result in
-                guard let self else { return }
+            guard let self, self.stageWheelInFlight[source] == delivery else { return }
+            guard self.mouseCommandsAllowed, self.activeWheelControl(for: source) == .vsCodeStageRange else {
+                self.stageWheelInFlight[source] = nil
+                return
+            }
+            let completed: VSCodeCommandBridge.Completion = { [weak self] result in
+                guard let self, self.stageWheelInFlight[source] == delivery else { return }
+                self.stageWheelInFlight[source] = nil
                 switch result {
                 case .success:
-                    self.log.info(
-                        "VS Code stage selection \(direction.rawValue) ratchet "
-                            + "\(step.detentCount) requested through Better Git from "
-                            + "\(step.source.displayName)"
-                    )
-                    self.flashWheelActionFeedback(step)
+                    let action = preview.map { "preview \($0.rawValue)" } ?? "selection \(selection.rawValue)"
+                    self.log.info("VS Code stage \(action) ratchet \(step.detentCount) requested through Better Git from \(source.displayName)")
+                    if preview == nil { self.flashWheelActionFeedback(step) }
                 case .failure(let error):
-                    self.modeHUDPresenters[step.source]?.flashProblem(error.description)
-                    self.flashWheelActionFeedback(step, outcome: .couldNotBeSent)
+                    self.modeHUDPresenters[source]?.flashProblem(error.description)
+                    if preview == nil { self.flashWheelActionFeedback(step, outcome: .couldNotBeSent) }
                 }
             }
-        }
-    }
-
-    private func scheduleVSCodeStagePreviewNavigation(
-        _ direction: VSCodeStagePreviewDirection,
-        step: WheelChordStateMachine.Step
-    ) {
-        DispatchQueue.main.async { [weak self] in
-            guard let self,
-                  self.mouseCommandsAllowed,
-                  self.activeWheelControl(for: step.source)
-                    == .vsCodeStageRange
-            else { return }
-            self.vsCodeCommandBridge.performStagePreviewNavigation(
-                direction,
-                source: step.source
-            ) { [weak self] result in
-                guard let self else { return }
-                switch result {
-                case .success:
-                    self.log.info(
-                        "VS Code stage preview \(direction.rawValue) ratchet "
-                            + "\(step.detentCount) requested through Better Git from "
-                            + "\(step.source.displayName)"
-                    )
-                case .failure(let error):
-                    self.modeHUDPresenters[step.source]?.flashProblem(error.description)
-                }
+            if let preview {
+                self.vsCodeCommandBridge.performStagePreviewNavigation(preview, source: source, wheelAtMs: wheelAtMs, completion: completed)
+            } else {
+                self.vsCodeCommandBridge.performStageSelection(selection, source: source, wheelAtMs: wheelAtMs, completion: completed)
             }
         }
     }
@@ -2663,6 +2642,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         source: MouseSource,
         reason: VSCodeStagePreviewModifierState.CleanupReason = .cancellation
     ) {
+        stageWheelInFlight[source] = nil
         vsCodeInitialPreviewSources.remove(source)
         if vsCodeStagePreviewModifier.clear(source: source, reason: reason) {
             performVSCodeStagePreviewMode(false, source: source)

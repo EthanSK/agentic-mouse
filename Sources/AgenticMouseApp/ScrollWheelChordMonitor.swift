@@ -14,7 +14,7 @@ import ScimitarKit
 /// a conventional ratchet as continuous, so phase-free detents remain valid.
 /// Two simultaneously held source chords are consumed without guessing.
 final class ScrollWheelChordMonitor {
-    typealias StepHandler = (WheelChordStateMachine.Step) -> Bool
+    typealias StepHandler = (WheelChordStateMachine.Step, CGEventTimestamp?) -> Bool
     typealias ReleaseHandler = (WheelChordStateMachine.Release, TimeInterval) -> Void
     typealias YouTubeVolumeModifierReleaseHandler = (
         WheelChordStateMachine.YouTubeVolumeModifierRelease
@@ -293,7 +293,7 @@ final class ScrollWheelChordMonitor {
             )
             return nil
         case .consume(let step):
-            let routed = onStep?(step) == true
+            let routed = onStep?(step, event.timestamp) == true
             emitWheelDiagnostic(
                 source: step.source,
                 message: "\(controlLabel(step.control, source: step.source)) · "
