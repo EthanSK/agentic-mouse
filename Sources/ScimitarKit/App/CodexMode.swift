@@ -54,7 +54,9 @@ public enum CodexModeAction: String, CaseIterable, Equatable, Sendable {
     public var hudControlStatus: ModeHUDControlStatus {
         switch self {
         // Ethan confirmed Voice mode works; retain the shared toggle route.
-        case .toggleVoiceMode, .newTask, .togglePin, .toggleMicrophoneMute, .openSideChat,
+        case .openSideChat:
+            return .reportedBroken
+        case .toggleVoiceMode, .newTask, .togglePin, .toggleMicrophoneMute,
              .closeTab, .pressEnter, .openClaudeSession:
             return .normal
         }
