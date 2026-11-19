@@ -3718,3 +3718,9 @@ Ethan reported Cycle Speed and Reasoning Effort failing in Codex sidechats. Live
 ## 2026-11-18 — Switch App with a wheel click opens App Exposé
 
 When Ethan says “click the wheel button while holding Corsair 11,” use the same-mouse Switch App chord on both mice. Preserve the immediate native Command-Tab press and release. Karabiner temporarily removes a mandatory modifier from an output, so include Command on Escape to cancel the switcher before sending the configured Control-Fn-Down App Exposé shortcut without Command. Emit it once per hold. Keep standalone wheel click on Play/Pause and live modes on their own cell 11. Verify both generated rules against their exact keyboard and pointing interfaces. Generator checks prove the binding and sequence, while physical acceptance checks the Dock’s response.
+
+## Codex Open side chat keyboard delivery (2026-11-19)
+
+Corsair 4 was reaching Agentic Mouse when it reported that it could not deliver the shortcut. Codex still bound Open Side Chat to Option-Command-S. The app's System Events call returned failure before Codex could confirm a pane, and each observed press coincided with a macOS reopen error for Preview. The logs do not establish why Preview appeared.
+
+The two mouse bindings now send the accepted Dvorak key position directly through the Karabiner virtual keyboard, gated to the active mouse mode, unlocked session and foreground Codex. The native notification records the source and control without sending the key again. Verify an opened pane separately from a matching route or HUD highlight.

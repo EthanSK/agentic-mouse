@@ -1913,6 +1913,133 @@
               ]
             },
             {
+              "key_code": "semicolon",
+              "modifiers": [
+                "left_command",
+                "left_option"
+              ],
+              "repeat": false,
+              "conditions": [
+                {
+                  "type": "device_if",
+                  "identifiers": [
+                    {
+                      "vendor_id": 6940,
+                      "product_id": 65535,
+                      "is_keyboard": true
+                    }
+                  ]
+                },
+                {
+                  "type": "expression_if",
+                  "expression": "(agentic_mouse_mode_picker_corsair_expires_at > system.now.milliseconds) and (agentic_mouse_mode_picker_corsair_expires_at <= system.now.milliseconds + 15000)"
+                },
+                {
+                  "type": "expression_if",
+                  "expression": "agentic_mouse_mode_picker_corsair_page == 4"
+                },
+                {
+                  "type": "expression_if",
+                  "expression": "agentic_mouse_mode_picker_corsair_app_selection == 0 or agentic_mouse_mode_picker_corsair_app_selection == 1"
+                },
+                {
+                  "type": "frontmost_application_if",
+                  "bundle_identifiers": [
+                    "^com\\.openai\\.codex$"
+                  ]
+                },
+                {
+                  "type": "expression_if",
+                  "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+                }
+              ]
+            }
+          ],
+          "conditions": [
+            {
+              "type": "device_if",
+              "identifiers": [
+                {
+                  "vendor_id": 6940,
+                  "product_id": 65535,
+                  "is_keyboard": true
+                }
+              ]
+            },
+            {
+              "type": "expression_if",
+              "expression": "(agentic_mouse_mode_picker_corsair_expires_at > system.now.milliseconds) and (agentic_mouse_mode_picker_corsair_expires_at <= system.now.milliseconds + 15000)"
+            },
+            {
+              "type": "expression_if",
+              "expression": "agentic_mouse_mode_picker_corsair_page == 4"
+            },
+            {
+              "type": "expression_if",
+              "expression": "agentic_mouse_mode_picker_corsair_app_selection == 0 or agentic_mouse_mode_picker_corsair_app_selection == 1"
+            },
+            {
+              "type": "frontmost_application_if",
+              "bundle_identifiers": [
+                "^com\\.openai\\.codex$"
+              ]
+            },
+            {
+              "type": "expression_if",
+              "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+            }
+          ],
+          "to_after_key_up": [
+            {
+              "send_user_command": {
+                "payload": {
+                  "command": "agentic_mouse_mode_picker",
+                  "action": "selectNative",
+                  "source": "corsair",
+                  "physical_cell": 4,
+                  "phase": "release"
+                }
+              },
+              "repeat": false,
+              "conditions": [
+                {
+                  "type": "expression_if",
+                  "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "basic",
+          "from": {
+            "key_code": "keypad_4",
+            "modifiers": {
+              "optional": [
+                "any"
+              ]
+            }
+          },
+          "to": [
+            {
+              "send_user_command": {
+                "payload": {
+                  "command": "agentic_mouse_mode_picker",
+                  "action": "selectNative",
+                  "source": "corsair",
+                  "physical_cell": 4,
+                  "phase": "press"
+                }
+              },
+              "repeat": false,
+              "conditions": [
+                {
+                  "type": "expression_if",
+                  "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+                }
+              ]
+            },
+            {
               "send_user_command": {
                 "payload": {
                   "command": "agentic_mouse_wheel_chord",
@@ -8307,6 +8434,133 @@
             {
               "type": "expression_if",
               "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+            }
+          ]
+        },
+        {
+          "type": "basic",
+          "from": {
+            "key_code": "6",
+            "modifiers": {
+              "optional": [
+                "any"
+              ]
+            }
+          },
+          "to": [
+            {
+              "send_user_command": {
+                "payload": {
+                  "command": "agentic_mouse_mode_picker",
+                  "action": "selectNative",
+                  "source": "razer",
+                  "physical_cell": 4,
+                  "phase": "press"
+                }
+              },
+              "repeat": false,
+              "conditions": [
+                {
+                  "type": "expression_if",
+                  "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+                }
+              ]
+            },
+            {
+              "key_code": "semicolon",
+              "modifiers": [
+                "left_command",
+                "left_option"
+              ],
+              "repeat": false,
+              "conditions": [
+                {
+                  "type": "device_if",
+                  "identifiers": [
+                    {
+                      "vendor_id": 5426,
+                      "product_id": 141,
+                      "is_keyboard": true
+                    }
+                  ]
+                },
+                {
+                  "type": "expression_if",
+                  "expression": "(agentic_mouse_mode_picker_razer_expires_at > system.now.milliseconds) and (agentic_mouse_mode_picker_razer_expires_at <= system.now.milliseconds + 15000)"
+                },
+                {
+                  "type": "expression_if",
+                  "expression": "agentic_mouse_mode_picker_razer_page == 4"
+                },
+                {
+                  "type": "expression_if",
+                  "expression": "agentic_mouse_mode_picker_razer_app_selection == 0 or agentic_mouse_mode_picker_razer_app_selection == 1"
+                },
+                {
+                  "type": "frontmost_application_if",
+                  "bundle_identifiers": [
+                    "^com\\.openai\\.codex$"
+                  ]
+                },
+                {
+                  "type": "expression_if",
+                  "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+                }
+              ]
+            }
+          ],
+          "conditions": [
+            {
+              "type": "device_if",
+              "identifiers": [
+                {
+                  "vendor_id": 5426,
+                  "product_id": 141,
+                  "is_keyboard": true
+                }
+              ]
+            },
+            {
+              "type": "expression_if",
+              "expression": "(agentic_mouse_mode_picker_razer_expires_at > system.now.milliseconds) and (agentic_mouse_mode_picker_razer_expires_at <= system.now.milliseconds + 15000)"
+            },
+            {
+              "type": "expression_if",
+              "expression": "agentic_mouse_mode_picker_razer_page == 4"
+            },
+            {
+              "type": "expression_if",
+              "expression": "agentic_mouse_mode_picker_razer_app_selection == 0 or agentic_mouse_mode_picker_razer_app_selection == 1"
+            },
+            {
+              "type": "frontmost_application_if",
+              "bundle_identifiers": [
+                "^com\\.openai\\.codex$"
+              ]
+            },
+            {
+              "type": "expression_if",
+              "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+            }
+          ],
+          "to_after_key_up": [
+            {
+              "send_user_command": {
+                "payload": {
+                  "command": "agentic_mouse_mode_picker",
+                  "action": "selectNative",
+                  "source": "razer",
+                  "physical_cell": 4,
+                  "phase": "release"
+                }
+              },
+              "repeat": false,
+              "conditions": [
+                {
+                  "type": "expression_if",
+                  "expression": "(agentic_mouse_session_unlocked_expires_at > system.now.milliseconds) and (agentic_mouse_session_unlocked_expires_at <= system.now.milliseconds + 15000)"
+                }
+              ]
             }
           ]
         },

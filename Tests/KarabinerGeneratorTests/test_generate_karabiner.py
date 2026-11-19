@@ -152,7 +152,7 @@ class KarabinerGeneratorTests(unittest.TestCase):
             item for item in generated["rules"]
             if item["description"] == "Agentic Mouse — Modes (expiring, exact-device)"
         )
-        self.assertEqual(len(rule["manipulators"]), 118)
+        self.assertEqual(len(rule["manipulators"]), 120)
         actions = []
         legend_toggles = []
         for manipulator in rule["manipulators"]:
@@ -162,17 +162,18 @@ class KarabinerGeneratorTests(unittest.TestCase):
             frontmost_conditions = {
                 "frontmost_application_if", "frontmost_application_unless"
             } & condition_types
-            shared_vscode = any(
+            native_app_control = any(
                 e.get("send_user_command", {}).get("payload", {}).get("action") == "selectNative"
                 for e in manipulator.get("to", [])
             ) and any(
                 c.get("expression", "").endswith("_page == 4")
                 for c in manipulator["conditions"]
             )
-            if shared_vscode:
+            if native_app_control:
                 self.assertEqual(frontmost_conditions, {"frontmost_application_if"})
-                self.assertTrue(any(c == vscode_if_condition() for c in manipulator["conditions"]))
-            if frontmost_conditions and not shared_vscode:
+                codex_if = {"type": "frontmost_application_if", "bundle_identifiers": [r"^com\.openai\.codex$"]}
+                self.assertTrue(vscode_if_condition() in manipulator["conditions"] or codex_if in manipulator["conditions"])
+            if frontmost_conditions and not native_app_control:
                 self.assertEqual(
                     manipulator["from"]["key_code"],
                     ("keypad_8" if any(e.get("set_variable", {}).get("value") == 7 for e in manipulator["to"]) else "keypad_plus") if any(
@@ -233,7 +234,7 @@ class KarabinerGeneratorTests(unittest.TestCase):
 
         self.assertEqual(actions[:2], ["close", "close"])
         self.assertEqual(actions.count("select"), 64)
-        self.assertEqual(actions.count("selectNative"), 46)
+        self.assertEqual(actions.count("selectNative"), 48)
         self.assertEqual(actions[-2:], ["open", "open"])
         self.assertEqual(
             {(item["source"], item["physical_cell"]) for item in legend_toggles},
@@ -428,6 +429,28 @@ class KarabinerGeneratorTests(unittest.TestCase):
                 "0": {"key_code": "s", "modifiers": ["left_command"]},
             },
         }
+        for source, key in (("corsair", "keypad_4"), ("razer", "6")):
+            routes = [m for m in rule["manipulators"] if m["from"].get("key_code") == key]
+            codex_if = {"type": "frontmost_application_if", "bundle_identifiers": [r"^com\.openai\.codex$"]}
+            native, = [m for m in routes if codex_if in m["conditions"] and any(
+                e.get("key_code") == "semicolon" for e in m["to"])]
+            press, shortcut = native["to"]
+            source_var = picker["appSelectionVariablesBySource"][source]
+            self.assertIn({"type": "expression_if", "expression": f"{source_var} == 0 or {source_var} == 1"}, native["conditions"])
+            self.assertIn({"type": "expression_if", "expression": f"{page_variables[source]} == 4"}, native["conditions"])
+            self.assertEqual(shortcut["modifiers"], ["left_command", "left_option"])
+            self.assertFalse(shortcut["repeat"])
+            self.assertTrue(all(c in shortcut["conditions"] for c in native["conditions"]))
+            release, = native["to_after_key_up"]
+            for event, phase in ((press, "press"), (release, "release")):
+                payload = event["send_user_command"]["payload"]
+                self.assertEqual((payload["action"], payload["source"], payload["physical_cell"], payload["phase"]),
+                                 ("selectNative", source, 4, phase))
+            ordinary = next(m for m in routes if not any(c["type"].startswith("frontmost_") for c in m["conditions"])
+                            and any(e.get("send_user_command", {}).get("payload", {}).get("action") == "select" for e in m["to"])
+                            and not any(e.get("set_variable") for e in m["to"]))
+            self.assertLess(routes.index(native), routes.index(ordinary))
+
         for source_name, expected in native_keys.items():
             for transport, output in expected.items():
                 native = next(

@@ -1632,8 +1632,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     // This route only marks the HUD; never classify it again.
                     return true
                 }
+                guard target == .codex else { return false }
+                if cell == CodexModeAction.openSideChat.cell {
+                    // The virtual keyboard already sent Option-Command-S.
+                    return true
+                }
                 guard phase == .press,
-                      target == .codex,
                       CodexModeAction.action(for: cell) == .toggleVoiceMode
                 else { return false }
                 self.modeHUDPresenters[source]?.flashFeedback(ModeHUDFeedback(

@@ -283,7 +283,7 @@ final class ModePickerTests: XCTestCase {
     }
 
     func testCodexAndVSCodeMarkersFollowLatestPhysicalReports() {
-        let brokenCodexActions: [CodexModeAction] = []
+        let brokenCodexActions: [CodexModeAction] = [.openSideChat]
         for action in CodexModeAction.allCases {
             let expected: ModeHUDControlStatus = brokenCodexActions.contains(action)
                 ? .reportedBroken
@@ -3166,13 +3166,15 @@ final class ModePickerTests: XCTestCase {
         for phase in [ModePickerCommand.Phase.press, .release] {
             coordinator.handle(.init(action: .select, source: .razer, physicalCell: CodexModeAction.newTask.cell, phase: phase))
             coordinator.handle(.init(action: .selectNative, source: .razer, physicalCell: CodexModeAction.toggleVoiceMode.cell, phase: phase))
+            coordinator.handle(.init(action: .selectNative, source: .razer, physicalCell: CodexModeAction.openSideChat.cell, phase: phase))
         }
         coordinator.handle(.init(action: .selectNative, source: .corsair, physicalCell: CodexModeAction.toggleVoiceMode.cell, phase: .press))
         XCTAssertEqual(appInputs, [CodexModeAction.newTask.cell])
-        XCTAssertEqual(nativeInputs, [CodexModeAction.toggleVoiceMode.cell])
+        XCTAssertEqual(nativeInputs, [CodexModeAction.toggleVoiceMode.cell, CodexModeAction.openSideChat.cell])
         XCTAssertEqual(sink.entries.map(\.message).filter { $0.contains("requested via") }, [
             "Codex newTask requested via app route, source razer, cell 5",
-            "Codex toggleVoiceMode requested via native route, source razer, cell 12"
+            "Codex toggleVoiceMode requested via native route, source razer, cell 12",
+            "Codex openSideChat requested via native route, source razer, cell 4"
         ])
     }
 

@@ -41,6 +41,7 @@ APP_SELECTION_VSCODE = 4
 CODEX_SELECTOR_PHYSICAL_CELL = 1
 CHROME_SELECTOR_PHYSICAL_CELL = 4
 VSCODE_SELECTOR_PHYSICAL_CELL = 7
+CODEX_SIDE_CHAT_PHYSICAL_CELL = 4
 CODEX_VOICE_PHYSICAL_CELL = 12
 CODEX_BUNDLE_IDENTIFIERS = [r"^com\.openai\.codex$"]
 KEYS_MODE_OUTPUT_BY_PHYSICAL_CELL = {
@@ -1133,6 +1134,7 @@ def build_mode_picker_rule(
         physical_cell: int,
         selection_expression: str,
         frontmost_condition: dict[str, Any] | None = None,
+        native_key: dict[str, Any] | None = None,
     ) -> None:
         conditions = device_conditions(binding, source=source, active=True)
         conditions.extend(
@@ -1151,8 +1153,10 @@ def build_mode_picker_rule(
         # Ethan's "HeyChat" Voice route: the app sends Toggle voice chat
         # privately to Codex. A global Hyper-F17 cycle can trigger Agent Flow
         # while Karabiner presses its modifiers, before F17 reaches Codex.
-        action = "select"
+        action = "selectNative" if native_key else "select"
         to = [command_event(action, source, physical_cell, "press")]
+        if native_key:
+            to.append({**native_key, "repeat": False, "conditions": copy.deepcopy(conditions)})
         manipulator: dict[str, Any] = {
             "type": "basic",
             "from": copy.deepcopy(binding["from"]),
@@ -1250,6 +1254,22 @@ def build_mode_picker_rule(
                     "to_after_key_up": [command_event("select", source, physical_cell, "release")],
                     "conditions": conditions,
                 })
+
+            if physical_cell == CODEX_SIDE_CHAT_PHYSICAL_CELL:
+                # Open side chat is Codex's Option-Command-S. On Ethan's
+                # Dvorak - QWERTY Cmd layout this chord uses the semicolon position.
+                append_app_specific_input(
+                    binding=binding, source=source, physical_cell=physical_cell,
+                    selection_expression=(
+                        f"{app_selection_variable} == {APP_SELECTION_AUTOMATIC} or "
+                        f"{app_selection_variable} == {APP_SELECTION_CODEX}"
+                    ),
+                    frontmost_condition={
+                        "type": "frontmost_application_if",
+                        "bundle_identifiers": CODEX_BUNDLE_IDENTIFIERS,
+                    },
+                    native_key={"key_code": "semicolon", "modifiers": ["left_command", "left_option"]},
+                )
 
             # Ethan's mode Next/Previous must be the exact top-level VS Code
             # actions, including Eyes, release timing and adjacent cancel.

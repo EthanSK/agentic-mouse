@@ -756,7 +756,7 @@ public final class ModePickerCoordinator {
                 // Ethan's unexpected "New voice chat": retain the requested
                 // control/transport for correlation, never prompt or voice text.
                 if target == .codex, let action = CodexModeAction.action(for: cell),
-                   action == .newTask || action == .toggleVoiceMode {
+                   action == .newTask || action == .toggleVoiceMode || action == .openSideChat {
                     let transport = nativeOutputHandled ? "native" : "app"
                     log.notice("Codex \(action.rawValue) requested via \(transport) route, source \(source.rawValue), cell \(cell.rawValue)")
                 }
