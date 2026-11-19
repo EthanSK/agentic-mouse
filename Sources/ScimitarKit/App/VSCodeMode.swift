@@ -13,8 +13,8 @@ public enum VSCodeModeAction: String, CaseIterable, Equatable, Sendable {
 
     public var cell: PhysicalCell {
         switch self {
-        case .closeTab: return PhysicalCell(rawValue: 1)!
-        case .find: return PhysicalCell(rawValue: 3)!
+        case .closeTab: return PhysicalCell(rawValue: 3)!
+        case .find: return PhysicalCell(rawValue: 1)!
         case .previousChange: return PhysicalCell(rawValue: 5)!
         case .nextChange: return PhysicalCell(rawValue: 8)!
         case .stageAndNext: return PhysicalCell(rawValue: 9)!
