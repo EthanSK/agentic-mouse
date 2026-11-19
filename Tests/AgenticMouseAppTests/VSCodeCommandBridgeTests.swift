@@ -69,6 +69,22 @@ final class VSCodeCommandBridgeTests: XCTestCase {
         }
     }
 
+    func testOnlyPhysicalWheelURLsIncludeTheEventTime() {
+        let timestamp: Int64 = 1_795_095_000_000
+        for source in [MouseSource.corsair, .razer] {
+            for url in [
+                VSCodeCommandBridge.stageSelectionURL(direction: .down, source: source, wheelAtMs: timestamp),
+                VSCodeCommandBridge.stagePreviewNavigationURL(direction: .previous, source: source, wheelAtMs: timestamp),
+            ] {
+                XCTAssertEqual(URLComponents(url: url!, resolvingAgainstBaseURL: false)?.queryItems, [
+                    URLQueryItem(name: "source", value: source.rawValue),
+                    URLQueryItem(name: "wheelAtMs", value: String(timestamp)),
+                ])
+            }
+            XCTAssertFalse(VSCodeCommandBridge.stagePreviewNavigationURL(direction: .next, source: source)!.absoluteString.contains("wheelAtMs"))
+        }
+    }
+
     func testOpensStageSelectionThroughFrontmostVSCodeWithoutChangingTheTarget() async {
         var opened: [(URL, URL)] = []
         let completed = expectation(description: "stage selection request completed")

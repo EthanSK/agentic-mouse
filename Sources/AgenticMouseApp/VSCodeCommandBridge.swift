@@ -77,9 +77,10 @@ final class VSCodeCommandBridge {
     func performStageSelection(
         _ direction: VSCodeStageSelectionDirection,
         source: MouseSource,
+        wheelAtMs: Int64? = nil,
         completion: @escaping Completion
     ) {
-        guard let url = Self.stageSelectionURL(direction: direction, source: source) else {
+        guard let url = Self.stageSelectionURL(direction: direction, source: source, wheelAtMs: wheelAtMs) else {
             completion(.failure(BridgeError(
                 description: "Could not create the Better Git stage selection request"
             )))
@@ -91,9 +92,10 @@ final class VSCodeCommandBridge {
     func performStagePreviewNavigation(
         _ direction: VSCodeStagePreviewDirection,
         source: MouseSource,
+        wheelAtMs: Int64? = nil,
         completion: @escaping Completion
     ) {
-        guard let url = Self.stagePreviewNavigationURL(direction: direction, source: source) else {
+        guard let url = Self.stagePreviewNavigationURL(direction: direction, source: source, wheelAtMs: wheelAtMs) else {
             completion(.failure(BridgeError(
                 description: "Could not create the Better Git preview navigation request"
             )))
@@ -159,26 +161,35 @@ final class VSCodeCommandBridge {
 
     static func stageSelectionURL(
         direction: VSCodeStageSelectionDirection,
-        source: MouseSource
+        source: MouseSource,
+        wheelAtMs: Int64? = nil
     ) -> URL? {
         var components = URLComponents()
         components.scheme = "vscode"
         components.host = betterGitExtensionIdentifier
         components.path = "/mouse-stage-selection/\(direction.rawValue)"
-        components.queryItems = [URLQueryItem(name: "source", value: source.rawValue)]
+        components.queryItems = stageReviewQuery(source: source, wheelAtMs: wheelAtMs)
         return components.url
     }
 
     static func stagePreviewNavigationURL(
         direction: VSCodeStagePreviewDirection,
-        source: MouseSource
+        source: MouseSource,
+        wheelAtMs: Int64? = nil
     ) -> URL? {
         var components = URLComponents()
         components.scheme = "vscode"
         components.host = betterGitExtensionIdentifier
         components.path = "/mouse-stage-preview/\(direction.rawValue)"
-        components.queryItems = [URLQueryItem(name: "source", value: source.rawValue)]
+        components.queryItems = stageReviewQuery(source: source, wheelAtMs: wheelAtMs)
         return components.url
+    }
+
+    // Deliberate side-button presses use the original URL. Only a physical wheel carries its input time.
+    private static func stageReviewQuery(source: MouseSource, wheelAtMs: Int64?) -> [URLQueryItem] {
+        var query = [URLQueryItem(name: "source", value: source.rawValue)]
+        if let wheelAtMs { query.append(URLQueryItem(name: "wheelAtMs", value: String(wheelAtMs))) }
+        return query
     }
 
     static func stagePreviewModeURL(active: Bool, source: MouseSource, initial: Bool = false) -> URL? {
