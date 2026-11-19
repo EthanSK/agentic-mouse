@@ -207,9 +207,9 @@ const LAYERS = {
   vscodeMode: {
     label: "VS Code mode",
     actions: [
-      ["Close tab", "Close the current editor tab."],
-      ["Exit VS Code mode", "Return directly to Default."],
       ["Find", "Open VS Code's Find interface."],
+      ["Exit VS Code mode", "Return directly to Default."],
+      ["Close tab", "Close the current editor tab."],
       ["Toggle Terminal / Undo with 5", "Toggle the integrated terminal, or press while holding Previous to undo the last stage."],
       ["Previous / Hold Stage", "Release a short click for Previous Change immediately. Release a 300 ms hold to stage and go previous. Every hold stages independently."],
       ["Cursor History + Wheel", "Hold and ratchet: up goes forward, down goes back."],

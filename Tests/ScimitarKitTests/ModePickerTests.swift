@@ -2434,10 +2434,13 @@ final class ModePickerTests: XCTestCase {
     }
 
     func testVSCodeModeUsesCloseTabCommandPaletteAndPeekDefinitionCells() {
-        XCTAssertEqual(VSCodeModeAction.closeTab.cell, PhysicalCell(rawValue: 1))
+        XCTAssertEqual(VSCodeModeAction.find.cell, PhysicalCell(rawValue: 1))
+        XCTAssertEqual(VSCodeModeAction.find.singlePressCommand, .find)
+        XCTAssertEqual(VSCodeMode.definition.legend[0].actionTitle, "Find")
+        XCTAssertEqual(VSCodeModeAction.closeTab.cell, ChromeModeAction.closeCurrentTab.cell)
         XCTAssertEqual(VSCodeModeAction.closeTab.singlePressCommand, .closeTab)
         XCTAssertNil(VSCodeModeAction.closeTab.doublePressCommand)
-        XCTAssertEqual(VSCodeMode.definition.legend[0].actionTitle, "Close tab")
+        XCTAssertEqual(VSCodeMode.definition.legend[2].actionTitle, "Close tab")
         XCTAssertEqual(VSCodeModeAction.commandPalette.cell, PhysicalCell(rawValue: 7))
         XCTAssertEqual(VSCodeModeAction.commandPalette.singlePressCommand, .commandPalette)
         XCTAssertNil(VSCodeModeAction.commandPalette.doublePressCommand)
