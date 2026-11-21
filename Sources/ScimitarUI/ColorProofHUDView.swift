@@ -12,7 +12,7 @@ final class ModeHUDViewModel: ObservableObject {
     @Published var wandReviewSelection: PhysicalCell?
     @Published var legend: [ModeHUDLegendItem] = []
     @Published var accent = ScimitarKit.RGBColor(red: 94, green: 210, blue: 255)
-    @Published var showsDecorativeOutlines = true
+    @Published var isDefaultLegend = false
     @Published var outlineWidth: Double?
     @Published var lightingTargets: ModeLightingTargets = []
     @Published var footerTitle = ""
@@ -84,7 +84,7 @@ final class ModeHUDViewModel: ObservableObject {
             wandReviewSelection = snapshot.wandReviewSelection
             legend = snapshot.legend
             accent = snapshot.accent
-            showsDecorativeOutlines = snapshot.showsDecorativeOutlines
+            isDefaultLegend = snapshot.isDefaultLegend
             outlineWidth = snapshot.outlineWidth
             lightingTargets = snapshot.lightingTargets
             footerTitle = snapshot.footerTitle
@@ -672,13 +672,13 @@ struct ModeHUDView: View {
         let shape = RoundedRectangle(cornerRadius: 27, style: .continuous)
         ZStack {
             if usesNativeGlass {
-                ModeHUDNativeGlassBackground(cornerRadius: 27)
+                ModeHUDNativeGlassBackground(cornerRadius: 27, usesRegularGlass: model.isDefaultLegend)
                     .clipShape(shape)
             } else {
                 shape.fill(ModeHUDNativeGlass.offscreenStandIn)
             }
 
-            if model.showsDecorativeOutlines {
+            if !model.isDefaultLegend {
                 shape.strokeBorder(
                     displayAccent.opacity(model.isActive ? 1 : 0.32),
                     lineWidth: model.outlineWidth ?? (model.presentationStyle == .boldOpaque ? 3 : 2.75)
@@ -727,7 +727,7 @@ struct ModeHUDView: View {
                 shape.fill(fillColor.opacity(0.18))
             }
 
-            if model.showsDecorativeOutlines {
+            if !model.isDefaultLegend {
                 shape.strokeBorder(
                     borderColor.opacity(borderTreatment.opacity),
                     lineWidth: borderTreatment.lineWidth
@@ -775,13 +775,14 @@ struct ModeHUDView: View {
 /// visual-effect material as the compatibility path.
 private struct ModeHUDNativeGlassBackground: NSViewRepresentable {
     let cornerRadius: CGFloat
+    let usesRegularGlass: Bool
 
     func makeNSView(context: Context) -> NSView {
-        ModeHUDNativeGlass.makeEffectView(cornerRadius: cornerRadius)
+        ModeHUDNativeGlass.makeEffectView(cornerRadius: cornerRadius, usesRegularGlass: usesRegularGlass)
     }
 
     func updateNSView(_ nsView: NSView, context: Context) {
-        ModeHUDNativeGlass.update(nsView, cornerRadius: cornerRadius)
+        ModeHUDNativeGlass.update(nsView, cornerRadius: cornerRadius, usesRegularGlass: usesRegularGlass)
     }
 }
 

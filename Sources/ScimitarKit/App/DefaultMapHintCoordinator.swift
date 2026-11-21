@@ -222,7 +222,7 @@ public enum DefaultMapLegend {
             ),
             accent: accent,
             // Ethan's “just coloured” Default legend keeps the card fills on plain glass.
-            showsDecorativeOutlines: false,
+            isDefaultLegend: true,
             footerTitle: "Default mode",
             footerHint: frontmostAppContext?.target == .vsCode ? VSCodeMode.undoHint(source: source) : nil,
             showsOnAllDisplays: true

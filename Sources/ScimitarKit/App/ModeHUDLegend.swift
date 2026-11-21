@@ -569,7 +569,7 @@ public struct ModeHUDSnapshot: Equatable, Sendable {
     public var selection: ModeHUDSelection?
     public var legend: [ModeHUDLegendItem]
     public var accent: RGBColor
-    public var showsDecorativeOutlines: Bool
+    public var isDefaultLegend: Bool
     public var outlineWidth: Double?
     public var lightingTargets: ModeLightingTargets
     public var footerTitle: String
@@ -597,7 +597,7 @@ public struct ModeHUDSnapshot: Equatable, Sendable {
         selection: ModeHUDSelection?,
         legend: [ModeHUDLegendItem],
         accent: RGBColor,
-        showsDecorativeOutlines: Bool = true,
+        isDefaultLegend: Bool = false,
         outlineWidth: Double? = nil,
         lightingTargets: ModeLightingTargets = [],
         footerTitle: String,
@@ -613,7 +613,7 @@ public struct ModeHUDSnapshot: Equatable, Sendable {
         self.selection = selection
         self.legend = legend
         self.accent = accent
-        self.showsDecorativeOutlines = showsDecorativeOutlines
+        self.isDefaultLegend = isDefaultLegend
         self.outlineWidth = outlineWidth
         self.lightingTargets = lightingTargets
         self.footerTitle = footerTitle

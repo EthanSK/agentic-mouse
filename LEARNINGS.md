@@ -3724,3 +3724,9 @@ When Ethan says “click the wheel button while holding Corsair 11,” use the s
 Corsair 4 was reaching Agentic Mouse when it reported that it could not deliver the shortcut. Codex still bound Open Side Chat to Option-Command-S. The app's System Events call returned failure before Codex could confirm a pane, and each observed press coincided with a macOS reopen error for Preview. The logs do not establish why Preview appeared.
 
 The two mouse bindings now send the accepted Dvorak key position directly through the Karabiner virtual keyboard, gated to the active mouse mode, unlocked session and foreground Codex. The native notification records the source and control without sending the key again. Verify an opened pane separately from a matching route or HUD highlight.
+
+## 2026-11-21 — Checking the Default legend's Liquid Glass on the desktop
+
+A window-only capture of the live Corsair Default legend showed a dark, nearly uniform panel. Capturing the same rectangle on the display with two different coloured backgrounds revealed the native glass responding to both. To check a glass change, compare the installed legend over the same backgrounds and include the desktop in the capture. Use a window-only capture to inspect card fills and strokes.
+
+The Default mouse legend uses AppKit's untinted Regular glass for the panel and ordinary coloured fills for its twelve buttons. Other mode legends select their existing glass style separately.

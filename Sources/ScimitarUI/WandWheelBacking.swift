@@ -5,22 +5,16 @@ import SwiftUI
 
 /// The native glass configuration every Agentic Mouse HUD surface uses. The
 /// grid's outer panel and the wand wheel's card-shaped backing share it, so the
-/// clear, untinted Liquid Glass contract lives in one place.
+/// untinted Liquid Glass configuration lives in one place.
 enum ModeHUDNativeGlass {
     /// ImageRenderer cannot draw AppKit glass. Offscreen visual checks use
     /// this neutral fill wherever a live HUD shows native glass.
     static let offscreenStandIn = Color(white: 0.11)
 
-    static func makeEffectView(cornerRadius: CGFloat) -> NSView {
+    static func makeEffectView(cornerRadius: CGFloat, usesRegularGlass: Bool = false) -> NSView {
         if #available(macOS 26.0, *) {
             let glass = NSGlassEffectView()
-            // Clear is AppKit's most transparent native glass style. Leaving
-            // the tint nil and the substrate unobscured preserves the full
-            // system-provided lensing response to desktop content behind this
-            // transparent, non-activating HUD window.
-            glass.style = .clear
-            glass.tintColor = nil
-            glass.cornerRadius = cornerRadius
+            update(glass, cornerRadius: cornerRadius, usesRegularGlass: usesRegularGlass)
             glass.contentView = NSView()
             return glass
         }
@@ -34,9 +28,11 @@ enum ModeHUDNativeGlass {
         return fallback
     }
 
-    static func update(_ view: NSView, cornerRadius: CGFloat) {
+    static func update(_ view: NSView, cornerRadius: CGFloat, usesRegularGlass: Bool) {
         if #available(macOS 26.0, *), let glass = view as? NSGlassEffectView {
-            glass.style = .clear
+            // The Default legend sits above other windows. Regular glass keeps
+            // desktop colours visible while separating the buttons from the backdrop.
+            glass.style = usesRegularGlass ? .regular : .clear
             glass.tintColor = nil
             glass.cornerRadius = cornerRadius
         } else {

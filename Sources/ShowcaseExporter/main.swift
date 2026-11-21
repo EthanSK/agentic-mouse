@@ -216,7 +216,7 @@ func exportSource(_ source: MouseSource) -> SiteSource {
             }
             return control
         }
-        modes[modeID] = SiteMode(title: snapshot.modeTitle, color: hex(snapshot.accent), controls: controls, presentationStyle: snapshot.presentationStyle.rawValue, showsDecorativeOutlines: snapshot.showsDecorativeOutlines, outlineWidth: snapshot.outlineWidth)
+        modes[modeID] = SiteMode(title: snapshot.modeTitle, color: hex(snapshot.accent), controls: controls, presentationStyle: snapshot.presentationStyle.rawValue, showsDecorativeOutlines: !snapshot.isDefaultLegend, outlineWidth: snapshot.outlineWidth)
     }
     modes["default"] = defaultMode(source, app: nil)
     return SiteSource(
@@ -252,7 +252,7 @@ func defaultMode(_ source: MouseSource, app: AppSpecificTarget?) -> SiteMode {
         if let wheel = WheelChordControl.topLevelControl(for: item.cell) { control.wheel = exportWheel(wheel) }
         return control
     }
-    return SiteMode(title: snapshot.modeTitle, color: hex(snapshot.accent), controls: controls, presentationStyle: snapshot.presentationStyle.rawValue, showsDecorativeOutlines: snapshot.showsDecorativeOutlines, outlineWidth: snapshot.outlineWidth)
+    return SiteMode(title: snapshot.modeTitle, color: hex(snapshot.accent), controls: controls, presentationStyle: snapshot.presentationStyle.rawValue, showsDecorativeOutlines: !snapshot.isDefaultLegend, outlineWidth: snapshot.outlineWidth)
 }
 
 /// Exports the actual keypad groups and commands without a second letter map.
