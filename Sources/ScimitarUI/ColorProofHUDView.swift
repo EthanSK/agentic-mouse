@@ -672,8 +672,14 @@ struct ModeHUDView: View {
         let shape = RoundedRectangle(cornerRadius: 27, style: .continuous)
         ZStack {
             if usesNativeGlass {
-                ModeHUDNativeGlassBackground(cornerRadius: 27, usesRegularGlass: model.isDefaultLegend)
-                    .clipShape(shape)
+                Group {
+                    if model.isDefaultLegend, #available(macOS 26.0, *) {
+                        DefaultLegendGlassBackground(cornerRadius: 27)
+                    } else {
+                        ModeHUDNativeGlassBackground(cornerRadius: 27)
+                    }
+                }
+                .clipShape(shape)
             } else {
                 shape.fill(ModeHUDNativeGlass.offscreenStandIn)
             }
@@ -775,14 +781,57 @@ struct ModeHUDView: View {
 /// visual-effect material as the compatibility path.
 private struct ModeHUDNativeGlassBackground: NSViewRepresentable {
     let cornerRadius: CGFloat
-    let usesRegularGlass: Bool
-
     func makeNSView(context: Context) -> NSView {
-        ModeHUDNativeGlass.makeEffectView(cornerRadius: cornerRadius, usesRegularGlass: usesRegularGlass)
+        ModeHUDNativeGlass.makeEffectView(cornerRadius: cornerRadius)
     }
 
     func updateNSView(_ nsView: NSView, context: Context) {
-        ModeHUDNativeGlass.update(nsView, cornerRadius: cornerRadius, usesRegularGlass: usesRegularGlass)
+        ModeHUDNativeGlass.update(nsView, cornerRadius: cornerRadius, usesRegularGlass: false)
+    }
+}
+
+/// Ethan's “Dock-like” background. A finer native glass scale narrows the blur
+/// around a refracted line. Only the glass renders at this scale, so the grid,
+/// corner silhouette and click-through window keep their existing geometry.
+@available(macOS 26.0, *)
+private struct DefaultLegendGlassBackground: NSViewRepresentable {
+    let cornerRadius: CGFloat
+
+    func makeNSView(context: Context) -> Backing {
+        Backing(cornerRadius: cornerRadius)
+    }
+
+    func updateNSView(_ backing: Backing, context: Context) {
+        backing.updateCornerRadius(cornerRadius)
+    }
+
+    final class Backing: NSView {
+        // Selected against a stripe crossing the real Dock and the legend rim.
+        private static let materialScale: CGFloat = 0.75
+        private let glass: NSView
+
+        init(cornerRadius: CGFloat) {
+            glass = ModeHUDNativeGlass.makeEffectView(
+                cornerRadius: cornerRadius / Self.materialScale, usesRegularGlass: true
+            )
+            super.init(frame: .zero)
+            addSubview(glass)
+        }
+
+        @available(*, unavailable)
+        required init?(coder: NSCoder) { nil }
+
+        override func layout() {
+            super.layout()
+            let materialSize = NSSize(width: frame.width / Self.materialScale,
+                                      height: frame.height / Self.materialScale)
+            if bounds.size != materialSize { setBoundsSize(materialSize) }
+            glass.frame = bounds
+        }
+
+        func updateCornerRadius(_ radius: CGFloat) {
+            ModeHUDNativeGlass.update(glass, cornerRadius: radius / Self.materialScale, usesRegularGlass: true)
+        }
     }
 }
 
