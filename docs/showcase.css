@@ -2609,6 +2609,8 @@ button {
   text-align: center;
   cursor: pointer;
 }
+.native-hud.fill-only,
+.native-hud.fill-only .native-hud-card { border: 0; }
 .native-hud-card:focus-visible {
   outline: 2px solid white;
   outline-offset: 2px;

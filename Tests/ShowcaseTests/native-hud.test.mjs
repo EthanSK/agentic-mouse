@@ -13,6 +13,7 @@ test("the native HUD preserves each hand's physical order and printed repair mar
     for (const mode of Object.keys(map.sources[hand].modes)) {
       simulator.chooseMode(mode);
       const hud = hudPresentation(simulator);
+      assert.equal(hud.showsDecorativeOutlines, mode !== "default");
       assert.deepEqual(hud.cards.map((card) => card.cell), map.sources[hand].rows.flat());
       for (const card of hud.cards) {
         const control = simulator.control(card.cell);

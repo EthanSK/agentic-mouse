@@ -12,6 +12,7 @@ final class ModeHUDViewModel: ObservableObject {
     @Published var wandReviewSelection: PhysicalCell?
     @Published var legend: [ModeHUDLegendItem] = []
     @Published var accent = ScimitarKit.RGBColor(red: 94, green: 210, blue: 255)
+    @Published var showsDecorativeOutlines = true
     @Published var outlineWidth: Double?
     @Published var lightingTargets: ModeLightingTargets = []
     @Published var footerTitle = ""
@@ -83,6 +84,7 @@ final class ModeHUDViewModel: ObservableObject {
             wandReviewSelection = snapshot.wandReviewSelection
             legend = snapshot.legend
             accent = snapshot.accent
+            showsDecorativeOutlines = snapshot.showsDecorativeOutlines
             outlineWidth = snapshot.outlineWidth
             lightingTargets = snapshot.lightingTargets
             footerTitle = snapshot.footerTitle
@@ -676,10 +678,12 @@ struct ModeHUDView: View {
                 shape.fill(ModeHUDNativeGlass.offscreenStandIn)
             }
 
-            shape.strokeBorder(
-                displayAccent.opacity(model.isActive ? 1 : 0.32),
-                lineWidth: model.outlineWidth ?? (model.presentationStyle == .boldOpaque ? 3 : 2.75)
-            )
+            if model.showsDecorativeOutlines {
+                shape.strokeBorder(
+                    displayAccent.opacity(model.isActive ? 1 : 0.32),
+                    lineWidth: model.outlineWidth ?? (model.presentationStyle == .boldOpaque ? 3 : 2.75)
+                )
+            }
         }
     }
 
@@ -723,10 +727,12 @@ struct ModeHUDView: View {
                 shape.fill(fillColor.opacity(0.18))
             }
 
-            shape.strokeBorder(
-                borderColor.opacity(borderTreatment.opacity),
-                lineWidth: borderTreatment.lineWidth
-            )
+            if model.showsDecorativeOutlines {
+                shape.strokeBorder(
+                    borderColor.opacity(borderTreatment.opacity),
+                    lineWidth: borderTreatment.lineWidth
+                )
+            }
         }
         .clipShape(shape)
     }
