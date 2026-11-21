@@ -2609,7 +2609,12 @@ button {
   text-align: center;
   cursor: pointer;
 }
-.native-hud.fill-only,
+/* The Default legend keeps its mode-coloured perimeter and has no panel tint. */
+.native-hud.fill-only {
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+}
 .native-hud.fill-only .native-hud-card { border: 0; }
 .native-hud-card:focus-visible {
   outline: 2px solid white;

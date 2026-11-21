@@ -3729,10 +3729,14 @@ The two mouse bindings now send the accepted Dvorak key position directly throug
 
 A window-only capture of the live Corsair Default legend showed a dark, nearly uniform panel. Capturing the same rectangle on the display with two different coloured backgrounds revealed the native glass responding to both. To check a glass change, compare the installed legend over the same backgrounds and include the desktop in the capture. Use a window-only capture to inspect card fills and strokes.
 
-The Default mouse legend uses AppKit's untinted Regular glass for the panel and ordinary coloured fills for its twelve buttons. Other mode legends select their existing glass style separately.
+Version 1.0.377 used AppKit's untinted Regular glass for the panel and ordinary coloured fills for its twelve buttons. Other mode legends select their existing glass style separately.
 
 ## 2026-11-21 — Compare the Default legend to the actual Dock rim
 
 On macOS 27.2.1 the Dock's Accessibility tree exposed its list and items but no glass material. A white diagonal across the visible Dock kept a 13-point width as it bent. In the installed Default legend the stripe spread to about 26 points. Turning on interaction or removing the SwiftUI clip kept the measured resting bend. Switching to Clear made the stripe fainter. Reducing only the native Regular glass scale to three quarters of its previous value narrowed the stripe in the installed update to 22 points. The real Dock remained sharper.
 
 Use the same stripe with the panel visible and hidden and measure across the straight rim. Separately capturing the flat backdrop removes stationary icon or card pixels. Compare screen points across displays and preserve the source-specific legend state, current focus and user's pointer.
+
+## 2026-11-21 — Clear glass in the Default mouse legend
+
+The Default legend uses untinted native Clear glass, one perimeter in the mode accent, and coloured button fills without strokes. In 1.0.379 the material alone renders at one third of the grid's scale. At normal legend size, five screen points inside the top edge, the same diagonal stripe measured 16 points wide in Clear, 22 in the previous Regular build, and 13 in the Dock. Their sideways displacements were about 0.5, 4.0 and 5.7 points respectively. Clear preserved more detail but bent the stripe less at that depth. An empty native Clear view also softened the stripe. Avoid inferring the Dock's implementation from its appearance or from the Accessibility hierarchy.

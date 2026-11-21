@@ -194,7 +194,7 @@ public final class DefaultMapHintCoordinator {
 }
 
 public enum DefaultMapLegend {
-    /// Default is the neutral baseline, so its shared card perimeter is white.
+    /// Default is the neutral baseline, so its outer panel outline is white.
     /// Individual action families retain their own internal fill colours.
     public static let accent = RGBColor.white
 
@@ -221,7 +221,7 @@ public enum DefaultMapLegend {
                 youtubeVolumeModifierActive: youtubeVolumeModifierActive
             ),
             accent: accent,
-            // Ethan's “just coloured” Default legend keeps the card fills on plain glass.
+            // The Default legend keeps the mode-coloured outer outline and fill-only cards.
             isDefaultLegend: true,
             footerTitle: "Default mode",
             footerHint: frontmostAppContext?.target == .vsCode ? VSCodeMode.undoHint(source: source) : nil,

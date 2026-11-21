@@ -680,16 +680,14 @@ struct ModeHUDView: View {
                     }
                 }
                 .clipShape(shape)
-            } else {
+            } else if !model.isDefaultLegend {
                 shape.fill(ModeHUDNativeGlass.offscreenStandIn)
             }
 
-            if !model.isDefaultLegend {
-                shape.strokeBorder(
-                    displayAccent.opacity(model.isActive ? 1 : 0.32),
-                    lineWidth: model.outlineWidth ?? (model.presentationStyle == .boldOpaque ? 3 : 2.75)
-                )
-            }
+            shape.strokeBorder(
+                displayAccent.opacity(model.isActive ? 1 : 0.32),
+                lineWidth: model.outlineWidth ?? (model.presentationStyle == .boldOpaque ? 3 : 2.75)
+            )
         }
     }
 
@@ -786,7 +784,7 @@ private struct ModeHUDNativeGlassBackground: NSViewRepresentable {
     }
 
     func updateNSView(_ nsView: NSView, context: Context) {
-        ModeHUDNativeGlass.update(nsView, cornerRadius: cornerRadius, usesRegularGlass: false)
+        ModeHUDNativeGlass.update(nsView, cornerRadius: cornerRadius)
     }
 }
 
@@ -807,12 +805,12 @@ private struct DefaultLegendGlassBackground: NSViewRepresentable {
 
     final class Backing: NSView {
         // Selected against a stripe crossing the real Dock and the legend rim.
-        private static let materialScale: CGFloat = 0.75
+        private static let materialScale: CGFloat = 1.0 / 3.0
         private let glass: NSView
 
         init(cornerRadius: CGFloat) {
             glass = ModeHUDNativeGlass.makeEffectView(
-                cornerRadius: cornerRadius / Self.materialScale, usesRegularGlass: true
+                cornerRadius: cornerRadius / Self.materialScale
             )
             super.init(frame: .zero)
             addSubview(glass)
@@ -830,7 +828,7 @@ private struct DefaultLegendGlassBackground: NSViewRepresentable {
         }
 
         func updateCornerRadius(_ radius: CGFloat) {
-            ModeHUDNativeGlass.update(glass, cornerRadius: radius / Self.materialScale, usesRegularGlass: true)
+            ModeHUDNativeGlass.update(glass, cornerRadius: radius / Self.materialScale)
         }
     }
 }

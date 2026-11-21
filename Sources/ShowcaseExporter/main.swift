@@ -64,6 +64,7 @@ struct SiteMode: Encodable {
     let color: String
     let controls: [SiteControl]
     let presentationStyle: String
+    // Per-card decorative outlines. The outer panel always uses the mode accent.
     var showsDecorativeOutlines = true
     var outlineWidth: Double? = nil
 }

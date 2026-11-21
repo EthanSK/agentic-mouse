@@ -11,10 +11,10 @@ enum ModeHUDNativeGlass {
     /// this neutral fill wherever a live HUD shows native glass.
     static let offscreenStandIn = Color(white: 0.11)
 
-    static func makeEffectView(cornerRadius: CGFloat, usesRegularGlass: Bool = false) -> NSView {
+    static func makeEffectView(cornerRadius: CGFloat) -> NSView {
         if #available(macOS 26.0, *) {
             let glass = NSGlassEffectView()
-            update(glass, cornerRadius: cornerRadius, usesRegularGlass: usesRegularGlass)
+            update(glass, cornerRadius: cornerRadius)
             glass.contentView = NSView()
             return glass
         }
@@ -28,11 +28,9 @@ enum ModeHUDNativeGlass {
         return fallback
     }
 
-    static func update(_ view: NSView, cornerRadius: CGFloat, usesRegularGlass: Bool) {
+    static func update(_ view: NSView, cornerRadius: CGFloat) {
         if #available(macOS 26.0, *), let glass = view as? NSGlassEffectView {
-            // The Default legend sits above other windows. Regular glass keeps
-            // desktop colours visible while separating the buttons from the backdrop.
-            glass.style = usesRegularGlass ? .regular : .clear
+            glass.style = .clear
             glass.tintColor = nil
             glass.cornerRadius = cornerRadius
         } else {
