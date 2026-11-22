@@ -19,6 +19,10 @@ import SwiftUI
 ///    point.
 ///  * `orderFrontRegardless()`, never `makeKeyAndOrderFront(_:)`.
 final class HUDPanel: NSPanel {
+    // Only the Default legend needs transparent space to sample the desktop outside its rim.
+    var samplingMargin: CGFloat = 0
+    var visibleHUDFrame: NSRect { frame.insetBy(dx: samplingMargin, dy: samplingMargin) }
+
     init(contentRect: NSRect) {
         super.init(
             contentRect: contentRect,

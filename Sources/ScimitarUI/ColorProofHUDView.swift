@@ -465,6 +465,7 @@ struct ModeHUDView: View {
     /// ImageRenderer cannot render AppKit glass. In offscreen checks the
     /// Default panel stays clear and other materials use a neutral stand-in.
     var usesNativeGlass = true
+    var defaultGlassIsInWindow = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Namespace private var wandOutline
 
@@ -675,7 +676,7 @@ struct ModeHUDView: View {
             if usesNativeGlass {
                 Group {
                     if model.isDefaultLegend, #available(macOS 26.0, *) {
-                        DefaultLegendGlassBackground(cornerRadius: 27)
+                        if !defaultGlassIsInWindow { DefaultLegendGlassBackground() }
                     } else {
                         ModeHUDNativeGlassBackground(cornerRadius: 27)
                     }
@@ -789,72 +790,11 @@ private struct ModeHUDNativeGlassBackground: NSViewRepresentable {
     }
 }
 
-/// Ethan's “Dock-like” background. Native Clear glass bends the backdrop at
-/// the edge. Its adaptive shading fades out before reaching the buttons.
+/// Standalone SwiftUI previews use the same optical surface as a live legend.
 @available(macOS 26.0, *)
 private struct DefaultLegendGlassBackground: NSViewRepresentable {
-    let cornerRadius: CGFloat
-
-    func makeNSView(context: Context) -> Backing {
-        Backing(cornerRadius: cornerRadius)
-    }
-
-    func updateNSView(_ backing: Backing, context: Context) {
-        backing.updateCornerRadius(cornerRadius)
-    }
-
-    final class Backing: NSView {
-        // Selected against a stripe crossing the real Dock and the legend rim.
-        private static let materialScale: CGFloat = 0.75
-        private let glass: NSView
-        private let rim = CAShapeLayer()
-        private var cornerRadius: CGFloat
-
-        init(cornerRadius: CGFloat) {
-            self.cornerRadius = cornerRadius
-            glass = ModeHUDNativeGlass.makeEffectView(
-                cornerRadius: cornerRadius / Self.materialScale
-            )
-            super.init(frame: .zero)
-            // Only the mask is softened. Its stroke controls where AppKit
-            // draws glass and never paints a colour onto the desktop.
-            rim.fillColor = nil
-            rim.strokeColor = NSColor.white.cgColor
-            rim.lineWidth = 9 / Self.materialScale
-            let feather = CIFilter.gaussianBlur()
-            feather.radius = Float(2.75 / Self.materialScale)
-            rim.filters = [feather]
-            wantsLayer = true
-            layer?.mask = rim
-            addSubview(glass)
-        }
-
-        @available(*, unavailable)
-        required init?(coder: NSCoder) { nil }
-
-        override func layout() {
-            super.layout()
-            let materialSize = NSSize(width: frame.width / Self.materialScale,
-                                      height: frame.height / Self.materialScale)
-            if bounds.size != materialSize { setBoundsSize(materialSize) }
-            glass.frame = bounds
-            let inset = rim.lineWidth / 2
-            let radius = max(0, cornerRadius / Self.materialScale - inset)
-            CATransaction.begin()
-            CATransaction.setDisableActions(true)
-            rim.frame = bounds
-            rim.path = CGPath(roundedRect: bounds.insetBy(dx: inset, dy: inset),
-                              cornerWidth: radius, cornerHeight: radius, transform: nil)
-            CATransaction.commit()
-        }
-
-        func updateCornerRadius(_ radius: CGFloat) {
-            guard radius != cornerRadius else { return }
-            cornerRadius = radius
-            ModeHUDNativeGlass.update(glass, cornerRadius: radius / Self.materialScale)
-            needsLayout = true
-        }
-    }
+    func makeNSView(context: Context) -> DefaultLegendGlassView { DefaultLegendGlassView() }
+    func updateNSView(_ view: DefaultLegendGlassView, context: Context) {}
 }
 
 private extension Color {

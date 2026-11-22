@@ -24,12 +24,12 @@ final class HUDSpaceLifecycleTests: VisibleHUDTestCase {
             let screenPanels = panels.filter { screen.frame.contains(NSPoint(x: $0.frame.midX, y: $0.frame.midY)) }
             XCTAssertEqual(screenPanels.count, 2)
             XCTAssertTrue(screenPanels.contains { panel in
-                abs(panel.frame.minX - screen.visibleFrame.minX) < 0.01
-                    && abs(panel.frame.minY - screen.visibleFrame.minY) < 0.01
+                abs(panel.visibleHUDFrame.minX - screen.visibleFrame.minX) < 0.01
+                    && abs(panel.visibleHUDFrame.minY - screen.visibleFrame.minY) < 0.01
             })
             XCTAssertTrue(screenPanels.contains { panel in
-                abs(panel.frame.maxX - screen.visibleFrame.maxX) < 0.01
-                    && abs(panel.frame.minY - screen.visibleFrame.minY) < 0.01
+                abs(panel.visibleHUDFrame.maxX - screen.visibleFrame.maxX) < 0.01
+                    && abs(panel.visibleHUDFrame.minY - screen.visibleFrame.minY) < 0.01
             })
         }
 
