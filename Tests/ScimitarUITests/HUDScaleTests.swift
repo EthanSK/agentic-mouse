@@ -143,17 +143,3 @@ final class HUDScaleTests: VisibleHUDTestCase {
         hudPanel.close()
     }
 }
-
-
-@MainActor
-final class DefaultLegendGlassTests: XCTestCase {
-    func testGlassCanSampleOutsideItsVisibleFrameAtEveryHUDScale() throws {
-        guard #available(macOS 26.0, *) else { throw XCTSkip("Requires native Clear glass") }
-        let glass = DefaultLegendGlassView()
-        for scale in [HUDScaleStore.minimumScale, HUDScaleStore.defaultScale, HUDScaleStore.maximumScale] {
-            glass.hudScale = scale
-            XCTAssertGreaterThan(glass.samplingMargin, 0)
-            XCTAssertFalse(glass.clipsToBounds)
-        }
-    }
-}

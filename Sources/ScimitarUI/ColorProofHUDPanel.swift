@@ -272,14 +272,12 @@ public final class AppKitModeHUDPresenter: NSObject, ModeHUDPresenting {
         if let existing = panels[key] { return existing }
 
         let hosting = ScaledHUDHostingView(
-            rootView: ModeHUDView(model: model, defaultGlassIsInWindow: true),
+            rootView: ModeHUDView(model: model),
             scale: CGFloat(scaleStore.scale)
         )
         let size = hosting.fittingSize
         let panel = HUDPanel(contentRect: NSRect(origin: .zero, size: size))
-        let container = NSView(frame: NSRect(origin: .zero, size: size))
-        panel.contentView = container
-        container.addSubview(hosting)
+        panel.contentView = hosting
         applyPanelAppearance(to: panel)
         let scaleControlPanel = HUDScaleControlPanel(scaleStore: scaleStore) { [weak self] in
             self?.onCloseRequested?()
@@ -335,25 +333,7 @@ public final class AppKitModeHUDPresenter: NSObject, ModeHUDPresenting {
         case .center:
             origin = NSPoint(x: visible.midX - size.width / 2, y: visible.midY - size.height / 2)
         }
-        let panel = instance.panel
-        guard let container = panel.contentView else { return }
-        let visibleFrame = NSRect(origin: origin, size: size)
-        if #available(macOS 26.0, *) {
-            let existing = container.subviews.first { $0 is DefaultLegendGlassView } as? DefaultLegendGlassView
-            if model.isDefaultLegend {
-                let glass = existing ?? DefaultLegendGlassView()
-                if existing == nil { container.addSubview(glass, positioned: .below, relativeTo: instance.hostingView) }
-                glass.hudScale = instance.hostingView.scale
-                panel.samplingMargin = glass.samplingMargin
-                glass.frame = NSRect(origin: NSPoint(x: panel.samplingMargin, y: panel.samplingMargin), size: size)
-            } else {
-                existing?.removeFromSuperview()
-                panel.samplingMargin = 0
-            }
-        }
-        let outset = panel.samplingMargin
-        panel.setFrame(visibleFrame.insetBy(dx: -outset, dy: -outset), display: true)
-        instance.hostingView.frame = NSRect(origin: NSPoint(x: outset, y: outset), size: size)
+        instance.panel.setFrame(NSRect(origin: origin, size: size), display: true)
         positionScaleControl(instance)
         HUDScaleHoverCoordinator.shared.refresh()
     }
@@ -363,13 +343,13 @@ public final class AppKitModeHUDPresenter: NSObject, ModeHUDPresenting {
         let x: CGFloat
         switch AppConfiguration.HUDConfiguration.sourceCorner(for: source) {
         case .topLeft, .bottomLeft:
-            x = instance.panel.visibleHUDFrame.minX + inset
+            x = instance.panel.frame.minX + inset
         case .topRight, .bottomRight, .center, .bottomCenter:
-            x = instance.panel.visibleHUDFrame.maxX - HUDScaleControlPanel.size.width - inset
+            x = instance.panel.frame.maxX - HUDScaleControlPanel.size.width - inset
         }
         instance.scaleControlPanel.setFrameOrigin(NSPoint(
             x: x,
-            y: instance.panel.visibleHUDFrame.minY + inset
+            y: instance.panel.frame.minY + inset
         ))
     }
 

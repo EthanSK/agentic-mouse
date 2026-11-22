@@ -465,7 +465,6 @@ struct ModeHUDView: View {
     /// ImageRenderer cannot render AppKit glass. In offscreen checks the
     /// Default panel stays clear and other materials use a neutral stand-in.
     var usesNativeGlass = true
-    var defaultGlassIsInWindow = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Namespace private var wandOutline
 
@@ -674,14 +673,16 @@ struct ModeHUDView: View {
         let shape = RoundedRectangle(cornerRadius: 27, style: .continuous)
         ZStack {
             if usesNativeGlass {
-                Group {
-                    if model.isDefaultLegend, #available(macOS 26.0, *) {
-                        if !defaultGlassIsInWindow { DefaultLegendGlassBackground() }
-                    } else {
-                        ModeHUDNativeGlassBackground(cornerRadius: 27)
-                    }
+                if model.isDefaultLegend, #available(macOS 26.0, *) {
+                    // Fully native macOS Liquid Glass around the outside. SwiftUI owns the
+                    // refraction and fading on both edges of the shape. Leaving its centre
+                    // open avoids the adaptive shading of a filled glass rectangle.
+                    let glassWidth: CGFloat = 38
+                    let rim = shape.inset(by: glassWidth / 2).stroke(lineWidth: glassWidth)
+                    Color.clear.glassEffect(.clear, in: rim)
+                } else {
+                    ModeHUDNativeGlassBackground(cornerRadius: 27).clipShape(shape)
                 }
-                .clipShape(shape)
             } else if !model.isDefaultLegend {
                 shape.fill(ModeHUDNativeGlass.offscreenStandIn)
             }
@@ -788,13 +789,6 @@ private struct ModeHUDNativeGlassBackground: NSViewRepresentable {
     func updateNSView(_ nsView: NSView, context: Context) {
         ModeHUDNativeGlass.update(nsView, cornerRadius: cornerRadius)
     }
-}
-
-/// Standalone SwiftUI previews use the same optical surface as a live legend.
-@available(macOS 26.0, *)
-private struct DefaultLegendGlassBackground: NSViewRepresentable {
-    func makeNSView(context: Context) -> DefaultLegendGlassView { DefaultLegendGlassView() }
-    func updateNSView(_ view: DefaultLegendGlassView, context: Context) {}
 }
 
 private extension Color {

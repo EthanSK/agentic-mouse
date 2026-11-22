@@ -169,7 +169,7 @@ final class HUDScaleHoverCoordinator {
                   let controlPanel = registration.controlPanel
             else { return false }
             let isHovered = hudPanel.isVisible
-                && (hudPanel.visibleHUDFrame.insetBy(dx:-12,dy:-12).contains(pointer) || controlPanel.frame.insetBy(dx:-6,dy:-6).contains(pointer))
+                && (hudPanel.frame.insetBy(dx:-12,dy:-12).contains(pointer) || controlPanel.frame.insetBy(dx:-6,dy:-6).contains(pointer))
             if isHovered {
                 controlPanel.orderFrontRegardless()
             } else {

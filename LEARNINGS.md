@@ -3754,3 +3754,11 @@ Compare a diagonal stripe on both sides of the real panel boundary on light and 
 Keep the lens on the native Clear view, below the buttons. Give its window transparent sampling space while anchoring placement and hover to the visible rectangle. Disable bounds clipping on the view that owns the rim mask. Without that last change, the installed build 387 lost the first seven points of bend even though its test crop looked convincing. A full-size nonactivating panel reproduced the failure. With clipping disabled, the same stripe shifted about 16, 16 and 14 points at the same depths. Larger filter radii left a straight gap beside the outline.
 
 The installed 388 top rim shifted the stripe 15.5, 14.5 and 13 points at those depths on both light and dark backgrounds. At five points it shifted 15 points on the Razer legend on Retina. The central gap matched the bare background in every measured RGB channel. The corrected rim stayed slightly softer than the Dock.
+
+## 2026-11-22 — Use stock macOS Liquid Glass for the Default legend
+
+Ethan preferred the natural change in curvature at the Dock edge after trying build 388's strengthened bend. A public Core Image lens was still an extra optical effect applied by the app. The current design uses SwiftUI Clear glass on one inset, stroked rounded rectangle. The system draws both boundaries of the glass. Its open centre keeps the background visible. The existing mode-colour stroke is drawn separately.
+
+When comparing native treatments, match the whole window, the actual HUD scale and both backdrop colours. Stock SwiftUI and AppKit Clear on filled rectangles produced the same stripe profile at the same size on this Mac. The filled material reduced a neutral light backdrop by 34 grey levels. The stock Clear rim preserved the centre and produced a softer stripe than the real Dock. Dock Accessibility exposed its items and list, with no material or renderer attributes.
+
+On installed build 389, the top-edge displacement at 3, 5, 7 and 10 points inward was about 15.5, 10, 6 and 2 points. The Dock measured about 10, 6, 3 and 1. The stock rim spread the line to 40–41 points at the five-point depth, compared with 12–13 on the Dock. The centre gap matched every bare RGB channel on both backgrounds, and the initial three Corsair windows were restored.
