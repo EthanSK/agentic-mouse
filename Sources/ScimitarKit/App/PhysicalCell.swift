@@ -179,9 +179,9 @@ public struct PhysicalCell: RawRepresentable, Hashable, Codable, Sendable, Compa
     // Extra Utilities keeps the existing wheel route.
     public static let applicationWindowsWheelControl = PhysicalCell(rawValue: 1)!
 
-    /// Mouse Utility 5 cycles windows with Command–grave. Holding and scrolling toggles
+    /// Mouse Utility 8 cycles windows with Command–grave. Holding and scrolling toggles
     /// App Exposé, the "four-finger swipe down" Ethan also called "Apex for Z".
-    public static let applicationWindowsButton = PhysicalCell(rawValue: 5)!
+    public static let applicationWindowsButton = PhysicalCell(rawValue: 8)!
     public static let selectAll = PhysicalCell(rawValue: 2)!
     /// The wand's Select all wedge owns the Backspace and Copy outer layers.
     public static let wandSelectAll = PhysicalCell(rawValue: 5)!
@@ -264,8 +264,9 @@ public struct PhysicalCell: RawRepresentable, Hashable, Codable, Sendable, Compa
     public static let keysModeEntry = PhysicalCell(rawValue: 9)!
 
     /// Opens Codex's global intelligence-on-demand window with Option-Space
-    /// from Utility. Cell 8 is printed 8 on both exact mice.
-    public static let intelligenceOnDemand = PhysicalCell(rawValue: 8)!
+    /// from Utility. Cell 5 is printed 5 on both exact mice.
+    public static let intelligenceOnDemand = PhysicalCell(rawValue: 5)!
+    public static let wandIntelligenceOnDemand = PhysicalCell(rawValue: 8)!
 
     /// Holds open the native macOS application switcher outside modes.
     public static let switchApp = PhysicalCell(rawValue: 11)!

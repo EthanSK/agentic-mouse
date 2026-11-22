@@ -91,11 +91,12 @@ public enum ModeUtilityAction: Equatable, Sendable {
 
     public static func directAction(for cell: PhysicalCell, source: MouseSource = .corsair) -> ModeUtilityAction? {
         if cell == (source == .wand ? .wandSelectAll : .selectAll) { return .selectAll }
+        if cell == (source == .wand ? .wandIntelligenceOnDemand : .intelligenceOnDemand) {
+            return .openIntelligenceOnDemand
+        }
         switch cell {
         case .storedPassword:
             return .pasteStoredPassword
-        case .intelligenceOnDemand:
-            return .openIntelligenceOnDemand
         default:
             return nil
         }

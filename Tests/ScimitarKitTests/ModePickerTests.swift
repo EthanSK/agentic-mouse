@@ -98,16 +98,16 @@ final class ModePickerTests: XCTestCase {
             coordinator.onWheelControlRelease = { source, control in
                 if let release = wheel.release(control, for: source) { coordinator.finishUtilityWheelClick(release) }
             }
-            func selectFive(_ phase: ModePickerCommand.Phase) {
+            func selectAppExpose(_ phase: ModePickerCommand.Phase) {
                 coordinator.handle(.init(action: .select, source: source, physicalCell: .applicationWindowsButton, phase: phase))
             }
-            selectFive(.press)
+            selectAppExpose(.press)
             XCTAssertEqual(actions, [.selectAll])
-            selectFive(.release)
-            selectFive(.release)
+            selectAppExpose(.release)
+            selectAppExpose(.release)
             XCTAssertEqual(actions, [.selectAll, .cycleCurrentAppWindows])
             for delta: Int64 in [1, -1] {
-                selectFive(.press)
+                selectAppExpose(.press)
                 XCTAssertEqual(coordinator.activeWheelControl, .cycleWindows)
                 guard case .consume(let step) = wheel.route(verticalDelta: delta, isContinuous: false),
                       let action = step.control.utilityAction(for: step.direction) else { return XCTFail("missing held action") }
@@ -115,7 +115,7 @@ final class ModePickerTests: XCTestCase {
                 actions.append(action)
                 guard case .consumeAfterFirstHoldAction = wheel.route(verticalDelta: -delta, isContinuous: false)
                 else { return XCTFail("a second ratchet repeated the toggle") }
-                selectFive(.release)
+                selectAppExpose(.release)
             }
             XCTAssertEqual(actions, [.selectAll, .cycleCurrentAppWindows, .showApplicationWindows, .showApplicationWindows])
             XCTAssertNil(coordinator.activeWheelControl)
@@ -131,18 +131,18 @@ final class ModePickerTests: XCTestCase {
             coordinator.handle(.init(action: .select, source: source, physicalCell: .extraUtilitiesSave, phase: .release))
             XCTAssertEqual(actions, [.selectAll, .cycleCurrentAppWindows, .showApplicationWindows, .showApplicationWindows, .tab, .save])
             XCTAssertEqual(ModePickerCoordinator.modesLegend(for: source)[1].actionTitle, "⌘A Select all")
-            XCTAssertEqual(ModePickerCoordinator.modesLegend(for: source)[4].actionTitle, "Cycle windows · App Exposé")
+            XCTAssertEqual(ModePickerCoordinator.modesLegend(for: source)[7].actionTitle, "Cycle windows · App Exposé")
             XCTAssertEqual(ModePickerCoordinator.extraUtilitiesLegend(for: source)[0].actionTitle, "App Exposé")
             XCTAssertEqual(ModePickerCoordinator.extraUtilitiesLegend(for: source)[1].actionTitle, "⇥ Tab")
             XCTAssertEqual(ModePickerCoordinator.extraUtilitiesLegend(for: source)[6].actionTitle, "Save")
             XCTAssertEqual(PhysicalCell.extraUtilitiesTab.printedSide(on: source), 2)
             coordinator.shutdown()
             coordinator.enter(source: source)
-            selectFive(.press)
+            selectAppExpose(.press)
             XCTAssertEqual(coordinator.activeWheelControl, .cycleWindows)
             let beforeExit = actions
             coordinator.shutdown()
-            selectFive(.release)
+            selectAppExpose(.release)
             XCTAssertEqual(actions, beforeExit)
         }
     }
@@ -272,10 +272,10 @@ final class ModePickerTests: XCTestCase {
         XCTAssertEqual(ModePickerCoordinator.modesLegend[1].actionTitle, "⌘A Select all")
         XCTAssertEqual(ModePickerCoordinator.modesLegend[2].actionTitle, "Spaces")
         XCTAssertEqual(ModePickerCoordinator.modesLegend[3].actionTitle, "Mission / Desktop")
-        XCTAssertEqual(ModePickerCoordinator.modesLegend[4].actionTitle, "Cycle windows · App Exposé")
+        XCTAssertEqual(ModePickerCoordinator.modesLegend[7].actionTitle, "Cycle windows · App Exposé")
         XCTAssertEqual(ModePickerCoordinator.modesLegend[5].actionTitle, "Magnet")
         XCTAssertEqual(ModePickerCoordinator.modesLegend[6].actionTitle, "PP")
-        XCTAssertEqual(ModePickerCoordinator.modesLegend[7].actionTitle, "Intelligence on demand")
+        XCTAssertEqual(ModePickerCoordinator.modesLegend[4].actionTitle, "Intelligence on demand")
         XCTAssertEqual(ModePickerCoordinator.modesLegend[8].actionTitle, "Keys mode")
         XCTAssertEqual(ModePickerCoordinator.modesLegend[10].actionTitle, "Zoom")
         XCTAssertEqual(ModePickerCoordinator.modesLegend[9].actionTitle, "Exit Utility modes")
@@ -294,7 +294,7 @@ final class ModePickerTests: XCTestCase {
     func testAcceptedWheelControlsRenderWithoutRepairMarkers() {
         let missionDesktop = ModePickerCoordinator.modesLegend[3]
         let magnet = ModePickerCoordinator.modesLegend[5]
-        let intelligenceOnDemand = ModePickerCoordinator.modesLegend[7]
+        let intelligenceOnDemand = ModePickerCoordinator.modesLegend[4]
         let keypad = ModePickerCoordinator.keysLegend[5]
 
         XCTAssertEqual(missionDesktop.controlStatus, .normal)
@@ -307,8 +307,8 @@ final class ModePickerTests: XCTestCase {
         XCTAssertEqual(magnet.printedControlLabel(on: .razer), "Razer 4")
         XCTAssertEqual(keypad.printedControlLabel(on: .corsair), "Corsair 6")
         XCTAssertEqual(keypad.printedControlLabel(on: .razer), "Razer 4")
-        XCTAssertEqual(intelligenceOnDemand.printedControlLabel(on: .corsair), "Corsair 8")
-        XCTAssertEqual(intelligenceOnDemand.printedControlLabel(on: .razer), "Razer 8")
+        XCTAssertEqual(intelligenceOnDemand.printedControlLabel(on: .corsair), "Corsair 5")
+        XCTAssertEqual(intelligenceOnDemand.printedControlLabel(on: .razer), "Razer 5")
     }
 
     func testCodexAndVSCodeMarkersFollowLatestPhysicalReports() {
@@ -425,7 +425,8 @@ final class ModePickerTests: XCTestCase {
 
     func testUtilityWheelControlsUseOneCellForEachTwoWayFamily() {
         XCTAssertNil(WheelChordControl.utilityControl(for: .applicationWindowsButton, source: .wand))
-        XCTAssertEqual(ModeUtilityAction.directAction(for: .applicationWindowsButton, source: .wand), .selectAll)
+        XCTAssertEqual(ModeUtilityAction.directAction(for: .intelligenceOnDemand, source: .wand), .selectAll)
+        XCTAssertEqual(ModeUtilityAction.directAction(for: .applicationWindowsButton, source: .wand), .openIntelligenceOnDemand)
         XCTAssertEqual(WheelChordControl.utilityControl(for: PhysicalCell(rawValue: 1)!), .brightness)
         XCTAssertNil(WheelChordControl.utilityControl(for: PhysicalCell(rawValue: 2)!))
         XCTAssertEqual(WheelChordControl.utilityControl(for: PhysicalCell(rawValue: 11)!), .zoom)

@@ -74,7 +74,7 @@ test("automatic app mode and its Chrome child follow the frontmost app", () => {
   assert.equal(simulator.state.mode, "codex");
 });
 
-test("Utility 5 cycles windows on tap and toggles App Exposé once on either held direction", () => {
+test("Utility 5 opens Intelligence on demand and Utility 8 cycles windows or toggles App Exposé", () => {
   for (const hand of Object.keys(map.sources)) {
     const simulator = new MouseSimulator(map);
     simulator.chooseHand(hand);
@@ -83,7 +83,11 @@ test("Utility 5 cycles windows on tap and toggles App Exposé once on either hel
     assert.equal(select.wheel, undefined);
     simulator.press(select.cell);
     assert.equal(simulator.state.output, "⌘A Select all");
-    const control = simulator.mode.controls.find(item => item.printed === 5);
+    const intelligence = simulator.mode.controls.find(item => item.printed === 5);
+    assert.equal(intelligence.wheel, undefined);
+    simulator.press(intelligence.cell);
+    assert.equal(simulator.state.output, "Intelligence on demand");
+    const control = simulator.mode.controls.find(item => item.printed === 8);
     assert.equal(control.title, "Cycle windows · App Exposé ↕");
     simulator.press(control.cell);
     assert.equal(simulator.state.output, "Cycle windows");

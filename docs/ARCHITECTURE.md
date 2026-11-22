@@ -316,7 +316,7 @@ legend and holding it supplies Command to another control.
 Keys cell 6 selects Keypad. Outside modes,
 cell 6 emits the exact-device YouTube scrub press/release lifecycle. Top-level
 cell 2 opens a live frontmost-app child that refreshes on workspace activation;
-Utility cell 8 emits the hardware-shaped Option-Space Intelligence on Demand
+Utility cell 5 emits the hardware-shaped Option-Space Intelligence on Demand
 shortcut. Utility cell 2 opens the separate configured-app selector and locks the chosen
 target without activation. App children keep cell 12 available for real app
 actions and use either their matching entry cell 2 or universal cell 10 to
@@ -344,8 +344,8 @@ native key events. Secure editable fields accept the same direct input; unknown
 focus and app changes still fail closed.
 The coordinator keeps a cycle-free navigation path per mouse, reusing an
 existing ancestor rather than stacking duplicate pages. On both mice, Utility
-cell 2 sends Select All (Command-A). Tapping cell 5 cycles the current app’s
-windows (Command–grave). Holding cell 5 and scrolling in either direction
+cell 2 sends Select All (Command-A). Tapping cell 8 cycles the current app’s
+windows (Command–grave). Holding cell 8 and scrolling in either direction
 toggles App Exposé once and suppresses the tap on release. Cells 3, 4 and 6 control Spaces, Mission Control / Show Desktop and
 Magnet with the wheel. Cell 7 handles the Utility password and cell 12 opens
 Extra Utilities. Extra Utilities cell 1 also opens App Exposé with a held

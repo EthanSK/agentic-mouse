@@ -74,12 +74,12 @@ class KarabinerGeneratorTests(unittest.TestCase):
             check=False,
         )
 
-    def test_utility_select_all_app_expose_and_zoom_keep_the_current_page(self):
+    def test_utility_controls_keep_the_current_page(self):
         generated = json.loads((ROOT / "Karabiner/generated/agentic-mouse-runtime.json").read_text())
         modes = next(r for r in generated["rules"] if r["description"] == "Agentic Mouse — Modes (expiring, exact-device)")
         for source in ("corsair", "razer"):
             page = f"agentic_mouse_mode_picker_{source}_page"
-            for cell in (2, 5, 11):
+            for cell in (2, 5, 8, 11):
                 routes = []
                 for item in modes["manipulators"]:
                     commands = [e["send_user_command"]["payload"] for e in item.get("to", []) if "send_user_command" in e]
