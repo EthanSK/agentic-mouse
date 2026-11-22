@@ -15,7 +15,7 @@ final class WandTransparencyTests: XCTestCase {
         return hud.snapshots.last!
     }
 
-    func testOnlyCircularWandRootHasTransparentOuterPixels() throws {
+    func testWandAndDefaultMouseLegendsKeepTheirBackdropsClear() throws {
         for source in [MouseSource.wand, .corsair, .razer] {
             let model = ModeHUDViewModel(source: source)
             model.apply(snapshot(source))
@@ -29,11 +29,22 @@ final class WandTransparencyTests: XCTestCase {
             for (x,y) in [(12,12),(bitmap.pixelsWide-13,12),
                           (12,bitmap.pixelsHigh-13),(bitmap.pixelsWide-13,bitmap.pixelsHigh-13)] {
                 let alpha = try XCTUnwrap(bitmap.colorAt(x:x,y:y)).alphaComponent
-                if source == .wand { XCTAssertLessThan(alpha,0.01,"wand corner must be transparent") }
-                else { XCTAssertGreaterThan(alpha,0.95,"mouse grid keeps its panel") }
+                XCTAssertLessThan(alpha, 0.01, "\(source) must not add a background fill")
             }
-            let center = try XCTUnwrap(bitmap.colorAt(x:bitmap.pixelsWide/2,y:bitmap.pixelsHigh/2))
-            XCTAssertGreaterThan(center.alphaComponent,0.95,"cards remain filled")
+            let midX = bitmap.pixelsWide / 2
+            let midY = bitmap.pixelsHigh / 2
+            let center = try XCTUnwrap(bitmap.colorAt(x: midX, y: midY))
+            if source == .wand {
+                XCTAssertGreaterThan(center.alphaComponent, 0.95, "wand centre remains filled")
+            } else {
+                // Four columns put the centre in a gutter. Sample inside the
+                // left card separately so an opaque panel cannot pass for a fill.
+                XCTAssertLessThan(center.alphaComponent, 0.01, "gutter shows the underlying glass")
+                let card = try XCTUnwrap(bitmap.colorAt(x: bitmap.pixelsWide / 14, y: midY))
+                XCTAssertGreaterThan(card.alphaComponent, 0.20, "Default button keeps its fill")
+                let rim = try XCTUnwrap(bitmap.colorAt(x: midX, y: 1))
+                XCTAssertGreaterThan(rim.alphaComponent, 0.95, "Default keeps its outer perimeter")
+            }
             if let folder = ProcessInfo.processInfo.environment["WAND_TRANSPARENCY_OUTPUT"] {
                 try FileManager.default.createDirectory(atPath:folder,withIntermediateDirectories:true)
                 try XCTUnwrap(bitmap.representation(using:.png,properties:[:]))
