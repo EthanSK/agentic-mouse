@@ -87,7 +87,7 @@ public final class AppKitModeHUDPresenter: NSObject, ModeHUDPresenting {
         guard snapshot.source == source else { return }
         model.apply(snapshot)
         displayScope = snapshot.showsOnAllDisplays ? .all : .target
-        updatePanelOpacity(for: snapshot)
+        updatePanelAppearance(for: snapshot)
         reconcilePanels(show: true)
         scheduleSettledScreenReconciliation()
     }
@@ -96,7 +96,7 @@ public final class AppKitModeHUDPresenter: NSObject, ModeHUDPresenting {
         guard snapshot.source == source else { return }
         let focusOnly = model.apply(snapshot)
         displayScope = snapshot.showsOnAllDisplays ? .all : .target
-        updatePanelOpacity(for: snapshot)
+        updatePanelAppearance(for: snapshot)
         // Rotating the wand changes only an overlay. Repositioning/orderFront
         // on every sample remeasures SwiftUI mid-animation and shakes the HUD.
         if isVisible && !(source == .wand && focusOnly) { reconcilePanels(show: true) }
@@ -278,7 +278,7 @@ public final class AppKitModeHUDPresenter: NSObject, ModeHUDPresenting {
         let size = hosting.fittingSize
         let panel = HUDPanel(contentRect: NSRect(origin: .zero, size: size))
         panel.contentView = hosting
-        panel.alphaValue = panelOpacity
+        applyPanelAppearance(to: panel)
         let scaleControlPanel = HUDScaleControlPanel(scaleStore: scaleStore) { [weak self] in
             self?.onCloseRequested?()
             self?.hide()
@@ -296,11 +296,19 @@ public final class AppKitModeHUDPresenter: NSObject, ModeHUDPresenting {
         return instance
     }
 
-    private func updatePanelOpacity(for snapshot: ModeHUDSnapshot) {
+    private func updatePanelAppearance(for snapshot: ModeHUDSnapshot) {
         panelOpacity = snapshot.presentationStyle.requiresOpaqueWindow
             ? CGFloat(1)
             : CGFloat(configuration.opacity)
-        panels.values.forEach { $0.panel.alphaValue = panelOpacity }
+        panels.values.forEach { applyPanelAppearance(to: $0.panel) }
+    }
+
+    private func applyPanelAppearance(to panel: HUDPanel) {
+        panel.alphaValue = panelOpacity
+        if #available(macOS 26.0, *) {
+            // A window shadow would also shade the transparent gaps between buttons.
+            panel.hasShadow = !model.isDefaultLegend
+        }
     }
 
     private func position(_ instance: PanelInstance, on screen: NSScreen) {

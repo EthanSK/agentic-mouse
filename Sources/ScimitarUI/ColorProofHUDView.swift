@@ -1,5 +1,6 @@
 import AppKit
 import Combine
+import CoreImage.CIFilterBuiltins
 import ScimitarKit
 import SwiftUI
 
@@ -461,8 +462,8 @@ enum ModeHUDAppBackdropMetrics {
 
 struct ModeHUDView: View {
     @ObservedObject var model: ModeHUDViewModel
-    /// ImageRenderer cannot render AppKit glass. Offscreen visual checks use
-    /// a neutral SwiftUI fill; every live presenter keeps native glass.
+    /// ImageRenderer cannot render AppKit glass. In offscreen checks the
+    /// Default panel stays clear and other materials use a neutral stand-in.
     var usesNativeGlass = true
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Namespace private var wandOutline
@@ -788,9 +789,8 @@ private struct ModeHUDNativeGlassBackground: NSViewRepresentable {
     }
 }
 
-/// Ethan's “Dock-like” background. A finer native glass scale narrows the blur
-/// around a refracted line. Only the glass renders at this scale, so the grid,
-/// corner silhouette and click-through window keep their existing geometry.
+/// Ethan's “Dock-like” background. Native Clear glass bends the backdrop at
+/// the edge. Its adaptive shading fades out before reaching the buttons.
 @available(macOS 26.0, *)
 private struct DefaultLegendGlassBackground: NSViewRepresentable {
     let cornerRadius: CGFloat
@@ -805,14 +805,27 @@ private struct DefaultLegendGlassBackground: NSViewRepresentable {
 
     final class Backing: NSView {
         // Selected against a stripe crossing the real Dock and the legend rim.
-        private static let materialScale: CGFloat = 1.0 / 3.0
+        private static let materialScale: CGFloat = 0.75
         private let glass: NSView
+        private let rim = CAShapeLayer()
+        private var cornerRadius: CGFloat
 
         init(cornerRadius: CGFloat) {
+            self.cornerRadius = cornerRadius
             glass = ModeHUDNativeGlass.makeEffectView(
                 cornerRadius: cornerRadius / Self.materialScale
             )
             super.init(frame: .zero)
+            // Only the mask is softened. Its stroke controls where AppKit
+            // draws glass and never paints a colour onto the desktop.
+            rim.fillColor = nil
+            rim.strokeColor = NSColor.white.cgColor
+            rim.lineWidth = 9 / Self.materialScale
+            let feather = CIFilter.gaussianBlur()
+            feather.radius = Float(2.75 / Self.materialScale)
+            rim.filters = [feather]
+            wantsLayer = true
+            layer?.mask = rim
             addSubview(glass)
         }
 
@@ -825,10 +838,21 @@ private struct DefaultLegendGlassBackground: NSViewRepresentable {
                                       height: frame.height / Self.materialScale)
             if bounds.size != materialSize { setBoundsSize(materialSize) }
             glass.frame = bounds
+            let inset = rim.lineWidth / 2
+            let radius = max(0, cornerRadius / Self.materialScale - inset)
+            CATransaction.begin()
+            CATransaction.setDisableActions(true)
+            rim.frame = bounds
+            rim.path = CGPath(roundedRect: bounds.insetBy(dx: inset, dy: inset),
+                              cornerWidth: radius, cornerHeight: radius, transform: nil)
+            CATransaction.commit()
         }
 
         func updateCornerRadius(_ radius: CGFloat) {
+            guard radius != cornerRadius else { return }
+            cornerRadius = radius
             ModeHUDNativeGlass.update(glass, cornerRadius: radius / Self.materialScale)
+            needsLayout = true
         }
     }
 }
