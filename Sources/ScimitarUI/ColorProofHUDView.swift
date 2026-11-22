@@ -708,7 +708,8 @@ struct ModeHUDView: View {
             shape.fill(cardFill(
                 fillColor,
                 selected: selected,
-                usesStrongDestinationFill: usesStrongDestinationFill
+                usesStrongDestinationFill: usesStrongDestinationFill,
+                hasArtwork: appIcon != nil
             ))
 
             if let appIcon {
@@ -747,14 +748,16 @@ struct ModeHUDView: View {
     private func cardFill(
         _ color: Color,
         selected: Bool,
-        usesStrongDestinationFill: Bool
+        usesStrongDestinationFill: Bool,
+        hasArtwork: Bool
     ) -> Color {
         switch model.presentationStyle {
         case .neutral:
             if usesStrongDestinationFill {
                 return color
             }
-            return color.opacity(selected ? 0.58 : 0.24)
+            let idleOpacity = model.isDefaultLegend && !hasArtwork ? ModeHUDCardColors.defaultActionFillOpacity : 0.24
+            return color.opacity(selected ? 0.58 : idleOpacity)
         case .boldOpaque:
             return color
         }

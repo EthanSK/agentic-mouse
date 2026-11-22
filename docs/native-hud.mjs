@@ -24,6 +24,9 @@ export function hudPresentation(simulator) {
       const control = simulator.control(cell);
       const selected = keypad ? pending?.cell === cell : state.mode !== "default" && state.hudSelection === cell;
       const treatment = selected ? map.hud.selected : control.destinationColor ? map.hud.navigation : map.hud.ordinary;
+      const idleActionOpacity = state.mode === "default" && !control.appIcon
+        ? map.hud.defaultActionFillOpacity ?? .24
+        : .24;
       return {
         cell,
         title: control.title,
@@ -36,7 +39,7 @@ export function hudPresentation(simulator) {
         appIcon: control.appIcon,
         borderWidth: treatment.width,
         borderOpacity: treatment.opacity,
-        fillOpacity: mode.presentationStyle === "neutral" && !control.destinationColor ? (selected ? .58 : .24) : 1,
+        fillOpacity: mode.presentationStyle === "neutral" && !control.destinationColor ? (selected ? .58 : idleActionOpacity) : 1,
         cycle: control.keypad?.cycle.map((character) => shifted ? character.toUpperCase() : character) ?? [],
         activeCycleIndex: pending?.cell === cell ? pending.index : null,
         holdCaption: control.keypad?.holdCaption,

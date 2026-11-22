@@ -291,6 +291,10 @@ public enum ModeHUDPresentationStyle: String, Equatable, Sendable {
 /// stronger perimeter and a full-strength fill, so the modes themselves remain
 /// the most saturated controls in the hierarchy.
 public struct ModeHUDCardColors: Equatable, Sendable {
+    /// A little more colour for the Default legend's translucent action tiles.
+    /// Navigation, app artwork, selection and other modes keep their existing treatments.
+    public static let defaultActionFillOpacity = 0.32
+
     public let border: RGBColor
     public let fill: RGBColor
     public let foreground: RGBColor

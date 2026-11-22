@@ -3762,3 +3762,11 @@ Ethan preferred the natural change in curvature at the Dock edge after trying bu
 When comparing native treatments, match the whole window, the actual HUD scale and both backdrop colours. Stock SwiftUI and AppKit Clear on filled rectangles produced the same stripe profile at the same size on this Mac. The filled material reduced a neutral light backdrop by 34 grey levels. The stock Clear rim preserved the centre and produced a softer stripe than the real Dock. Dock Accessibility exposed its items and list, with no material or renderer attributes.
 
 On installed build 389, the top-edge displacement at 3, 5, 7 and 10 points inward was about 15.5, 10, 6 and 2 points. The Dock measured about 10, 6, 3 and 1. The stock rim spread the line to 40–41 points at the five-point depth, compared with 12–13 on the Dock. The centre gap matched every bare RGB channel on both backgrounds, and the initial three Corsair windows were restored.
+
+## 2026-11-22 — Adjust Default action tile colour independently of the panel
+
+In the installed Codex-context Default legends on both mice, nine ordinary tiles had the same 24% colour opacity. Keys, Utility and the app-specific destination had fully filled backgrounds. The mode accent, icon backdrop and native Clear rim are separate rendering paths. The revised idle action opacity is 32%. Keep the selector's existing emphasis and artwork treatment. The browser simulator reads the same Default opacity from the native exporter.
+
+Compare the same tile on light and dark backgrounds and check a bare centre gap separately. The stock material can darken a light backdrop at the rim while the middle gap still matches the desktop exactly.
+
+On build 390 the nine ordinary tiles on each mouse went from 59 to 79 on the window capture's 0–255 opacity scale. The three strong tiles remained at 245. Both dark and light captures kept the centre gap identical to the underlying board. Median change in the sampled top rim was zero.

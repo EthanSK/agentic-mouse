@@ -27,6 +27,9 @@ test("the native HUD preserves each hand's physical order and printed repair mar
           assert.equal(card.border, control.destinationColor);
           assert.equal(card.fillOpacity, 1);
         }
+        if (mode === "default" && !control.destinationColor && !control.appIcon) {
+          assert.equal(card.fillOpacity, map.hud.defaultActionFillOpacity);
+        }
         if (control.appIcon) {
           const icon = readFileSync(new URL(`../../docs/assets/apps/${control.appIcon}.png`, import.meta.url));
           assert.equal(icon.readUInt32BE(16), 128);

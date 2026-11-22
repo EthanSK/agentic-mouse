@@ -38,6 +38,7 @@ struct SiteHUDBorder: Encodable {
 }
 
 struct SiteHUDMetrics: Encodable {
+    let defaultActionFillOpacity = ModeHUDCardColors.defaultActionFillOpacity
     let cardInset = ModeHUDLayoutMetrics.cardHorizontalContentInset
     let ordinary = SiteHUDBorder(selected: false, navigation: false)
     let navigation = SiteHUDBorder(selected: false, navigation: true)
