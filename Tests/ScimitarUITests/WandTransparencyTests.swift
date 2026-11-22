@@ -42,8 +42,11 @@ final class WandTransparencyTests: XCTestCase {
                 XCTAssertLessThan(center.alphaComponent, 0.01, "gutter shows the underlying glass")
                 let card = try XCTUnwrap(bitmap.colorAt(x: bitmap.pixelsWide / 14, y: midY))
                 XCTAssertGreaterThan(card.alphaComponent, 0.20, "Default button keeps its fill")
-                let rim = try XCTUnwrap(bitmap.colorAt(x: midX, y: 1))
-                XCTAssertGreaterThan(rim.alphaComponent, 0.95, "Default keeps its outer perimeter")
+                let rim = try XCTUnwrap(bitmap.colorAt(x: midX, y: 0))
+                XCTAssertGreaterThan(rim.alphaComponent, 0.20, "Default keeps a visible outer perimeter")
+                XCTAssertLessThan(rim.alphaComponent, 0.35, "Default perimeter lets the native glass edge show")
+                let insideRim = try XCTUnwrap(bitmap.colorAt(x: midX, y: 1))
+                XCTAssertLessThan(insideRim.alphaComponent, 0.01, "Default draws one point of perimeter")
             }
             if let folder = ProcessInfo.processInfo.environment["WAND_TRANSPARENCY_OUTPUT"] {
                 try FileManager.default.createDirectory(atPath:folder,withIntermediateDirectories:true)
