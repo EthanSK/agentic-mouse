@@ -196,7 +196,7 @@ struct ModeUtilityActionExecutor {
             return postKeyboardChord(events)
                 ? .success(())
                 : .failure(.tabEventCreationFailed)
-        case .selectAll, .save, .copy, .paste:
+        case .selectAll, .save, .copy, .paste, .cycleCurrentAppWindows:
             guard inputAllowed() else { return .failure(.clipboardInputBlocked) }
             guard accessibilityTrusted() else {
                 return .failure(.clipboardAccessibilityPermissionMissing)
@@ -205,6 +205,7 @@ struct ModeUtilityActionExecutor {
             switch action {
             case .selectAll: keyCode = 0
             case .save: keyCode = 1
+            case .cycleCurrentAppWindows: keyCode = 50 // Command–grave, macOS’s next window in the current app.
             case .copy: keyCode = 8
             default: keyCode = 9
             }

@@ -93,10 +93,31 @@ final class ModePickerTests: XCTestCase {
             XCTAssertEqual(actions, [.selectAll])
             XCTAssertNil(coordinator.activeWheelControl)
             XCTAssertEqual(coordinator.page, .modes)
-            for phase in [ModePickerCommand.Phase.press, .release] {
+            let wheel = WheelChordStateMachine()
+            coordinator.onWheelControlChange = { source, control in wheel.setActive(control, for: source) }
+            coordinator.onWheelControlRelease = { source, control in
+                if let release = wheel.release(control, for: source) { coordinator.finishUtilityWheelClick(release) }
+            }
+            func selectFive(_ phase: ModePickerCommand.Phase) {
                 coordinator.handle(.init(action: .select, source: source, physicalCell: .applicationWindowsButton, phase: phase))
             }
-            XCTAssertEqual(actions, [.selectAll, .showApplicationWindows])
+            selectFive(.press)
+            XCTAssertEqual(actions, [.selectAll])
+            selectFive(.release)
+            selectFive(.release)
+            XCTAssertEqual(actions, [.selectAll, .cycleCurrentAppWindows])
+            for delta: Int64 in [1, -1] {
+                selectFive(.press)
+                XCTAssertEqual(coordinator.activeWheelControl, .cycleWindows)
+                guard case .consume(let step) = wheel.route(verticalDelta: delta, isContinuous: false),
+                      let action = step.control.utilityAction(for: step.direction) else { return XCTFail("missing held action") }
+                XCTAssertEqual(step.source, source)
+                actions.append(action)
+                guard case .consumeAfterFirstHoldAction = wheel.route(verticalDelta: -delta, isContinuous: false)
+                else { return XCTFail("a second ratchet repeated the toggle") }
+                selectFive(.release)
+            }
+            XCTAssertEqual(actions, [.selectAll, .cycleCurrentAppWindows, .showApplicationWindows, .showApplicationWindows])
             XCTAssertNil(coordinator.activeWheelControl)
             XCTAssertEqual(coordinator.page, .modes)
             coordinator.handle(.init(action: .select, source: source, physicalCell: .extraUtilitiesSelector, phase: .press))
@@ -108,13 +129,21 @@ final class ModePickerTests: XCTestCase {
             XCTAssertNil(coordinator.activeWheelControl)
             coordinator.handle(.init(action: .select, source: source, physicalCell: .extraUtilitiesSave, phase: .press))
             coordinator.handle(.init(action: .select, source: source, physicalCell: .extraUtilitiesSave, phase: .release))
-            XCTAssertEqual(actions, [.selectAll, .showApplicationWindows, .tab, .save])
+            XCTAssertEqual(actions, [.selectAll, .cycleCurrentAppWindows, .showApplicationWindows, .showApplicationWindows, .tab, .save])
             XCTAssertEqual(ModePickerCoordinator.modesLegend(for: source)[1].actionTitle, "⌘A Select all")
-            XCTAssertEqual(ModePickerCoordinator.modesLegend(for: source)[4].actionTitle, "App Exposé")
+            XCTAssertEqual(ModePickerCoordinator.modesLegend(for: source)[4].actionTitle, "Cycle windows · App Exposé")
             XCTAssertEqual(ModePickerCoordinator.extraUtilitiesLegend(for: source)[0].actionTitle, "App Exposé")
             XCTAssertEqual(ModePickerCoordinator.extraUtilitiesLegend(for: source)[1].actionTitle, "⇥ Tab")
             XCTAssertEqual(ModePickerCoordinator.extraUtilitiesLegend(for: source)[6].actionTitle, "Save")
             XCTAssertEqual(PhysicalCell.extraUtilitiesTab.printedSide(on: source), 2)
+            coordinator.shutdown()
+            coordinator.enter(source: source)
+            selectFive(.press)
+            XCTAssertEqual(coordinator.activeWheelControl, .cycleWindows)
+            let beforeExit = actions
+            coordinator.shutdown()
+            selectFive(.release)
+            XCTAssertEqual(actions, beforeExit)
         }
     }
 
@@ -243,7 +272,7 @@ final class ModePickerTests: XCTestCase {
         XCTAssertEqual(ModePickerCoordinator.modesLegend[1].actionTitle, "⌘A Select all")
         XCTAssertEqual(ModePickerCoordinator.modesLegend[2].actionTitle, "Spaces")
         XCTAssertEqual(ModePickerCoordinator.modesLegend[3].actionTitle, "Mission / Desktop")
-        XCTAssertEqual(ModePickerCoordinator.modesLegend[4].actionTitle, "App Exposé")
+        XCTAssertEqual(ModePickerCoordinator.modesLegend[4].actionTitle, "Cycle windows · App Exposé")
         XCTAssertEqual(ModePickerCoordinator.modesLegend[5].actionTitle, "Magnet")
         XCTAssertEqual(ModePickerCoordinator.modesLegend[6].actionTitle, "PP")
         XCTAssertEqual(ModePickerCoordinator.modesLegend[7].actionTitle, "Intelligence on demand")
@@ -335,7 +364,8 @@ final class ModePickerTests: XCTestCase {
             .systemOverview
         )
         XCTAssertNil(ModeUtilityAction.directAction(for: PhysicalCell(rawValue: 4)!))
-        XCTAssertEqual(ModeUtilityAction.directAction(for: PhysicalCell(rawValue: 5)!), .showApplicationWindows)
+        XCTAssertNil(ModeUtilityAction.directAction(for: .applicationWindowsButton))
+        XCTAssertEqual(WheelChordControl.utilityControl(for: .applicationWindowsButton), .cycleWindows)
         XCTAssertEqual(PhysicalCell.systemOverviewWheelControl.printedSide(on: .corsair), 4)
         XCTAssertEqual(PhysicalCell.systemOverviewWheelControl.printedSide(on: .razer), 6)
     }
@@ -343,7 +373,8 @@ final class ModePickerTests: XCTestCase {
     func testOnlyOnePressUtilityCardsUseTheDirectActionRoute() {
         XCTAssertFalse(ModeUtilityAction.showDesktop.isDirectAction)
         XCTAssertFalse(ModeUtilityAction.missionControl.isDirectAction)
-        XCTAssertTrue(ModeUtilityAction.showApplicationWindows.isDirectAction)
+        XCTAssertFalse(ModeUtilityAction.showApplicationWindows.isDirectAction)
+        XCTAssertTrue(ModeUtilityAction.cycleCurrentAppWindows.isDirectAction)
         XCTAssertTrue(ModeUtilityAction.organizeWindows.isDirectAction)
         XCTAssertTrue(ModeUtilityAction.tab.isDirectAction)
         XCTAssertTrue(ModeUtilityAction.quitApp.isDirectAction)
@@ -391,6 +422,8 @@ final class ModePickerTests: XCTestCase {
     }
 
     func testUtilityWheelControlsUseOneCellForEachTwoWayFamily() {
+        XCTAssertNil(WheelChordControl.utilityControl(for: .applicationWindowsButton, source: .wand))
+        XCTAssertEqual(ModeUtilityAction.directAction(for: .applicationWindowsButton, source: .wand), .selectAll)
         XCTAssertEqual(WheelChordControl.utilityControl(for: PhysicalCell(rawValue: 1)!), .brightness)
         XCTAssertNil(WheelChordControl.utilityControl(for: PhysicalCell(rawValue: 2)!))
         XCTAssertEqual(WheelChordControl.utilityControl(for: PhysicalCell(rawValue: 11)!), .zoom)

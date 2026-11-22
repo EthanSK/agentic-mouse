@@ -101,7 +101,7 @@ struct MagnetWindowActionExecutor {
              .rewindYouTubeFiveSeconds, .openIntelligenceOnDemand, .zoomIn, .zoomOut,
              .moveToSpaceLeft, .moveToSpaceRight,
              .selectAll, .tab, .save, .copy, .paste, .showDesktop, .missionControl,
-             .pasteStoredPassword, .showApplicationWindows, .organizeWindows, .spotifySongRadio, .quitApp:
+             .pasteStoredPassword, .showApplicationWindows, .cycleCurrentAppWindows, .organizeWindows, .spotifySongRadio, .quitApp:
             return nil
         }
 

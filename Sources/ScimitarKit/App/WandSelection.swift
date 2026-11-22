@@ -527,7 +527,7 @@ extension WheelChordControl {
              .brightness, .zoom, .systemOverview, .applicationWindows,
              .magnetWindow, .spaces, .mediaTracks:
             return true
-        case .screenshotPaste, .youtubeScrub, .youtubeVolume,
+        case .cycleWindows, .screenshotPaste, .youtubeScrub, .youtubeVolume,
              .windowWidth, .windowHeight, .chromeVSCodeLayout, .vsCodeStageRange:
             return false
         }
@@ -733,7 +733,7 @@ extension ModePickerCoordinator: WandModeControlling {
             control = WheelChordControl.wandHomeControl(for: cell)
         } else {
             switch page {
-            case .modes: control = WheelChordControl.utilityControl(for: cell)
+            case .modes: control = WheelChordControl.utilityControl(for: cell, source: .wand)
             case .extraUtilities: control = WheelChordControl.extraUtilitiesControl(for: cell)
             case .keys: control = WheelChordControl.keysControl(for: cell)
             case .appSpecific:

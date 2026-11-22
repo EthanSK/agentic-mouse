@@ -1683,7 +1683,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     )
                 case .failure(.clipboardAccessibilityPermissionMissing):
                     return .failed(message:
-                        action == .selectAll || action == .save
+                        action == .selectAll || action == .save || action == .cycleCurrentAppWindows
                             ? "Accessibility permission is required"
                             : "Accessibility permission is required for Copy and Paste"
                     )
@@ -2267,6 +2267,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 self?.clearVSCodeStagePreviewModifier(source: release.source, reason: .ownerRelease)
             }
             switch release.control {
+            case .cycleWindows:
+                guard let self, self.mouseCommandsAllowed else { return }
+                self.modePickerCoordinators[release.source]?.finishUtilityWheelClick(release)
             case .codexResponseSpeed:
                 self?.codexModeActionExecutor.cancelResponseSpeed()
                 guard let self, let coordinator = self.modePickerCoordinators[release.source],

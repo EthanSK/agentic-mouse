@@ -23,6 +23,7 @@ public enum ModeUtilityAction: Equatable, Sendable {
     case showDesktop
     case missionControl
     case showApplicationWindows
+    case cycleCurrentAppWindows
     case organizeWindows
     case spotifySongRadio
     case quitApp
@@ -47,6 +48,7 @@ public enum ModeUtilityAction: Equatable, Sendable {
         case .moveWindowRightWithMagnet: return "Magnet Right"
         case .showDesktop: return "Show Desktop"
         case .missionControl: return "Mission Control"
+        case .cycleCurrentAppWindows: return "Cycle windows"
         case .showApplicationWindows: return "App Exposé"
         case .organizeWindows: return "Organize Windows"
         case .spotifySongRadio: return "Spotify Song Radio"
@@ -72,7 +74,7 @@ public enum ModeUtilityAction: Equatable, Sendable {
             return ModeHUDActionFamilyPalette.windowManagement
         case .showDesktop, .missionControl:
             return ModeHUDActionFamilyPalette.systemOverview
-        case .showApplicationWindows, .organizeWindows:
+        case .showApplicationWindows, .cycleCurrentAppWindows, .organizeWindows:
             return ModeHUDActionFamilyPalette.windowManagement
         case .quitApp:
             return RGBColor(red: 205, green: 56, blue: 72)
@@ -89,7 +91,6 @@ public enum ModeUtilityAction: Equatable, Sendable {
 
     public static func directAction(for cell: PhysicalCell, source: MouseSource = .corsair) -> ModeUtilityAction? {
         if cell == (source == .wand ? .wandSelectAll : .selectAll) { return .selectAll }
-        if source.isPhysicalAdapter, cell == .applicationWindowsButton { return .showApplicationWindows }
         switch cell {
         case .storedPassword:
             return .pasteStoredPassword
@@ -116,15 +117,15 @@ public enum ModeUtilityAction: Equatable, Sendable {
 
     /// True for one-shot actions routed through the shared native executor.
     /// `directAction(for:)` separately decides which of them appear as Utility
-    /// cards. App Exposé shares its native output with the Extra Utilities wheel.
+    /// cards. Wheel-free Utility releases use the same executor.
     public var isDirectAction: Bool {
         switch self {
         case .selectAll, .tab, .save, .rewindYouTubeFiveSeconds, .openIntelligenceOnDemand,
-             .showApplicationWindows, .organizeWindows, .spotifySongRadio, .quitApp, .pasteStoredPassword:
+             .cycleCurrentAppWindows, .organizeWindows, .spotifySongRadio, .quitApp, .pasteStoredPassword:
             return true
         case .increaseDisplayBrightness, .decreaseDisplayBrightness,
              .zoomIn, .zoomOut, .moveToSpaceLeft, .moveToSpaceRight,
-             .showDesktop, .missionControl:
+             .showDesktop, .missionControl, .showApplicationWindows:
             return false
         case .copy, .paste, .moveWindowLeftWithMagnet, .moveWindowRightWithMagnet:
             return false

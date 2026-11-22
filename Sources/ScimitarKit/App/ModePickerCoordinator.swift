@@ -563,7 +563,7 @@ public final class ModePickerCoordinator {
         }
         switch page {
         case .modes:
-            if let control = WheelChordControl.utilityControl(for: cell) {
+            if let control = WheelChordControl.utilityControl(for: cell, source: source) {
                 switch phase {
                 case .press:
                     activeWheelControl = control
@@ -847,6 +847,17 @@ public final class ModePickerCoordinator {
                 let title = wandHomeSnapshot().legend.first { $0.cell == cell }?.actionTitle ?? "Action"
                 hud.flashProblem("\(title) could not be performed")
             }
+        }
+    }
+
+    /// Called only for a completed button release, before the coordinator clears the held control.
+    public func finishUtilityWheelClick(_ release: WheelChordStateMachine.Release) {
+        guard isActive, let source, release.source == source, source.isPhysicalAdapter,
+              !release.didObserveWheelInput,
+              release.control.isActiveUtilityRoute(page: page, activeControl: activeWheelControl),
+              let action = release.control.utilityClickAction else { return }
+        if case .failed(let message) = onUtilityAction?(source, action) {
+            hud.flashProblem(message ?? "\(action.actionTitle) could not be performed")
         }
     }
 
@@ -1329,7 +1340,7 @@ public final class ModePickerCoordinator {
 
     public static func modesLegend(for source: MouseSource) -> [ModeHUDLegendItem] {
         PhysicalCell.all.map { cell in
-        if let control = WheelChordControl.utilityControl(for: cell) {
+        if let control = WheelChordControl.utilityControl(for: cell, source: source) {
             return ModeHUDLegendItem(
                 cell: cell,
                 gesture: control.hudGesture,

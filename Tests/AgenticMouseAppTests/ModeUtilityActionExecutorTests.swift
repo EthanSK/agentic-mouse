@@ -401,8 +401,8 @@ final class ModeUtilityActionExecutorTests: XCTestCase {
         ))
     }
 
-    func testSelectAllAndSaveSendOneCommandCycleAndRespectInputGates() {
-        for (action, key) in [(ModeUtilityAction.selectAll, CGKeyCode(0)), (.save, CGKeyCode(1))] {
+    func testCommandShortcutsSendOneCycleAndRespectInputGates() {
+        for (action, key) in [(ModeUtilityAction.selectAll, CGKeyCode(0)), (.save, CGKeyCode(1)), (.cycleCurrentAppWindows, CGKeyCode(50))] {
             var events: [SyntheticKeyboardChordPoster.Event] = []
             let executor = ModeUtilityActionExecutor(postKeyboardChord: { events = $0; return true }, accessibilityTrusted: { true })
             guard case .success = executor.perform(action) else { return XCTFail("shortcut failed") }

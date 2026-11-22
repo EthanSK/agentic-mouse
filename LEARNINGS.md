@@ -12,6 +12,16 @@ The patch passed 141 focused Swift checks, 37 generator tests, 1,776 native rout
 
 # Learnings
 
+## Utility wheel-free release (2026-11-22)
+
+A Utility cell can be a held wheel control on the physical mice and a direct
+action on the wand. Resolve the source before looking up the control, both
+when routing the press and when drawing its legend. The coordinator's active
+page and control are still available during the wheel monitor's explicit release
+callback. Use that callback's wheel-input record to run the tap. Mode teardown
+must only clear the hold. The two-source regression lives in
+`ModePickerTests.testUtilityButtonsAndExtraUtilitiesWheelKeepTheirPageAndDispatchOnce`.
+
 ## Cycle Speed acceptance and marker attribution (2026-11-15)
 
 Ethan explicitly confirmed “It works. I never said it didn't” for Cycle Speed.

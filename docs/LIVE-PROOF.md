@@ -49,8 +49,9 @@ iCUE database or profile file behind the app's back.
 6. Hold top-level physical cell 1 and ratchet the wheel once each way to prove
    Space left/right without entering a mode. Enter Utility with cell 12, then
    hold cells 1 and 11 and ratchet once each way to prove Brightness and Zoom.
-   Press cell 2 to select all in a disposable text field. Press cell 5 to
-   open App Exposé for the frontmost app. Both buttons stay on Utility.
+   Press cell 2 to select all in a disposable text field. Tap cell 5 with two windows of one app open to cycle between them. Hold cell 5
+   and scroll up to toggle App Exposé, then release. Repeat with wheel down.
+   Each hold toggles once and releasing it must not cycle windows. Both buttons stay on Utility.
    Hold cell 6 and verify one wheel-up ratchet sends
    Magnet Left while one wheel-down ratchet sends Magnet Right. Hold cell 4 and
    verify one wheel-up ratchet enters Mission Control while one wheel-down

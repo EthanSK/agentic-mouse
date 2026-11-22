@@ -57,7 +57,7 @@ const LAYERS = {
       ["Choose app", "Open the eleven-app manual selector."],
       ["Spaces + Wheel", "Hold; the first wheel-up moves right and wheel-down moves left, then release to re-arm."],
       ["Mission / Desktop + Wheel", "Hold and ratchet: up opens Mission Control, down shows the desktop."],
-      ["App Exposé + Wheel", "Hold and ratchet down once for native App Exposé; wheel up is consumed."],
+      ["Cycle windows · App Exposé ↕", "Tap to cycle the current app’s windows. Hold and scroll either way to toggle App Exposé once."],
       ["Magnet + Wheel", "Hold and ratchet: up sends Magnet Left, down sends Magnet Right."],
       ["PP", "Private action."],
       ["Intelligence on demand", "Open Codex's global Option-Space window."],

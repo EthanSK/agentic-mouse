@@ -47,6 +47,7 @@ struct SiteHUDMetrics: Encodable {
 
 struct SiteWheel: Encodable {
     let id: String
+    let utilityClick: String?
     let up: String?
     let down: String?
     let oncePerHold: Bool
@@ -283,7 +284,7 @@ func exportControl(_ item: ModeHUDLegendItem, source: MouseSource, modeAccent: R
 /// Direction labels come from the native wheel resolver, including its accepted per-family physical inversions.
 func exportWheel(_ control: WheelChordControl) -> SiteWheel {
     let physicalUp = control.physicalUpDirection // One shared table also drives the HUD's motion arrow.
-    return SiteWheel(id: control.rawValue, up: control.feedbackActionTitle(for: physicalUp),
+    return SiteWheel(id: control.rawValue, utilityClick: control.utilityClickAction?.actionTitle, up: control.feedbackActionTitle(for: physicalUp),
                      down: control.feedbackActionTitle(for: physicalUp == .up ? .down : .up),
                      oncePerHold: control.dispatchPolicy == .oncePerHold)
 }

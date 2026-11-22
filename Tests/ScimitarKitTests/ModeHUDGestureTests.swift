@@ -23,6 +23,7 @@ final class ModeHUDGestureTests: XCTestCase {
             .screenshotPaste: "Screenshot",
             .youtubeScrub: "YouTube −5 sec",
             .codexResponseSpeed: "Cycle speed",
+            .cycleWindows: "Cycle windows",
         ])
     }
 

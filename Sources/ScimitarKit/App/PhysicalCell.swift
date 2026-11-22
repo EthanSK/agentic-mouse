@@ -179,7 +179,8 @@ public struct PhysicalCell: RawRepresentable, Hashable, Codable, Sendable, Compa
     // Extra Utilities keeps the existing wheel route.
     public static let applicationWindowsWheelControl = PhysicalCell(rawValue: 1)!
 
-    /// Ethan's "four-finger swipe down" is native App Exposé on mouse Utility 5.
+    /// Mouse Utility 5 cycles windows with Command–grave. Holding and scrolling toggles
+    /// App Exposé, the "four-finger swipe down" Ethan also called "Apex for Z".
     public static let applicationWindowsButton = PhysicalCell(rawValue: 5)!
     public static let selectAll = PhysicalCell(rawValue: 2)!
     /// The wand's Select all wedge owns the Backspace and Copy outer layers.

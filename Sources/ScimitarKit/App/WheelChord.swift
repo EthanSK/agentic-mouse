@@ -15,6 +15,7 @@ public enum WheelChordControl: String, Codable, CaseIterable, Sendable {
     case clipboard
     case systemOverview
     case applicationWindows
+    case cycleWindows
     case magnetWindow
     case windowWidth
     case windowHeight
@@ -42,7 +43,7 @@ public enum WheelChordControl: String, Codable, CaseIterable, Sendable {
         case .zoom: return "Zoom"
         case .clipboard: return "Copy / Paste"
         case .systemOverview: return "Mission / Desktop"
-        case .applicationWindows: return "App Exposé"
+        case .applicationWindows, .cycleWindows: return ModeUtilityAction.showApplicationWindows.actionTitle
         case .windowWidth: return "Width"
         case .windowHeight: return "Height"
         case .chromeVSCodeLayout: return "Split Chrome / VS Code"
@@ -71,7 +72,7 @@ public enum WheelChordControl: String, Codable, CaseIterable, Sendable {
         case .zoom: return ModeHUDActionFamilyPalette.applicationZoom
         case .clipboard: return ModeHUDActionFamilyPalette.clipboard
         case .systemOverview: return ModeHUDActionFamilyPalette.systemOverview
-        case .applicationWindows: return ModeHUDActionFamilyPalette.windowManagement
+        case .applicationWindows, .cycleWindows: return ModeHUDActionFamilyPalette.windowManagement
         case .chromeVSCodeLayout, .windowWidth, .windowHeight, .magnetWindow: return ModeHUDActionFamilyPalette.windowManagement
         case .spaces: return ModeHUDActionFamilyPalette.desktopSpaces
         case .mediaTracks: return ModeHUDActionFamilyPalette.media
@@ -102,6 +103,7 @@ public enum WheelChordControl: String, Codable, CaseIterable, Sendable {
         case .spaces: return .spacesWheelControl
         case .systemOverview: return .systemOverviewWheelControl
         case .applicationWindows: return nil
+        case .cycleWindows: return .applicationWindowsButton
         case .magnetWindow: return .magnetWheelControl
         case .chromeVSCodeLayout, .windowWidth, .windowHeight, .screenshotPaste, .clipboard, .horizontalScroll, .youtubeScrub, .youtubeVolume, .mediaTracks, .chromeTabs, .spotifyVolume,
              .vsCodeCursorHistory, .vsCodeStageRange, .codexReasoningEffort, .codexResponseSpeed, .codexChatHistory, .codexPin,
@@ -109,8 +111,9 @@ public enum WheelChordControl: String, Codable, CaseIterable, Sendable {
         }
     }
 
-    public static func utilityControl(for cell: PhysicalCell) -> WheelChordControl? {
-        allCases.first { $0.utilityCell == cell }
+    public static func utilityControl(for cell: PhysicalCell, source: MouseSource = .corsair) -> WheelChordControl? {
+        if cell == .applicationWindowsButton && !source.isPhysicalAdapter { return nil }
+        return allCases.first { $0.utilityCell == cell }
     }
 
     /// Ordinary-layer chords bypass runtime-mode state entirely. Exact-device
@@ -121,7 +124,7 @@ public enum WheelChordControl: String, Codable, CaseIterable, Sendable {
         case .clipboard: return .clipboardWheelControl
         case .horizontalScroll: return .horizontalScrollWheelControl
         case .youtubeScrub: return .youtubeScrubWheelControl
-        case .chromeVSCodeLayout, .windowWidth, .windowHeight, .brightness, .zoom, .spaces, .systemOverview, .applicationWindows, .youtubeVolume,
+        case .chromeVSCodeLayout, .windowWidth, .windowHeight, .brightness, .zoom, .spaces, .systemOverview, .applicationWindows, .cycleWindows, .youtubeVolume,
              .magnetWindow, .mediaTracks, .chromeTabs, .spotifyVolume,
              .vsCodeCursorHistory, .vsCodeStageRange, .codexReasoningEffort, .codexResponseSpeed, .codexChatHistory, .codexPin,
              .claudePin, .claudeTabs: return nil
@@ -151,8 +154,7 @@ public enum WheelChordControl: String, Codable, CaseIterable, Sendable {
     }
 
     /// The shared dispatcher must validate the page that owns this control.
-    /// App Exposé moved to Extra Utilities; the remaining ordinary Utility
-    /// wheel controls stay on the Modes page.
+    /// The down-only App Exposé control belongs to Extra Utilities.
     public func isActiveUtilityRoute(
         page: ModePickerPage,
         activeControl: WheelChordControl?
@@ -212,7 +214,7 @@ public enum WheelChordControl: String, Codable, CaseIterable, Sendable {
         case .youtubeVolume:
             return .youtubeScrubWheelControl // Holding Forward changes the existing YouTube Scrub wheel into Volume, so diagnostics still belong to the scrub control's physical cell; leaving this in the generic fallback crashed on the first volume ratchet because neither generic cell exists. (Codex task: 01a039f7-873c-7c30-b3dc-af8a6724ace5)
         case .applicationWindows: return .applicationWindowsWheelControl
-        case .brightness, .zoom, .systemOverview, .magnetWindow, .spaces:
+        case .brightness, .zoom, .systemOverview, .cycleWindows, .magnetWindow, .spaces:
             guard let utilityCell else {
                 preconditionFailure("Utility wheel control is missing its canonical cell")
             }
@@ -264,7 +266,7 @@ public enum WheelChordControl: String, Codable, CaseIterable, Sendable {
         case (.systemOverview, .up): return .missionControl
         case (.systemOverview, .down): return .showDesktop
         case (.applicationWindows, .up): return nil
-        case (.applicationWindows, .down): return .showApplicationWindows
+        case (.applicationWindows, .down), (.cycleWindows, _): return .showApplicationWindows
         case (.magnetWindow, .up): return .moveWindowLeftWithMagnet
         case (.magnetWindow, .down): return .moveWindowRightWithMagnet
         case (.spaces, .up): return .moveToSpaceRight
@@ -433,7 +435,7 @@ public enum WheelChordControl: String, Codable, CaseIterable, Sendable {
         case .applicationWindows:
             // Wheel-up is intentionally consumed without an action.
             return nil
-        case .brightness, .zoom, .clipboard, .systemOverview, .magnetWindow, .spaces:
+        case .brightness, .zoom, .clipboard, .systemOverview, .cycleWindows, .magnetWindow, .spaces:
             return nil
         }
     }
@@ -471,7 +473,7 @@ public enum WheelChordControl: String, Codable, CaseIterable, Sendable {
              .screenshotPaste:
             return .down
         case .horizontalScroll, .youtubeVolume, .brightness, .zoom, .clipboard, .systemOverview,
-             .applicationWindows, .magnetWindow, .spaces, .mediaTracks, .chromeTabs, .spotifyVolume,
+             .applicationWindows, .cycleWindows, .magnetWindow, .spaces, .mediaTracks, .chromeTabs, .spotifyVolume,
              .codexChatHistory, .claudeTabs:
             return .up
         }
@@ -489,6 +491,10 @@ public enum WheelChordControl: String, Codable, CaseIterable, Sendable {
         }
     }
 
+    public var utilityClickAction: ModeUtilityAction? {
+        self == .cycleWindows ? .cycleCurrentAppWindows : nil
+    }
+
     /// What a wheel-free click does on release, or nil when release is inert.
     /// Mirrors the app shell's wheel-chord release handling: Copy / Paste
     /// inserts a space, Tracks plays the next track, Screenshot captures and
@@ -500,6 +506,7 @@ public enum WheelChordControl: String, Codable, CaseIterable, Sendable {
         case .screenshotPaste: return "Screenshot"
         case .youtubeScrub: return "YouTube −5 sec"
         case .codexResponseSpeed: return "Cycle speed"
+        case .cycleWindows: return utilityClickAction?.actionTitle
         case .horizontalScroll, .youtubeVolume, .brightness, .zoom, .systemOverview,
              .applicationWindows, .magnetWindow, .windowWidth, .windowHeight, .chromeVSCodeLayout,
              .spaces, .chromeTabs, .spotifyVolume, .vsCodeCursorHistory, .vsCodeStageRange,
@@ -546,7 +553,7 @@ public enum WheelChordControl: String, Codable, CaseIterable, Sendable {
         switch self {
         case .brightness, .zoom:
             return .everyAcceptedEvent
-        case .systemOverview, .applicationWindows, .spaces, .codexPin, .claudePin, .screenshotPaste:
+        case .systemOverview, .applicationWindows, .cycleWindows, .spaces, .codexPin, .claudePin, .screenshotPaste:
             return .oncePerHold
         case .clipboard:
             return .debounced(minimumInterval: 0.12)

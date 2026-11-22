@@ -91,6 +91,14 @@ export class MouseSimulator {
       );
     } else if (control.keypad) {
       this.type(control.keypad, cell, now);
+    } else if (control.wheel?.utilityClick) {
+      if (this.state.held === cell) {
+        this.release();
+      } else {
+        this.state.held = null;
+        this.state.wheelUsed = false;
+        this.record(control.wheel.utilityClick);
+      }
     } else if (control.wheel) {
       this.state.held = this.state.held === cell ? null : cell;
       this.state.wheelUsed = false;
@@ -130,10 +138,13 @@ export class MouseSimulator {
     }
   }
   release() {
+    const click = this.state.held === null || this.state.wheelUsed
+      ? null : this.control(this.state.held).wheel?.utilityClick;
     this.state.held = null;
     this.state.wheelUsed = false;
     this.state.output = "Button released";
     this.state.feedback = null;
+    if (click) this.record(click);
   }
 
   /** The exported labels resolve wheel direction and one-action-per-hold behaviour in Swift. */

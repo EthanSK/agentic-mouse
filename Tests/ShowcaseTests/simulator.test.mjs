@@ -74,19 +74,28 @@ test("automatic app mode and its Chrome child follow the frontmost app", () => {
   assert.equal(simulator.state.mode, "codex");
 });
 
-test("mouse Utilities expose Select all and App Exposé as direct actions", () => {
+test("Utility 5 cycles windows on tap and toggles App Exposé once on either held direction", () => {
   for (const hand of Object.keys(map.sources)) {
     const simulator = new MouseSimulator(map);
     simulator.chooseHand(hand);
     enter(simulator, "utility");
-    for (const [printed, title] of [[2, "⌘A Select all"], [5, "App Exposé"]]) {
-      const control = simulator.mode.controls.find(item => item.printed === printed);
-      assert.equal(control.title, title);
-      assert.equal(control.next, undefined);
-      assert.equal(control.wheel, undefined);
-      simulator.press(control.cell);
+    const select = simulator.mode.controls.find(item => item.printed === 2);
+    assert.equal(select.wheel, undefined);
+    simulator.press(select.cell);
+    assert.equal(simulator.state.output, "⌘A Select all");
+    const control = simulator.mode.controls.find(item => item.printed === 5);
+    assert.equal(control.title, "Cycle windows · App Exposé ↕");
+    simulator.press(control.cell);
+    assert.equal(simulator.state.output, "Cycle windows");
+    for (const direction of ["up", "down"]) {
+      simulator.hold(control.cell);
+      simulator.wheel(direction);
+      assert.equal(simulator.state.output, "App Exposé");
+      simulator.wheel(direction);
+      assert.equal(simulator.state.output, "Release and hold again");
+      simulator.release();
+      assert.equal(simulator.state.output, "Button released");
       assert.equal(simulator.state.mode, "utility");
-      assert.equal(simulator.state.output, title);
     }
   }
 });
