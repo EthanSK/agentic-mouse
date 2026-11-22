@@ -52,14 +52,7 @@ public enum CodexModeAction: String, CaseIterable, Equatable, Sendable {
     /// marker for a source-only fix or an install; Ethan's later physical
     /// acceptance is the clearing boundary.
     public var hudControlStatus: ModeHUDControlStatus {
-        switch self {
-        // Ethan confirmed Voice mode works; retain the shared toggle route.
-        case .openSideChat:
-            return .reportedBroken
-        case .toggleVoiceMode, .newTask, .togglePin, .toggleMicrophoneMute,
-             .closeTab, .pressEnter, .openClaudeSession:
-            return .normal
-        }
+        .normal
     }
 
     public static func action(for cell: PhysicalCell, source: MouseSource = .corsair) -> CodexModeAction? {

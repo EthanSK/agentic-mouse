@@ -312,12 +312,14 @@ final class ModePickerTests: XCTestCase {
     }
 
     func testCodexAndVSCodeMarkersFollowLatestPhysicalReports() {
-        let brokenCodexActions: [CodexModeAction] = [.openSideChat]
         for action in CodexModeAction.allCases {
-            let expected: ModeHUDControlStatus = brokenCodexActions.contains(action)
-                ? .reportedBroken
-                : .normal
-            XCTAssertEqual(action.hudControlStatus, expected, "Codex action \(action)")
+            XCTAssertEqual(action.hudControlStatus, .normal, "Codex action \(action)")
+        }
+        for (source, label) in [(MouseSource.corsair, "Corsair 4"), (.razer, "Razer 6")] {
+            let legend = CodexMode.legend(for: source, from: CodexMode.definition.legend)
+            let sideChat = legend.first { $0.cell == CodexModeAction.openSideChat.cell }
+            XCTAssertEqual(sideChat?.actionTitle, "Open side chat")
+            XCTAssertEqual(sideChat?.printedControlLabel(on: source), label)
         }
 
         let closeTab = CodexMode.definition.legend.first {
