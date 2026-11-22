@@ -467,6 +467,8 @@ struct ModeHUDView: View {
     var usesNativeGlass = true
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Namespace private var wandOutline
+    private let gridPadding: CGFloat = 27
+    private let gridCardCornerRadius: CGFloat = 12
 
     private var displayAccent: Color {
         Color(model.presentationStyle.displayAccent(model.accent))
@@ -511,7 +513,7 @@ struct ModeHUDView: View {
                            value: model.pointerFocus?.pullY)
             footer
         }
-        .padding(27)
+        .padding(gridPadding)
         .frame(width: extendedWandGrid ? extendedWandWidth : 705)
         .background(panelBackground)
     }
@@ -558,7 +560,7 @@ struct ModeHUDView: View {
             let fillColor = reviewSelected ? Color(item.accent) : (item.cell.wandReviewMode != nil ? Color(red:0.055,green:0.075,blue:0.10) : Color(cardColors.fill))
             let borderColor = Color(cardColors.border)
             let foregroundColor = reviewSelected ? Color.black : (item.cell.wandReviewMode != nil ? Color.white : Color(cardColors.foreground))
-            let shape = RoundedRectangle(cornerRadius: 12, style: .continuous)
+            let shape = RoundedRectangle(cornerRadius: gridCardCornerRadius, style: .continuous)
             VStack(spacing: 4.5) {
                 // Click part first, then the held part ending in its motion
                 // arrow (see `ModeHUDGesture`). A long mixed title shrinks a
@@ -670,27 +672,29 @@ struct ModeHUDView: View {
 
     @ViewBuilder
     private var panelBackground: some View {
-        let shape = RoundedRectangle(cornerRadius: 27, style: .continuous)
+        let radius = model.isDefaultLegend ? gridPadding + gridCardCornerRadius : gridPadding
+        let shape = RoundedRectangle(cornerRadius: radius, style: .continuous)
         ZStack {
             if usesNativeGlass {
                 if model.isDefaultLegend, #available(macOS 26.0, *) {
-                    // Fully native macOS Liquid Glass around the outside. SwiftUI owns the
-                    // refraction and fading on both edges of the shape. Leaving its centre
-                    // open avoids the adaptive shading of a filled glass rectangle.
-                    let glassWidth: CGFloat = 38
-                    let rim = shape.inset(by: glassWidth / 2).stroke(lineWidth: glassWidth)
-                    Color.clear.glassEffect(.clear, in: rim)
+                    // The Dock-like Default panel uses one filled native surface.
+                    // The former stroked path also refracted at its square inner corners.
+                    Color.clear.glassEffect(.regular, in: shape)
                 } else {
-                    ModeHUDNativeGlassBackground(cornerRadius: 27).clipShape(shape)
+                    ModeHUDNativeGlassBackground(cornerRadius: radius).clipShape(shape)
                 }
             } else if !model.isDefaultLegend {
                 shape.fill(ModeHUDNativeGlass.offscreenStandIn)
             }
 
-            shape.strokeBorder(
-                displayAccent.opacity(model.isActive ? 1 : 0.32),
-                lineWidth: model.outlineWidth ?? (model.presentationStyle == .boldOpaque ? 3 : 2.75)
-            )
+            if model.isDefaultLegend {
+                shape.strokeBorder(displayAccent.opacity(0.28), lineWidth: 1)
+            } else {
+                shape.strokeBorder(
+                    displayAccent.opacity(model.isActive ? 1 : 0.32),
+                    lineWidth: model.outlineWidth ?? (model.presentationStyle == .boldOpaque ? 3 : 2.75)
+                )
+            }
         }
     }
 

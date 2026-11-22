@@ -3780,3 +3780,22 @@ In the installed Codex-context Default legends on both mice, nine ordinary tiles
 Compare the same tile on light and dark backgrounds and check a bare centre gap separately. The stock material can darken a light backdrop at the rim while the middle gap still matches the desktop exactly.
 
 On build 390 the nine ordinary tiles on each mouse went from 59 to 79 on the window capture's 0–255 opacity scale. The three strong tiles remained at 245. Both dark and light captures kept the centre gap identical to the underlying board. Median change in the sampled top rim was zero.
+
+## 2026-11-22 — One filled native surface for the Default mouse HUD
+
+After trying the clear glass band, Ethan said the Default HUD looked square
+and asked for the plain native look of the Dock. A thick SwiftUI stroke has
+an inner edge too. With the 27-point corner radius and a 38-point stroke,
+the inner turns are square, and the edge crosses the first row of tiles.
+
+Draw the Default backdrop as one filled rounded rectangle with stock SwiftUI
+Regular Liquid Glass. Make its radius the tile radius plus the panel padding.
+Keep the action colours above the material, and use a narrow, subdued perimeter
+so the system highlight stays visible. There is no separate refraction control
+in the public glass API. The actual Dock is the visual reference.
+
+On installed build 394 the same unobstructed middle gap changed by about
+−48 RGB levels over the light reference and +18 over the dark reference on
+both mice. Before, that gap matched the reference exactly. Native glass now
+covers the middle and softens the board lines across the panel. Hit-tests in
+the middle and at the perimeter still reached the underlying windows.
