@@ -3804,3 +3804,8 @@ the middle and at the perimeter still reached the underlying windows.
 ## 2026-11-24 — Immediate YouTube rewind with exact-position double-click pause
 
 Ethan rejected delaying the normal rewind to wait for double-click. Send the first five-second rewind immediately on the existing short release, and bind its original currentTime, player and clip to an opaque per-mouse click token. The second click restores that exact time and pauses. Opposite +5 is insufficient near zero and while playback advances. Preserve wheel/speed/volume suppression and the independent wand route. Use existing seek notification and native-host envelopes with optional click metadata so older companions still execute the ordinary first rewind. Reject expired, duplicate, missing and changed-video receipts. The explicit pause relinquishes recording-resume ownership even when the video was already paused.
+
+
+## 2026-11-24 — Replace double-click pause with long-then-short Play/Pause
+
+Ethan found double-click pause annoying and explicitly wants a toggle in both directions. Keep every ordinary short release immediate, including two rewinds for two short clicks. A wheel-free long release arms only the next same-mouse short press within the existing macOS double-click interval; do not add a wait or change the 350 ms speed-hold threshold. Preserve the existing 2× hold and restore it on release before the playback toggle. Remove the compensating-seek snapshots: the toggle itself never touches currentTime. Deduplicate the browser command and recover a missing receiver only when Chrome proves no receiver existed; never replay an uncertain toggle. Keep the old hold-to-pause draft separate from the installed behavior.

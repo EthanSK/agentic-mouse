@@ -1,44 +1,92 @@
+// Exercises Ethan's long-then-short gesture without changing immediate ordinary rewind. — GPT-6.1 Sol
 @testable import AgenticMouseApp
 import ScimitarKit
 import XCTest
 
 @MainActor
 final class YouTubeClickControllerTests: XCTestCase {
-    func testFirstClickIsImmediateAndDoubleUsesItsExactTokenForEachMouse() {
+    func testOrdinarySingleAndDoubleClicksBothRewindImmediately() {
         for source in [MouseSource.corsair, .razer] {
-            var events: [(YouTubeClickController.Action, String)] = []
-            let controller = YouTubeClickController(interval: 0.5) { events.append(($0, $1)); return true }
-            XCTAssertEqual(controller.click(source: source, time: 10), .rewind)
-            XCTAssertEqual(events.count, 1)
-            XCTAssertEqual(controller.click(source: source, time: 10.3), .restoreAndPause)
-            XCTAssertEqual(events.map(\.0), [.rewind, .restoreAndPause])
-            XCTAssertEqual(events[0].1, events[1].1)
-            XCTAssertEqual(controller.click(source: source, time: 10.4), .rewind)
-            XCTAssertNotEqual(events[0].1, events[2].1)
+            var actions: [YouTubeClickController.Action] = []
+            let controller = YouTubeClickController(interval: 0.5) { actions.append($0); return true }
+            controller.press(source: source, time: 1)
+            XCTAssertEqual(controller.release(source: source, time: 1.1, isShortClick: true, didObserveWheelInput: false), .rewind)
+            XCTAssertEqual(actions, [.rewind])
+            controller.press(source: source, time: 1.2)
+            XCTAssertEqual(controller.release(source: source, time: 1.3, isShortClick: true, didObserveWheelInput: false), .rewind)
+            XCTAssertEqual(actions, [.rewind, .rewind])
         }
     }
 
-    func testSourcesDoNotCombineAndExpiredClicksStartFresh() {
-        var actions: [YouTubeClickController.Action] = []
-        let controller = YouTubeClickController(interval: 0.5) { action, _ in actions.append(action); return true }
-        controller.click(source: .corsair, time: 1)
-        controller.click(source: .razer, time: 1.1)
-        controller.click(source: .corsair, time: 1.51)
-        XCTAssertEqual(actions, [.rewind, .rewind, .rewind])
+    func testLongThenShortTogglesOnceForBothMiceAndDoesNotRewind() {
+        for source in [MouseSource.corsair, .razer] {
+            var actions: [YouTubeClickController.Action] = []
+            let controller = YouTubeClickController(interval: 0.5) { actions.append($0); return true }
+            controller.press(source: source, time: 1)
+            XCTAssertNil(controller.release(source: source, time: 1.4, isShortClick: false, didObserveWheelInput: false))
+            XCTAssertTrue(actions.isEmpty)
+            controller.press(source: source, time: 1.8)
+            XCTAssertEqual(controller.release(source: source, time: 2, isShortClick: true, didObserveWheelInput: false), .togglePlayback)
+            XCTAssertEqual(actions, [.togglePlayback])
+            controller.press(source: source, time: 2.1)
+            XCTAssertEqual(controller.release(source: source, time: 2.2, isShortClick: true, didObserveWheelInput: false), .rewind)
+        }
     }
 
-    func testCancellationFailureAndBackwardsTimeNeverRestore() {
+    func testOtherMouseAndExpiredFollowUpDoNotToggle() {
         var actions: [YouTubeClickController.Action] = []
-        var accepts = false
-        let controller = YouTubeClickController(interval: 0.5) { action, _ in actions.append(action); return accepts }
-        XCTAssertNil(controller.click(source: .corsair, time: 1))
-        accepts = true
-        controller.click(source: .corsair, time: 1.1)
-        controller.cancel(source: .corsair)
-        controller.click(source: .corsair, time: 1.2)
-        controller.cancelAll()
-        controller.click(source: .corsair, time: 1.3)
-        controller.click(source: .corsair, time: 1.2)
-        XCTAssertTrue(actions.allSatisfy { $0 == .rewind })
+        let controller = YouTubeClickController(interval: 0.5) { actions.append($0); return true }
+        controller.press(source: .corsair, time: 1)
+        controller.release(source: .corsair, time: 1.4, isShortClick: false, didObserveWheelInput: false)
+        controller.press(source: .razer, time: 1.5)
+        controller.release(source: .razer, time: 1.6, isShortClick: true, didObserveWheelInput: false)
+        controller.press(source: .corsair, time: 2)
+        controller.release(source: .corsair, time: 2.1, isShortClick: true, didObserveWheelInput: false)
+        XCTAssertEqual(actions, [.rewind, .rewind])
     }
+
+    func testWheelAndCancellationSuppressTheSequence() {
+        for cancelAll in [false, true] {
+            var actions: [YouTubeClickController.Action] = []
+            let controller = YouTubeClickController(interval: 0.5) { actions.append($0); return true }
+            controller.press(source: .corsair, time: 1)
+            controller.release(source: .corsair, time: 1.4, isShortClick: false, didObserveWheelInput: true)
+            controller.press(source: .corsair, time: 1.5)
+            controller.release(source: .corsair, time: 1.6, isShortClick: true, didObserveWheelInput: false)
+            controller.press(source: .corsair, time: 2)
+            controller.release(source: .corsair, time: 2.4, isShortClick: false, didObserveWheelInput: false)
+            if cancelAll { controller.cancelAll() } else { controller.cancel(source: .corsair) }
+            controller.press(source: .corsair, time: 2.5)
+            controller.release(source: .corsair, time: 2.6, isShortClick: true, didObserveWheelInput: false)
+            XCTAssertEqual(actions, [.rewind, .rewind])
+        }
+    }
+
+    func testDuplicatePressBackwardsTimeAndRejectedClickDoNotArmToggle() {
+        var actions: [YouTubeClickController.Action] = []
+        let controller = YouTubeClickController(interval: 0.5) { actions.append($0); return true }
+        controller.press(source: .corsair, time: 2)
+        controller.press(source: .corsair, time: 2.3)
+        controller.release(source: .corsair, time: 1.9, isShortClick: false, didObserveWheelInput: false)
+        controller.press(source: .corsair, time: 3)
+        controller.release(source: .corsair, time: 3.1, isShortClick: false, didObserveWheelInput: false)
+        controller.press(source: .corsair, time: 3.2)
+        controller.release(source: .corsair, time: 3.3, isShortClick: true, didObserveWheelInput: false)
+        XCTAssertEqual(actions, [.rewind])
+    }
+    func testUnusedVolumeModifierPreservesRewindWithoutArmingToggle() {
+        for modifierAtPress in [false, true] {
+            var actions: [YouTubeClickController.Action] = []
+            let controller = YouTubeClickController(interval: 0.5) { actions.append($0); return true }
+            controller.press(source: .corsair, time: 1, canArmLongPress: !modifierAtPress)
+            if !modifierAtPress { controller.inhibitLongPress(source: .corsair) }
+            controller.release(source: .corsair, time: 1.1, isShortClick: true, didObserveWheelInput: false)
+            controller.press(source: .corsair, time: 2, canArmLongPress: false)
+            controller.release(source: .corsair, time: 2.4, isShortClick: false, didObserveWheelInput: false)
+            controller.press(source: .corsair, time: 2.5)
+            controller.release(source: .corsair, time: 2.6, isShortClick: true, didObserveWheelInput: false)
+            XCTAssertEqual(actions, [.rewind, .rewind])
+        }
+    }
+
 }

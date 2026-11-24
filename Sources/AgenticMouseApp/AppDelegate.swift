@@ -2242,9 +2242,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 return
             }
             guard control == .youtubeScrub else { return }
+            let volumeModifierActive = self?.wheelChordMonitor?.isYouTubeVolumeModifierActive(for: source) == true
+            self?.youtubeClickController.press(source: source, time: inputTime, canArmLongPress: !volumeModifierActive)
             self?.youtubeScrubHoldController.press(
                 source: source,
-                volumeModifierActive: self?.wheelChordMonitor?.isYouTubeVolumeModifierActive(for: source) == true,
+                volumeModifierActive: volumeModifierActive,
                 inputTime: inputTime
             )
         }
@@ -2298,17 +2300,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 WindowSnapController.shared.cancel(source: release.source)
             case .youtubeScrub:
                 guard let self else { return }
-                guard self.youtubeScrubHoldController.release(source: release.source, inputTime: inputTime) == true,
-                      !release.didObserveWheelInput else {
-                    self.youtubeClickController.cancel(source: release.source)
-                    return
-                }
+                let isShortClick = self.youtubeScrubHoldController.release(source: release.source, inputTime: inputTime)
                 guard self.mouseCommandsAllowed, self.isDefaultWheelContext(release.source) else {
                     self.youtubeClickController.cancel(source: release.source)
                     return
                 }
-                let action = self.youtubeClickController.click(source: release.source, time: inputTime)
-                self.log.info("YouTube click requested: \(action?.rawValue ?? "failed") from \(release.source.displayName)")
+                guard let action = self.youtubeClickController.release(source: release.source, time: inputTime,
+                    isShortClick: isShortClick, didObserveWheelInput: release.didObserveWheelInput) else { return }
+                self.log.info("YouTube gesture requested: \(action.rawValue) from \(release.source.displayName)")
             case .screenshotPaste:
                 guard let self, !release.didObserveWheelInput, self.mouseCommandsAllowed,
                       self.isDefaultWheelContext(release.source) else { return }
@@ -2340,7 +2339,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         monitor.onYouTubeVolumeModifierChange = { [weak self] source in
             if self?.wheelChordMonitor?.isYouTubeVolumeModifierActive(for: source) == true {
-                self?.youtubeClickController.cancel(source: source)
+                self?.youtubeClickController.inhibitLongPress(source: source)
                 self?.youtubeScrubHoldController.inhibitSpeed(source: source)
             }
             self?.defaultMapHintCoordinators[source]?.refresh()
