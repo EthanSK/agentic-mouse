@@ -1,4 +1,4 @@
-# CI builds the trusted source; private signing keys stay on the signing Mac.
+# Releases use a disposable GitHub-hosted Mac. — GPT-6.1 Sol
 name: Publish signed app
 on:
   push:
@@ -16,14 +16,15 @@ jobs:
     uses: ./.github/workflows/check.yml
   release:
     needs: build
-    runs-on: [self-hosted, macOS, ARM64, agentic-mouse-release]
+    runs-on: macos-15
     timeout-minutes: 90
     permissions:
       contents: write
     env:
       GH_TOKEN: ${{ github.token }}
       CODE_SIGN_IDENTITY: 'Developer ID Application: Ethan Sarif-Kattan (T34G959ZG8)'
-      NOTARY_PROFILE: ${{ vars.NOTARY_PROFILE || 'AgentFlowRelease' }}
+      NOTARY_PROFILE: ReleaseCI
+      SPARKLE_ACCOUNT: com.ethansk.AgenticMouse
     steps:
       - uses: actions/checkout@v4
         with: {persist-credentials: false}
@@ -38,18 +39,21 @@ jobs:
           echo '1a856d2a9edb8e628de88121d7be04cf0e2167f8641650b78fca00b14244cf27  '"$RUNNER_TEMP/Sparkle.tar.xz" | shasum -a 256 -c -
           mkdir -p "$RUNNER_TEMP/Sparkle.noindex"
           tar -xf "$RUNNER_TEMP/Sparkle.tar.xz" -C "$RUNNER_TEMP/Sparkle.noindex"
-          tools="$HOME/.local/share/sparkle-tools/2.10.1/bin"
-          # Provision this versioned copy during signing-host setup; reject missing or changed tools before any Keychain access.
-          diff -r "$RUNNER_TEMP/Sparkle.noindex/bin" "$tools"
-          echo "SPARKLE_TOOLS=$tools" >> "$GITHUB_ENV"
+          echo "SPARKLE_TOOLS=$RUNNER_TEMP/Sparkle.noindex/bin" >> "$GITHUB_ENV"
+      - name: Prepare temporary signing credentials
+        env:
+          APPLE_CERTIFICATE_P12_BASE64: ${{ secrets.APPLE_CERTIFICATE_P12_BASE64 }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          SPARKLE_ED25519_PRIVATE_KEY: ${{ secrets.SPARKLE_ED25519_PRIVATE_KEY }}
+        run: bash Scripts/prepare-hosted-signing.sh
       - name: Sign and notarize the exact CI app
         run: bash Scripts/sign-prebuilt-release.sh "$RUNNER_TEMP/prebuilt.noindex"
       - name: Publish immutable signed updates
         run: |
-          # The signing Mac's existing Keychain login has workflow permission;
-          # a job token cannot publish an older source after workflow edits.
-          unset GH_TOKEN GITHUB_TOKEN
-          test "$(gh api --hostname github.com user --jq .login)" = EthanSK
+          # Keep the selected source bound to this workflow's token. — GPT-6.1 Sol
           version=$(/usr/libexec/PlistBuddy -c 'Print CFBundleShortVersionString' Resources/Info.plist)
           build=$(/usr/libexec/PlistBuddy -c 'Print CFBundleVersion' Resources/Info.plist)
           tag="v$version-build.$build"
@@ -64,3 +68,10 @@ jobs:
           gh release download "$tag" --dir "$RUNNER_TEMP/downloaded.noindex"
           cd "$RUNNER_TEMP/downloaded.noindex"
           shasum -a 256 -c SHA256SUMS
+      - name: Remove temporary signing credentials
+        if: always()
+        run: |
+          rm -f "${RELEASE_CERTIFICATE:-}" "${RELEASE_SPARKLE_KEY:-}"
+          if [[ -n "${RELEASE_KEYCHAIN:-}" && -f "$RELEASE_KEYCHAIN" ]]; then
+            security delete-keychain "$RELEASE_KEYCHAIN"
+          fi

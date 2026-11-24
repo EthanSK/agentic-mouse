@@ -57,7 +57,9 @@ PY
 expected=$(/usr/libexec/PlistBuddy -c 'Print SUPublicEDKey' "$APP/Contents/Info.plist")
 actual=$("$SPARKLE_TOOLS/generate_keys" --account com.ethansk.AgenticMouse -p)
 [[ "$expected" == "$actual" ]]
-"$SPARKLE_TOOLS/generate_appcast" --account com.ethansk.AgenticMouse --maximum-deltas 0 \
+SPARKLE_ARGS=(--account com.ethansk.AgenticMouse)
+if [[ -n "${SPARKLE_KEY_FILE:-}" ]]; then SPARKLE_ARGS=(--ed-key-file "$SPARKLE_KEY_FILE"); fi
+"$SPARKLE_TOOLS/generate_appcast" "${SPARKLE_ARGS[@]}" --maximum-deltas 0 \
   --download-url-prefix "https://github.com/EthanSK/agentic-mouse/releases/download/v${VERSION}-build.${BUILD}/" \
   -o "$OUT/appcast.xml" "$OUT"
 (cd "$OUT" && shasum -a 256 "$ARCHIVE" appcast.xml > SHA256SUMS)
