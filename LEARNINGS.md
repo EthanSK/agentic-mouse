@@ -3799,3 +3799,8 @@ On installed build 394 the same unobstructed middle gap changed by about
 both mice. Before, that gap matched the reference exactly. Native glass now
 covers the middle and softens the board lines across the panel. Hit-tests in
 the middle and at the perimeter still reached the underlying windows.
+
+
+## 2026-11-24 — Immediate YouTube rewind with exact-position double-click pause
+
+Ethan rejected delaying the normal rewind to wait for double-click. Send the first five-second rewind immediately on the existing short release, and bind its original currentTime, player and clip to an opaque per-mouse click token. The second click restores that exact time and pauses. Opposite +5 is insufficient near zero and while playback advances. Preserve wheel/speed/volume suppression and the independent wand route. Use existing seek notification and native-host envelopes with optional click metadata so older companions still execute the ordinary first rewind. Reject expired, duplicate, missing and changed-video receipts. The explicit pause relinquishes recording-resume ownership even when the video was already paused.

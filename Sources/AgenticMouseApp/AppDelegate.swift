@@ -214,6 +214,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         return controller
     }()
     private var screenshotInteractionWasActive = false
+    private lazy var youtubeClickController = YouTubeClickController(interval: NSEvent.doubleClickInterval)
     private lazy var youtubeScrubHoldController = YouTubeScrubHoldController(
         inputAllowed: { [weak self] in self?.mouseCommandsAllowed == true },
         beginSpeed: { [weak self] source in
@@ -486,6 +487,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         wheelChordMonitor?.stop()
         magnetWheelActionSequencer.cancelAll()
         WindowSnapController.shared.cancelAll()
+        youtubeClickController.cancelAll()
         chromeYouTubeSpeedHoldController.cancelAll()
         pendingSpaceDiagnostic = nil
         spaceDiagnosticGeneration &+= 1
@@ -586,6 +588,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         wheelChordMonitor?.clearAll()
         magnetWheelActionSequencer.cancelAll()
         WindowSnapController.shared.cancelAll()
+        youtubeClickController.cancelAll()
         chromeYouTubeSpeedHoldController.cancelAll()
         pendingSpaceDiagnostic = nil
         spaceDiagnosticGeneration &+= 1
@@ -648,6 +651,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         wheelChordMonitor?.clearAll()
         magnetWheelActionSequencer.cancelAll()
         WindowSnapController.shared.cancelAll()
+        youtubeClickController.cancelAll()
         chromeYouTubeSpeedHoldController.cancelAll()
         notificationCenterToggleVerifier.cancel()
         pendingSpaceDiagnostic = nil
@@ -2261,6 +2265,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             self?.chromeVSCodeLayoutController.cancel(source: source)
             self?.windowResizeController.cancel(source: source)
             self?.youtubeScrubHoldController.cancel(source: source)
+            if nextControl != .youtubeScrub { self?.youtubeClickController.cancel(source: source) }
         }
         monitor.onRelease = { [weak self] release, inputTime in
             if release.control == .vsCodeStageRange {
@@ -2292,9 +2297,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 self?.magnetWheelActionSequencer.cancel(source: release.source)
                 WindowSnapController.shared.cancel(source: release.source)
             case .youtubeScrub:
-                guard self?.youtubeScrubHoldController.release(source: release.source, inputTime: inputTime) == true,
-                      !release.didObserveWheelInput else { return }
-                self?.performTopLevelYouTubeRewind(from: release.source)
+                guard let self else { return }
+                guard self.youtubeScrubHoldController.release(source: release.source, inputTime: inputTime) == true,
+                      !release.didObserveWheelInput else {
+                    self.youtubeClickController.cancel(source: release.source)
+                    return
+                }
+                guard self.mouseCommandsAllowed, self.isDefaultWheelContext(release.source) else {
+                    self.youtubeClickController.cancel(source: release.source)
+                    return
+                }
+                let action = self.youtubeClickController.click(source: release.source, time: inputTime)
+                self.log.info("YouTube click requested: \(action?.rawValue ?? "failed") from \(release.source.displayName)")
             case .screenshotPaste:
                 guard let self, !release.didObserveWheelInput, self.mouseCommandsAllowed,
                       self.isDefaultWheelContext(release.source) else { return }
@@ -2326,6 +2340,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         monitor.onYouTubeVolumeModifierChange = { [weak self] source in
             if self?.wheelChordMonitor?.isYouTubeVolumeModifierActive(for: source) == true {
+                self?.youtubeClickController.cancel(source: source)
                 self?.youtubeScrubHoldController.inhibitSpeed(source: source)
             }
             self?.defaultMapHintCoordinators[source]?.refresh()
@@ -2401,6 +2416,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                   self.mouseCommandsAllowed,
                   self.activeWheelControl(for: step.source) == .youtubeScrub
             else { return }
+            self.youtubeClickController.cancel(source: step.source)
             switch self.modeUtilityActionExecutor.performYouTubeSeek(action) {
             case .success:
                 self.log.info(
