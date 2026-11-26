@@ -3809,3 +3809,9 @@ Ethan rejected delaying the normal rewind to wait for double-click. Send the fir
 ## 2026-11-24 — Replace double-click pause with long-then-short Play/Pause
 
 Ethan found double-click pause annoying and explicitly wants a toggle in both directions. Keep every ordinary short release immediate, including two rewinds for two short clicks. A wheel-free long release arms only the next same-mouse short press within the existing macOS double-click interval; do not add a wait or change the 350 ms speed-hold threshold. Preserve the existing 2× hold and restore it on release before the playback toggle. Remove the compensating-seek snapshots: the toggle itself never touches currentTime. Deduplicate the browser command and recover a missing receiver only when Chrome proves no receiver existed; never replay an uncertain toggle. Keep the old hold-to-pause draft separate from the installed behavior.
+
+## 2026-11-26 — Configurable top-corner mouse HUDs
+
+HUDPlacementStore owns the saved mouse-only Top/Bottom choice and 88-point top gap. Both AppKitModeHUDPresenter and AppKitHUDPresenter use its shared screen-point frame calculation, so Default, runtime modes and Keypad agree across displays and scales. Keep the Wand’s recorder-aware anchor separate. Combine receives placement changes on the main run loop after @Published updates its stored value; reading that value synchronously in its willSet publication would otherwise reposition using the previous choice.
+
+With the local SwiftBuild engine, a filtered swift test run selected only AgenticMouseAppTests and reported zero matches for HUDPlacementTests. The separately built XCTest bundles under out/Products/Debug were present; running the intended bundle with xcrun xctest executed all five placement cases. Require nonzero suite counts when changing build engines.

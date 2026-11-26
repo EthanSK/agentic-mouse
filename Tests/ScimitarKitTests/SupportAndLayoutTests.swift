@@ -299,11 +299,11 @@ final class ConfigurationTests: XCTestCase {
     func testEverySourceOwnedHUDUsesTheMouseHandedCorner() {
         XCTAssertEqual(
             AppConfiguration.HUDConfiguration.sourceCorner(for: .corsair),
-            .bottomRight
+            .topRight
         )
         XCTAssertEqual(
             AppConfiguration.HUDConfiguration.sourceCorner(for: .razer),
-            .bottomLeft
+            .topLeft
         )
         XCTAssertEqual(MouseSource.allCases.count, 2)
     }

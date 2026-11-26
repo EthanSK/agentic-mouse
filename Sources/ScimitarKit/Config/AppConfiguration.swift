@@ -244,6 +244,10 @@ public struct AppConfiguration: Codable, Equatable, Sendable {
             case topLeft, topRight, bottomLeft, bottomRight, center, bottomCenter
         }
 
+        public enum VerticalEdge: String, CaseIterable, Sendable {
+            case top, bottom
+        }
+
         public var corner: Corner
         public var margin: Double
         public var opacity: Double
@@ -269,12 +273,13 @@ public struct AppConfiguration: Codable, Equatable, Sendable {
         ///
         /// The persisted `corner` remains available for legacy generic HUDs,
         /// but a HUD that belongs to an exact mouse must never use one shared
-        /// corner: the right-handed Corsair lives at bottom-right and the
-        /// left-handed Razer at bottom-left.
-        public static func sourceCorner(for source: MouseSource) -> Corner {
+        /// corner. Ethan's “top corners” default keeps Corsair on the right
+        /// and Razer on the left; the app's saved edge can restore Bottom.
+        /// — GPT-6.1 Sol
+        public static func sourceCorner(for source: MouseSource, edge: VerticalEdge = .top) -> Corner {
             switch source {
-            case .corsair: return .bottomRight
-            case .razer: return .bottomLeft
+            case .corsair: return edge == .top ? .topRight : .bottomRight
+            case .razer: return edge == .top ? .topLeft : .bottomLeft
             // Ethan's Magic Wand HUD stays bottom-centre, above Agent Flow.
             // The presenter resolves live recorder geometry on that screen.
             case .wand: return .bottomCenter

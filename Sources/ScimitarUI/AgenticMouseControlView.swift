@@ -9,11 +9,14 @@ import SwiftUI
 public struct AgenticMouseControlView: View {
     @ObservedObject private var state: AgenticMouseControlState
     @ObservedObject private var scale: HUDScaleStore
+    @ObservedObject private var placement: HUDPlacementStore
     @State private var warningsExpanded = false
 
-    public init(state: AgenticMouseControlState, scale: HUDScaleStore = .shared) {
+    public init(state: AgenticMouseControlState, scale: HUDScaleStore = .shared,
+                placement: HUDPlacementStore = .shared) {
         self.state = state
         self.scale = scale
+        self.placement = placement
     }
 
     private var snapshot: AgenticMouseControlSnapshot { state.snapshot }
@@ -96,6 +99,26 @@ public struct AgenticMouseControlView: View {
                     .monospacedDigit().frame(width: 38, alignment: .trailing)
                 Button("Reset") { scale.resetScale() }
                     .disabled(scale.scale == HUDScaleStore.defaultScale)
+            }
+            Picker("Position", selection: Binding(get: { placement.edge }, set: { placement.setEdge($0) })) {
+                Text("Top").tag(AppConfiguration.HUDConfiguration.VerticalEdge.top)
+                Text("Bottom").tag(AppConfiguration.HUDConfiguration.VerticalEdge.bottom)
+            }
+            if placement.edge == .top {
+                HStack(spacing: 12) {
+                    Text("Top spacing").fixedSize()
+                    Spacer(minLength: 0)
+                    Text("\(Int(placement.topSpacing)) pt").monospacedDigit()
+                        .frame(width: 50, alignment: .trailing)
+                    Stepper("", value: Binding(
+                        get: { placement.topSpacing }, set: { placement.setTopSpacing($0) }),
+                        in: 0...HUDPlacementStore.maximumTopSpacing, step: 8)
+                        .labelsHidden().fixedSize()
+                        .accessibilityLabel("HUD top spacing")
+                    Button("Reset") { placement.setTopSpacing(HUDPlacementStore.defaultTopSpacing) }
+                        .fixedSize()
+                        .disabled(placement.topSpacing == HUDPlacementStore.defaultTopSpacing)
+                }
             }
         }
     }

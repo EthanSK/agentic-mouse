@@ -76,6 +76,8 @@ public final class AppKitHUDPresenter: NSObject, HUDPresenting {
     private let source: MouseSource
     private let configuration: AppConfiguration.HUDConfiguration
     private let scaleStore: HUDScaleStore
+    private let placementStore: HUDPlacementStore
+    private var placementObservation: AnyCancellable?
     private let workspaceNotificationCenter: NotificationCenter
     private var scaleObservation: AnyCancellable?
     private var wandPlacementAnchor: WandHUDPlacement.Anchor?
@@ -87,6 +89,7 @@ public final class AppKitHUDPresenter: NSObject, HUDPresenting {
         source: MouseSource,
         configuration: AppConfiguration.HUDConfiguration = .init(),
         scaleStore: HUDScaleStore = .shared,
+        placementStore: HUDPlacementStore = .shared,
         workspaceNotificationCenter: NotificationCenter = NSWorkspace.shared.notificationCenter,
         panelIsOnActiveSpace: @escaping (NSPanel) -> Bool = { $0.isOnActiveSpace }
     ) {
@@ -94,6 +97,7 @@ public final class AppKitHUDPresenter: NSObject, HUDPresenting {
         self.model = HUDViewModel(source: source)
         self.configuration = configuration
         self.scaleStore = scaleStore
+        self.placementStore = placementStore
         self.workspaceNotificationCenter = workspaceNotificationCenter
         self.panelIsOnActiveSpace = panelIsOnActiveSpace
         super.init()
@@ -114,6 +118,11 @@ public final class AppKitHUDPresenter: NSObject, HUDPresenting {
             self.panels.values.forEach { $0.hostingView.setScale(CGFloat(scale)) }
             if self.isVisible { self.reconcilePanels(show: true) }
         }
+        placementObservation = placementStore.$edge.combineLatest(placementStore.$topSpacing)
+            .dropFirst().receive(on: RunLoop.main).sink { [weak self] _ in
+                guard let self, self.source != .wand, self.isVisible else { return }
+                self.reconcilePanels(show: true)
+            }
     }
 
     deinit {
@@ -285,26 +294,14 @@ public final class AppKitHUDPresenter: NSObject, HUDPresenting {
         let size = instance.hostingView.fittingSize
         let margin = CGFloat(configuration.margin)
 
-        let origin: NSPoint
-        switch AppConfiguration.HUDConfiguration.sourceCorner(for: source) {
-        case .topLeft:
-            origin = NSPoint(x: visible.minX + margin, y: visible.maxY - size.height - margin)
-        case .topRight:
-            origin = NSPoint(x: visible.maxX - size.width - margin, y: visible.maxY - size.height - margin)
-        case .bottomLeft:
-            origin = NSPoint(x: visible.minX + margin, y: visible.minY + margin)
-        case .bottomRight:
-            origin = NSPoint(x: visible.maxX - size.width - margin, y: visible.minY + margin)
-        case .bottomCenter:
+        let frame: NSRect
+        if source == .wand {
             if wandPlacementAnchor == nil { wandPlacementAnchor = .init() }
-            origin = wandPlacementAnchor!.frame(size:size,on:screen,margin:margin).origin
-        case .center:
-            origin = NSPoint(
-                x: visible.midX - size.width / 2,
-                y: visible.midY - size.height / 2
-            )
+            frame = wandPlacementAnchor!.frame(size: size, on: screen, margin: margin)
+        } else {
+            frame = placementStore.frame(source: source, size: size, visibleFrame: visible, margin: margin)
         }
-        instance.panel.setFrame(NSRect(origin: origin, size: size), display: true)
+        instance.panel.setFrame(frame, display: true)
         positionScaleControl(instance)
         HUDScaleHoverCoordinator.shared.refresh()
     }
@@ -312,15 +309,16 @@ public final class AppKitHUDPresenter: NSObject, HUDPresenting {
     private func positionScaleControl(_ instance: PanelInstance) {
         let inset: CGFloat = 8
         let x: CGFloat
-        switch AppConfiguration.HUDConfiguration.sourceCorner(for: source) {
+        switch AppConfiguration.HUDConfiguration.sourceCorner(for: source, edge: placementStore.edge) {
         case .topLeft, .bottomLeft:
             x = instance.panel.frame.minX + inset
         case .topRight, .bottomRight, .center, .bottomCenter:
             x = instance.panel.frame.maxX - HUDScaleControlPanel.size.width - inset
         }
-        instance.scaleControlPanel.setFrameOrigin(NSPoint(
-            x: x,
-            y: instance.panel.frame.minY + inset
-        ))
+        // Keep the size control on the fixed edge while resizing a top HUD. — GPT-6.1 Sol
+        let y = source != .wand && placementStore.edge == .top
+            ? instance.panel.frame.maxY - HUDScaleControlPanel.size.height - inset
+            : instance.panel.frame.minY + inset
+        instance.scaleControlPanel.setFrameOrigin(NSPoint(x: x, y: y))
     }
 }

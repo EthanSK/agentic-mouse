@@ -116,8 +116,8 @@ final class WandSelectionCommandTests: XCTestCase {
         }
         XCTAssertEqual(PhysicalCell(rawValue: 10)!.displayLabel(on: .razer), "Razer 12")
         XCTAssertEqual(AppConfiguration.HUDConfiguration.sourceCorner(for: .wand), .bottomCenter)
-        XCTAssertEqual(AppConfiguration.HUDConfiguration.sourceCorner(for: .corsair), .bottomRight)
-        XCTAssertEqual(AppConfiguration.HUDConfiguration.sourceCorner(for: .razer), .bottomLeft)
+        XCTAssertEqual(AppConfiguration.HUDConfiguration.sourceCorner(for: .corsair), .topRight)
+        XCTAssertEqual(AppConfiguration.HUDConfiguration.sourceCorner(for: .razer), .topLeft)
         XCTAssertFalse(MouseSource.wand.isPhysicalAdapter)
         XCTAssertEqual(MouseSource.wand.presentationSource, .corsair)
     }

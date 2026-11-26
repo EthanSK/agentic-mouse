@@ -187,3 +187,7 @@ python3 Scripts/install-provenance.py verify --candidate build.noindex/AgenticMo
 ```
 
 If it refuses, preserve the running app and reconcile/rebuild. Do not just raise the version, copy a stale bundle, or bypass the check. Source changes during packaging or another task installing first invalidate the candidate. The original unmanifested app is supported once so an existing installation can adopt this guard.
+
+### HUD position
+
+In Agentic Mouse’s app window, the HUD section offers Position (Top or Bottom) and Top spacing. The default places Corsair at the top-right and Razer at the top-left, 88 points below the menu bar and 12 points inward. The choice applies immediately to open mouse legends on every display and persists across launches. Bottom restores their former corners. Size and Magic Wand placement remain independent.
