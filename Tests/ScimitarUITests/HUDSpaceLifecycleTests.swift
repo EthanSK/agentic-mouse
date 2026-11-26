@@ -5,10 +5,14 @@ import XCTest
 
 @MainActor
 final class HUDSpaceLifecycleTests: VisibleHUDTestCase {
-    func testMouseHUDsTouchTheirHandedBottomCornersOnEveryDisplay() async {
+    func testMouseHUDsUseInsetTopCornersAndCanRestoreBottomOnEveryDisplay() async {
         let baselinePanels = visibleHUDPanels()
-        let corsairPresenter = AppKitModeHUDPresenter(source: .corsair)
-        let razerPresenter = AppKitModeHUDPresenter(source: .razer)
+        let suite = "HUDSpaceLifecycleTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let placement = HUDPlacementStore(defaults: defaults)
+        let corsairPresenter = AppKitModeHUDPresenter(source: .corsair, placementStore: placement)
+        let razerPresenter = AppKitModeHUDPresenter(source: .razer, placementStore: placement)
         corsairPresenter.show(DefaultMapLegend.snapshot(source: .corsair))
         razerPresenter.show(DefaultMapLegend.snapshot(source: .razer))
         await waitForMainQueueTurns()
@@ -24,12 +28,29 @@ final class HUDSpaceLifecycleTests: VisibleHUDTestCase {
             let screenPanels = panels.filter { screen.frame.contains(NSPoint(x: $0.frame.midX, y: $0.frame.midY)) }
             XCTAssertEqual(screenPanels.count, 2)
             XCTAssertTrue(screenPanels.contains { panel in
-                abs(panel.frame.minX - screen.visibleFrame.minX) < 0.01
-                    && abs(panel.frame.minY - screen.visibleFrame.minY) < 0.01
+                abs(panel.frame.minX - screen.visibleFrame.minX - 12) < 0.01
+                    && abs(screen.visibleFrame.maxY - panel.frame.maxY - 88) < 0.01
             })
             XCTAssertTrue(screenPanels.contains { panel in
-                abs(panel.frame.maxX - screen.visibleFrame.maxX) < 0.01
-                    && abs(panel.frame.minY - screen.visibleFrame.minY) < 0.01
+                abs(screen.visibleFrame.maxX - panel.frame.maxX - 12) < 0.01
+                    && abs(screen.visibleFrame.maxY - panel.frame.maxY - 88) < 0.01
+            })
+        }
+
+        placement.setEdge(.bottom)
+        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+            RunLoop.main.perform { continuation.resume() }
+        }
+        await waitForMainQueueTurns()
+        for screen in NSScreen.screens {
+            let screenPanels = panels.filter { screen.frame.contains(NSPoint(x: $0.frame.midX, y: $0.frame.midY)) }
+            XCTAssertTrue(screenPanels.contains {
+                abs($0.frame.minX - screen.visibleFrame.minX) < 0.01
+                    && abs($0.frame.minY - screen.visibleFrame.minY) < 0.01
+            })
+            XCTAssertTrue(screenPanels.contains {
+                abs($0.frame.maxX - screen.visibleFrame.maxX) < 0.01
+                    && abs($0.frame.minY - screen.visibleFrame.minY) < 0.01
             })
         }
 
