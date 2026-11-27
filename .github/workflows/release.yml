@@ -4,7 +4,7 @@ on:
   push:
     branches: [main]
     # The website exporter has its own publication workflow and no app bytes.
-    paths: ['Sources/**', 'Tests/**', 'Resources/**', 'Scripts/**', '!Scripts/build-site.py', 'Karabiner/**', 'Integrations/**', 'Package.*', '.github/workflows/check.yml', '.github/workflows/release.yml']
+    paths: ['Sources/**', 'Tests/**', '!Tests/ShowcaseTests/**', 'Resources/**', 'Scripts/**', '!Scripts/build-site.py', 'Karabiner/**', 'Integrations/**', 'Package.*', '.github/workflows/check.yml', '.github/workflows/release.yml']
   workflow_dispatch:
 permissions:
   contents: read
