@@ -859,11 +859,6 @@ button {
 .skills-disclosure > summary::after { content: "+"; color: #b5a0f5; font-size: 24px; }
 .skills-disclosure[open] > summary::after { content: "−"; }
 .skills-disclosure > p { max-width: 650px; margin-bottom: 24px; color: #b7b5c0; font-size: 13px; }
-.skills-reference { display: grid; grid-template-columns: 1fr auto; gap: 20px 40px; align-items: center; margin-top: 40px; padding: 32px; border-radius: 18px; background: #b5a0f512; }
-.skills-reference h3 { font-size: 21px; font-weight: 600; letter-spacing: -.025em; }
-.skills-reference p { max-width: 650px; margin-top: 9px; color: #b7b5c0; font-size: 13px; }
-.skills-reference .skill-platform { margin-bottom: 9px; }
-.skills-reference .skill-links { margin: 0; }
 .skills-experiments { display: grid; gap: 20px; padding-bottom: 10px; }
 .skills-experiments a { font-size: 14px; text-decoration: underline; text-underline-offset: 5px; }
 .skills-experiments p { margin-top: 7px; color: #b7b5c0; font-size: 12px; }
@@ -875,7 +870,6 @@ button {
   .skill-card summary::after { top: 20px; right: 22px; }
   .skill-card h4 { font-size: 21px; }
   .skill-detail { padding: 0 22px 23px; }
-  .skills-reference { grid-template-columns: 1fr; padding: 25px 22px; }
 }
 .engineer-section { padding: 90px 0; background: var(--white); }
 .hero-description a, .voice-feature a { text-decoration: underline; text-underline-offset: 4px; }
